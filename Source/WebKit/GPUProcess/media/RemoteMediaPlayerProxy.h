@@ -103,12 +103,9 @@ class LayerHostingContextManager;
 class MediaPlaybackTargetContextSerialized;
 #endif
 class GPUConnectionToWebProcess;
-class RemoteAudioTrackProxy;
 class RemoteAudioSourceProviderProxy;
 class RemoteMediaPlayerManagerProxy;
-class RemoteTextTrackProxy;
 class RemoteVideoFrameObjectHeap;
-class RemoteVideoTrackProxy;
 
 class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteMediaPlayerProxy.swift") RemoteMediaPlayerProxy final
     : public RefCounted<RemoteMediaPlayerProxy>
@@ -272,9 +269,9 @@ public:
     void tracksChanged();
 #endif
 
-    void audioTrackSetEnabled(WebCore::TrackID, bool);
-    void videoTrackSetSelected(WebCore::TrackID, bool);
-    void textTrackSetMode(WebCore::TrackID, WebCore::InbandTextTrackPrivate::Mode);
+    SWIFT_MAIN_ACTOR void audioTrackSetEnabled(WebCore::TrackID, bool);
+    SWIFT_MAIN_ACTOR void videoTrackSetSelected(WebCore::TrackID, bool);
+    SWIFT_MAIN_ACTOR void textTrackSetMode(WebCore::TrackID, WebCore::InbandTextTrackPrivate::Mode);
 
     using PerformTaskAtTimeCompletionHandler = CompletionHandler<void(std::optional<MediaTime>)>;
     void performTaskAtTime(const MediaTime&, PerformTaskAtTimeCompletionHandler&&);
@@ -294,9 +291,9 @@ public:
 
     RefPtr<WebCore::MediaPlayer> mediaPlayer() { return m_player; }
 
-    void addRemoteAudioTrackProxy(WebCore::AudioTrackPrivate&);
-    void addRemoteVideoTrackProxy(WebCore::VideoTrackPrivate&);
-    void addRemoteTextTrackProxy(WebCore::InbandTextTrackPrivate&);
+    SWIFT_MAIN_ACTOR void addRemoteAudioTrackProxy(WebCore::AudioTrackPrivate&);
+    SWIFT_MAIN_ACTOR void addRemoteVideoTrackProxy(WebCore::VideoTrackPrivate&);
+    SWIFT_MAIN_ACTOR void addRemoteTextTrackProxy(WebCore::InbandTextTrackPrivate&);
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
@@ -413,7 +410,15 @@ private:
 #endif
 
     RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() const;
-    template<typename TrackProxy, typename TrackPrivate> void addTrackProxy(Vector<Ref<TrackProxy>>&, TrackPrivate&);
+    bool prepareTrackForProxy(WebCore::TrackPrivateBase&);
+    SWIFT_MAIN_ACTOR void removeAudioTrackProxy(WebCore::TrackID);
+    SWIFT_MAIN_ACTOR void removeVideoTrackProxy(WebCore::TrackID);
+    SWIFT_MAIN_ACTOR void removeTextTrackProxy(WebCore::TrackID);
+    // m_swiftTracks holds the track proxies (RemoteMediaPlayerProxy.swift).
+    static uintptr_t createSwiftTracks();
+    // Unsafe: the tracks must be the ones createSwiftTracks() made, which only the destructor releases.
+    SWIFT_UNSAFE static void destroySwiftTracks(uintptr_t);
+    uintptr_t swiftTracks() const { return m_swiftTracks; }
 
     void observeCurrentTimeChanges();
     void startUpdateCachedStateMessageTimer();
@@ -500,9 +505,7 @@ private:
     NODELETE WTFLogChannel& logChannel() const;
 #endif
 
-    Vector<Ref<RemoteAudioTrackProxy>> m_audioTracks;
-    Vector<Ref<RemoteVideoTrackProxy>> m_videoTracks;
-    Vector<Ref<RemoteTextTrackProxy>> m_textTracks;
+    uintptr_t m_swiftTracks __attribute__((availability(swift, unavailable))) { createSwiftTracks() };
 
     WebCore::MediaPlayerIdentifier m_id;
     WebCore::MediaPlayerClientIdentifier m_clientIdentifier;

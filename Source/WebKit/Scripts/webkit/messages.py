@@ -237,6 +237,7 @@ def types_that_must_be_moved():
         'WebKit::UpdateInfo',
         'WebKit::WebProcessCreationParameters',
         'WebKit::RemoteLayerBackingStoreProperties',
+        'WebKit::RemoteSnapshotPrintData',
         'WebModel::ImageAsset',
         'WebModel::UpdateTextureDescriptor',
         'Vector<WebModel::UpdateTextureDescriptor>',
@@ -431,6 +432,21 @@ def message_to_struct_declaration(receiver, message):
     return surround_in_condition(''.join(result), message.condition)
 
 
+# Swift can't make a Ref or a RefPtr: a CxxSenders function takes their object by reference or pointer.
+def cxx_sender_parameter(parameter):
+    match = re.match(r'^(Ref|RefPtr)<(.+)>$', parameter.type)
+    if match:
+        return '%s%s %s' % (match.group(2), '&' if match.group(1) == 'Ref' else '*', parameter.name)
+    return '%s %s' % (function_parameter_type(parameter.type, parameter.kind), parameter.name)
+
+
+def cxx_sender_argument(parameter):
+    match = re.match(r'^(Ref|RefPtr)<(.+)>$', parameter.type)
+    if match:
+        return '%s { %s }' % (match.group(1), parameter.name)
+    return parameter.name
+
+
 # For a receiver with 'CxxSenders': a function for each message without a reply whose arguments C++ needn't move, which
 # sends it on the connection, for Swift, which can't name the message classes or call Connection::send().
 def generate_cxx_senders(receiver):
@@ -442,11 +458,11 @@ def generate_cxx_senders(receiver):
             continue
         if any(type_must_be_moved(unwrap_if_untrusted(parameter.type)) for parameter in message.parameters):
             continue
-        parameters = ['IPC::Connection& connection', 'uint64_t destinationID'] + ['%s %s' % (function_parameter_type(x.type, x.kind), x.name) for x in message.parameters]
+        parameters = ['IPC::Connection& connection', 'uint64_t destinationID'] + [cxx_sender_parameter(x) for x in message.parameters]
         sender = []
         sender.append('inline void send%s(%s)\n' % (message.name, ', '.join(parameters)))
         sender.append('{\n')
-        sender.append('    connection.send(%s(%s), destinationID);\n' % (message.name, ', '.join([x.name for x in message.parameters])))
+        sender.append('    connection.send(%s(%s), destinationID);\n' % (message.name, ', '.join([cxx_sender_argument(x) for x in message.parameters])))
         sender.append('}\n')
         result.append(surround_in_condition(''.join(sender), message.condition))
         result.append('\n')
@@ -938,6 +954,13 @@ def forward_declarations_and_headers(receiver):
     if receiver.swift_receiver_state_lender:
         headers.add('"SwiftCoding.h"')
         headers.add('<wtf/RefPtr.h>')
+
+    # The CxxSenders functions make the Refs and RefPtrs of their arguments' objects.
+    if receiver.cxx_senders_enabled_by:
+        for parameter in receiver.iterparameters():
+            match = re.match(r'^(Ref|RefPtr)<(.+)>$', parameter.type)
+            if match:
+                headers.update(headers_for_type(match.group(2), for_implementation_file=True))
 
     non_template_wtf_types = frozenset([
         'MachSendRight',

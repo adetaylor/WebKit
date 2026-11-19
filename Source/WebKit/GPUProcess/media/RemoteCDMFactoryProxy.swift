@@ -129,7 +129,7 @@ final class RemoteCDMFactoryProxy {
             logIdentifier: 0
         )
         guard let gpuConnection = self.connection,
-            let handle = WebKit.RemoteCDMPrivateHandle.create(
+            let handle = WebKit.createCDMPrivate(
                 gpuConnection,
                 IPCCoding.WTFString.cxxString(keySystem),
                 IPCCoding.WTFString.cxxString(mediaKeysHashSalt)

@@ -34,18 +34,16 @@
 #include <WebCore/PlatformMediaEncodingConfiguration.h>
 #include <WebCore/SharedBuffer.h>
 #include <wtf/EscapableByteSpan.h>
+#include <wtf/Logger.h>
+#include <wtf/MediaTime.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
-#include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakPtr.h>
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-#include <WebCore/CDMInstance.h>
 #include <WebCore/CDMPrivate.h>
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 #include <WebCore/LegacyCDM.h>
-#include <WebCore/LegacyCDMSession.h>
 #endif
 #if HAVE(AVASSETREADER)
 #include "SharedBufferReference.h"
@@ -54,17 +52,24 @@
 #include <WebCore/ShareableBitmap.h>
 #endif
 
+namespace IPC {
+class Connection;
+}
+
 namespace WebCore {
+class InbandGenericCue;
 class MediaPlayer;
+class SerializedPlatformDataCue;
 class VideoFrame;
+using TrackID = uint64_t;
 }
 
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
 
-// What the GPU process's Swift media receivers need of WebCore's C++ media objects that Swift can't do itself: implement
-// WebCore's C++ client interfaces, use JavaScriptCore typed arrays, and make C++ values that have no Swift form.
+// What the GPU process's Swift media receivers need of WebCore's C++ media objects that Swift can't do itself: reach a
+// connection's logger and media players, and make C++ values that have no Swift form.
 
 using RemoteCDMBytes = Vector<uint8_t>;
 
@@ -76,137 +81,13 @@ inline RemoteCDMBytes remoteCDMBufferBytes(const WebCore::SharedBuffer& buffer)
 WebCore::SharedBuffer* WTF_NONNULL makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE) SWIFT_RETURNS_RETAINED;
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-
-class RemoteCDMPrivateHandle;
-
-// A C++ CDM's instance, which the media players use, as its client, which sends its unrequested initialization data to
-// the web process's RemoteCDMInstance.
-class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT RemoteCDMInstanceClient final : public WebCore::CDMInstanceClient, public RefCounted<RemoteCDMInstanceClient> {
-    WTF_MAKE_TZONE_ALLOCATED(RemoteCDMInstanceClient);
-public:
-    RemoteCDMInstanceClient(GPUConnectionToWebProcess&, RemoteCDMPrivateHandle&, Ref<WebCore::CDMInstance>&&, uint64_t identifier);
-    ~RemoteCDMInstanceClient();
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
-
-    WebCore::CDMInstance& instance() const { return m_instance; }
-    String keySystem() const { return m_instance->keySystem(); }
-
-private:
-    void unrequestedInitializationDataReceived(const String&, Ref<WebCore::SharedBuffer>&&) final;
-#if !RELEASE_LOG_DISABLED
-    const Logger& logger() const final { return m_logger; }
-    uint64_t logIdentifier() const final { return m_logIdentifier; }
+// The C++ CDM for the key system, if any, which logs to the connection's logger.
+WebCore::CDMPrivateClientSwiftAdapter* WTF_NULLABLE createCDMPrivate(GPUConnectionToWebProcess&, const String& keySystem, const String& mediaKeysHashSalt) SWIFT_RETURNS_RETAINED;
 #endif
-
-    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
-    WeakPtr<RemoteCDMPrivateHandle> m_cdm;
-    const Ref<WebCore::CDMInstance> m_instance;
-    const uint64_t m_identifier;
-#if !RELEASE_LOG_DISABLED
-    const Ref<const Logger> m_logger;
-    const uint64_t m_logIdentifier;
-#endif
-};
-
-// A C++ CDM, for the instances the media players use.
-class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT RemoteCDMPrivateHandle final : public RefCounted<RemoteCDMPrivateHandle>, public CanMakeWeakPtr<RemoteCDMPrivateHandle>, private WebCore::CDMPrivateClient {
-    WTF_MAKE_TZONE_ALLOCATED(RemoteCDMPrivateHandle);
-public:
-    // Null if no C++ CDM supports the key system.
-    static RemoteCDMPrivateHandle* WTF_NULLABLE create(GPUConnectionToWebProcess&, const String& keySystem, const String& mediaKeysHashSalt) SWIFT_RETURNS_RETAINED;
-    ~RemoteCDMPrivateHandle();
-    void ref() const { RefCounted::ref(); }
-    void deref() const { RefCounted::deref(); }
-
-    // Null if the CDM makes none.
-    RemoteCDMInstanceClient* WTF_NULLABLE createInstance(uint64_t identifier) SWIFT_RETURNS_RETAINED;
-    void loadAndInitialize() { m_private->loadAndInitialize(); }
-    void setLogIdentifier(uint64_t);
-    uint64_t logIdentifier() const { return m_logIdentifier; }
-#if !RELEASE_LOG_DISABLED
-    const Logger& logger() const final { return m_logger; }
-#endif
-
-private:
-    RemoteCDMPrivateHandle(GPUConnectionToWebProcess&, const Logger&);
-
-    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
-    const Ref<const Logger> m_logger;
-    std::unique_ptr<WebCore::CDMPrivate> m_private;
-    uint64_t m_logIdentifier { 0 };
-};
-
-#endif // ENABLE(GPU_PROCESS_CDM_SWIFT)
-
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-
-// A legacy CDM, as its client, which finds the media player that the web process's RemoteLegacyCDM names.
-class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT RemoteLegacyCDMClient final : public RefCounted<RemoteLegacyCDMClient>, public WebCore::LegacyCDMClient {
-    WTF_DEPRECATED_MAKE_FAST_ALLOCATED(RemoteLegacyCDMClient);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteLegacyCDMClient);
-public:
-    // Null if no legacy CDM supports the key system.
-    static RemoteLegacyCDMClient* WTF_NULLABLE create(GPUConnectionToWebProcess&, const String& keySystem) SWIFT_RETURNS_RETAINED;
-    ~RemoteLegacyCDMClient();
-    void ref() const { RefCounted::ref(); }
-    void deref() const { RefCounted::deref(); }
-
-    WebCore::LegacyCDM& cdm() const { return m_cdm; }
-    bool supportsMIMEType(const String& mimeType) const { return m_cdm->supportsMIMEType(mimeType); }
-    // 0 for none.
-    void setPlayerIdentifier(uint64_t identifier) { m_playerIdentifier = identifier; }
-
-private:
-    RemoteLegacyCDMClient(GPUConnectionToWebProcess&, Ref<WebCore::LegacyCDM>&&);
-    RefPtr<WebCore::MediaPlayer> cdmMediaPlayer(const WebCore::LegacyCDM*) const final;
-
-    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
-    const Ref<WebCore::LegacyCDM> m_cdm;
-    uint64_t m_playerIdentifier { 0 };
-};
-
-// A legacy CDM's session, as its client, which sends its messages and errors to the web process's RemoteLegacyCDMSession.
-// Its operations take and give buffers in place of the session's JavaScriptCore typed arrays.
-class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT RemoteLegacyCDMSessionClient final : public WebCore::LegacyCDMSessionClient, public RefCounted<RemoteLegacyCDMSessionClient> {
-    WTF_MAKE_TZONE_ALLOCATED(RemoteLegacyCDMSessionClient);
-public:
-    static RemoteLegacyCDMSessionClient* WTF_NONNULL create(GPUConnectionToWebProcess&, RemoteLegacyCDMClient&, uint64_t identifier, uint64_t logIdentifier) SWIFT_RETURNS_RETAINED;
-    ~RemoteLegacyCDMSessionClient();
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
-
-    // For the media players.
-    WebCore::LegacyCDMSession* WTF_NULLABLE session() const { return m_session.get(); }
-    // The session no longer reaches the web process.
-    void invalidate() { m_connection = nullptr; }
-
-    WebCore::SharedBuffer* WTF_NULLABLE generateKeyRequest(const String& mimeType, WebCore::SharedBuffer* WTF_NULLABLE initData, const String& mediaKeysHashSalt, String& destinationURL, uint16_t& errorCode, uint32_t& systemCode) SWIFT_RETURNS_RETAINED;
-    void releaseKeys();
-    WebCore::SharedBuffer* WTF_NULLABLE update(WebCore::SharedBuffer* WTF_NULLABLE, bool& succeeded, uint16_t& errorCode, uint32_t& systemCode) SWIFT_RETURNS_RETAINED;
-    WebCore::SharedBuffer* WTF_NULLABLE cachedKeyForKeyID(const String&) const SWIFT_RETURNS_RETAINED;
-
-private:
-    RemoteLegacyCDMSessionClient(GPUConnectionToWebProcess&, WebCore::LegacyCDM&, uint64_t identifier, uint64_t logIdentifier);
-
-    void sendMessage(Uint8Array*, String destinationURL) final;
-    void sendError(MediaKeyErrorCode, uint32_t systemCode) final;
-    String mediaKeysStorageDirectory() const final;
-    String mediaKeysHashSalt() const final { return m_mediaKeysHashSalt; }
-#if !RELEASE_LOG_DISABLED
-    const Logger& logger() const final { return m_logger; }
-    uint64_t logIdentifier() const final { return m_logIdentifier; }
+// The connection's media player with that identifier, if any, for a legacy CDM.
+WebCore::RefPtrLegacyCDMMediaPlayer legacyCDMMediaPlayer(GPUConnectionToWebProcess&, uint64_t playerIdentifier);
 #endif
-
-    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
-    const uint64_t m_identifier;
-    const Ref<const Logger> m_logger;
-    const uint64_t m_logIdentifier;
-    const RefPtr<WebCore::LegacyCDMSession> m_session;
-    String m_mediaKeysHashSalt;
-};
-
-#endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)
 
 #if HAVE(AVASSETREADER)
 
@@ -230,6 +111,19 @@ CVBufferRef WTF_NULLABLE videoFramePixelBuffer(const WebCore::VideoFrame&) CF_RE
 // Cocoa's media engine configuration factories answer synchronously.
 WebCore::PlatformMediaCapabilitiesDecodingInfo createMediaDecodingConfiguration(const WebCore::PlatformMediaDecodingConfiguration&);
 WebCore::PlatformMediaCapabilitiesEncodingInfo createMediaEncodingConfiguration(const WebCore::PlatformMediaEncodingConfiguration&);
+
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+// A text track's cues for the web process (MediaPlayerPrivateRemote.messages.in), for Swift, which can't import a generic
+// cue's GenericCueData or a data cue's SerializedPlatformDataCueValue, or pass the senders a std::span.
+void sendAddDataCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, const MediaTime& start, const MediaTime& end, const WebCore::SharedBuffer&);
+void sendParseWebVTTCueData(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, const WebCore::SharedBuffer&);
+enum class RemoteTextTrackCueChange : uint8_t { Add, Update, Remove };
+void sendGenericCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, RemoteTextTrackCueChange, WebCore::InbandGenericCue&);
+#if ENABLE(DATACUE_VALUE)
+// The type is the added cue's.
+void sendDataCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, RemoteTextTrackCueChange, const MediaTime& start, const MediaTime& end, WebCore::SerializedPlatformDataCue&, const String& type);
+#endif
+#endif
 
 } // namespace WebKit
 

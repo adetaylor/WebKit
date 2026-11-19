@@ -28,8 +28,14 @@
 #if ENABLE(VIDEO)
 
 #include <WebCore/InbandTextTrackPrivateClient.h>
+#if PLATFORM(COCOA)
+#include <WebCore/ISOVTTCue.h>
+#include <WebCore/SharedBuffer.h>
+#endif
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
+
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 namespace WebCore {
 
@@ -117,11 +123,72 @@ private:
     Mode m_mode { Mode::Disabled };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
+#if PLATFORM(COCOA)
+// A track client for Swift (TrackPrivateClientSwiftAdapters.swift). The adapter is its track's client from create() to its
+// destruction, with the callbacks on the main thread, and forwards them to the Swift delegate that create() is given:
+// an Unmanaged retained box that the adapter releases when destroyed, which holds the delegate weakly.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/TrackPrivateClientSwiftAdapters.swift") SwiftInbandTextTrackPrivateClientAdapter final
+    : public ThreadSafeRefCounted<SwiftInbandTextTrackPrivateClientAdapter, WTF::DestructionThread::Main>
+    , public InbandTextTrackPrivateClient {
+    WTF_MAKE_TZONE_ALLOCATED_INLINE(SwiftInbandTextTrackPrivateClientAdapter);
+public:
+    // Unsafe: the box must be a retained delegate box made for this adapter.
+    SWIFT_UNSAFE static SwiftInbandTextTrackPrivateClientAdapter* WTF_NONNULL create(InbandTextTrackPrivate&, uintptr_t delegateBox) SWIFT_RETURNS_RETAINED;
+    WEBCORE_EXPORT ~SwiftInbandTextTrackPrivateClientAdapter();
+
+    void ref() const final { ThreadSafeRefCounted::ref(); }
+    void deref() const final { ThreadSafeRefCounted::deref(); }
+
+    // For Swift, which doesn't import InbandTextTrackPrivate's operator==.
+    static bool equal(const InbandTextTrackPrivate& a, const InbandTextTrackPrivate& b) { return a == b; }
+
+private:
+    SwiftInbandTextTrackPrivateClientAdapter(InbandTextTrackPrivate&, uintptr_t delegateBox);
+    // Unsafe: the box must be one that create() was given, which only the destructor releases.
+    SWIFT_UNSAFE static void releaseDelegateBox(uintptr_t);
+
+    SWIFT_MAIN_ACTOR void idChanged(TrackID) final;
+    SWIFT_MAIN_ACTOR SWIFT_UNSAFE void labelChanged(const String&) final;
+    SWIFT_MAIN_ACTOR SWIFT_UNSAFE void languageChanged(const String&) final;
+    SWIFT_MAIN_ACTOR void willRemove() final;
+    SWIFT_MAIN_ACTOR void addGenericCue(InbandGenericCue&) final;
+    SWIFT_MAIN_ACTOR void updateGenericCue(InbandGenericCue&) final;
+    SWIFT_MAIN_ACTOR void removeGenericCue(InbandGenericCue&) final;
+
+    // The forms that Swift can't take (rvalues, spans, references to times), which the C++ forwards to the members after.
+    void addDataCue(const MediaTime& start, const MediaTime& end, std::span<const uint8_t>) final;
+#if ENABLE(DATACUE_VALUE)
+    void addDataCue(const MediaTime& start, const MediaTime& end, Ref<SerializedPlatformDataCue>&&, const String&) final;
+    void updateDataCue(const MediaTime& start, const MediaTime& end, SerializedPlatformDataCue&) final;
+    void removeDataCue(const MediaTime& start, const MediaTime& end, SerializedPlatformDataCue&) final;
+#endif
+    void parseWebVTTFileHeader(String&&) final;
+    void parseWebVTTCueData(std::span<const uint8_t>) final;
+    void parseWebVTTCueData(ISOWebVTTCue&&) final;
+
+    SWIFT_MAIN_ACTOR void swiftAddDataCue(MediaTime start, MediaTime end, SharedBuffer&);
+#if ENABLE(DATACUE_VALUE)
+    SWIFT_MAIN_ACTOR void swiftAddDataCueWithType(MediaTime start, MediaTime end, SerializedPlatformDataCue&, String type);
+    SWIFT_MAIN_ACTOR void swiftUpdateDataCue(MediaTime start, MediaTime end, SerializedPlatformDataCue&);
+    SWIFT_MAIN_ACTOR void swiftRemoveDataCue(MediaTime start, MediaTime end, SerializedPlatformDataCue&);
+#endif
+    SWIFT_MAIN_ACTOR void swiftParseWebVTTFileHeader(String);
+    SWIFT_MAIN_ACTOR void swiftParseWebVTTCueData(SharedBuffer&);
+    SWIFT_MAIN_ACTOR void swiftParseWebVTTCue(ISOWebVTTCue);
+
+    const Ref<InbandTextTrackPrivate> m_track;
+    const uintptr_t m_delegateBox;
+    size_t m_clientIndex { 0 };
+};
+#endif
+
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::InbandTextTrackPrivate)
 static bool isType(const WebCore::TrackPrivateBase& track) { return track.type() == WebCore::TrackPrivateBase::Type::Text; }
 SPECIALIZE_TYPE_TRAITS_END()
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif // ENABLE(VIDEO)
 

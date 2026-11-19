@@ -31,11 +31,15 @@
 #include <JavaScriptCore/JSCJSValue.h>
 #include <WebCore/SerializedPlatformDataCueValue.h>
 #include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WebCore {
 
-class SerializedPlatformDataCue : public RefCounted<SerializedPlatformDataCue> {
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SerializedPlatformDataCue : public RefCounted<SerializedPlatformDataCue> {
 public:
+    void ref() const { RefCounted::ref(); }
+    void deref() const { RefCounted::deref(); }
+
     NODELETE WEBCORE_EXPORT static Ref<SerializedPlatformDataCue> create(SerializedPlatformDataCueValue&&);
 
     virtual ~SerializedPlatformDataCue() = default;

@@ -36,10 +36,10 @@ final class RemoteCDMProxy {
     private var messageForwarder: RefRemoteCDMProxyMessageForwarder?
     private weak var factory: RemoteCDMFactoryProxy?
     private let isClearKey: Bool
-    private let cdm: WebKit.RemoteCDMPrivateHandle
+    private let cdm: WebCore.CDMPrivateClientSwiftAdapter
 
     @_expose(!Cxx)
-    init(factory: RemoteCDMFactoryProxy, cdm: WebKit.RemoteCDMPrivateHandle, isClearKey: Bool) {
+    init(factory: RemoteCDMFactoryProxy, cdm: WebCore.CDMPrivateClientSwiftAdapter, isClearKey: Bool) {
         self.factory = factory
         self.cdm = cdm
         self.isClearKey = isClearKey
@@ -125,14 +125,11 @@ final class RemoteCDMProxy {
             backend = ClearKeyInstanceBackend()
             keySystem = ClearKey.keySystem
         } else {
-            guard let instance = cdm.createInstance(identifier) else {
+            guard let fairPlay = FairPlayCDMInstanceBackend(cdm: self, cxxCDM: cdm, connection: connection, identifier: identifier) else {
                 return noInstance
             }
-            backend = FairPlayCDMInstanceBackend(
-                instance,
-                fairPlayInstance: FairPlayInstance.instance(forToken: WebCore.fairPlayInstanceToken(instance.instance()))
-            )
-            keySystem = IPCCoding.WTFString.swiftString(instance.keySystem())
+            backend = fairPlay
+            keySystem = IPCCoding.WTFString.swiftString(fairPlay.keySystem)
         }
         let logIdentifier = isClearKey ? 0 : cdm.logIdentifier()
         factory.add(

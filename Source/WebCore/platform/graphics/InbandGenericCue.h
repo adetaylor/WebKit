@@ -31,6 +31,7 @@
 #include <WebCore/InbandGenericCueIdentifier.h>
 #include <wtf/Markable.h>
 #include <wtf/MediaTime.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WebCore {
 
@@ -86,8 +87,11 @@ struct GenericCueData {
     bool m_preventLineWrapping { true };
 };
 
-class InbandGenericCue : public RefCounted<InbandGenericCue> {
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT InbandGenericCue : public RefCounted<InbandGenericCue> {
 public:
+    void ref() const { RefCounted::ref(); }
+    void deref() const { RefCounted::deref(); }
+
     static Ref<InbandGenericCue> create() { return adoptRef(*new InbandGenericCue); }
     static Ref<InbandGenericCue> create(GenericCueData&& cueData) { return adoptRef(*new InbandGenericCue(WTF::move(cueData))); }
 

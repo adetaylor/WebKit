@@ -2242,6 +2242,7 @@
 		5117F30E25E61020002A9F1E /* RemoteCommandListenerCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 5117F30C25E6101F002A9F1E /* RemoteCommandListenerCocoa.h */; };
 		B4A4A0010000000000000002 /* MediaPlayerAVFoundationCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */; };
 		B4A4B0010000000000000002 /* AVTrackPrivateAVFObjCImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */; };
+		5C1A7E000000000000003B02 /* SwiftDelegateBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1A7E000000000000003B01 /* SwiftDelegateBox.swift */; };
 		A4C0A4C00000000000000002 /* WebCoreAVFResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C0A4C00000000000000001 /* WebCoreAVFResourceLoader.swift */; };
 		DEE095D5C54D4674A555E6F7 /* MediaPlayerPrivateAVFoundation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 495AC11FD7674AB994016471 /* MediaPlayerPrivateAVFoundation.swift */; };
 		A4C0A4C00000000000000003 /* WebCoreAVFResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = CD7E05201651A84100C1201F /* WebCoreAVFResourceLoader.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -6174,6 +6175,7 @@
 		CD1F9B1827023A2A00617EB6 /* VideoTrackClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B1727023A2900617EB6 /* VideoTrackClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD1F9B1A27023A7600617EB6 /* AudioTrackClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B1927023A7600617EB6 /* AudioTrackClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD1F9B1C27024BC200617EB6 /* TrackPrivateBaseClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B1B27024BC100617EB6 /* TrackPrivateBaseClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5C1A7E000000000000003A05 /* TrackPrivateClientSwiftAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1A7E000000000000003A04 /* TrackPrivateClientSwiftAdapters.swift */; };
 		CD1F9B212702565E00617EB6 /* TextTrackClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B202702565E00617EB6 /* TextTrackClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD1F9B42270CED9D00617EB6 /* JSMediaKeyMessageType.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B3F270CED8400617EB6 /* JSMediaKeyMessageType.h */; };
 		CD1F9B43270CED9D00617EB6 /* JSMediaKeyMessageEventInit.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B41270CED8600617EB6 /* JSMediaKeyMessageEventInit.h */; };
@@ -12915,6 +12917,7 @@
 		511AFAA42E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioVideoRendererAVFObjC.h; sourceTree = "<group>"; };
 		B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerAVFoundationCore.swift; sourceTree = "<group>"; };
 		B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVTrackPrivateAVFObjCImpl.swift; sourceTree = "<group>"; };
+		5C1A7E000000000000003B01 /* SwiftDelegateBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDelegateBox.swift; sourceTree = "<group>"; };
 		A4C0A4C00000000000000001 /* WebCoreAVFResourceLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebCoreAVFResourceLoader.swift; sourceTree = "<group>"; };
 		495AC11FD7674AB994016471 /* MediaPlayerPrivateAVFoundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerPrivateAVFoundation.swift; sourceTree = "<group>"; };
 		B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaPlayerAVFoundationHost.h; sourceTree = "<group>"; };
@@ -21634,6 +21637,8 @@
 		CD1F9B1727023A2900617EB6 /* VideoTrackClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VideoTrackClient.h; sourceTree = "<group>"; };
 		CD1F9B1927023A7600617EB6 /* AudioTrackClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioTrackClient.h; sourceTree = "<group>"; };
 		CD1F9B1B27024BC100617EB6 /* TrackPrivateBaseClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TrackPrivateBaseClient.h; sourceTree = "<group>"; };
+		5C1A7E000000000000003A03 /* TrackPrivateClientSwiftAdapters.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TrackPrivateClientSwiftAdapters.cpp; sourceTree = "<group>"; };
+		5C1A7E000000000000003A04 /* TrackPrivateClientSwiftAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPrivateClientSwiftAdapters.swift; sourceTree = "<group>"; };
 		CD1F9B202702565E00617EB6 /* TextTrackClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextTrackClient.h; sourceTree = "<group>"; };
 		CD1F9B3D270CED8300617EB6 /* JSMediaKeyMessageEventInit.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = JSMediaKeyMessageEventInit.cpp; sourceTree = "<group>"; };
 		CD1F9B3F270CED8400617EB6 /* JSMediaKeyMessageType.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JSMediaKeyMessageType.h; sourceTree = "<group>"; };
@@ -37823,6 +37828,8 @@
 				076E11BE1F683E0D00177395 /* TrackPrivateBase.cpp */,
 				BE913D7F181EF8E500DCB09E /* TrackPrivateBase.h */,
 				CD1F9B1B27024BC100617EB6 /* TrackPrivateBaseClient.h */,
+				5C1A7E000000000000003A03 /* TrackPrivateClientSwiftAdapters.cpp */,
+				5C1A7E000000000000003A04 /* TrackPrivateClientSwiftAdapters.swift */,
 				7209C47E2931C86400633C0D /* TransparencyLayerContextSwitcher.cpp */,
 				7209C47F2931C86400633C0D /* TransparencyLayerContextSwitcher.h */,
 				74DB626030009D7000996038 /* TypedArrayPixelBuffer.cpp */,
@@ -40696,6 +40703,7 @@
 				722728112947A18A0048DD2E /* StyleAppearance.h */,
 				93B2D8150F9920D2006AE6B2 /* SuddenTermination.h */,
 				97627B9714FB5424002CDCA1 /* Supplementable.h */,
+				5C1A7E000000000000003B01 /* SwiftDelegateBox.swift */,
 				F411452C2CD43ADC004CDBD1 /* SyntheticClickResult.h */,
 				E3C04131254CA6660021D0E6 /* SystemSoundDelegate.h */,
 				E3C04132254CA7110021D0E6 /* SystemSoundManager.cpp */,
@@ -52538,12 +52546,14 @@
 				EFD4ED5991D9428DABDF9CF8 /* ContentSecurityPolicySourceList.swift in Sources */,
 				EA43004AE91E47C0AB9FAAB4 /* ContentSecurityPolicySourceStore.swift in Sources */,
 				D5D694719C454413958692D7 /* ContentSecurityPolicyTrustedTypesDirective.swift in Sources */,
+				5C1A7E000000000000003B02 /* SwiftDelegateBox.swift in Sources */,
 				C1692DD223D23ABD006E88F7 /* SystemBattery.mm in Sources */,
 				329C0C2328BD96D600F187D2 /* TagName.cpp in Sources */,
 				CE88EE262414467B007F29C2 /* TextAlternativeWithRange.mm in Sources */,
 				072F696F2E755BFA00281FC5 /* TextListParser.cpp in Sources */,
 				BE39137129B267F500FA5D4F /* TextTransformCocoa.cpp in Sources */,
 				51DF6D800B92A18E00C2DC85 /* ThreadCheck.mm in Sources */,
+				5C1A7E000000000000003A05 /* TrackPrivateClientSwiftAdapters.swift in Sources */,
 				0D0B4DA32EBD20E30053FB12 /* UnifiedSource1-ARC.mm in Sources */,
 				0B2AA9B7DC40569673FC9868 /* UnifiedSource1-header-RenderStyleGetters.cpp in Sources */,
 				538EC8031F96AF81004D22A8 /* UnifiedSource1-nonARC.mm in Sources */,

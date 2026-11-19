@@ -85,6 +85,7 @@ enum class Synchronous : bool;
 
 namespace WebCore {
 class CDMInstance;
+class LegacyCDMSessionClientSwiftAdapter;
 class MediaPlayer;
 class SecurityOrigin;
 class SecurityOriginData;
@@ -115,12 +116,11 @@ class GPUProcess;
 class LayerHostingContext;
 class LibWebRTCCodecsProxyMessageForwarder;
 class RemoteAudioHardwareListenerProxy;
-class RemoteLegacyCDMSessionClient;
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 using RefPtrCDMInstance = RefPtr<WebCore::CDMInstance>;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-using RefPtrRemoteLegacyCDMSessionClient = RefPtr<RemoteLegacyCDMSessionClient>;
+using RefPtrLegacyCDMSessionClientSwiftAdapter = RefPtr<WebCore::LegacyCDMSessionClientSwiftAdapter>;
 #endif
 class RemoteMediaEngineConfigurationFactoryProxy;
 class RemoteMediaSessionHelperProxy;
@@ -279,7 +279,7 @@ public:
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     // Implemented in Swift: a legacy CDM session, for the media players.
-    SWIFT_MAIN_ACTOR RefPtrRemoteLegacyCDMSessionClient legacyCDMSession(uint64_t identifier) const;
+    SWIFT_MAIN_ACTOR RefPtrLegacyCDMSessionClientSwiftAdapter legacyCDMSession(uint64_t identifier) const;
 #endif
 #if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     RemoteMediaEngineConfigurationFactoryProxy& mediaEngineConfigurationFactoryProxy();

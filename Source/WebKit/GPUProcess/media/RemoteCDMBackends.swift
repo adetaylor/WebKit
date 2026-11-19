@@ -202,18 +202,40 @@ final class ClearKeySessionBackend: RemoteCDMSessionBackend {
 // keys to their samples, and which configures it and its storage; the certificate and the sessions are its Swift
 // FairPlayInstance's. On Cocoa, FairPlay Streaming's CDM is the GPU process's only C++ one: ClearKey's is Swift.
 @MainActor
-final class FairPlayCDMInstanceBackend: RemoteCDMInstanceBackend {
-    // The C++ instance, as its client.
-    private let instance: WebKit.RemoteCDMInstanceClient
-    private let fairPlayInstance: FairPlayInstance?
+final class FairPlayCDMInstanceBackend: RemoteCDMInstanceBackend, CDMInstanceClientDelegate {
+    // The C++ instance, and the client that this is the delegate of. Optional just because of an initialization order
+    // issue. Always occupied after initialization finished.
+    private(set) var cxxInstance: WebCore.CDMInstance?
+    private var client: WebCore.CDMInstanceClientSwiftAdapter?
+    private var fairPlayInstance: FairPlayInstance?
+    // The CDM that made the instance, until the web process removes it.
+    private weak var cdm: RemoteCDMProxy?
+    // The connection to the web process's RemoteCDMInstance with that identifier.
+    private let connection: IPC.Connection
+    private let identifier: UInt64
 
-    init(_ instance: WebKit.RemoteCDMInstanceClient, fairPlayInstance: FairPlayInstance?) {
-        self.instance = instance
-        self.fairPlayInstance = fairPlayInstance
+    // Nil if the C++ CDM makes no instance.
+    init?(cdm: RemoteCDMProxy, cxxCDM: WebCore.CDMPrivateClientSwiftAdapter, connection: IPC.Connection, identifier: UInt64) {
+        self.cdm = cdm
+        self.connection = connection
+        self.identifier = identifier
+        guard let made = makeCDMInstanceClientSwiftAdapter(cdm: cxxCDM, delegate: self) else {
+            return nil
+        }
+        self.client = made.adapter
+        self.cxxInstance = made.instance
+        self.fairPlayInstance = FairPlayInstance.instance(forToken: WebCore.fairPlayInstanceToken(made.instance))
     }
 
-    var cxxInstance: WebCore.CDMInstance? {
-        instance.instance()
+    var keySystem: WTF.String {
+        client?.keySystem() ?? WTF.String()
+    }
+
+    func cdmInstanceDidReceiveUnrequestedInitializationData(type: WTF.String, initData: WebCore.SharedBuffer) {
+        guard cdm != nil else {
+            return
+        }
+        Messages.RemoteCDMInstance.sendUnrequestedInitializationDataReceived(connection, identifier, type, initData)
     }
 
     func initialize(

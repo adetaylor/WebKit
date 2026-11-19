@@ -20,49 +20,93 @@
 // PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE_GPU_PROCESS && ENABLE_VIDEO && ENABLE_GPU_PROCESS_MEDIA_SWIFT
 
+@_spi(WebKitGPU) internal import WebCore
 import WebKit_Internal
 
-extension WebKit.RemoteVideoTrackProxy {
-    @cxx
-    @implementation
-    func updateConfiguration() {
-        guard let connection = webProcessConnection() else {
-            return
-        }
-        let previousIdentifier = m_id
-        m_id = id()
-        Messages.MediaPlayerPrivateRemote.sendRemoteVideoTrackConfigurationChanged(
-            connection,
-            m_mediaPlayerIdentifier.toUInt64(),
-            previousIdentifier,
-            configuration()
-        )
+// A media player's video track, which the web process makes its track from, and whose changes it hears of
+// (MediaPlayerPrivateRemote.messages.in) on the player's connection.
+@MainActor
+final class RemoteVideoTrackProxy: VideoTrackPrivateClientDelegate {
+    let track: WebCore.VideoTrackPrivate
+    private let connection: IPC.Connection
+    private let mediaPlayerIdentifier: UInt64
+    private var identifier: WebCore.TrackID
+    private var selected = false
+    // Keeps the proxy the track's client.
+    private var adapter: WebCore.SwiftVideoTrackPrivateClientAdapter?
+
+    init(track: WebCore.VideoTrackPrivate, connection: IPC.Connection, mediaPlayerIdentifier: UInt64) {
+        self.track = track
+        self.connection = connection
+        self.mediaPlayerIdentifier = mediaPlayerIdentifier
+        identifier = track.id()
+        adapter = makeTrackPrivateClientAdapter(track, delegate: self)
+        Messages.MediaPlayerPrivateRemote.sendAddRemoteVideoTrack(connection, mediaPlayerIdentifier, configuration())
     }
 
-    @cxx
-    @implementation
+    var id: WebCore.TrackID {
+        track.id()
+    }
+
+    func isTrack(_ other: WebCore.VideoTrackPrivate) -> Bool {
+        trackPrivatesAreEqual(other, track)
+    }
+
+    func setSelected(_ selected: Bool) {
+        self.selected = selected
+        track.setSelected(selected)
+    }
+
+    private func configuration() -> WebKit.VideoTrackPrivateRemoteConfiguration {
+        var configuration = WebKit.VideoTrackPrivateRemoteConfiguration()
+        configuration.trackId = track.id()
+        configuration.label = track.label()
+        configuration.language = track.language()
+        configuration.startTimeVariance = track.startTimeVariance()
+        configuration.trackIndex = track.trackIndex()
+        configuration.selected = track.selected()
+        configuration.kind = track.kind()
+        configuration.trackConfiguration = trackPrivateConfiguration(track)
+        return configuration
+    }
+
+    private func configurationChanged() {
+        let previousIdentifier = identifier
+        identifier = track.id()
+        Messages.MediaPlayerPrivateRemote.sendRemoteVideoTrackConfigurationChanged(connection, mediaPlayerIdentifier, previousIdentifier, configuration())
+    }
+
+    // MARK: VideoTrackPrivateClientDelegate
+
+    func idChanged(_: UInt64) {
+        configurationChanged()
+    }
+
+    func labelChanged(_: WTF.String) {
+        configurationChanged()
+    }
+
+    func languageChanged(_: WTF.String) {
+        configurationChanged()
+    }
+
     func willRemove() {
         assertionFailure()
     }
 
-    @cxx
-    @implementation
     func selectedChanged(_ selected: Bool) {
-        if m_selected == selected {
+        if selected == self.selected {
             return
         }
-        m_selected = selected
-        updateConfiguration()
+        self.selected = selected
+        configurationChanged()
     }
 
-    @cxx
-    @implementation
-    func idChanged(_ identifier: WebCore.TrackID) {
-        updateConfiguration()
+    func configurationChanged(_: WebCore.PlatformVideoTrackConfiguration) {
+        configurationChanged()
     }
 }
 

@@ -25,7 +25,8 @@
 
 [
     DispatchedFrom=GPU,
-    DispatchedTo=WebContent
+    DispatchedTo=WebContent,
+    CxxSenders=LEGACY_ENCRYPTED_MEDIA
 ]
 messages -> RemoteLegacyCDMSession {
     SendMessage(RefPtr<WebCore::SharedBuffer> message, String destinationURL)

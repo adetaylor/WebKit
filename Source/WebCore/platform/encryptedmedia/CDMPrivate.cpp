@@ -28,6 +28,7 @@
 
 #if ENABLE(ENCRYPTED_MEDIA)
 
+#include "CDMFactory.h"
 #include "CDMKeySystemConfiguration.h"
 #include "CDMMediaCapability.h"
 #include "CDMRequirement.h"
@@ -245,6 +246,74 @@ std::optional<CDMKeySystemConfiguration> CDMSupportedConfigurationQuery::takeSup
         return std::nullopt;
     return std::exchange(m_configuration, { });
 }
+
+#if PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
+
+WTF_MAKE_TZONE_ALLOCATED_IMPL(CDMPrivateClientSwiftAdapter);
+WTF_MAKE_TZONE_ALLOCATED_IMPL(CDMInstanceClientSwiftAdapter);
+
+CDMPrivateClientSwiftAdapter* CDMPrivateClientSwiftAdapter::create(const String& keySystem, const String& mediaKeysHashSalt, const Logger& logger)
+{
+    auto& factories = CDMFactory::registeredFactories();
+    auto index = factories.findIf([&](auto& factory) {
+        return factory->supportsKeySystem(keySystem);
+    });
+    if (index == notFound)
+        return nullptr;
+    RefPtr factory = factories[index].ptr();
+    Ref adapter = adoptRef(*new CDMPrivateClientSwiftAdapter(logger));
+    adapter->m_private = factory->createCDM(keySystem, mediaKeysHashSalt, adapter.get());
+    if (!adapter->m_private)
+        return nullptr;
+    return &adapter.leakRef();
+}
+
+CDMPrivateClientSwiftAdapter::CDMPrivateClientSwiftAdapter(const Logger& logger)
+    : m_logger(logger)
+{
+}
+
+CDMPrivateClientSwiftAdapter::~CDMPrivateClientSwiftAdapter() = default;
+
+CDMInstance* CDMPrivateClientSwiftAdapter::createInstance()
+{
+    return m_private->createInstance().leakRef();
+}
+
+void CDMPrivateClientSwiftAdapter::setLogIdentifier(uint64_t logIdentifier)
+{
+    m_logIdentifier = logIdentifier;
+#if !RELEASE_LOG_DISABLED
+    m_private->setLogIdentifier(logIdentifier);
+#endif
+}
+
+CDMInstanceClientSwiftAdapter* CDMInstanceClientSwiftAdapter::create(CDMPrivateClientSwiftAdapter& cdm, CDMInstance& instance, uintptr_t delegateBox)
+{
+    return &adoptRef(*new CDMInstanceClientSwiftAdapter(cdm, instance, delegateBox)).leakRef();
+}
+
+CDMInstanceClientSwiftAdapter::CDMInstanceClientSwiftAdapter(CDMPrivateClientSwiftAdapter& cdm, CDMInstance& instance, uintptr_t delegateBox)
+    : m_instance(instance)
+    , m_delegateBox(delegateBox)
+#if !RELEASE_LOG_DISABLED
+    , m_logger(cdm.logger())
+    , m_logIdentifier(cdm.logIdentifier())
+#endif
+{
+#if RELEASE_LOG_DISABLED
+    UNUSED_PARAM(cdm);
+#endif
+    m_instance->setClient(*this);
+}
+
+CDMInstanceClientSwiftAdapter::~CDMInstanceClientSwiftAdapter()
+{
+    m_instance->clearClient();
+    releaseDelegateBox(m_delegateBox);
+}
+
+#endif // PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
 
 }
 
