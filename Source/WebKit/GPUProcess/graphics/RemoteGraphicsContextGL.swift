@@ -32,22 +32,21 @@ import Synchronization
 #endif
 
 // The GL names of the web process's names for a context's objects, as the HashMap with IntHash that kept them in C++:
-// 0 is a name, the two largest values aren't (they mark empty and deleted slots), adding a name that is there changes
-// nothing, and a name that isn't there has GL name 0.
+// every value is a name, adding a name that is there changes nothing, and a name that isn't there has GL name 0.
 struct RemoteGraphicsContextGLObjectNames {
-    private static let empty = UInt32.max
-    private static let deleted = UInt32.max - 1
+    private enum Slot: UInt8 {
+        case empty
+        case full
+        case deleted
+    }
 
-    // Open addressing with linear probing over a power-of-two number of slots, of which at most three quarters hold a
-    // name or a deleted mark, so that every probe ends at an empty slot.
-    private var names = [UInt32](repeating: empty, count: 64)
+    // Open addressing with linear probing over a power-of-two number of slots, of which at most three quarters are full
+    // or deleted, so that every probe ends at an empty slot.
+    private var slots = [Slot](repeating: .empty, count: 64)
+    private var names = [UInt32](repeating: 0, count: 64)
     private var objects = [UInt32](repeating: 0, count: 64)
     private var count = 0
     private var deletedCount = 0
-
-    func isValidKey(_ name: UInt32) -> Bool {
-        name < Self.deleted
-    }
 
     func get(_ name: UInt32) -> UInt32 {
         guard let index = index(of: name) else {
@@ -60,17 +59,18 @@ struct RemoteGraphicsContextGLObjectNames {
         if index(of: name) != nil {
             return
         }
-        if (count + deletedCount + 1) * 4 > names.count * 3 {
+        if (count + deletedCount + 1) * 4 > slots.count * 3 {
             resize()
         }
-        let mask = names.count - 1
+        let mask = slots.count - 1
         var index = Int(Self.hash(name)) & mask
-        while names[index] != Self.empty && names[index] != Self.deleted {
+        while slots[index] == .full {
             index = (index + 1) & mask
         }
-        if names[index] == Self.deleted {
+        if slots[index] == .deleted {
             deletedCount -= 1
         }
+        slots[index] = .full
         names[index] = name
         objects[index] = object
         count += 1
@@ -81,7 +81,7 @@ struct RemoteGraphicsContextGLObjectNames {
             return 0
         }
         let object = objects[index]
-        names[index] = Self.deleted
+        slots[index] = .deleted
         objects[index] = 0
         count -= 1
         deletedCount += 1
@@ -89,34 +89,37 @@ struct RemoteGraphicsContextGLObjectNames {
     }
 
     private func index(of name: UInt32) -> Int? {
-        let mask = names.count - 1
+        let mask = slots.count - 1
         var index = Int(Self.hash(name)) & mask
-        while true {
-            let slot = names[index]
-            if slot == name {
-                return index
-            }
-            if slot == Self.empty {
+        for _ in 0..<slots.count {
+            switch slots[index] {
+            case .empty:
                 return nil
+            case .full where names[index] == name:
+                return index
+            case .full, .deleted:
+                index = (index + 1) & mask
             }
-            index = (index + 1) & mask
         }
+        return nil
     }
 
-    // Twice as many slots as names, or more, without the deleted marks.
+    // Twice as many slots as names, or more, without the deleted ones.
     private mutating func resize() {
         var capacity = 64
         while capacity < (count + 1) * 4 {
             capacity *= 2
         }
+        let oldSlots = slots
         let oldNames = names
         let oldObjects = objects
-        names = [UInt32](repeating: Self.empty, count: capacity)
+        slots = [Slot](repeating: .empty, count: capacity)
+        names = [UInt32](repeating: 0, count: capacity)
         objects = [UInt32](repeating: 0, count: capacity)
         count = 0
         deletedCount = 0
-        for (index, name) in oldNames.enumerated() where name != Self.empty && name != Self.deleted {
-            add(name, oldObjects[index])
+        for (index, slot) in oldSlots.enumerated() where slot == .full {
+            add(oldNames[index], oldObjects[index])
         }
     }
 
@@ -156,6 +159,7 @@ final class RemoteGraphicsContextGL {
     private var client: WebKit.RemoteGraphicsContextGLClient?
     private var shell: WebCore.GraphicsContextGLCocoa?
     private var estimatedMemoryCost: UInt64?
+    private var readbackBytes: [UInt8] = []
     private let idleSpareDrawingBufferReleaseTimer = IdleSpareDrawingBufferReleaseTimer()
     private var idleSpareDrawingBufferReleaseScheduled = false
     private var didDisplaySinceIdleSpareDrawingBufferReleaseScheduled = false
@@ -205,6 +209,7 @@ final class RemoteGraphicsContextGL {
         #if WTF_PLATFORM_COCOA
         shell = nil
         client = nil
+        readbackBytes = []
         #endif
     }
 
@@ -553,11 +558,12 @@ extension RemoteGraphicsContextGL {
             context.addError(.InvalidOperation)
             return []
         }
-        var data = [UInt8](repeating: 0, count: Int(dataSize))
+        var data = takeZeroedReadbackBytes(count: Int(dataSize))
         let succeeded = data.withUnsafeMutableBufferPointer { buffer in
             // Safety: the context writes at most the span's bytes, which the buffer holds during the call.
             unsafe context.getBufferSubDataWithStatus(glTarget, Int(truncatingIfNeeded: offset), WTF.MutableSpanUInt8(buffer))
         }
+        readbackBytes = data
         return succeeded ? data : []
     }
 
@@ -586,11 +592,12 @@ extension RemoteGraphicsContextGL {
         var pixels: [UInt8] = []
         var readArea: WebCore.IntSize?
         if replyImageBytes <= readPixelsInlineSizeLimit {
-            pixels = [UInt8](repeating: 0, count: Int(replyImageBytes))
+            pixels = takeZeroedReadbackBytes(count: Int(replyImageBytes))
             readArea = pixels.withUnsafeMutableBufferPointer { buffer in
                 // Safety: the context writes at most the span's bytes, which the buffer holds during the call.
                 Optional(fromCxx: unsafe context.readPixelsWithStatus(WebCore.IntRect(rect.location.x, rect.location.y, rect.size.width, rect.size.height), format, type, packReverseRowOrder ? 1 : 0, WTF.MutableSpanUInt8(buffer)))
             }
+            readbackBytes = pixels
         } else {
             context.addError(.OutOfMemory)
         }
@@ -598,6 +605,16 @@ extension RemoteGraphicsContextGL {
             return (nil, [])
         }
         return (IPCTypes.IntSize(width: readArea.width(), height: readArea.height()), pixels)
+    }
+
+    // The storage of the last inline readback's reply, which the next one reuses once the reply has gone, so that
+    // readbacks don't allocate and free their bytes each time.
+    private func takeZeroedReadbackBytes(count: Int) -> [UInt8] {
+        var bytes: [UInt8] = []
+        swap(&bytes, &readbackBytes)
+        bytes.removeAll(keepingCapacity: true)
+        bytes.append(contentsOf: repeatElement(0, count: count))
+        return bytes
     }
 
     func readPixelsSharedMemory(rect: IPCTypes.IntRect, format: UInt32, type: UInt32, packReverseRowOrder: Bool, handle: CxxDecodedArguments.RemoteGraphicsContextGL.ReadPixelsSharedMemoryHandle) -> IPCTypes.IntSize? {
@@ -796,12 +813,6 @@ extension WebKit.RemoteGraphicsContextGLResources {
     }
 
     // The names, for the messages that C++ handles.
-
-    @cxx
-    @implementation
-    func isValidObjectName(_ name: UInt32) -> Bool {
-        receiver.names.isValidKey(name)
-    }
 
     @cxx
     @implementation
