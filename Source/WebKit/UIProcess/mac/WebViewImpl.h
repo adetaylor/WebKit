@@ -186,6 +186,7 @@ class PageClient;
 class PageClientImpl;
 class DrawingAreaProxy;
 class MediaSessionCoordinatorProxyPrivate;
+class NativeWebWheelEvent;
 #if ENABLE(MAC_GESTURE_EVENTS)
 class NativeWebGestureEvent;
 #endif
@@ -630,6 +631,12 @@ public:
     void invalidateCachedPositionInformation();
     void positionInformationDidChange(const InteractionInformationAtPosition&);
     void installClickHighlightView(NSView *);
+    // Swift cannot see ViewGestureController, or call ensureGestureController(), which returns a reference to a foreign
+    // reference type (rdar://168057355).
+    bool moveMagnificationOriginIfMagnifying(CGPoint originInViewCoordinates);
+    bool handleMagnificationGestureIfMagnifying(double scale, WebEventPhase, CGPoint originInViewCoordinates, WebEventInputSource);
+    void handleSmartMagnificationGesture(CGPoint originInViewCoordinates);
+    bool handleScrollWheelEventForNavigationGesture(const NativeWebWheelEvent&);
 #endif
     NODELETE void setAllowsBackForwardNavigationGestures(bool);
     bool allowsBackForwardNavigationGestures() const { return m_allowsBackForwardNavigationGestures; }
