@@ -657,6 +657,19 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module WebAuthnLocal {
+        requires cplusplus20
+        header "../../UIProcess/WebAuthentication/Cocoa/LocalAuthenticator.h"
+        export *
+    }
+
+    module WebAuthnVirtual {
+        requires cplusplus20
+        header "../../UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorManager.h"
+        header "../../UIProcess/WebAuthentication/Virtual/VirtualHidConnection.h"
+        export *
+    }
+
     module SecurityFlags {
         requires cplusplus20
         header "SecurityFlagsForSwift.h"

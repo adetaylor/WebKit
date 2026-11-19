@@ -88,6 +88,8 @@ public:
     WebCore::PublicKeyCredentialCreationOptions creationOptions() const { return std::get<WebCore::PublicKeyCredentialCreationOptions>(requestData().options); }
     WebCore::PublicKeyCredentialRequestOptions requestOptions() const { return std::get<WebCore::PublicKeyCredentialRequestOptions>(requestData().options); }
     Vector<uint8_t> requestHash() const { return requestData().hash; }
+    // For Swift, which reads one field of requestData().
+    std::optional<WebCore::MediationRequirement> requestMediation() const { return requestData().mediation; }
 
 protected:
     Authenticator();

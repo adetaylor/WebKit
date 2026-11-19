@@ -30,13 +30,14 @@
 #include "HidConnection.h"
 #include "VirtualAuthenticatorConfiguration.h"
 #include <WebCore/FidoHidMessage.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 
 namespace WebKit {
 struct VirtualAuthenticatorConfiguration;
 class VirtualAuthenticatorManager;
 
-class VirtualHidConnection final : public HidConnection {
+class SWIFT_PRIVATE_FILEID("WebKit/VirtualHidConnection.swift") VirtualHidConnection final : public HidConnection {
 public:
     static Ref<VirtualHidConnection> create(const String& authenticatorId, const VirtualAuthenticatorConfiguration&, const WeakPtr<VirtualAuthenticatorManager>&);
     virtual ~VirtualHidConnection() = default;

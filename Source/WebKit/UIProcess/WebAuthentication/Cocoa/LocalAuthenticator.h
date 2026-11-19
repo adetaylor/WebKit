@@ -29,6 +29,7 @@
 
 #include "Authenticator.h"
 #include "LocalConnection.h"
+#include <wtf/SwiftBridging.h>
 #include <wtf/UniqueRef.h>
 
 OBJC_CLASS LAContext;
@@ -42,7 +43,7 @@ namespace WebKit {
 
 BOOL shouldUseAlternateKeychainAttribute();
 
-class LocalAuthenticator final : public Authenticator {
+class SWIFT_PRIVATE_FILEID("WebKit/LocalAuthenticator.swift") LocalAuthenticator final : public Authenticator {
 public:
     // Here is the FSM.
     // MakeCredential: Init => RequestReceived => PolicyDecided => UserVerified => (Attested) => End
