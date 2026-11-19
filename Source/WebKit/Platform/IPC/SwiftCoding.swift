@@ -1276,6 +1276,133 @@ extension IPCCoding {
 }
 
 #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+// The CG renderer's spans of trivially copyable elements, decoded and encoded without a generic call out of this file, which
+// a build that isn't whole-module would not specialize, at the cost of metadata lookups for every message.
+
+extension IPC.SwiftDecoder {
+    /// The count of a std::span's elements of the given stride, which must fit in what is left of the message.
+    fileprivate mutating func decodeSpanCount(stride: Int) throws(IPCDecodingError) -> Int {
+        guard let count = Int(exactly: try UInt64.decode(from: &self)) else {
+            throw IPCDecodingError()
+        }
+        guard count <= remainingByteCount() / stride else {
+            markInvalid()
+            throw IPCDecodingError()
+        }
+        return count
+    }
+
+    /// Decodes count elements into the start of storage, which grows to hold them if it can't.
+    fileprivate mutating func decodeElements<Element: IPCTrivialSpanElement & BitwiseCopyable>(reusing storage: inout ContiguousArray<Element>, count: Int) -> Bool {
+        if storage.count >= count {
+            return decodeElements(into: &storage, count: count)
+        }
+        var decoded = false
+        storage = unsafe ContiguousArray(unsafeUninitializedCapacity: count) { buffer, initializedCount in
+            // Sound: the decoder writes every byte of the count elements, or fails, when none of them is counted.
+            let bytes = unsafe UnsafeMutableRawBufferPointer(rebasing: UnsafeMutableRawBufferPointer(buffer)[0..<(count * MemoryLayout<Element>.stride)])
+            decoded = unsafe self.decodeBytes(into: bytes, alignment: MemoryLayout<Element>.alignment)
+            initializedCount = decoded ? count : 0
+        }
+        return decoded
+    }
+
+    mutating func decodeGlyphs(into glyphs: inout ContiguousArray<CGGlyph>, count: Int) -> Bool {
+        decodeElements(into: &glyphs, count: count)
+    }
+
+    mutating func decodeGlyphAdvances(into advances: inout ContiguousArray<CGSize>, count: Int) -> Bool {
+        decodeElements(into: &advances, count: count)
+    }
+}
+
+extension IPC.SwiftReplyEncoder {
+    func encodeGlyphs(_ glyphs: ContiguousArray<CGGlyph>, count: Int) {
+        encodeElements(glyphs, count: count)
+    }
+
+    func encodeGlyphAdvances(_ advances: ContiguousArray<CGSize>, count: Int) {
+        encodeElements(advances, count: count)
+    }
+
+    fileprivate func encodeSpan<Element: IPCTrivialSpanElement & BitwiseCopyable>(_ elements: ContiguousArray<Element>, count: Int) {
+        encode(UInt64(count))
+        if count > 0 {
+            encodeElements(elements, count: count)
+        }
+    }
+}
+
+extension IPCTypes {
+    /// StrokeLinesWithColorAndThickness's lines, a std::span of them. A live dispatch decodes them into storage that the
+    /// renderer reuses ('SwiftDecodeContext='), and a recorder's decode into storage of their own; count of its elements are
+    /// the lines.
+    struct LineStrokes: IPCCoder, Sendable {
+        /// Unchecked Sendable, as IPCTypes.GlyphRun.Storage is: only one queue decodes into and reads a live dispatch's.
+        final class Storage: @unchecked Sendable {
+            fileprivate(set) var elements = ContiguousArray<WebCore.PathDataLineColorThickness>()
+
+            init() {
+            }
+        }
+
+        let storage: Storage
+        let count: Int
+
+        static func decode(from decoder: inout IPC.SwiftDecoder, context storage: Storage) throws(IPCDecodingError) -> LineStrokes {
+            let count = try decoder.decodeSpanCount(stride: MemoryLayout<WebCore.PathDataLineColorThickness>.stride)
+            // C++ decodes an empty span without aligning the decoder.
+            guard count == 0 || decoder.decodeElements(reusing: &storage.elements, count: count) else {
+                throw IPCDecodingError()
+            }
+            return LineStrokes(storage: storage, count: count)
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> LineStrokes {
+            try decode(from: &decoder, context: Storage())
+        }
+
+        static func decodeFailed(context: Storage) {
+        }
+
+        static func encode(_ value: LineStrokes, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encodeSpan(value.storage.elements, count: value.count)
+        }
+    }
+
+    /// DrawLinesForText's segments, a std::span of them, decoded as LineStrokes are.
+    struct LineSegments: IPCCoder, Sendable {
+        final class Storage: @unchecked Sendable {
+            fileprivate(set) var elements = ContiguousArray<WebCore.FloatSegment>()
+
+            init() {
+            }
+        }
+
+        let storage: Storage
+        let count: Int
+
+        static func decode(from decoder: inout IPC.SwiftDecoder, context storage: Storage) throws(IPCDecodingError) -> LineSegments {
+            let count = try decoder.decodeSpanCount(stride: MemoryLayout<WebCore.FloatSegment>.stride)
+            guard count == 0 || decoder.decodeElements(reusing: &storage.elements, count: count) else {
+                throw IPCDecodingError()
+            }
+            return LineSegments(storage: storage, count: count)
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> LineSegments {
+            try decode(from: &decoder, context: Storage())
+        }
+
+        static func decodeFailed(context: Storage) {
+        }
+
+        static func encode(_ value: LineSegments, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encodeSpan(value.storage.elements, count: value.count)
+        }
+    }
+}
+
 extension IPCCoding.CxxDecoded {
     /// WebCore::PathSegment, which C++ decodes as it does, into the plain values that the CG renderer takes of it
     /// (CGRendererPathSegmentValues()), in one call, and encodes again from them.

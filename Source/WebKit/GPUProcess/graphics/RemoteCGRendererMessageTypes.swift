@@ -153,8 +153,8 @@ extension IPCTypes {
             if value.count == 0 {
                 return
             }
-            encoder.encodeElements(value.storage.glyphs, count: value.count)
-            encoder.encodeElements(value.storage.advances, count: value.count)
+            encoder.encodeGlyphs(value.storage.glyphs, count: value.count)
+            encoder.encodeGlyphAdvances(value.storage.advances, count: value.count)
         }
 
         private static func decodeCount(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Int {
@@ -180,7 +180,7 @@ extension IPCTypes {
             if count == 0 {
                 return
             }
-            guard decoder.decodeElements(into: &glyphs, count: count), decoder.decodeElements(into: &advances, count: count) else {
+            guard decoder.decodeGlyphs(into: &glyphs, count: count), decoder.decodeGlyphAdvances(into: &advances, count: count) else {
                 throw IPCDecodingError()
             }
             for index in 0..<count {

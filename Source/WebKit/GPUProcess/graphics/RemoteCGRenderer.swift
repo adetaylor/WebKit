@@ -294,6 +294,9 @@ final class RemoteCGRenderer {
     private var imageReplays: [RemoteCGRendererRecordedImages] = []
     // A live DrawGlyphs's glyphs and advances, copied out of the message.
     private let liveGlyphRun = IPCTypes.GlyphRun.Storage()
+    // A live StrokeLinesWithColorAndThickness's lines and DrawLinesForText's segments, copied out of the message.
+    private let liveLineStrokes = IPCTypes.LineStrokes.Storage()
+    private let liveLineSegments = IPCTypes.LineSegments.Storage()
     // The descriptions of the effects of the filters it drew last (RemoteCGRendererFilters.swift).
     private let filterDescriptions = RemoteCGRendererFilterDescriptions()
     #if WTF_PLATFORM_MAC
@@ -583,8 +586,15 @@ final class RemoteCGRenderer {
         state.receiveStrokePathSegment(lineSegment(line))
     }
 
-    func strokeLinesWithColorAndThickness(state: inout CGRendererCore, lines: [WebCore.PathDataLineColorThickness]) {
-        state.receiveStrokeLinesWithColorAndThickness(lines.span)
+    @_expose(!Cxx)
+    func lineStrokesDecodeContext(state: borrowing CGRendererCore) -> IPCTypes.LineStrokes.Storage {
+        liveLineStrokes
+    }
+
+    @_expose(!Cxx)
+    func strokeLinesWithColorAndThickness(state: inout CGRendererCore, lines: IPCTypes.LineStrokes) {
+        let elements = lines.storage.elements
+        state.receiveStrokeLinesWithColorAndThickness(elements.span.extracting(0..<lines.count))
     }
 
     func strokeArc(state: inout CGRendererCore, arc: WebCore.PathArc) {
@@ -1306,16 +1316,23 @@ final class RemoteCGRenderer {
 
     // RemoteGraphicsContext's text decoration handlers.
 
+    @_expose(!Cxx)
+    func lineSegmentsDecodeContext(state: borrowing CGRendererCore) -> IPCTypes.LineSegments.Storage {
+        liveLineSegments
+    }
+
+    @_expose(!Cxx)
     func drawLinesForText(
         state: inout CGRendererCore,
         point: IPCTypes.FloatPoint,
         thickness: Float,
-        lineSegments: [WebCore.FloatSegment],
+        lineSegments: IPCTypes.LineSegments,
         printing: Bool,
         doubleLines: Bool,
         strokeStyle: WebCore.StrokeStyle
     ) {
-        state.receiveDrawLinesForText(lineSegments.span, point.x, point.y, thickness, printing, doubleLines, strokeStyle)
+        let segments = lineSegments.storage.elements
+        state.receiveDrawLinesForText(segments.span.extracting(0..<lineSegments.count), point.x, point.y, thickness, printing, doubleLines, strokeStyle)
     }
 
     // A live DrawGlyphs's glyphs and advances, which its dispatch copies out of the message into the renderer's storage for them.
