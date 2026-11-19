@@ -2265,6 +2265,7 @@
 		5117F30E25E61020002A9F1E /* RemoteCommandListenerCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 5117F30C25E6101F002A9F1E /* RemoteCommandListenerCocoa.h */; };
 		B4A4A0010000000000000002 /* MediaPlayerAVFoundationCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */; };
 		B4A4B0010000000000000002 /* AVTrackPrivateAVFObjCImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */; };
+		5C1A7E000000000000003B02 /* SwiftDelegateBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1A7E000000000000003B01 /* SwiftDelegateBox.swift */; };
 		A4C0A4C00000000000000002 /* WebCoreAVFResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C0A4C00000000000000001 /* WebCoreAVFResourceLoader.swift */; };
 		DEE095D5C54D4674A555E6F7 /* MediaPlayerPrivateAVFoundation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 495AC11FD7674AB994016471 /* MediaPlayerPrivateAVFoundation.swift */; };
 		A4C0A4C00000000000000003 /* WebCoreAVFResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = CD7E05201651A84100C1201F /* WebCoreAVFResourceLoader.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -12911,6 +12912,7 @@
 		511AFAA42E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioVideoRendererAVFObjC.h; sourceTree = "<group>"; };
 		B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerAVFoundationCore.swift; sourceTree = "<group>"; };
 		B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVTrackPrivateAVFObjCImpl.swift; sourceTree = "<group>"; };
+		5C1A7E000000000000003B01 /* SwiftDelegateBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDelegateBox.swift; sourceTree = "<group>"; };
 		A4C0A4C00000000000000001 /* WebCoreAVFResourceLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebCoreAVFResourceLoader.swift; sourceTree = "<group>"; };
 		495AC11FD7674AB994016471 /* MediaPlayerPrivateAVFoundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerPrivateAVFoundation.swift; sourceTree = "<group>"; };
 		B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaPlayerAVFoundationHost.h; sourceTree = "<group>"; };
@@ -40598,6 +40600,7 @@
 				722728112947A18A0048DD2E /* StyleAppearance.h */,
 				93B2D8150F9920D2006AE6B2 /* SuddenTermination.h */,
 				97627B9714FB5424002CDCA1 /* Supplementable.h */,
+				5C1A7E000000000000003B01 /* SwiftDelegateBox.swift */,
 				F411452C2CD43ADC004CDBD1 /* SyntheticClickResult.h */,
 				E3C04131254CA6660021D0E6 /* SystemSoundDelegate.h */,
 				E3C04132254CA7110021D0E6 /* SystemSoundManager.cpp */,
@@ -52457,6 +52460,7 @@
 				D4AB6D265E6D4FC680B78613 /* StyleTransformListSwift.swift in Sources */,
 				92C095638807E40F0E344621 /* SVGFilterRenderer.swift in Sources */,
 				A833C7CA0A2CF06B00D57664 /* SVGNames.cpp in Sources */,
+				5C1A7E000000000000003B02 /* SwiftDelegateBox.swift in Sources */,
 				C1692DD223D23ABD006E88F7 /* SystemBattery.mm in Sources */,
 				329C0C2328BD96D600F187D2 /* TagName.cpp in Sources */,
 				CE88EE262414467B007F29C2 /* TextAlternativeWithRange.mm in Sources */,
