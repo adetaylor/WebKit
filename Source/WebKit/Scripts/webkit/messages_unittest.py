@@ -788,6 +788,55 @@ messages -> TestReceiver Stream {
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftReplyValue', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types"):
             parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) SwiftReplyValue')
 
+    def test_conditional_completion_handlers(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+    Always(uint32_t value) -> (uint8_t reply)
+#if PLATFORM(COCOA)
+    CocoaOnly(uint32_t value) -> (uint64_t reply)
+    CocoaShared(uint32_t value) -> (uint8_t reply)
+#endif
+""")
+        header = messages.generate_messages_header(receiver)
+        # A conditional message's completion handler exists only where the message does.
+        self.assertIn('#if PLATFORM(COCOA)\nusing CocoaOnlyCompletionHandler = ', header)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaOnlyCompletionHandler&);\n#endif\n', header)
+        # The declaration that messages with the same reply types share exists if any of them does.
+        self.assertIn('\nvoid completeWithDefaultReply(AlwaysCompletionHandler&);\n', header)
+        self.assertNotIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(AlwaysCompletionHandler&);', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaOnlyCompletionHandler& completionHandler)\n', implementation)
+
+        # A conditional message first, then an unconditional one with the same reply types: the shared declaration names the
+        # unconditional one's handler, under no condition.
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+#if PLATFORM(COCOA)
+    CocoaFirst(uint32_t value) -> (uint16_t reply)
+#endif
+    AlwaysLater(uint32_t value) -> (uint16_t reply)
+""")
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('\nvoid completeWithDefaultReply(AlwaysLaterCompletionHandler&);\n', header)
+        self.assertNotIn('void completeWithDefaultReply(CocoaFirstCompletionHandler&);', header)
+        self.assertIn('\nvoid complete(AlwaysLaterCompletionHandler&, uint16_t);\n', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('\nvoid completeWithDefaultReply(AlwaysLaterCompletionHandler& completionHandler)\n', implementation)
+        self.assertNotIn('completeWithDefaultReply(CocoaFirstCompletionHandler& completionHandler)', implementation)
+
+        # Messages with the same reply types under two conditions: each branch names its own message's handler.
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+#if PLATFORM(COCOA)
+    CocoaMessage(uint32_t value) -> (uint16_t reply)
+#endif
+#if PLATFORM(GTK)
+    GTKMessage(uint32_t value) -> (uint16_t reply)
+#endif
+""")
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaMessageCompletionHandler&);\n#elif PLATFORM(GTK)\nvoid completeWithDefaultReply(GTKMessageCompletionHandler&);\n#endif\n', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaMessageCompletionHandler& completionHandler)\n', implementation)
+        self.assertIn('#elif PLATFORM(GTK)\nvoid completeWithDefaultReply(GTKMessageCompletionHandler& completionHandler)\n', implementation)
+
     def test_lent_state_constraints(self):
         stream_receiver = """
 [

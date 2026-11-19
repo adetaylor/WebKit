@@ -1037,6 +1037,27 @@ def messages_with_distinct_reply_types(receiver):
     return result
 
 
+# A declaration or definition that the messages of the receiver with the message's reply types share, rendered for one of
+# them, which names its completion handler: for one that has no condition if there is one, and otherwise for the first
+# message under each condition, each under its condition.
+def render_for_reply_types(receiver, message, render):
+    key = tuple(parameter.type for parameter in message.reply_parameters)
+    group = [other for other in messages_with_completion_handlers(receiver) if tuple(parameter.type for parameter in other.reply_parameters) == key]
+    unconditional = [other for other in group if not other.condition]
+    if unconditional:
+        return render(unconditional[0])
+    representatives = []
+    for other in group:
+        if other.condition not in [representative.condition for representative in representatives]:
+            representatives.append(other)
+    lines = []
+    for index, representative in enumerate(representatives):
+        lines.append('%s %s' % ('#if' if not index else '#elif', representative.condition))
+        lines.append(render(representative))
+    lines.append('#endif')
+    return '\n'.join(lines)
+
+
 def message_to_complete_with_default_reply_declaration(receiver, message):
     return 'void completeWithDefaultReply(%sCompletionHandler&);' % message.name
 
@@ -1554,14 +1575,14 @@ def generate_messages_header(receiver):
         reply_messages = messages_with_completion_handlers(receiver)
         result.append('\n')
         result.append('namespace CompletionHandlers {\nnamespace %s {\n' % receiver.name)
-        result.append('\n'.join([message_to_completion_handler_using_declaration(receiver, x) for x in reply_messages]))
+        result.append('\n'.join([surround_in_condition(message_to_completion_handler_using_declaration(receiver, x) + '\n', x.condition).rstrip('\n') for x in reply_messages]))
         result.append('\n')
         if reply_messages:
             result.append('\n')
-            result.append('\n\n'.join([message_to_complete_with_default_reply_declaration(receiver, x) for x in messages_with_distinct_reply_types(receiver)]))
+            result.append('\n\n'.join([render_for_reply_types(receiver, x, lambda m: message_to_complete_with_default_reply_declaration(receiver, m)) for x in messages_with_distinct_reply_types(receiver)]))
             result.append('\n')
             for message in messages_with_distinct_primitive_reply_types(receiver):
-                result.append('\n%s\n' % message_to_complete_declaration(receiver, message))
+                result.append('\n%s\n' % render_for_reply_types(receiver, message, lambda m: message_to_complete_declaration(receiver, m)))
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
         result.append('\n')
     if_swift_enabled(receiver, result, append_completion_handler_types_for_swift, None)
@@ -3026,9 +3047,9 @@ def generate_message_handler(receiver):
             return
         result.append('\n')
         result.append('namespace CompletionHandlers {\nnamespace %s {\n\n' % receiver.name)
-        result.append('\n\n'.join([message_to_complete_with_default_reply_definition(receiver, x) for x in messages_with_distinct_reply_types(receiver)]))
+        result.append('\n\n'.join([render_for_reply_types(receiver, x, lambda m: message_to_complete_with_default_reply_definition(receiver, m)) for x in messages_with_distinct_reply_types(receiver)]))
         for message in messages_with_distinct_primitive_reply_types(receiver):
-            result.append('\n\n%s' % message_to_complete_definition(receiver, message))
+            result.append('\n\n%s' % render_for_reply_types(receiver, message, lambda m: message_to_complete_definition(receiver, m)))
         result.append('\n\n')
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
     if_swift_enabled(receiver, result, append_complete_with_default_reply_definitions, None)
