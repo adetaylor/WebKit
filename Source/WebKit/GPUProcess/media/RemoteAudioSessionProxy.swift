@@ -208,10 +208,12 @@ extension WebKit.GPUConnectionToWebProcess {
     }
 
     #if WTF_PLATFORM_IOS_FAMILY
+    // Unsafe: C++ lends the speaker ID for the call, which only reads it.
     @cxx
     @implementation
     @MainActor
-    func setAudioSessionPreferredSpeakerID(_ speakerID: WTF.String) {
+    @unsafe
+    func setAudioSessionPreferredSpeakerID(_ speakerID: borrowing WTF.String) {
         state.audioSessionProxy?.setPreferredSpeakerID(IPCCoding.WTFString.swiftString(speakerID) ?? "")
     }
     #endif
