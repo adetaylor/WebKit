@@ -136,6 +136,7 @@
 #include "RemoteAudioTrackProxy.h"
 #include "RemoteMediaPlayerManagerProxy.h"
 #include "RemoteMediaPlayerManagerProxyMessages.h"
+#include "RemoteMediaPlayerProxyMessages.h"
 #include "RemoteMediaPlayerProxy.h"
 #include "RemoteMediaResource.h"
 #include "RemoteMediaResourceLoader.h"

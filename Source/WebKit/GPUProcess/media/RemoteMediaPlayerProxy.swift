@@ -143,30 +143,22 @@ extension WebKit.RemoteMediaPlayerProxy {
         completionHandler.pointee(player().colorSpace())
     }
 
-    @cxx
-    @implementation
-    func prepareToPlay() {
+    func prepareToPlay(connection _: IPC.Connection) {
         alwaysLog("prepareToPlay")
         player().prepareToPlay()
     }
 
-    @cxx
-    @implementation
-    func prepareForRendering() {
+    func prepareForRendering(connection _: IPC.Connection) {
         alwaysLog("prepareForRendering")
         player().prepareForRendering()
     }
 
-    @cxx
-    @implementation
-    func cancelLoad() {
+    func cancelLoad(connection _: IPC.Connection) {
         stopUpdateCachedStateMessageTimer()
         player().cancelLoad()
     }
 
-    @cxx
-    @implementation
-    func play() {
+    func play(connection _: IPC.Connection) {
         let player = player()
         if player.movieLoadType() != .LiveStream {
             startUpdateCachedStateMessageTimer()
@@ -175,18 +167,14 @@ extension WebKit.RemoteMediaPlayerProxy {
         sendCachedState()
     }
 
-    @cxx
-    @implementation
-    func pause() {
+    func pause(connection _: IPC.Connection) {
         stopUpdateCachedStateMessageTimer()
         updateCachedVideoMetrics()
         player().pause()
         sendCachedState()
     }
 
-    @cxx
-    @implementation
-    func setRate(_ rate: Double) {
+    func setRate(connection _: IPC.Connection, rate: Double) {
         player().setRate(rate)
     }
 
@@ -214,53 +202,39 @@ extension WebKit.RemoteMediaPlayerProxy {
         player().setPreload(preload)
     }
 
-    @cxx
-    @implementation
-    func setPrivateBrowsingMode(_ privateMode: Bool) {
+    func setPrivateBrowsingMode(connection _: IPC.Connection, privateMode: Bool) {
         player().setPrivateBrowsingMode(privateMode)
     }
 
-    @cxx
-    @implementation
-    func applicationWillResignActive() {
+    func applicationWillResignActive(connection _: IPC.Connection) {
         player().applicationWillResignActive()
     }
 
-    @cxx
-    @implementation
-    func applicationDidBecomeActive() {
+    func applicationDidBecomeActive(connection _: IPC.Connection) {
         player().applicationDidBecomeActive()
     }
 
     // MARK: Audio
 
-    @cxx
-    @implementation
-    func setVolume(_ volume: Double) {
+    func setVolume(connection _: IPC.Connection, volume: Double) {
         player().setVolume(volume)
         #if ENABLE_WEB_AUDIO
         m_remoteAudioSourceProvider.get()?.setVolume(volume)
         #endif
     }
 
-    @cxx
-    @implementation
-    func setPreservesPitch(_ preservesPitch: Bool) {
+    func setPreservesPitch(connection _: IPC.Connection, preservesPitch: Bool) {
         player().setPreservesPitch(preservesPitch)
         #if ENABLE_WEB_AUDIO
         m_remoteAudioSourceProvider.get()?.setPreservesPitch(preservesPitch)
         #endif
     }
 
-    @cxx
-    @implementation
-    func setVolumeLocked(_ volumeLocked: Bool) {
+    func setVolumeLocked(connection _: IPC.Connection, volumeLocked: Bool) {
         player().setVolumeLocked(volumeLocked)
     }
 
-    @cxx
-    @implementation
-    func setMuted(_ muted: Bool) {
+    func setMuted(connection _: IPC.Connection, muted: Bool) {
         player().setMuted(muted)
     }
 
@@ -307,29 +281,24 @@ extension WebKit.RemoteMediaPlayerProxy {
     #endif
 
     #if HAVE_SPATIAL_AUDIO_EXPERIENCE
-    @cxx
-    @implementation
-    func setPrefersSpatialAudioExperience(_ value: Bool) {
+    func setPrefersSpatialAudioExperience(connection _: IPC.Connection, value: Bool) {
         player().setPrefersSpatialAudioExperience(value)
     }
     #endif
 
     // MARK: Presentation
 
-    @cxx
-    @implementation
-    func setPresentationSize(_ size: WebCore.IntSize) {
-        if size.width() == m_configuration.presentationSize.width() && size.height() == m_configuration.presentationSize.height() {
+    func setPresentationSize(connection _: IPC.Connection, size ipcSize: IPCTypes.IntSize) {
+        if ipcSize.width == m_configuration.presentationSize.width() && ipcSize.height == m_configuration.presentationSize.height() {
             return
         }
 
+        let size = WebCore.IntSize(ipcSize.width, ipcSize.height)
         m_configuration.presentationSize = size
         player().setPresentationSize(size)
     }
 
-    @cxx
-    @implementation
-    func setPageIsVisible(_ visible: Bool) {
+    func setPageIsVisible(connection _: IPC.Connection, visible: Bool) {
         alwaysLog("setPageIsVisible", "\(visible)")
         player().setPageIsVisible(visible)
     }
@@ -341,9 +310,7 @@ extension WebKit.RemoteMediaPlayerProxy {
         player().setViewportVisibility(visibility)
     }
 
-    @cxx
-    @implementation
-    func acceleratedRenderingStateChanged(_ renderingCanBeAccelerated: Bool) {
+    func acceleratedRenderingStateChanged(connection _: IPC.Connection, canBeAccelerated renderingCanBeAccelerated: Bool) {
         alwaysLog("acceleratedRenderingStateChanged", "\(renderingCanBeAccelerated)")
         m_renderingCanBeAccelerated = renderingCanBeAccelerated
         player().acceleratedRenderingStateChanged()
@@ -361,21 +328,15 @@ extension WebKit.RemoteMediaPlayerProxy {
         player().playerContentBoxRectChanged(contentRect)
     }
 
-    @cxx
-    @implementation
-    func setShouldMaintainAspectRatio(_ maintainRatio: Bool) {
+    func setShouldMaintainAspectRatio(connection _: IPC.Connection, maintainAspectRatio maintainRatio: Bool) {
         player().setShouldMaintainAspectRatio(maintainRatio)
     }
 
-    @cxx
-    @implementation
-    func setShouldDisableSleep(_ disable: Bool) {
+    func setShouldDisableSleep(connection _: IPC.Connection, disable: Bool) {
         player().setShouldDisableSleep(disable)
     }
 
-    @cxx
-    @implementation
-    func setShouldDisableHDR(_ shouldDisable: Bool) {
+    func setShouldDisableHDR(connection _: IPC.Connection, shouldDisable: Bool) {
         if m_configuration.shouldDisableHDR == shouldDisable {
             return
         }
@@ -396,43 +357,31 @@ extension WebKit.RemoteMediaPlayerProxy {
         player().setPlatformDynamicRangeLimit(platformDynamicRangeLimit)
     }
 
-    @cxx
-    @implementation
-    func setShouldCheckHardwareSupport(_ value: Bool) {
+    func setShouldCheckHardwareSupport(connection _: IPC.Connection, value: Bool) {
         player().setShouldCheckHardwareSupport(value)
         m_shouldCheckHardwareSupport = value
     }
 
-    @cxx
-    @implementation
-    func isInFullscreenOrPictureInPictureChanged(_ isInFullscreenOrPictureInPicture: Bool) {
+    func isInFullscreenOrPictureInPictureChanged(connection _: IPC.Connection, value isInFullscreenOrPictureInPicture: Bool) {
         player().setInFullscreenOrPictureInPicture(isInFullscreenOrPictureInPicture)
     }
 
-    @cxx
-    @implementation
-    func startVideoFrameMetadataGathering() {
+    func startVideoFrameMetadataGathering(connection _: IPC.Connection) {
         player().startVideoFrameMetadataGathering()
     }
 
-    @cxx
-    @implementation
-    func stopVideoFrameMetadataGathering() {
+    func stopVideoFrameMetadataGathering(connection _: IPC.Connection) {
         player().stopVideoFrameMetadataGathering()
     }
 
     #if WTF_PLATFORM_MAC
-    @cxx
-    @implementation
-    func screenReservedChanged(_ reserved: Bool) {
+    func screenReservedChanged(connection _: IPC.Connection, value reserved: Bool) {
         player().setScreenReserved(reserved)
     }
     #endif
 
     #if ENABLE_VIDEO_PRESENTATION_MODE
-    @cxx
-    @implementation
-    func updateVideoFullscreenInlineImage() {
+    func updateVideoFullscreenInlineImage(connection _: IPC.Connection) {
         player().updateVideoFullscreenInlineImage()
     }
 
@@ -443,9 +392,7 @@ extension WebKit.RemoteMediaPlayerProxy {
         player().setVideoFullscreenMode(mode)
     }
 
-    @cxx
-    @implementation
-    func videoFullscreenStandbyChanged(_ standby: Bool) {
+    func videoFullscreenStandbyChanged(connection _: IPC.Connection, standby: Bool) {
         m_videoFullscreenStandby = standby
         player().videoFullscreenStandbyChanged()
     }
@@ -459,33 +406,25 @@ extension WebKit.RemoteMediaPlayerProxy {
 
     // MARK: Tracks
 
-    @cxx
-    @implementation
-    func notifyTrackModeChanged() {
+    func notifyTrackModeChanged(connection _: IPC.Connection) {
         player().notifyTrackModeChanged()
     }
 
-    @cxx
-    @implementation
-    func tracksChanged() {
+    func tracksChanged(connection _: IPC.Connection) {
         player().tracksChanged()
     }
 
     // MARK: Wireless playback
 
     #if ENABLE_WIRELESS_PLAYBACK_TARGET
-    @cxx
-    @implementation
-    func setWirelessVideoPlaybackDisabled(_ disabled: Bool) {
+    func setWirelessVideoPlaybackDisabled(connection _: IPC.Connection, disabled: Bool) {
         let player = player()
         player.setWirelessVideoPlaybackDisabled(disabled)
         m_cachedState.wirelessVideoPlaybackDisabled = player.wirelessVideoPlaybackDisabled()
         sendCachedState()
     }
 
-    @cxx
-    @implementation
-    func setShouldPlayToPlaybackTarget(_ shouldPlay: Bool) {
+    func setShouldPlayToPlaybackTarget(connection _: IPC.Connection, shouldPlay: Bool) {
         player().setShouldPlayToPlaybackTarget(shouldPlay)
     }
     #endif
@@ -493,17 +432,13 @@ extension WebKit.RemoteMediaPlayerProxy {
     // MARK: Keys
 
     #if ENABLE_LEGACY_ENCRYPTED_MEDIA
-    @cxx
-    @implementation
-    func keyAdded() {
+    func keyAdded(connection _: IPC.Connection) {
         player().keyAdded()
     }
     #endif
 
     #if ENABLE_LEGACY_ENCRYPTED_MEDIA && ENABLE_ENCRYPTED_MEDIA
-    @cxx
-    @implementation
-    func setShouldContinueAfterKeyNeeded(_ should: Bool) {
+    func setShouldContinueAfterKeyNeeded(connection _: IPC.Connection, should: Bool) {
         player().setShouldContinueAfterKeyNeeded(should)
     }
     #endif
@@ -563,9 +498,7 @@ extension WebKit.RemoteMediaPlayerProxy {
 
     // MARK: Video playback quality metrics
 
-    @cxx
-    @implementation
-    func setVideoPlaybackMetricsUpdateInterval(_ interval: Double) {
+    func setVideoPlaybackMetricsUpdateInterval(connection _: IPC.Connection, interval: Double) {
         alwaysLog("setVideoPlaybackMetricsUpdateInterval", "\(interval)")
 
         updateCachedVideoMetrics()

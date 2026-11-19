@@ -192,6 +192,7 @@
 		E35DB5B58EE56E795DC83725 /* RemoteAudioDestinationManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F738B224261F0B29EF2697DF /* RemoteAudioDestinationManagerMessageReceiver.swift */; };
 		2B3501978EBF8452E675A49E /* RemoteAudioVideoRendererProxyManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6D31E65568A0684046A40D0 /* RemoteAudioVideoRendererProxyManagerMessageReceiver.swift */; };
 		966B41B7DFF5B9C24F083A88 /* RemoteMediaPlayerManagerProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCB598B886EA614D3E2DF17D /* RemoteMediaPlayerManagerProxyMessageReceiver.swift */; };
+		621C90C4BC1C0419BF83CCB6 /* RemoteMediaPlayerProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9787C33C59CFE9DD9A8C238F /* RemoteMediaPlayerProxyMessageReceiver.swift */; };
 		168DD43A31781E2099435F06 /* RemoteMediaResourceLoaderMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B1AACCF2C66DEA6D63CA4C /* RemoteMediaResourceLoaderMessageReceiver.swift */; };
 		6C90A0A1D672DE5E289862A3 /* RemoteCDMFactoryProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9538C0D21E85A5BE9B865B9 /* RemoteCDMFactoryProxy.swift */; };
 		AE8D61B17EE9685F9563EDEB /* RemoteMediaEngineConfigurationFactoryProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E8BFE7FECB5E5FB2850930 /* RemoteMediaEngineConfigurationFactoryProxy.swift */; };
@@ -3601,6 +3602,7 @@
 		C6B9887BADA33E26CBCC6CE0 /* RemoteAudioSessionProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioSessionProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		B6D31E65568A0684046A40D0 /* RemoteAudioVideoRendererProxyManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioVideoRendererProxyManagerMessageReceiver.swift; sourceTree = "<group>"; };
 		DCB598B886EA614D3E2DF17D /* RemoteMediaPlayerManagerProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteMediaPlayerManagerProxyMessageReceiver.swift; sourceTree = "<group>"; };
+		9787C33C59CFE9DD9A8C238F /* RemoteMediaPlayerProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteMediaPlayerProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		A5B1AACCF2C66DEA6D63CA4C /* RemoteMediaResourceLoaderMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteMediaResourceLoaderMessageReceiver.swift; sourceTree = "<group>"; };
 		F454CC0B491A15CFDA886EB5 /* LibWebRTCCodecsProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibWebRTCCodecsProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		6007A51DA034597E9D2E8D79 /* UserMediaCaptureManagerProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserMediaCaptureManagerProxyMessageReceiver.swift; sourceTree = "<group>"; };
@@ -14167,6 +14169,7 @@
 				DCB598B886EA614D3E2DF17D /* RemoteMediaPlayerManagerProxyMessageReceiver.swift */,
 				07923146239CBCB7009598E2 /* RemoteMediaPlayerManagerProxyMessages.h */,
 				071BC58C23CE1EA900680D7C /* RemoteMediaPlayerProxyMessageReceiver.cpp */,
+				9787C33C59CFE9DD9A8C238F /* RemoteMediaPlayerProxyMessageReceiver.swift */,
 				071BC58D23CE1EAA00680D7C /* RemoteMediaPlayerProxyMessages.h */,
 				CD8FD70E2EF3283600291438 /* RemoteMediaResourceLoaderMessageReceiver.cpp */,
 				A5B1AACCF2C66DEA6D63CA4C /* RemoteMediaResourceLoaderMessageReceiver.swift */,
@@ -22847,6 +22850,7 @@
 				966B41B7DFF5B9C24F083A88 /* RemoteMediaPlayerManagerProxyMessageReceiver.swift in Sources */,
 				0701789E23BE9CFC005F0FAA /* RemoteMediaPlayerMIMETypeCache.cpp in Sources */,
 				1F867A0FBC6B117025EADC03 /* RemoteMediaPlayerProxy.swift in Sources */,
+				621C90C4BC1C0419BF83CCB6 /* RemoteMediaPlayerProxyMessageReceiver.swift in Sources */,
 				28768C757ACF543768D51534 /* RemoteMediaResourceLoader.swift in Sources */,
 				168DD43A31781E2099435F06 /* RemoteMediaResourceLoaderMessageReceiver.swift in Sources */,
 				DB7D4E2D5DFF32569EFF777A /* RemotePipelineLayout.swift in Sources */,
