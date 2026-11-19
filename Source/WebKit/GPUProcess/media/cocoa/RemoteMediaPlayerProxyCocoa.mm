@@ -120,11 +120,6 @@ void RemoteMediaPlayerProxy::nativeImageForCurrentTime(CompletionHandler<void(st
 {
     using namespace WebCore;
 
-    if (!m_player) {
-        completionHandler(std::nullopt, ColorSpace::SRGB());
-        return;
-    }
-
     auto nativeImage = m_player->nativeImageForCurrentTime();
     if (!nativeImage) {
         completionHandler(std::nullopt, ColorSpace::SRGB());

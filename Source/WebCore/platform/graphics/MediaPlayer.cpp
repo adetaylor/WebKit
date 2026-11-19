@@ -2416,6 +2416,38 @@ String convertImmersiveVideoMetadataToString(const ImmersiveVideoMetadata& metad
         WTF::LogArgument<std::optional<int32_t>>::toString(metadata.horizontalDisparityAdjustment), " }"_s);
 }
 
+#if PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
+WTF_MAKE_TZONE_ALLOCATED_IMPL(SwiftMediaPlayerClientAdapter);
+
+SwiftMediaPlayerClientAdapter::~SwiftMediaPlayerClientAdapter()
+{
+    releaseDelegateBox(m_delegateBox);
+}
+
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+RefPtr<ArrayBuffer> SwiftMediaPlayerClientAdapter::mediaPlayerCachedKeyForKeyId(const String& keyId) const
+{
+    return m_cachedKeyProvider ? m_cachedKeyProvider(keyId) : nullptr;
+}
+#endif
+
+Ref<PlatformMediaResourceLoader> SwiftMediaPlayerClientAdapter::mediaPlayerCreateResourceLoader()
+{
+    if (RefPtr loader = m_resourceLoaderProvider ? m_resourceLoaderProvider() : nullptr)
+        return loader.releaseNonNull();
+    return MediaPlayerClient::mediaPlayerCreateResourceLoader();
+}
+
+#if PLATFORM(IOS_FAMILY)
+void SwiftMediaPlayerClientAdapter::mediaPlayerGetRawCookies(const URL& url, GetRawCookiesCallback&& completionHandler) const
+{
+    if (!m_rawCookiesProvider)
+        return MediaPlayerClient::mediaPlayerGetRawCookies(url, WTF::move(completionHandler));
+    m_rawCookiesProvider(url, WTF::move(completionHandler));
+}
+#endif
+#endif // PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
+
 } // namespace WebCore
 
 #endif // ENABLE(VIDEO)

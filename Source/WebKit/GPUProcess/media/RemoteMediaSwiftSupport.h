@@ -71,6 +71,9 @@ class GPUConnectionToWebProcess;
 // What the GPU process's Swift media receivers need of WebCore's C++ media objects that Swift can't do itself: reach a
 // connection's logger and media players, and make C++ values that have no Swift form.
 
+// MediaTime's ordering, as Swift can't call operator<=>.
+inline bool mediaTimeIsLessThanOrEqual(const MediaTime& a, const MediaTime& b) { return a <= b; }
+
 using RemoteCDMBytes = Vector<uint8_t>;
 
 inline RemoteCDMBytes remoteCDMBufferBytes(const WebCore::SharedBuffer& buffer)
@@ -105,6 +108,9 @@ std::optional<WebCore::ShareableBitmapHandle> createImageDecoderAVFFrameBitmap(W
 
 #if ENABLE(VIDEO)
 using MediaPlayerCallback = Function<void(WebCore::MediaPlayer&)>;
+// The player's performTaskAtTime(), with a task that Swift can make (Swift can't make one that takes a const MediaTime&).
+using MediaPlayerTimeTask = Function<void(MediaTime)>;
+bool performMediaPlayerTaskAtTime(WebCore::MediaPlayer&, MediaPlayerTimeTask&&, const MediaTime&);
 CVBufferRef WTF_NULLABLE videoFramePixelBuffer(const WebCore::VideoFrame&) CF_RETURNS_NOT_RETAINED;
 #endif
 
@@ -119,6 +125,9 @@ void sendAddDataCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::T
 void sendParseWebVTTCueData(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, const WebCore::SharedBuffer&);
 enum class RemoteTextTrackCueChange : uint8_t { Add, Update, Remove };
 void sendGenericCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, RemoteTextTrackCueChange, WebCore::InbandGenericCue&);
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+void sendMediaPlayerKeyNeeded(IPC::Connection&, uint64_t mediaPlayerIdentifier, const WebCore::SharedBuffer& message);
+#endif
 #if ENABLE(DATACUE_VALUE)
 // The type is the added cue's.
 void sendDataCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, RemoteTextTrackCueChange, const MediaTime& start, const MediaTime& end, WebCore::SerializedPlatformDataCue&, const String& type);

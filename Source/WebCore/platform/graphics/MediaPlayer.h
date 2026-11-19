@@ -368,6 +368,212 @@ public:
 #endif
 };
 
+#if PLATFORM(COCOA)
+// A MediaPlayerClient for a Swift object conforming to MediaPlayerClientDelegate (SwiftMediaPlayerClientAdapter.swift).
+// The values the media engines query are fields here, read without leaving C++; the owner sets them. The members whose
+// types Swift can't take are functions the owner sets. Everything else goes to the delegate, which the adapter keeps
+// alive.
+class WEBCORE_EXPORT SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/SwiftMediaPlayerClientAdapter.swift") SwiftMediaPlayerClientAdapter final
+    : public MediaPlayerClient
+    , public RefCounted<SwiftMediaPlayerClientAdapter> {
+    WTF_MAKE_TZONE_ALLOCATED_EXPORT(SwiftMediaPlayerClientAdapter, WEBCORE_EXPORT);
+public:
+    // The box must be a retained delegate box (makeSwiftMediaPlayerClientDelegateBox()), which the adapter releases.
+    static Ref<SwiftMediaPlayerClientAdapter> create(MediaPlayerClientIdentifier clientIdentifier, uintptr_t delegateBox) { return adoptRef(*new SwiftMediaPlayerClientAdapter(clientIdentifier, delegateBox)); }
+    ~SwiftMediaPlayerClientAdapter();
+
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+    void setRenderingCanBeAccelerated(bool value) { m_renderingCanBeAccelerated = value; }
+    void setContentsScale(float value) { m_contentsScale = value; }
+    void setContentBoxRect(LayoutRect value) { m_contentBoxRect = value; }
+    void setIsVideo(bool value) { m_isVideo = value; }
+    void setShouldUsePersistentCache(bool value) { m_shouldUsePersistentCache = value; }
+    void setShouldDisableHDR(bool value) { m_shouldDisableHDR = value; }
+    void setShouldCheckHardwareSupport(bool value) { m_shouldCheckHardwareSupport = value; }
+    void setFullscreenMode(MediaPlayerEnums::VideoFullscreenMode value) { m_fullscreenMode = value; }
+    void setIsVideoFullscreenStandby(bool value) { m_isVideoFullscreenStandby = value; }
+    void setSoundStageSize(MediaPlayerSoundStageSize value) { m_soundStageSize = value; }
+    void setPreferredAudioCharacteristics(const Vector<String>& value) { m_preferredAudioCharacteristics = value; }
+    void setMediaContentTypesRequiringHardwareSupport(const Vector<ContentType>& value) { m_mediaContentTypesRequiringHardwareSupport = value; }
+    void setAllowedMediaContainerTypes(const std::optional<Vector<String>>& value) { m_allowedMediaContainerTypes = value; }
+    void setAllowedMediaCodecTypes(const std::optional<Vector<String>>& value) { m_allowedMediaCodecTypes = value; }
+    void setAllowedMediaVideoCodecIDs(const std::optional<Vector<FourCC>>& value) { m_allowedMediaVideoCodecIDs = value; }
+    void setAllowedMediaAudioCodecIDs(const std::optional<Vector<FourCC>>& value) { m_allowedMediaAudioCodecIDs = value; }
+    void setAllowedMediaCaptionFormatTypes(const std::optional<Vector<FourCC>>& value) { m_allowedMediaCaptionFormatTypes = value; }
+    void setOutOfBandTrackSources(Vector<Ref<PlatformTextTrack>>&& value) { m_outOfBandTrackSources = WTF::move(value); }
+    void setResourceLoaderProvider(Function<RefPtr<PlatformMediaResourceLoader>()>&& provider) { m_resourceLoaderProvider = WTF::move(provider); }
+    void setVideoFrameMetadataHandler(Function<void(VideoFrameMetadata&&, RetainPtr<CVPixelBufferRef>&&)>&& handler) { m_videoFrameMetadataHandler = WTF::move(handler); }
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+    void setCachedKeyProvider(Function<RefPtr<ArrayBuffer>(const String&)>&& provider) { m_cachedKeyProvider = WTF::move(provider); }
+#endif
+#if ENABLE(ENCRYPTED_MEDIA)
+    void setInitializationDataHandler(Function<void(const String&, RefPtr<ArrayBuffer>&&)>&& handler) { m_initializationDataHandler = WTF::move(handler); }
+#endif
+#if PLATFORM(IOS_FAMILY)
+    void setNetworkInterfaceName(const String& value) { m_networkInterfaceName = value; }
+    void setRawCookiesProvider(Function<void(const URL&, GetRawCookiesCallback&&)>&& provider) { m_rawCookiesProvider = WTF::move(provider); }
+#endif
+#if ENABLE(LINEAR_MEDIA_PLAYER)
+    void setVideoTargetProvider(Function<PlatformVideoTarget()>&& provider) { m_videoTargetProvider = WTF::move(provider); }
+#endif
+#if !RELEASE_LOG_DISABLED
+    void setLogger(const Logger& logger, uint64_t logIdentifier)
+    {
+        m_logger = &logger;
+        m_logIdentifier = logIdentifier;
+    }
+#endif
+
+    bool mediaPlayerRenderingCanBeAccelerated() final { return m_renderingCanBeAccelerated; }
+    float mediaPlayerContentsScale() const final { return m_contentsScale; }
+    LayoutRect mediaPlayerContentBoxRect() const final { return m_contentBoxRect; }
+    bool mediaPlayerIsVideo() const final { return m_isVideo; }
+    bool mediaPlayerShouldUsePersistentCache() const final { return m_shouldUsePersistentCache; }
+    bool mediaPlayerShouldDisableHDR() const final { return m_shouldDisableHDR; }
+    bool mediaPlayerShouldCheckHardwareSupport() const final { return m_shouldCheckHardwareSupport; }
+    MediaPlayerEnums::VideoFullscreenMode mediaPlayerFullscreenMode() const final { return m_fullscreenMode; }
+    bool mediaPlayerIsVideoFullscreenStandby() const final { return m_isVideoFullscreenStandby; }
+    MediaPlayerSoundStageSize mediaPlayerSoundStageSize() const final { return m_soundStageSize; }
+    MediaPlayerClientIdentifier mediaPlayerClientIdentifier() const final { return m_clientIdentifier; }
+
+private:
+    SwiftMediaPlayerClientAdapter(MediaPlayerClientIdentifier clientIdentifier, uintptr_t delegateBox)
+        : m_delegateBox(delegateBox)
+        , m_clientIdentifier(clientIdentifier)
+    {
+    }
+
+    SWIFT_UNSAFE static void releaseDelegateBox(uintptr_t);
+
+    String mediaPlayerReferrer() const final;
+    String mediaPlayerUserAgent() const final;
+    String mediaPlayerSourceApplicationIdentifier() const final;
+    String audioOutputDeviceId() const final;
+    String audioOutputDeviceIdOverride() const final { return audioOutputDeviceId(); }
+    Vector<String> mediaPlayerPreferredAudioCharacteristics() const final { return m_preferredAudioCharacteristics; }
+    const Vector<ContentType>& mediaContentTypesRequiringHardwareSupport() const final { return m_mediaContentTypesRequiringHardwareSupport; }
+    const std::optional<Vector<String>>& allowedMediaContainerTypes() const final { return m_allowedMediaContainerTypes; }
+    const std::optional<Vector<String>>& allowedMediaCodecTypes() const final { return m_allowedMediaCodecTypes; }
+    const std::optional<Vector<FourCC>>& allowedMediaVideoCodecIDs() const final { return m_allowedMediaVideoCodecIDs; }
+    const std::optional<Vector<FourCC>>& allowedMediaAudioCodecIDs() const final { return m_allowedMediaAudioCodecIDs; }
+    const std::optional<Vector<FourCC>>& allowedMediaCaptionFormatTypes() const final { return m_allowedMediaCaptionFormatTypes; }
+#if PLATFORM(IOS_FAMILY)
+    String mediaPlayerNetworkInterfaceName() const final { return m_networkInterfaceName; }
+#endif
+#if !RELEASE_LOG_DISABLED
+    uint64_t mediaPlayerLogIdentifier() final { return m_logIdentifier; }
+    const Logger& mediaPlayerLogger() final { return m_logger ? *m_logger : MediaPlayerClient::mediaPlayerLogger(); }
+#endif
+
+    void mediaPlayerNetworkStateChanged() final;
+    void mediaPlayerReadyStateChanged() final;
+    void mediaPlayerVolumeChanged() final;
+    void mediaPlayerMuteChanged() final;
+    void mediaPlayerTimeChanged() final;
+    void mediaPlayerDurationChanged() final;
+    void mediaPlayerRateChanged() final;
+    void mediaPlayerPlaybackStateChanged() final;
+    void mediaPlayerResourceNotSupported() final;
+    void mediaPlayerSizeChanged() final;
+    void mediaPlayerFirstVideoFrameAvailable() final;
+    void mediaPlayerCharacteristicChanged() final;
+    void mediaPlayerRenderingModeChanged() final;
+    void mediaPlayerEngineFailedToLoad() final;
+    void mediaPlayerBufferedTimeRangesChanged() final;
+    void mediaPlayerSeekableTimeRangesChanged() final;
+    SWIFT_MAIN_ACTOR void mediaPlayerDidAddAudioTrack(AudioTrackPrivate&) final;
+    SWIFT_MAIN_ACTOR void mediaPlayerDidRemoveAudioTrack(AudioTrackPrivate&) final;
+    SWIFT_MAIN_ACTOR void mediaPlayerDidAddVideoTrack(VideoTrackPrivate&) final;
+    SWIFT_MAIN_ACTOR void mediaPlayerDidRemoveVideoTrack(VideoTrackPrivate&) final;
+    SWIFT_MAIN_ACTOR void mediaPlayerDidAddTextTrack(InbandTextTrackPrivate&) final;
+    SWIFT_MAIN_ACTOR void mediaPlayerDidRemoveTextTrack(InbandTextTrackPrivate&) final;
+    String mediaPlayerMediaCacheDirectory() const final;
+    FloatSize mediaPlayerVideoLayerSize() const final;
+    Vector<Ref<PlatformTextTrack>> outOfBandTrackSources() final { return m_outOfBandTrackSources; }
+    Ref<PlatformMediaResourceLoader> mediaPlayerCreateResourceLoader() final;
+
+    void mediaPlayerOnNewVideoFrameMetadata(VideoFrameMetadata&& metadata, RetainPtr<CVPixelBufferRef>&& pixelBuffer) final
+    {
+        if (m_videoFrameMetadataHandler)
+            m_videoFrameMetadataHandler(WTF::move(metadata), WTF::move(pixelBuffer));
+    }
+
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+    RefPtr<ArrayBuffer> mediaPlayerCachedKeyForKeyId(const String& keyId) const final;
+    void mediaPlayerKeyNeeded(const SharedBuffer&) final;
+#endif
+
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA) || ENABLE(ENCRYPTED_MEDIA)
+    String mediaPlayerMediaKeysStorageDirectory() const final;
+#endif
+
+#if ENABLE(ENCRYPTED_MEDIA)
+    void mediaPlayerInitializationDataEncountered(const String& initDataType, RefPtr<ArrayBuffer>&& initData) final
+    {
+        if (m_initializationDataHandler)
+            m_initializationDataHandler(initDataType, WTF::move(initData));
+    }
+    void mediaPlayerWaitingForKeyChanged() final;
+#endif
+
+#if ENABLE(WIRELESS_PLAYBACK_TARGET)
+    void mediaPlayerCurrentPlaybackTargetIsWirelessChanged(bool) final;
+    MediaPlaybackTargetType playbackTargetType() const final;
+#endif
+
+#if PLATFORM(IOS_FAMILY)
+    void mediaPlayerGetRawCookies(const URL&, GetRawCookiesCallback&&) const final;
+#endif
+
+#if ENABLE(LINEAR_MEDIA_PLAYER)
+    PlatformVideoTarget mediaPlayerVideoTarget() const final { return m_videoTargetProvider ? m_videoTargetProvider() : nullptr; }
+#endif
+
+    const uintptr_t m_delegateBox;
+    const MediaPlayerClientIdentifier m_clientIdentifier;
+    bool m_renderingCanBeAccelerated { false };
+    float m_contentsScale { 1 };
+    LayoutRect m_contentBoxRect;
+    bool m_isVideo { false };
+    bool m_shouldUsePersistentCache { true };
+    bool m_shouldDisableHDR { false };
+    bool m_shouldCheckHardwareSupport { false };
+    MediaPlayerEnums::VideoFullscreenMode m_fullscreenMode { MediaPlayerEnums::VideoFullscreenModeNone };
+    bool m_isVideoFullscreenStandby { false };
+    MediaPlayerSoundStageSize m_soundStageSize { MediaPlayerSoundStageSize::Auto };
+    Vector<String> m_preferredAudioCharacteristics;
+    Vector<ContentType> m_mediaContentTypesRequiringHardwareSupport;
+    std::optional<Vector<String>> m_allowedMediaContainerTypes;
+    std::optional<Vector<String>> m_allowedMediaCodecTypes;
+    std::optional<Vector<FourCC>> m_allowedMediaVideoCodecIDs;
+    std::optional<Vector<FourCC>> m_allowedMediaAudioCodecIDs;
+    std::optional<Vector<FourCC>> m_allowedMediaCaptionFormatTypes;
+    Vector<Ref<PlatformTextTrack>> m_outOfBandTrackSources;
+    Function<RefPtr<PlatformMediaResourceLoader>()> m_resourceLoaderProvider;
+    Function<void(VideoFrameMetadata&&, RetainPtr<CVPixelBufferRef>&&)> m_videoFrameMetadataHandler;
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+    Function<RefPtr<ArrayBuffer>(const String&)> m_cachedKeyProvider;
+#endif
+#if ENABLE(ENCRYPTED_MEDIA)
+    Function<void(const String&, RefPtr<ArrayBuffer>&&)> m_initializationDataHandler;
+#endif
+#if PLATFORM(IOS_FAMILY)
+    String m_networkInterfaceName;
+    Function<void(const URL&, GetRawCookiesCallback&&)> m_rawCookiesProvider;
+#endif
+#if ENABLE(LINEAR_MEDIA_PLAYER)
+    Function<PlatformVideoTarget()> m_videoTargetProvider;
+#endif
+#if !RELEASE_LOG_DISABLED
+    RefPtr<const Logger> m_logger;
+    uint64_t m_logIdentifier { 0 };
+#endif
+};
+
+#endif // PLATFORM(COCOA)
+
 class WEBCORE_EXPORT MediaPlayer : public MediaPlayerEnums, public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<MediaPlayer, WTF::DestructionThread::Main> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(MediaPlayer, WEBCORE_EXPORT);
     WTF_MAKE_NONCOPYABLE(MediaPlayer);
