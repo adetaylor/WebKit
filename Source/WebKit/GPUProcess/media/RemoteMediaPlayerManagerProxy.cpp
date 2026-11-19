@@ -90,14 +90,9 @@ RemoteMediaPlayerManagerProxy::RemoteMediaPlayerManagerProxy(GPUConnectionToWebP
 
 RemoteMediaPlayerManagerProxy::~RemoteMediaPlayerManagerProxy()
 {
-#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     swiftDestroy(m_identifier);
-#else
-    clear();
-#endif
 }
 
-#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 bool RemoteMediaPlayerManagerProxy::hasMediaEngine(uint8_t engineIdentifier, bool forPlayback)
 {
     return MediaPlayer::mediaEngine({ .identifier = static_cast<MediaPlayerEnums::MediaEngineIdentifier>(engineIdentifier), .scope = forPlayback ? MediaPlayerScope::Playback : MediaPlayerScope::Supports });
@@ -127,49 +122,6 @@ void RemoteMediaPlayerManagerProxy::didReceiveSyncPlayerMessage(IPC::Connection&
             player->didReceiveSyncMessage(connection, decoder, encoder);
     }
 }
-#else
-void RemoteMediaPlayerManagerProxy::clear()
-{
-    auto proxies = std::exchange(m_proxies, { });
-
-    for (Ref proxy : proxies.values())
-        proxy->invalidate();
-}
-
-void RemoteMediaPlayerManagerProxy::createMediaPlayer(MediaPlayerIdentifier identifier, MediaPlayerClientIdentifier clientIdentifier, MediaPlayerEnums::MediaEngineIdentifier engineIdentifier, RemoteMediaPlayerProxyConfiguration&& proxyConfiguration)
-{
-    auto connection = m_gpuConnectionToWebProcess.get();
-    if (!connection)
-        return;
-    ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-    ASSERT(!m_proxies.contains(identifier));
-
-    if (!playbackEngineForConnection(engineIdentifier)) {
-        // Terminate only for a containment bypass: the engine is registered here for capability
-        // queries (Supports scope) but not for playback. An entirely-absent engine (e.g. media
-        // framework unavailable in recoveryOS) degrades to a null player.
-        MESSAGE_CHECK(!MediaPlayer::mediaEngine({ .identifier = engineIdentifier, .scope = MediaPlayerScope::Supports }));
-    }
-
-    auto proxy = RemoteMediaPlayerProxy::create(*this, identifier, clientIdentifier, connection->connection(), engineIdentifier, WTF::move(proxyConfiguration), Ref { connection->videoFrameObjectHeap() }, connection->webProcessIdentity());
-    m_proxies.add(identifier, WTF::move(proxy));
-}
-
-void RemoteMediaPlayerManagerProxy::deleteMediaPlayer(MediaPlayerIdentifier identifier)
-{
-    ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-
-    if (auto proxy = m_proxies.take(identifier))
-        proxy->invalidate();
-
-    auto connection = m_gpuConnectionToWebProcess.get();
-    if (!connection)
-        return;
-
-    if (!hasOutstandingRenderingResourceUsage())
-        connection->gpuProcess().tryExitIfUnusedAndUnderMemoryPressure();
-}
-#endif // ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 void RemoteMediaPlayerManagerProxy::getSupportedTypes(MediaPlayerEnums::MediaEngineIdentifier engineIdentifier, CompletionHandler<void(Vector<String>&&)>&& completionHandler)
 {
@@ -214,50 +166,6 @@ void RemoteMediaPlayerManagerProxy::supportsKeySystem(MediaPlayerEnums::MediaEng
     auto result = engine->supportsKeySystem(keySystem, mimeType);
     completionHandler(result);
 }
-
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-void RemoteMediaPlayerManagerProxy::didReceivePlayerMessage(IPC::Connection& connection, IPC::Decoder& decoder)
-{
-    ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-    if (ObjectIdentifier<MediaPlayerIdentifierType>::isValidIdentifier(decoder.destinationID())) {
-        if (RefPtr player = m_proxies.get(ObjectIdentifier<MediaPlayerIdentifierType>(decoder.destinationID())))
-            player->didReceiveMessage(connection, decoder);
-    }
-}
-
-void RemoteMediaPlayerManagerProxy::didReceiveSyncPlayerMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder)
-{
-    ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-    if (ObjectIdentifier<MediaPlayerIdentifierType>::isValidIdentifier(decoder.destinationID())) {
-        if (RefPtr player = m_proxies.get(ObjectIdentifier<MediaPlayerIdentifierType>(decoder.destinationID()))) {
-            player->didReceiveSyncMessage(connection, decoder, encoder);
-            return;
-        }
-    }
-}
-
-#if PLATFORM(COCOA)
-std::optional<FloatRect> RemoteMediaPlayerManagerProxy::hostedVideoLayerBoundsForTesting(MediaPlayerClientIdentifier clientIdentifier) const
-{
-    for (Ref proxy : m_proxies.values()) {
-        if (auto bounds = proxy->hostedVideoLayerBoundsForTesting(clientIdentifier))
-            return bounds;
-    }
-    return std::nullopt;
-}
-#endif
-
-RefPtr<MediaPlayer> RemoteMediaPlayerManagerProxy::mediaPlayer(std::optional<MediaPlayerIdentifier> identifier)
-{
-    ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-    if (!identifier)
-        return nullptr;
-    auto results = m_proxies.find(*identifier);
-    if (results != m_proxies.end())
-        return results->value->mediaPlayer();
-    return nullptr;
-}
-#endif // !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 #if !RELEASE_LOG_DISABLED
 WTFLogChannel& RemoteMediaPlayerManagerProxy::logChannel() const

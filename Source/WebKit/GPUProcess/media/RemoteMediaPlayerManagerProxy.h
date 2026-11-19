@@ -89,11 +89,7 @@ public:
     void didReceivePlayerMessage(IPC::Connection&, IPC::Decoder&);
     void didReceiveSyncPlayerMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
-#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     RefPtr<WebCore::MediaPlayer> mediaPlayer(std::optional<WebCore::MediaPlayerIdentifier> identifier) { return identifier ? swiftMediaPlayer(identifier->toUInt64()) : nullptr; }
-#else
-    RefPtr<WebCore::MediaPlayer> mediaPlayer(std::optional<WebCore::MediaPlayerIdentifier>);
-#endif
 
 #if PLATFORM(COCOA)
     SWIFT_MAIN_ACTOR std::optional<WebCore::FloatRect> hostedVideoLayerBoundsForTesting(WebCore::MediaPlayerClientIdentifier) const;
@@ -117,11 +113,6 @@ private:
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
     void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&) final;
 
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-    void createMediaPlayer(WebCore::MediaPlayerIdentifier, WebCore::MediaPlayerClientIdentifier, WebCore::MediaPlayerEnums::MediaEngineIdentifier, RemoteMediaPlayerProxyConfiguration&&);
-    void deleteMediaPlayer(WebCore::MediaPlayerIdentifier);
-#endif
-
     // Media player factory
     void getSupportedTypes(WebCore::MediaPlayerEnums::MediaEngineIdentifier, CompletionHandler<void(Vector<String>&&)>&&);
     void supportsTypeAndCodecs(WebCore::MediaPlayerEnums::MediaEngineIdentifier, const WebCore::MediaEngineSupportParameters&&, CompletionHandler<void(WebCore::MediaPlayer::SupportsType)>&&);
@@ -142,11 +133,7 @@ private:
     uint64_t logIdentifier() const { return m_logIdentifier; }
 #endif
 
-#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     const uint64_t m_identifier;
-#else
-    HashMap<WebCore::MediaPlayerIdentifier, Ref<RemoteMediaPlayerProxy>> m_proxies;
-#endif
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
 #if !RELEASE_LOG_DISABLED
     uint64_t m_logIdentifier { 0 };

@@ -126,7 +126,6 @@ void RemoteMediaResource::dataReceived(const SharedBuffer& data)
         client->dataReceived(*this, data);
 }
 
-#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaResource::accessControlCheckFailed(IPC::CxxDecodedArgument<ResourceError>& error)
 {
     assertIsCurrent(RemoteMediaResourceLoader::defaultQueue());
@@ -151,32 +150,6 @@ void RemoteMediaResource::loadFinished(IPC::CxxDecodedArgument<NetworkLoadMetric
     if (auto client = this->client())
         client->loadFinished(*this, *metrics.take());
 }
-#else
-void RemoteMediaResource::accessControlCheckFailed(const ResourceError& error)
-{
-    assertIsCurrent(RemoteMediaResourceLoader::defaultQueue());
-
-    m_didPassAccessControlCheck = false;
-    if (auto client = this->client())
-        client->accessControlCheckFailed(*this, error);
-}
-
-void RemoteMediaResource::loadFailed(const ResourceError& error)
-{
-    assertIsCurrent(RemoteMediaResourceLoader::defaultQueue());
-
-    if (auto client = this->client())
-        client->loadFailed(*this, error);
-}
-
-void RemoteMediaResource::loadFinished(const NetworkLoadMetrics& metrics)
-{
-    assertIsCurrent(RemoteMediaResourceLoader::defaultQueue());
-
-    if (auto client = this->client())
-        client->loadFinished(*this, metrics);
-}
-#endif
 
 } // namespace WebKit
 

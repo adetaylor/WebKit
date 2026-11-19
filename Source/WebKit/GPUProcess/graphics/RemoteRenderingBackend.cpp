@@ -978,17 +978,6 @@ void RemoteRenderingBackend::getImageBufferResourceLimitsForTesting(CompletionHa
     callback(m_sharedResourceCache->getResourceLimitsForTesting(m_sharedPreferencesForWebProcess.acceleratedImageBufferLimit));
 }
 
-#if USE(CG) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-CGImageRef copyCachedNativeImage(RemoteRenderingBackend& backend, uint64_t renderingResourceIdentifier, bool& found)
-{
-    RefPtr image = backend.remoteResourceCache().cachedNativeImage(RenderingResourceIdentifier { renderingResourceIdentifier });
-    found = !!image;
-    if (!image)
-        return nullptr;
-    return image->platformImage().leakRef();
-}
-#endif
-
 #undef MESSAGE_CHECK
 #undef MESSAGE_CHECK_WITH_RETURN_VALUE
 

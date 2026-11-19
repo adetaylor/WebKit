@@ -281,7 +281,6 @@ final class NowPlayingArbiter {
         // The UI process owns the per-page "is the NowPlaying session" state, so it hears the election result
         // directly rather than through the content processes, none of which can see the whole picture.
         if ownerChanged {
-            #if ENABLE_GPU_PROCESS_CORE_SWIFT
             WebKit.GPUProcess.sendToUIProcess { connection in
                 WebKit.GPUProcess.GPUProcessProxyMessages.nowPlayingOwnerDidChange(
                     on: connection,
@@ -293,9 +292,6 @@ final class NowPlayingArbiter {
                     }
                 )
             }
-            #else
-            WebKit.GPUProcess.nowPlayingOwnerDidChange(eligibleOwner != nil, eligibleOwner?.page ?? 0, eligibleOwner?.process ?? 0)
-            #endif
         }
     }
 }
@@ -496,11 +492,7 @@ extension WebKit.GPUProcess {
         state.idleExitCheck = nil
 
         WebKit.LogChannel.Process().releaseLog.log("GPUProcess::tryExitIfUnused: GPUProcess is exiting because we are under memory pressure and the process is no longer useful.")
-        #if ENABLE_GPU_PROCESS_CORE_SWIFT
         Self.sendToUIProcess { WebKit.GPUProcess.GPUProcessProxyMessages.processIsReadyToExit(on: $0, to: 0) }
-        #else
-        sendProcessIsReadyToExit()
-        #endif
     }
 
     @cxx
@@ -514,30 +506,18 @@ extension WebKit.GPUProcess {
             connection.lowMemoryHandler(critical, synchronous)
         }
 
-        #if ENABLE_GPU_PROCESS_CORE_SWIFT
         WebCore.releaseGraphicsMemory(critical, synchronous)
         if critical == .Yes {
             WebCore.IOSurface.releaseCGIOSurfaceContextResources()
         }
-        #else
-        Self.releaseMemory(critical, synchronous)
-        #endif
     }
 
     private static var underMemoryPressure: Bool {
-        #if ENABLE_GPU_PROCESS_CORE_SWIFT
         WTF.MemoryPressureHandler.singleton().isUnderMemoryPressure()
-        #else
-        isUnderMemoryPressure()
-        #endif
     }
 
     private static var simulatingMemoryPressure: Bool {
-        #if ENABLE_GPU_PROCESS_CORE_SWIFT
         WTF.MemoryPressureHandler.singleton().isSimulatingMemoryPressure()
-        #else
-        isSimulatingMemoryPressure()
-        #endif
     }
 }
 

@@ -71,16 +71,10 @@ public:
     void redirectReceived(WebCore::ResourceRequest&&, const WebCore::ResourceResponse&, CompletionHandler<void(WebCore::ResourceRequest&&)>&&);
     void dataSent(uint64_t, uint64_t);
     void dataReceived(const WebCore::SharedBuffer&);
-#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     // Called by RemoteMediaResourceLoader.swift, with the holder that the message's argument was decoded into.
     void accessControlCheckFailed(IPC::CxxDecodedArgument<WebCore::ResourceError>&);
     void loadFailed(IPC::CxxDecodedArgument<WebCore::ResourceError>&);
     void loadFinished(IPC::CxxDecodedArgument<WebCore::NetworkLoadMetrics>&);
-#else
-    void accessControlCheckFailed(const WebCore::ResourceError&);
-    void loadFailed(const WebCore::ResourceError&);
-    void loadFinished(const WebCore::NetworkLoadMetrics&);
-#endif
 
 private:
     RemoteMediaResource(RemoteMediaResourceLoader&, RemoteMediaResourceIdentifier);

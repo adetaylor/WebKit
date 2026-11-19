@@ -79,7 +79,6 @@ GPUProcess/graphics/RemoteSnapshotPDFDrawingTask.cpp
 Shared/graphics/RemoteSnapshotPrintData.cpp
 GPUProcess/graphics/ScopedRenderingResourcesRequestCocoa.mm @nonARC @no-unify-when(bundle<=8)
 GPUProcess/ios/GPUProcessIOS.mm @nonARC
-GPUProcess/mac/GPUProcessMac.mm @nonARC
 GPUProcess/media/RemoteMediaSwiftSupport.cpp
 GPUProcess/media/cocoa/VideoReceiverEndpointManager.mm @nonARC
 GPUProcess/media/cocoa/RemoteMediaPlayerProxyCocoa.mm @nonARC

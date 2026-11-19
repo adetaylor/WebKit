@@ -32,14 +32,27 @@
 #include "SharedFont.h"
 #include "WebKit-Swift.h"
 #include <WebCore/GraphicsContextCG.h>
+#include <WebCore/ImageBuffer.h>
 #include <WebCore/MeshGradient.h>
 #include <WebCore/NativeImage.h>
+#include <WebCore/ProcessIdentity.h>
+#include <wtf/Borrow.h>
+#include <wtf/HashMap.h>
 
 namespace WebKit {
 using namespace WebCore;
 
-// GPUProcessConnection::drawDisplayListToPDF() for a snapshot recorded in Swift: each recording is recorded again, with the
-// resources the GPU process looked up for it, then its root is replayed as the GPU process replays it.
+void RemoteSnapshotPrintData::setOwnershipOfMemory(const ProcessIdentity& processIdentity) const
+{
+    for (auto& image : borrow(nativeImages))
+        image.handle.setOwnershipOfMemory(processIdentity, MemoryLedger::Graphics);
+    for (auto& imageBuffer : borrow(imageBuffers))
+        imageBuffer.handle.setOwnershipOfMemory(processIdentity, MemoryLedger::Graphics);
+}
+
+// Draws a snapshot recorded in Swift for GPUProcessConnection::drawSnapshotPrintDataToPDF(): each recording is recorded
+// again, with the resources the GPU process looked up for it, then its root is replayed as the GPU process replays it.
+// The data can't be drawn if an identifier names two images, or an image buffer's pixels don't have its size.
 bool drawRemoteSnapshotPrintData(RemoteSnapshotPrintData&& data, GraphicsContext& context, bool shouldUseLockdownFontParser)
 {
     if (!context.canLendSwiftRenderer())
@@ -51,6 +64,22 @@ bool drawRemoteSnapshotPrintData(RemoteSnapshotPrintData&& data, GraphicsContext
         return RemoteCGRendererFont::create(font.ptr());
     });
 
+    HashMap<RenderingResourceIdentifier, Ref<NativeImage>> nativeImages;
+    for (auto& image : borrow(data.nativeImages)) {
+        RefPtr nativeImage = createDisplayListDataNativeImage(WTF::move(image.handle));
+        if (!nativeImage || !nativeImages.add(image.identifier, nativeImage.releaseNonNull()).isNewEntry)
+            return false;
+    }
+    HashMap<RenderingResourceIdentifier, Ref<ImageBuffer>> imageBuffers;
+    for (auto& image : borrow(data.imageBuffers)) {
+        auto identifier = image.identifier;
+        if (nativeImages.contains(identifier))
+            return false;
+        RefPtr imageBuffer = createDisplayListDataImageBuffer(WTF::move(image));
+        if (!imageBuffer || !imageBuffers.add(identifier, imageBuffer.releaseNonNull()).isNewEntry)
+            return false;
+    }
+
     auto frames = RemoteCGRendererSnapshotFrames::create();
     for (auto& printRecording : data.recordings) {
         auto recordedResources = RemoteCGRendererRecordedResources::create();
@@ -59,10 +88,23 @@ bool drawRemoteSnapshotPrintData(RemoteSnapshotPrintData&& data, GraphicsContext
                 return false;
             recordedResources.setFont(identifier.toUInt64(), fonts[index]);
         }
+        // Swift takes the gradient as a Gradient, which it only draws.
         for (auto& [identifier, gradient] : printRecording.gradients)
-            recordedResources.setGradient(identifier.toUInt64(), gradient.ptr());
+            recordedResources.setGradient(identifier.toUInt64(), const_cast<Gradient*>(gradient.ptr()));
         for (auto& [identifier, pathImpl] : printRecording.paths)
             recordedResources.setPath(identifier.toUInt64(), pathImpl.ptr());
+        for (auto& [identifier, meshGradient] : printRecording.meshGradients)
+            recordedResources.setMeshGradient(identifier.toUInt64(), meshGradient.ptr());
+        for (auto [key, identifier] : printRecording.nativeImages) {
+            auto iterator = nativeImages.find(identifier);
+            if (iterator == nativeImages.end() || !frames.addNativeImageToNextRecording(key.toUInt64(), iterator->value.ptr()))
+                return false;
+        }
+        for (auto [key, identifier] : printRecording.imageBuffers) {
+            auto iterator = imageBuffers.find(identifier);
+            if (iterator == imageBuffers.end() || !frames.addImageBufferToNextRecording(key.toUInt64(), iterator->value.ptr()))
+                return false;
+        }
         for (auto [key, index] : printRecording.displayLists) {
             if (!frames.addDisplayListToNextRecording(key, index))
                 return false;

@@ -39,9 +39,6 @@
 #include "Logging.h"
 #include "MediaOverridesForTesting.h"
 #include "MessageSenderInlines.h"
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-#include "RemoteAudioHardwareListenerProxy.h"
-#endif
 #include "RemoteGPUMessages.h"
 #if ENABLE(GPU_PROCESS_MODEL)
 #include "RemoteGPUModel.h"
@@ -74,11 +71,6 @@
 
 #if PLATFORM(IOS_FAMILY)
 #include "RemoteMediaSessionHelperProxy.h"
-#endif
-
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-#include "RemoteMediaEngineConfigurationFactoryProxy.h"
-#include "RemoteMediaEngineConfigurationFactoryProxyMessages.h"
 #endif
 
 #if PLATFORM(COCOA)
@@ -133,74 +125,10 @@
 #include "LayerHostingContext.h"
 #endif
 
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-#include "RemoteMediaPlayerManagerProxyMessages.h"
-#include "RemoteMediaPlayerProxyMessages.h"
-#include "RemoteSharedResourceCacheMessages.h"
-#if ENABLE(IPC_TESTING_API)
-#include "IPCTesterMessages.h"
-#endif
-#include "RemoteScrollingCoordinatorTransaction.h"
-#include "RotationMonitoringReason.h"
-#include "WebErrors.h"
-#include "WebProcessMessages.h"
-#include <WebCore/MockRealtimeMediaSourceCenter.h>
-#include <WebCore/SharedMemory.h>
-#include "GPUProcessMessages.h"
-#include "ScopedRenderingResourcesRequest.h"
-#include <WebCore/LogInitialization.h>
-#if ENABLE(MEDIA_SOURCE)
-#include <WebCore/MediaStrategy.h>
-#endif
-#endif
-
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_connection)
 
 namespace WebKit {
 using namespace WebCore;
-
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
-
-// Tells the connection's Swift track renderer units about the audio session's interruptions.
-class GPUConnectionToWebProcess::AudioSessionInterruptionForwarder final : public WebCore::AudioSessionInterruptionObserver, public RefCounted<AudioSessionInterruptionForwarder> {
-    WTF_MAKE_TZONE_ALLOCATED_INLINE(AudioSessionInterruptionForwarder);
-public:
-    static Ref<AudioSessionInterruptionForwarder> create(GPUConnectionToWebProcess& connection)
-    {
-        return adoptRef(*new AudioSessionInterruptionForwarder(connection));
-    }
-
-    ~AudioSessionInterruptionForwarder()
-    {
-        WebCore::AudioSession::removeInterruptionObserver(*this);
-    }
-
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
-
-private:
-    explicit AudioSessionInterruptionForwarder(GPUConnectionToWebProcess& connection)
-        : m_connection(connection)
-    {
-        WebCore::AudioSession::addInterruptionObserver(*this);
-    }
-
-    void beginAudioSessionInterruption() final
-    {
-        if (RefPtr connection = m_connection.get())
-            connection->swiftBeginAudioSessionInterruption();
-    }
-
-    void endAudioSessionInterruption(WebCore::AudioSession::MayResume) final
-    {
-        if (RefPtr connection = m_connection.get())
-            connection->swiftEndAudioSessionInterruption();
-    }
-
-    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
-};
-
-#endif
 
 Ref<GPUConnectionToWebProcess> GPUConnectionToWebProcess::create(GPUProcess& gpuProcess, WebCore::ProcessIdentifier webProcessIdentifier, PAL::SessionID sessionID, IPC::Connection::Handle&& connectionHandle, GPUProcessConnectionParameters&& parameters)
 {
@@ -221,9 +149,6 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
     })
 #endif
     , m_sessionID(sessionID)
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    , m_audioSessionInterruptionForwarder(AudioSessionInterruptionForwarder::create(*this))
-#endif
 #if ENABLE(MEDIA_STREAM)
     , m_captureOrigin(SecurityOrigin::createOpaque())
 #endif
@@ -344,21 +269,6 @@ Ref<RemoteSharedResourceCache> GPUConnectionToWebProcess::sharedResourceCache()
 
 uint64_t GPUConnectionToWebProcess::gObjectCountForTesting = 0;
 
-#if (ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
-static bool isRemoteCDMChildReceiverName(IPC::ReceiverName name)
-{
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    if (name == IPC::ReceiverName::RemoteCDMProxy || name == IPC::ReceiverName::RemoteCDMInstanceProxy || name == IPC::ReceiverName::RemoteCDMInstanceSessionProxy)
-        return true;
-#endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    if (name == IPC::ReceiverName::RemoteLegacyCDMProxy || name == IPC::ReceiverName::RemoteLegacyCDMSessionProxy)
-        return true;
-#endif
-    return false;
-}
-#endif
-
 void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
 {
     assertIsMainThread();
@@ -419,29 +329,6 @@ void GPUConnectionToWebProcess::destroyVisibilityPropagationContextForPage(WebPa
 }
 #endif
 
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::configureLoggingChannel(String channelName, WTFLogChannelState state, WTFLogLevel level)
-{
-#if !RELEASE_LOG_DISABLED
-    if  (auto* channel = WebCore::getLogChannel(channelName)) {
-        channel->state = state;
-        channel->level = level;
-    }
-
-    auto* channel = getLogChannel(channelName);
-    if  (!channel)
-        return;
-
-    channel->state = state;
-    channel->level = level;
-#else
-    UNUSED_PARAM(channelName);
-    UNUSED_PARAM(state);
-    UNUSED_PARAM(level);
-#endif
-}
-#endif
-
 #if USE(GRAPHICS_LAYER_WC)
 void GPUConnectionToWebProcess::createWCLayerTreeHost(WebKit::WCLayerTreeHostIdentifier identifier, uint64_t nativeWindow, bool usesOffscreenRendering)
 {
@@ -452,25 +339,6 @@ void GPUConnectionToWebProcess::createWCLayerTreeHost(WebKit::WCLayerTreeHostIde
 void GPUConnectionToWebProcess::releaseWCLayerTreeHost(WebKit::WCLayerTreeHostIdentifier identifier)
 {
     m_remoteWCLayerTreeHostMap.remove(identifier);
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
-{
-    if (hasOutstandingRenderingResourceUsage())
-        return false;
-
-#if PLATFORM(COCOA)
-    return false;
-#else
-    if (m_sharedPreferencesForWebProcess.useGPUProcessForDOMRenderingEnabled)
-        return false;
-#endif
-
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-#endif
-    return true;
 }
 #endif
 
@@ -489,13 +357,6 @@ void GPUConnectionToWebProcess::didReceiveInvalidMessage(IPC::Connection&, IPC::
     RELEASE_LOG_FAULT_WITH_PAYLOAD(IPC, "Received an invalid message %s from WebContent process %" PRIu64 ", requesting for it to be terminated.", description(messageName), m_webProcessIdentifier.toUInt64());
     terminateWebProcess(messageName);
 }
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::terminateWebProcess(IPC::MessageName invalidMessageName)
-{
-    gpuProcess().terminateWebProcess(m_webProcessIdentifier, invalidMessageName);
-}
-#endif
 
 void GPUConnectionToWebProcess::lowMemoryHandler(Critical critical, Synchronous synchronous)
 {
@@ -522,13 +383,6 @@ void GPUConnectionToWebProcess::removeSwiftReceiver(IPC::ReceiverName receiverNa
     else
         m_messageReceiverMap.removeMessageReceiver(receiverName, identifier);
 }
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::tryExitIfUnusedAndUnderMemoryPressure()
-{
-    protect(gpuProcess())->tryExitIfUnusedAndUnderMemoryPressure();
-}
-#endif
 
 #if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
 void GPUConnectionToWebProcess::setAudioDestinationSceneIdentifier(RemoteAudioDestinationIdentifier identifier, String&& sceneIdentifier)
@@ -639,15 +493,6 @@ void GPUConnectionToWebProcess::createRenderingBackend(RemoteRenderingBackendIde
     renderingBackend->startListeningForIPC();
 }
 
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::releaseRenderingBackend(RemoteRenderingBackendIdentifier renderingBackendIdentifier)
-{
-    bool found = swiftReleaseRenderingBackend(renderingBackendIdentifier.toUInt64());
-    ASSERT_UNUSED(found, found);
-    m_gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
-}
-#endif
-
 Function<void(IPC::MessageName)> GPUConnectionToWebProcess::terminateWebProcessOnInvalidMessage()
 {
     return [weakThis = ThreadSafeWeakPtr { *this }, webProcessIdentifier = webProcessIdentifier()](IPC::MessageName messageName) {
@@ -672,7 +517,6 @@ RefPtr<IPC::StreamServerConnection> GPUConnectionToWebProcess::tryCreateStreamCo
 #endif
 
 #if ENABLE(WEBGL)
-#if ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier, WebCore::GraphicsContextGLAttributes attributes, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
 {
     if (!swiftShouldCreateGraphicsContextGL(identifier.toUInt64(), attributes.supportWebGLDraftExtensions, renderingBackendIdentifier.toUInt64()))
@@ -682,33 +526,6 @@ void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLI
     Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), remoteGraphicsContextGLStreamWorkQueueSingleton(), Messages::RemoteGraphicsContextGL::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
     swiftAddGraphicsContextGL(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, attributes);
 }
-#else
-void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier, WebCore::GraphicsContextGLAttributes attributes, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
-{
-    MESSAGE_CHECK(!isLockdownModeEnabled());
-#if !PLATFORM(COCOA)
-    MESSAGE_CHECK(m_sharedPreferencesForWebProcess.useGPUProcessForWebGLEnabled);
-#endif
-    MESSAGE_CHECK(!attributes.supportWebGLDraftExtensions || m_sharedPreferencesForWebProcess.webGLDraftExtensionsEnabled);
-
-    if (!swiftHasRenderingBackend(renderingBackendIdentifier.toUInt64()))
-        return;
-    if (swiftHasGraphicsContextGL(identifier.toUInt64())) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
-
-    IPC::StreamServerConnectionParameters params;
-#if ENABLE(IPC_TESTING_API)
-    params.ignoreInvalidMessageForTesting = connection().ignoreInvalidMessageForTesting();
-#endif
-    auto streamConnection = IPC::StreamServerConnection::tryCreate(WTF::move(connectionHandle), params);
-    MESSAGE_CHECK(streamConnection);
-
-    Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), remoteGraphicsContextGLStreamWorkQueueSingleton(), Messages::RemoteGraphicsContextGL::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
-    swiftAddGraphicsContextGL(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, attributes);
-}
-#endif
 
 #if !PLATFORM(COCOA)
 void GPUConnectionToWebProcess::createGraphicsContextGLResources(WebCore::GraphicsContextGLAttributes attributes, uint64_t identifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
@@ -718,22 +535,6 @@ void GPUConnectionToWebProcess::createGraphicsContextGLResources(WebCore::Graphi
 }
 #endif
 
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::releaseGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier)
-{
-    MESSAGE_CHECK(!isLockdownModeEnabled());
-
-    if (swiftReleaseGraphicsContextGL(identifier.toUInt64()))
-        m_gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::releaseGraphicsContextGLForTesting(RemoteGraphicsContextGLIdentifier identifier)
-{
-    releaseGraphicsContextGL(identifier);
-}
-#endif
 #endif
 
 #if ENABLE(VIDEO)
@@ -754,7 +555,6 @@ VideoReceiverEndpointManager& GPUConnectionToWebProcess::videoReceiverEndpointMa
 #endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-#if ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
 {
     if (!swiftShouldCreateGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64()))
@@ -773,47 +573,6 @@ void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRen
     swiftAddGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, WTF::move(webProcessResourceOwner));
 #endif
 }
-#else
-void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
-{
-    MESSAGE_CHECK(m_sharedPreferencesForWebProcess.webGPUEnabled);
-
-    if (!swiftHasRenderingBackend(renderingBackendIdentifier.toUInt64()))
-        return;
-    if (swiftHasGPU(identifier.toUInt64())) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
-
-    IPC::StreamServerConnectionParameters params;
-#if ENABLE(IPC_TESTING_API)
-    params.ignoreInvalidMessageForTesting = connection().ignoreInvalidMessageForTesting();
-#endif
-    auto streamConnection = IPC::StreamServerConnection::tryCreate(WTF::move(connectionHandle), params);
-    MESSAGE_CHECK(streamConnection);
-
-    Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), "WebGPU work queue"_s, Messages::RemoteGPU::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
-#if HAVE(TASK_IDENTITY_TOKEN)
-    MachSendRight webProcessResourceOwner { webProcessIdentity().taskId() };
-#else
-    MachSendRight webProcessResourceOwner;
-#endif
-#if PLATFORM(COCOA) && ENABLE(VIDEO)
-    swiftAddGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, WTF::move(webProcessResourceOwner), videoFrameObjectHeap(), webProcessIdentity(), !!webProcessIdentity());
-#else
-    swiftAddGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, WTF::move(webProcessResourceOwner));
-#endif
-}
-
-void GPUConnectionToWebProcess::releaseGPU(WebGPUIdentifier identifier)
-{
-    if (swiftReleaseGPU(identifier.toUInt64())) {
-        ensureOnMainRunLoop([gpuProcess = Ref { gpuProcess() }] {
-            gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
-        });
-    }
-}
-#endif
 
 #if ENABLE(GPU_PROCESS_MODEL)
 void GPUConnectionToWebProcess::createGPUModel(RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner, uint64_t identifier)
@@ -825,32 +584,6 @@ void GPUConnectionToWebProcess::createGPUModel(RemoteRenderingBackend& rendering
 
 #endif
 
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::clearNowPlayingInfo(bool forAllPages, uint64_t pageIdentifier)
-{
-    if (forAllPages)
-        m_nowPlayingInfos.clear();
-    else if (PageIdentifier::isValidIdentifier(pageIdentifier))
-        m_nowPlayingInfos.remove(PageIdentifier { pageIdentifier });
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::abandonSnapshotFrame(RemoteSnapshotIdentifier snapshotIdentifier, WebCore::FrameIdentifier frameIdentifier)
-{
-    // FIXME: using global identifiers (frameIdentifier) is not secure. Do not follow this pattern.
-    m_gpuProcess->abandonSnapshotFrame(snapshotIdentifier, frameIdentifier);
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::failSnapshot(RemoteSnapshotIdentifier snapshotIdentifier)
-{
-    m_gpuProcess->failSnapshot(snapshotIdentifier);
-}
-#endif
-
-#if ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::setNowPlayingInfoForPage(NowPlayingInfo&& nowPlayingInfo, std::optional<WebCore::PageIdentifier> pageIdentifier)
 {
     if (pageIdentifier)
@@ -876,76 +609,6 @@ void GPUConnectionToWebProcess::setNowPlayingManagerInfo(const NowPlayingInfo& i
 {
     gpuProcess().nowPlayingManager().setNowPlayingInfo(info);
 }
-#else
-void GPUConnectionToWebProcess::setNowPlayingInfoForPage(NowPlayingInfo&& nowPlayingInfo, std::optional<WebCore::PageIdentifier> pageIdentifier)
-{
-    if (!pageIdentifier)
-        return;
-
-    // Content strips the artwork image from repeat pushes assuming the receiver cached it, so attach it here.
-    if (auto it = m_nowPlayingInfos.find(*pageIdentifier); it != m_nowPlayingInfos.end()) {
-        auto& previousArtwork = it->value.metadata.artwork;
-        if (nowPlayingInfo.metadata.artwork && !nowPlayingInfo.metadata.artwork->image && previousArtwork && previousArtwork->src == nowPlayingInfo.metadata.artwork->src)
-            nowPlayingInfo.metadata.artwork->image = previousArtwork->image;
-    }
-    auto& info = m_nowPlayingInfos.set(*pageIdentifier, WTF::move(nowPlayingInfo)).iterator->value;
-
-    if (swiftIsActiveNowPlayingPage(pageIdentifier->toUInt64())) {
-        Ref gpuProcess = this->gpuProcess();
-        gpuProcess->nowPlayingManager().addClient(*this);
-        gpuProcess->nowPlayingManager().setNowPlayingInfo(info);
-        updateSupportedRemoteCommands();
-    }
-}
-#endif // ENABLE(GPU_PROCESS_CORE_SWIFT)
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::becomeNowPlayingOwner(uint64_t pageIdentifier)
-{
-    m_isNowPlayingManagerClient = true;
-    Ref gpuProcess = this->gpuProcess();
-    gpuProcess->nowPlayingManager().addClient(*this);
-    if (PageIdentifier::isValidIdentifier(pageIdentifier)) {
-        if (auto it = m_nowPlayingInfos.find(PageIdentifier { pageIdentifier }); it != m_nowPlayingInfos.end())
-            gpuProcess->nowPlayingManager().setNowPlayingInfo(it->value);
-    }
-    updateSupportedRemoteCommands();
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::becomeRemoteCommandFallbackTarget()
-{
-    m_isNowPlayingManagerClient = true;
-    gpuProcess().nowPlayingManager().addClient(*this);
-    updateSupportedRemoteCommands();
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::resignNowPlayingManagerClient()
-{
-    m_isNowPlayingManagerClient = false;
-    gpuProcess().nowPlayingManager().removeClient(*this);
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::nowPlayingClientDidClose()
-{
-    ASSERT(m_isNowPlayingManagerClient);
-
-    m_nowPlayingInfos.clear();
-
-    // Resign here rather than leaving it to the election. This connection is still in the GPU process's connections
-    // right now, but it is gone by the time the election from removeGPUConnectionToWebProcess runs, so a resign that
-    // looks the connection up by process identifier would silently do nothing and leave a dead NowPlayingManager client
-    // holding the system command listener.
-    resignNowPlayingManagerClient();
-
-    swiftNowPlayingClientDidClose();
-}
-#endif
 
 void GPUConnectionToWebProcess::postNowPlayingRemoteControlCommandForTesting(WebCore::PlatformMediaSessionRemoteControlCommandType type, const WebCore::PlatformMediaSessionRemoteCommandArgument& argument)
 {
@@ -969,7 +632,6 @@ void GPUConnectionToWebProcess::hostedVideoLayerBoundsForTesting(WebCore::MediaP
 }
 #endif
 
-#if ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::setNowPlayingManagerRemoteCommands(uint32_t commandMask, bool supportsSeeking)
 {
     static_assert(std::to_underlying(PlatformMediaSession::RemoteControlCommandType::EndScrubbingCommand) < 32);
@@ -982,26 +644,6 @@ void GPUConnectionToWebProcess::setNowPlayingManagerRemoteCommands(uint32_t comm
     gpuProcess->nowPlayingManager().setSupportsSeeking(supportsSeeking);
     gpuProcess->nowPlayingManager().setSupportedRemoteCommands(commands);
 }
-#else
-void GPUConnectionToWebProcess::updateSupportedRemoteCommands()
-{
-    if (!m_isNowPlayingManagerClient)
-        return;
-    auto listener = swiftRemoteCommandListenerState();
-    if (!listener.hasListener)
-        return;
-
-    static_assert(std::to_underlying(PlatformMediaSession::RemoteControlCommandType::EndScrubbingCommand) < 32);
-    RemoteCommandListener::RemoteCommandsSet commands;
-    for (uint8_t type = 0; type < 32; ++type) {
-        if (listener.commands & (1u << type) && isValidEnum<PlatformMediaSession::RemoteControlCommandType>(type))
-            commands.add(static_cast<PlatformMediaSession::RemoteControlCommandType>(type));
-    }
-    Ref gpuProcess = this->gpuProcess();
-    gpuProcess->nowPlayingManager().setSupportsSeeking(listener.supportsSeeking);
-    gpuProcess->nowPlayingManager().setSupportedRemoteCommands(commands);
-}
-#endif
 
 void GPUConnectionToWebProcess::didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType type, const PlatformMediaSession::RemoteCommandArgument& argument)
 {
@@ -1024,38 +666,6 @@ void GPUConnectionToWebProcess::setMonitorsWirelessRoutes(bool monitors)
         helper->startMonitoringWirelessRoutes();
     else
         helper->stopMonitoringWirelessRoutes();
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-RemoteMediaEngineConfigurationFactoryProxy& GPUConnectionToWebProcess::mediaEngineConfigurationFactoryProxy()
-{
-    if (!m_mediaEngineConfigurationFactoryProxy)
-        lazyInitialize(m_mediaEngineConfigurationFactoryProxy, makeUniqueWithoutRefCountedCheck<RemoteMediaEngineConfigurationFactoryProxy>(*this));
-    return *m_mediaEngineConfigurationFactoryProxy;
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-void GPUConnectionToWebProcess::createAudioHardwareListener(RemoteAudioHardwareListenerIdentifier identifier)
-{
-    auto addResult = m_remoteAudioHardwareListenerMap.ensure(identifier, [&]() {
-        return RemoteAudioHardwareListenerProxy::create(*this, WTF::move(identifier));
-    });
-    ASSERT_UNUSED(addResult, addResult.isNewEntry);
-}
-
-void GPUConnectionToWebProcess::releaseAudioHardwareListener(RemoteAudioHardwareListenerIdentifier identifier)
-{
-    bool found = m_remoteAudioHardwareListenerMap.remove(identifier);
-    ASSERT_UNUSED(found, found);
-}
-#endif
-
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::releaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier identifier)
-{
-    protect(gpuProcess())->releaseTransferredImageBuffer(identifier);
 }
 #endif
 
@@ -1083,7 +693,6 @@ void GPUConnectionToWebProcess::setMediaOverridesForTesting(MediaOverridesForTes
 #endif
 }
 
-#if ENABLE(GPU_PROCESS_CORE_SWIFT)
 // The children that are still C++ are routed by name here. The Swift receivers are routed by the receiver map, and
 // swiftRoutesUnregisteredReceiver() decides about the other names.
 bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC::Decoder& decoder)
@@ -1100,11 +709,6 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
 #if ENABLE(VIDEO)
     case IPC::ReceiverName::RemoteAudioVideoRendererProxyManager:
         protect(remoteAudioVideoRendererProxyManager())->didReceiveMessage(connection, decoder);
-        return true;
-#endif
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-    case IPC::ReceiverName::RemoteMediaEngineConfigurationFactoryProxy:
-        protect(mediaEngineConfigurationFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
         return true;
 #endif
     case IPC::ReceiverName::RemoteSharedResourceCache:
@@ -1151,106 +755,6 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
         return true;
     return swiftRoutesUnregisteredReceiver(decoder.messageReceiverName());
 }
-#else
-bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC::Decoder& decoder)
-{
-#if ENABLE(VIDEO)
-    if (decoder.messageReceiverName() == Messages::RemoteMediaPlayerManagerProxy::messageReceiverName()) {
-        protect(remoteMediaPlayerManagerProxy())->didReceiveMessageFromWebProcess(connection, decoder);
-        return true;
-    }
-    if (decoder.messageReceiverName() == Messages::RemoteMediaPlayerProxy::messageReceiverName()) {
-        protect(remoteMediaPlayerManagerProxy())->didReceivePlayerMessage(connection, decoder);
-        return true;
-    }
-#endif
-
-#if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    // The CDMs, instances and sessions that the Swift factories make register their messages in messageReceiverMap(). A
-    // message for one that has gone is dropped, as before they did.
-    if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
-        messageReceiverMap().dispatchMessage(connection, decoder);
-        return true;
-    }
-#endif
-#if ENABLE(VIDEO) && PLATFORM(COCOA)
-    if (decoder.messageReceiverName() == Messages::RemoteAudioVideoRendererProxyManager::messageReceiverName()) {
-        protect(remoteAudioVideoRendererProxyManager())->didReceiveMessage(connection, decoder);
-        return true;
-    }
-#endif
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-    if (decoder.messageReceiverName() == Messages::RemoteMediaEngineConfigurationFactoryProxy::messageReceiverName()) {
-        protect(mediaEngineConfigurationFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
-        return true;
-    }
-#endif
-#if ENABLE(WEBGL)
-    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName()) {
-        // Skip messages for already removed receivers.
-        return true;
-    }
-#if !PLATFORM(COCOA)
-    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGLResources::messageReceiverName())
-        return true;
-#endif
-#endif
-    if (decoder.messageReceiverName() == Messages::RemoteSharedResourceCache::messageReceiverName()) {
-        sharedResourceCache()->didReceiveMessage(connection, decoder);
-        return true;
-    }
-#if ENABLE(IPC_TESTING_API)
-    if (decoder.messageReceiverName() == Messages::IPCTester::messageReceiverName()) {
-        m_ipcTester->didReceiveMessage(connection, decoder);
-        return true;
-    }
-#endif
-
-    return messageReceiverMap().dispatchMessage(connection, decoder);
-}
-
-bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& replyEncoder)
-{
-#if ENABLE(VIDEO)
-    if (decoder.messageReceiverName() == Messages::RemoteMediaPlayerManagerProxy::messageReceiverName()) {
-        protect(remoteMediaPlayerManagerProxy())->didReceiveSyncMessageFromWebProcess(connection, decoder, replyEncoder);
-        return true;
-    }
-    if (decoder.messageReceiverName() == Messages::RemoteMediaPlayerProxy::messageReceiverName()) {
-        protect(remoteMediaPlayerManagerProxy())->didReceiveSyncPlayerMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-#endif
-#if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
-        messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-#endif
-#if ENABLE(VIDEO) && PLATFORM(COCOA)
-    if (decoder.messageReceiverName() == Messages::RemoteAudioVideoRendererProxyManager::messageReceiverName()) {
-        protect(remoteAudioVideoRendererProxyManager())->didReceiveSyncMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-#endif
-#if ENABLE(WEBGL)
-    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName())
-        // Skip messages for already removed receivers.
-        return true;
-#if !PLATFORM(COCOA)
-    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGLResources::messageReceiverName())
-        return true;
-#endif
-#endif
-#if ENABLE(IPC_TESTING_API)
-    if (decoder.messageReceiverName() == Messages::IPCTester::messageReceiverName()) {
-        m_ipcTester->didReceiveSyncMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-#endif
-    return messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
-}
-#endif // ENABLE(GPU_PROCESS_CORE_SWIFT)
 
 String GPUConnectionToWebProcess::mediaCacheDirectory() const
 {
@@ -1287,18 +791,6 @@ void GPUConnectionToWebProcess::updateCaptureOrigin(const WebCore::SecurityOrigi
 }
 
 
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
-void GPUConnectionToWebProcess::startCapturingAudio()
-{
-    m_gpuProcess->processIsStartingToCaptureAudio(*this);
-}
-
-void GPUConnectionToWebProcess::processIsStartingToCaptureAudio(GPUConnectionToWebProcess& process)
-{
-    swiftLastToCaptureAudioChanged(this == &process);
-}
-#endif
-
 bool GPUConnectionToWebProcess::setCaptureAttributionString()
 {
 #if PLATFORM(COCOA)
@@ -1308,34 +800,6 @@ bool GPUConnectionToWebProcess::setCaptureAttributionString()
 #endif
 }
 #endif // ENABLE(MEDIA_STREAM)
-
-#if ENABLE(EXTENSION_CAPABILITIES) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
-String GPUConnectionToWebProcess::mediaPlaybackEnvironment(WebCore::PageIdentifier pageIdentifier)
-{
-    return m_mediaPlaybackEnvironments.get(pageIdentifier);
-}
-
-void GPUConnectionToWebProcess::setMediaPlaybackEnvironment(WebCore::PageIdentifier pageIdentifier, String mediaPlaybackEnvironment)
-{
-    if (mediaPlaybackEnvironment.isEmpty())
-        m_mediaPlaybackEnvironments.remove(pageIdentifier);
-    else
-        m_mediaPlaybackEnvironments.set(pageIdentifier, WTF::move(mediaPlaybackEnvironment));
-}
-
-String GPUConnectionToWebProcess::displayCaptureEnvironment(WebCore::PageIdentifier pageIdentifier)
-{
-    return m_displayCaptureEnvironments.get(pageIdentifier);
-}
-
-void GPUConnectionToWebProcess::setDisplayCaptureEnvironment(WebCore::PageIdentifier pageIdentifier, String displayCaptureEnvironment)
-{
-    if (displayCaptureEnvironment.isEmpty())
-        m_displayCaptureEnvironments.remove(pageIdentifier);
-    else
-        m_displayCaptureEnvironments.set(pageIdentifier, WTF::move(displayCaptureEnvironment));
-}
-#endif
 
 #if ENABLE(VIDEO)
 RemoteVideoFrameObjectHeap& GPUConnectionToWebProcess::videoFrameObjectHeap() const

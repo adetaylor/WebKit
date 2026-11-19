@@ -21,7 +21,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-GPUProcess/GPUProcess.cpp @cost:7
 GPUProcess/GPUConnectionToWebProcess.cpp @cost:8
 GPUProcess/RemoteSharedResourceCache.cpp
 GPUProcess/graphics/ImageBufferShareableAllocator.cpp
@@ -42,9 +41,7 @@ GPUProcess/graphics/ShareablePixelBuffer.cpp
 GPUProcess/graphics/Model/ModelObjectHeap.cpp
 GPUProcess/graphics/Model/RemoteGPUModel.cpp
 GPUProcess/graphics/Model/RemoteMesh.cpp
-GPUProcess/media/RemoteAudioHardwareListenerProxy.cpp
 GPUProcess/media/RemoteAudioVideoRendererProxyManager.cpp @cost:3
-GPUProcess/media/RemoteMediaEngineConfigurationFactoryProxy.cpp
 GPUProcess/media/RemoteMediaPlayerManagerProxy.cpp @cost:4
 GPUProcess/media/RemoteMediaPlayerProxy.cpp @cost:4
 GPUProcess/media/RemoteMediaResource.cpp @cost:3

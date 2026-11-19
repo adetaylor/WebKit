@@ -32,7 +32,6 @@
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
 #include "AudioVideoRendererRemoteMessageReceiverMessages.h"
 #endif
-#include "DisplayListData.h"
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcessConnectionInfo.h"
 #include "GPUProcessConnectionMessages.h"
@@ -383,7 +382,7 @@ void GPUProcessConnection::endRoutingArbitration()
 }
 #endif
 
-#if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#if PLATFORM(COCOA)
 void GPUProcessConnection::drawSnapshotPrintDataToPDF(RemoteSnapshotPrintData&& printData, const FloatSize& size, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& completionHandler)
 {
     Ref webProcess = WebProcess::singleton();
@@ -403,31 +402,6 @@ void GPUProcessConnection::drawSnapshotPrintDataToPDF(RemoteSnapshotPrintData&& 
         completionHandler(nullptr);
         return;
     }
-    completionHandler(buffer->takeData());
-}
-#elif PLATFORM(COCOA)
-void GPUProcessConnection::drawDisplayListToPDF(DisplayListData&& displayListData, const FloatSize& size, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& completionHandler)
-{
-    Ref webProcess = WebProcess::singleton();
-    if (!webProcess->isPrintProcess()) {
-        ASSERT_NOT_REACHED();
-        completionHandler(nullptr);
-        return;
-    }
-
-    RefPtr displayList = WTF::move(displayListData).createDisplayList(webProcess->isLockdownModeEnabled());
-    if (!displayList) {
-        completionHandler(nullptr);
-        return;
-    }
-
-    auto buffer = PDFDocumentBuffer::create(size);
-    if (!buffer) {
-        completionHandler(nullptr);
-        return;
-    }
-
-    buffer->context().drawDisplayList(*displayList);
     completionHandler(buffer->takeData());
 }
 #endif

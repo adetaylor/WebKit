@@ -508,13 +508,6 @@ bool tryStartReceivingSwiftMessages(RemoteRenderingBackend& backend, const Forwa
     return IPC::tryStartReceivingSwiftMessages(backend.streamConnection(), forwarder, receiverName, destinationID);
 }
 
-#if USE(CG) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-// The image of the native image the backend has cached under the identifier, for Swift, which takes what a C++ method
-// returns as unretained whatever its annotation: found is false if it has none, and the image is null if the native image
-// has no platform image. With the CG renderer in Swift, Swift caches them.
-CGImageRef WTF_NULLABLE copyCachedNativeImage(RemoteRenderingBackend&, uint64_t renderingResourceIdentifier, bool& found) CF_RETURNS_RETAINED;
-#endif
-
 } // namespace WebKit
 
 #endif // ENABLE(GPU_PROCESS)
