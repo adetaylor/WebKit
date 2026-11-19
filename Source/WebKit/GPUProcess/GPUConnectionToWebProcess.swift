@@ -80,6 +80,10 @@ final class GPUConnectionState {
     #endif
     #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
     private(set) var audioMediaStreamTrackRendererInternalUnitManager: RemoteAudioMediaStreamTrackRendererInternalUnitManager?
+    #if ENABLE_GPU_PROCESS_CORE_SWIFT
+    // Tells the track renderer units about the audio session's interruptions.
+    private var audioSessionObserver: WebCore.AudioSessionObserverCallbacks?
+    #endif
     private(set) var userMediaCaptureManager: UserMediaCaptureManagerProxy?
     #endif
     #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
@@ -196,6 +200,24 @@ final class GPUConnectionState {
             connection: connection
         )
         self.audioMediaStreamTrackRendererInternalUnitManager = audioMediaStreamTrackRendererInternalUnitManager
+        #if ENABLE_GPU_PROCESS_CORE_SWIFT
+        let process = processIdentifier
+        audioSessionObserver = WebCore.AudioSessionObserverCallbacks.create(
+            consuming: WebCore.AudioSessionObserverCallbacks.Callback {
+                MainActor.assumeIsolated {
+                    let manager = webProcessConnections[process]?.state.audioMediaStreamTrackRendererInternalUnitManager
+                    manager?.beginAudioSessionInterruption()
+                }
+            },
+            consuming: WebCore.AudioSessionObserverCallbacks.EndInterruptionCallback { _ in
+                MainActor.assumeIsolated {
+                    let manager = webProcessConnections[process]?.state.audioMediaStreamTrackRendererInternalUnitManager
+                    manager?.endAudioSessionInterruption()
+                }
+            },
+            consuming: WebCore.AudioSessionObserverCallbacks.Callback {}
+        )
+        #endif
         register(
             IPC.registerSwiftReceiver(
                 connection,
@@ -497,6 +519,7 @@ extension WebKit.GPUConnectionToWebProcess {
     }
     #endif
 
+    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
     @cxx
     @implementation
     @MainActor
@@ -512,6 +535,7 @@ extension WebKit.GPUConnectionToWebProcess {
         MainActor.preconditionIsolated()
         state.audioMediaStreamTrackRendererInternalUnitManager?.endAudioSessionInterruption()
     }
+    #endif
     #endif
 
     #if ENABLE_WEB_AUDIO && WTF_PLATFORM_IOS_FAMILY
@@ -1013,16 +1037,10 @@ extension WebKit.GPUConnectionToWebProcess {
     @implementation
     @MainActor
     func startCapturingAudio() {
-        gpuProcess().processIsStartingToCaptureAudio(self)
-    }
-
-    // One connection per web process, so the identifiers tell whether it's this one.
-    @cxx
-    @implementation
-    @MainActor
-    func processIsStartingToCaptureAudio(_ process: WebKit.GPUConnectionToWebProcess) {
-        let isLastToCaptureAudio = process.webProcessIdentifier().toUInt64() == webProcessIdentifier().toUInt64()
-        state.audioMediaStreamTrackRendererInternalUnitManager?.setIsLastToCaptureAudio(isLastToCaptureAudio)
+        let process = state.processIdentifier
+        for (identifier, connection) in webProcessConnections.all {
+            connection.state.audioMediaStreamTrackRendererInternalUnitManager?.setIsLastToCaptureAudio(identifier == process)
+        }
     }
     #endif
 

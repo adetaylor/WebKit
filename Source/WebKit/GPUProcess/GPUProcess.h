@@ -135,7 +135,6 @@ public:
     bool setCaptureTCCIdentity(const String& fallbackBundleIdentifier);
     bool hasCaptureIdentity(const String& applicationBundleIdentifier);
 #endif
-    SWIFT_MAIN_ACTOR void processIsStartingToCaptureAudio(GPUConnectionToWebProcess&);
 #endif
 
 #if USE(LIBWEBRTC)

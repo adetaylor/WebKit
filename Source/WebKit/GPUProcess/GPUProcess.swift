@@ -1027,15 +1027,6 @@ extension WebKit.GPUProcess {
         state.lastCaptureEnvironment = (processIdentifier, pageIdentifier)
     }
 
-    @cxx
-    @implementation
-    @MainActor
-    func processIsStartingToCaptureAudio(_ process: WebKit.GPUConnectionToWebProcess) {
-        for connection in webProcessConnections.all.values {
-            connection.processIsStartingToCaptureAudio(process)
-        }
-    }
-
     // FIXME: The manager is per process while requests are per page, so for now fail a second page's prompt while another
     // is up until we figure out a better solution.
     @cxx

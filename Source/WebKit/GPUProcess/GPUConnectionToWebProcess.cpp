@@ -35,7 +35,6 @@
 #include "GPUProcessConnectionParameters.h"
 #include "GPUProcessMediaCodecCapabilities.h"
 #include "GPUProcessProxyMessages.h"
-#include "LayerHostingContext.h"
 #include "LibWebRTCCodecsProxyMessages.h"
 #include "Logging.h"
 #include "MediaOverridesForTesting.h"
@@ -48,22 +47,17 @@
 #include "RemoteGPUModel.h"
 #endif
 #include "RemoteMediaPlayerManagerProxy.h"
-#include "RemoteMediaPlayerManagerProxyMessages.h"
 #include "RemoteMediaPlayerProxy.h"
-#include "RemoteMediaPlayerProxyMessages.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteSampleBufferDisplayLayerManagerMessages.h"
 #include "RemoteSampleBufferDisplayLayerMessages.h"
 #include "RemoteSharedResourceCache.h"
-#include "RemoteSharedResourceCacheMessages.h"
 #include <WebCore/MediaPlayer.h>
 #include <WebCore/NowPlayingManager.h>
 #include <WebCore/RemoteCommandListener.h>
 #include <wtf/TZoneMallocInlines.h>
 
-#if PLATFORM(COCOA)
-#include <WebCore/AVVideoCaptureSource.h>
-#include <WebCore/MediaSessionManagerCocoa.h>
+#if PLATFORM(IOS_FAMILY)
 #include <WebCore/MediaSessionManagerIOS.h>
 #endif
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -76,9 +70,6 @@
 #include "RemoteGraphicsContextGLShims.h"
 #include "RemoteGraphicsContextGLMessages.h"
 #include "RemoteGraphicsContextGLResourcesMessages.h"
-#endif
-
-#if USE(AUDIO_SESSION)
 #endif
 
 #if PLATFORM(IOS_FAMILY)
@@ -105,9 +96,6 @@
 #include <WebCore/WebMAudioUtilitiesCocoa.h>
 #endif
 
-#if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
-#endif
-
 #if PLATFORM(MAC) && ENABLE(MEDIA_STREAM)
 #include <WebCore/CoreAudioCaptureUnit.h>
 #endif
@@ -132,10 +120,6 @@
 #include "WCRemoteFrameHostLayerManager.h"
 #endif
 
-#if ENABLE(IPC_TESTING_API)
-#include "IPCTesterMessages.h"
-#endif
-
 #if ENABLE(VIDEO)
 #include "RemoteVideoFrameObjectHeap.h"
 #endif
@@ -145,7 +129,17 @@
 #include <wtf/LazyUniqueRef.h>
 #endif
 
+#if HAVE(VISIBILITY_PROPAGATION_VIEW)
+#include "LayerHostingContext.h"
+#endif
+
 #if !ENABLE(GPU_PROCESS_CORE_SWIFT)
+#include "RemoteMediaPlayerManagerProxyMessages.h"
+#include "RemoteMediaPlayerProxyMessages.h"
+#include "RemoteSharedResourceCacheMessages.h"
+#if ENABLE(IPC_TESTING_API)
+#include "IPCTesterMessages.h"
+#endif
 #include "RemoteScrollingCoordinatorTransaction.h"
 #include "RotationMonitoringReason.h"
 #include "WebErrors.h"
@@ -165,7 +159,7 @@
 namespace WebKit {
 using namespace WebCore;
 
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
 
 // Tells the connection's Swift track renderer units about the audio session's interruptions.
 class GPUConnectionToWebProcess::AudioSessionInterruptionForwarder final : public WebCore::AudioSessionInterruptionObserver, public RefCounted<AudioSessionInterruptionForwarder> {
@@ -208,13 +202,6 @@ private:
 
 #endif
 
-static ProcessIdentity adjustProcessIdentityIfNeeded(ProcessIdentity&& identity)
-{
-    if (isMemoryAttributionDisabled())
-        return { };
-    return identity;
-}
-
 Ref<GPUConnectionToWebProcess> GPUConnectionToWebProcess::create(GPUProcess& gpuProcess, WebCore::ProcessIdentifier webProcessIdentifier, PAL::SessionID sessionID, IPC::Connection::Handle&& connectionHandle, GPUProcessConnectionParameters&& parameters)
 {
     return adoptRef(*new GPUConnectionToWebProcess(gpuProcess, webProcessIdentifier, sessionID, WTF::move(connectionHandle), WTF::move(parameters)));
@@ -224,7 +211,7 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
     : m_connection(IPC::Connection::createClientConnection(IPC::Connection::Identifier { WTF::move(connectionHandle) }))
     , m_gpuProcess(gpuProcess)
     , m_webProcessIdentifier(webProcessIdentifier)
-    , m_webProcessIdentity(adjustProcessIdentityIfNeeded(WTF::move(parameters.webProcessIdentity)))
+    , m_webProcessIdentity(isMemoryAttributionDisabled() ? ProcessIdentity { } : WTF::move(parameters.webProcessIdentity))
 #if ENABLE(VIDEO)
     , m_remoteMediaPlayerManagerProxy(RemoteMediaPlayerManagerProxy::create(*this))
 #endif
@@ -234,7 +221,7 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
     })
 #endif
     , m_sessionID(sessionID)
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
     , m_audioSessionInterruptionForwarder(AudioSessionInterruptionForwarder::create(*this))
 #endif
 #if ENABLE(MEDIA_STREAM)

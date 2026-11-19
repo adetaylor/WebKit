@@ -263,7 +263,9 @@ public:
 #endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     SWIFT_MAIN_ACTOR void startCapturingAudio();
-    SWIFT_MAIN_ACTOR void processIsStartingToCaptureAudio(GPUConnectionToWebProcess&);
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
+    void processIsStartingToCaptureAudio(GPUConnectionToWebProcess&);
+#endif
 #endif
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
@@ -438,8 +440,10 @@ private:
 #if !ENABLE(GPU_PROCESS_CORE_SWIFT)
     SWIFT_MAIN_ACTOR void swiftLastToCaptureAudioChanged(bool isLastToCaptureAudio);
 #endif
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
     SWIFT_MAIN_ACTOR void swiftBeginAudioSessionInterruption();
     SWIFT_MAIN_ACTOR void swiftEndAudioSessionInterruption();
+#endif
 
     void setLastAudioMediaStreamTrackRendererDeviceUsed(const String& deviceID);
 #endif
@@ -526,9 +530,6 @@ private:
     // NowPlayingManagerClient
     void didReceiveRemoteControlCommand(WebCore::PlatformMediaSession::RemoteControlCommandType, const WebCore::PlatformMediaSession::RemoteCommandArgument&) final;
 
-#if PLATFORM(MAC) && ENABLE(WEBGL)
-    void dispatchDisplayWasReconfigured();
-#endif
     void enableMediaPlaybackIfNecessary();
 
     static uint64_t gObjectCountForTesting;
@@ -555,8 +556,10 @@ private:
 #endif
     PAL::SessionID m_sessionID;
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
     class AudioSessionInterruptionForwarder;
     const RefPtr<AudioSessionInterruptionForwarder> m_audioSessionInterruptionForwarder;
+#endif
 
     RefPtr<RemoteSampleBufferDisplayLayerManagerMessageForwarder> m_sampleBufferDisplayLayerManager;
     RefPtr<RemoteSampleBufferDisplayLayerMessageForwarder> m_sampleBufferDisplayLayers;
