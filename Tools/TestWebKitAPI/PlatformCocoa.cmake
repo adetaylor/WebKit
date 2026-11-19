@@ -449,6 +449,7 @@ if (WEBKIT_PLATFORM_MAC)
         Tests/WebKit/WKWebView/GetUserMediaReprompt.mm
         Tests/WebKit/WKWebView/NowPlayingSession.mm
 
+        Tests/WebKit/WKWebView/mac/AppKitGesturesBench.mm
         Tests/WebKit/WKWebView/mac/AttributedSubstringForProposedRange.mm
         Tests/WebKit/WKWebView/mac/GrammarMarkerPrecedence.mm
         Tests/WebKit/WKWebView/mac/NSRefreshControllerTests.mm
