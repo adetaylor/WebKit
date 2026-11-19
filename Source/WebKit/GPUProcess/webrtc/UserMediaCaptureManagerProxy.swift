@@ -797,6 +797,9 @@ final class UserMediaCaptureManagerProxyState {
     }
 
     private func addCameraSource(_ source: CaptureSource, _ pageIdentifier: UInt64) {
+        guard !liveCameraSources(pageIdentifier).contains(where: { $0 === source }) else {
+            return
+        }
         pageCameraSources[pageIdentifier, default: []].append { [weak source] in source }
     }
 
