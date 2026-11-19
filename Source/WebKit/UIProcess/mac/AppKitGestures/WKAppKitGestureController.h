@@ -37,27 +37,24 @@ OBJC_CLASS WKWebView;
 NS_HEADER_AUDIT_BEGIN(nullability, sendability)
 
 NS_SWIFT_UI_ACTOR
-@interface WKAppKitGestureController : NSObject <NSGestureRecognizerDelegate>
+@interface WKAppKitGestureController : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)initWithView:(WKWebView *)view NS_DESIGNATED_INITIALIZER;
 - (void)setUp;
 - (void)preferencesDidChange;
-- (void)beginSuppressingSingleClickGestureForTextSelection;
-- (void)endSuppressingSingleClickGestureForTextSelection;
-- (void)didReceiveDragStart;
-- (void)setGestureDraggingSession:(nullable NSDraggingSession *)session;
-- (void)clearGestureDragState;
-- (void)setTextSelectionDragGesture:(NSGestureRecognizer *)gesture completionHandler:(void (^)(NSDraggingSession *))completionHandler;
 - (void)didCommitLoadForMainFrame;
-- (void)transformGestureWasNotHandledByContent;
-- (void)interruptMomentumForScrollWheelEvent;
-- (void)cancelClickHighlight;
 - (void)reset;
 
-@property (nonatomic, readonly, nullable) NSGestureRecognizer *activeDragGestureRecognizer;
-@property (nonatomic, readonly) BOOL everMagnifiedDuringCurrentGesture;
+@property (nonatomic, readonly, nullable) WKWebView *webView;
+
+@end
+
+@interface WKAppKitGestureController (Clicks)
+- (void)beginSuppressingSingleClickGestureForTextSelection;
+- (void)endSuppressingSingleClickGestureForTextSelection;
+- (void)cancelClickHighlight;
 
 @property (nonatomic, readonly, getter=isPotentialTapInProgress) BOOL potentialTapInProgress;
 @property (nonatomic, readonly, nullable) WKClickHighlightController *clickHighlightController;
@@ -66,9 +63,23 @@ NS_SWIFT_UI_ACTOR
 - (void)didHandleTapAsHover;
 - (void)disableDoubleTapGesturesDuringTapIfNecessaryForRequest:(uint64_t)requestID;
 - (void)didNotHandleTapAsClickAtPoint:(NSPoint)point;
+@end
 
-@property (nonatomic, readonly, nullable) WKWebView *webView;
+@interface WKAppKitGestureController (Drag)
+@property (nonatomic, readonly, nullable) NSGestureRecognizer *activeDragGestureRecognizer;
+- (void)setTextSelectionDragGesture:(NSGestureRecognizer *)gesture completionHandler:(void (^)(NSDraggingSession *))completionHandler;
+- (void)didReceiveDragStart;
+- (void)setGestureDraggingSession:(nullable NSDraggingSession *)session;
+- (void)clearGestureDragState;
+@end
 
+@interface WKAppKitGestureController (Scrolling)
+- (void)interruptMomentumForScrollWheelEvent;
+@property (nonatomic, readonly) BOOL everMagnifiedDuringCurrentGesture;
+@end
+
+@interface WKAppKitGestureController (TransformGestures)
+- (void)transformGestureWasNotHandledByContent;
 @end
 
 NS_HEADER_AUDIT_END(nullability, sendability)

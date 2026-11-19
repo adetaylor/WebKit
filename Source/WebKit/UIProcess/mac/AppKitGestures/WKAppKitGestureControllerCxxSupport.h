@@ -117,6 +117,9 @@ NS_SWIFT_UI_ACTOR
 @interface WKAppKitGestureController (WKClickHighlightControllerDelegate) <WKClickHighlightControllerDelegate>
 @end
 
+@interface WKAppKitGestureController (NSGestureRecognizerDelegate) <NSGestureRecognizerDelegate>
+@end
+
 @interface WKAppKitGestureController (WKDeferringGestureRecognizerDelegate) <WKDeferringGestureRecognizerDelegate>
 @end
 
