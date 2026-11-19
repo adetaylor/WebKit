@@ -36,9 +36,6 @@
 #include <WebCore/AuthenticationExtensionsClientInputs.h>
 #include <WebCore/AuthenticatorAttachment.h>
 #include <WebCore/AuthenticatorSelectionCriteria.h>
-#include <WebCore/CBORReader.h>
-#include <WebCore/CBORValue.h>
-#include <WebCore/CBORWriter.h>
 #include <WebCore/CryptoAlgorithmECDH.h>
 #include <WebCore/CryptoKeyAES.h>
 #include <WebCore/CryptoKeyEC.h>
@@ -108,14 +105,16 @@ static void run(ASCIILiteral name, size_t bytes, uint64_t expected, unsigned pas
 
 using Bytes = std::span<const uint8_t>;
 
-static void readAndHash(Hash& hash, Bytes bytes, int maxNesting = cbor::CBORReader::kCBORMaxDepth)
+// The CBOR reader's default nesting limit.
+static constexpr int kCBORMaxDepth = 16;
+
+static void readAndHash(Hash& hash, Bytes bytes, int maxNesting = kCBORMaxDepth)
 {
-    auto error = cbor::CBORReader::DecoderError::CBORNoError;
-    auto value = cbor::CBORReader::read(bytes, &error, maxNesting);
-    hash.addFlag(!!value);
-    hash.add(static_cast<uint64_t>(error));
-    if (value)
-        hashValue(hash, *value);
+    auto result = readCanonicalBytes(bytes, maxNesting, false);
+    hash.addFlag(result.ok);
+    hash.add(static_cast<uint64_t>(result.error));
+    if (result.ok)
+        hashCanonical(hash, result.canonical.span());
 }
 
 static void hashBuffer(Hash& hash, JSC::ArrayBuffer* buffer)
@@ -326,13 +325,12 @@ TEST(WebAuthnBench, CBORReadSmallExhaustive)
 
 static void readWithBytesConsumedAndHash(Hash& hash, Bytes bytes)
 {
-    auto error = cbor::CBORReader::DecoderError::CBORNoError;
-    auto result = cbor::CBORReader::readWithBytesConsumed(bytes, &error);
-    hash.addFlag(!!result);
-    hash.add(static_cast<uint64_t>(error));
-    if (result) {
-        hashValue(hash, result->first);
-        hash.add(static_cast<uint64_t>(result->second));
+    auto result = readCanonicalBytes(bytes, kCBORMaxDepth, true);
+    hash.addFlag(result.ok);
+    hash.add(static_cast<uint64_t>(result.error));
+    if (result.ok) {
+        hashCanonical(hash, result.canonical.span());
+        hash.add(static_cast<uint64_t>(result.bytesConsumed));
     }
 }
 
@@ -372,9 +370,15 @@ TEST(WebAuthnBench, CBORReadWithBytesConsumed)
 
 // ---- CBOR writer ----
 
-static void writeAndHash(Hash& hash, const cbor::CBORValue& value, size_t maxNesting = cbor::CBORWriter::kDefaultMaxNestingDepth)
+// The CBOR writer's default nesting limit, and the reader's limit for the read that comes first: the inputs of these
+// benchmarks are the writer's own output, deeper than the default reader limit allows in one case.
+static constexpr size_t kCBORDefaultMaxNestingDepth = 16;
+static constexpr int kCBORRewriteReadDepth = 64;
+
+// The bytes the writer produced for a value, as the value's own canonical encoding: read, then written again.
+static void writeAndHash(Hash& hash, Bytes input, size_t maxNesting = kCBORDefaultMaxNestingDepth)
 {
-    auto bytes = cbor::CBORWriter::write(value, maxNesting);
+    auto bytes = rewriteCanonicalBytes(input, kCBORRewriteReadDepth, maxNesting);
     hash.addFlag(!!bytes);
     if (bytes)
         hash.add(bytes->span());
@@ -382,24 +386,26 @@ static void writeAndHash(Hash& hash, const cbor::CBORValue& value, size_t maxNes
 
 TEST(WebAuthnBench, CBORWriteMakeCredential)
 {
-    auto value = makeMakeCredentialValue();
-    auto size = cbor::CBORWriter::write(value);
+    auto value = makeMakeCredentialBytes();
+    auto size = rewriteCanonicalBytes(value.span(), kCBORRewriteReadDepth, kCBORDefaultMaxNestingDepth);
     ASSERT_TRUE(size);
-    run("CBORWriteMakeCredential"_s, size->size(), 0x71ff33e4925402deULL, 870000u, [&] {
+    ASSERT_TRUE(value == *size);
+    run("CBORWriteMakeCredential"_s, size->size(), 0x71ff33e4925402deULL, 450000u, [&] {
         Hash hash;
-        writeAndHash(hash, value);
+        writeAndHash(hash, value.span());
         return hash.value();
     });
 }
 
 TEST(WebAuthnBench, CBORWriteScalars)
 {
-    auto value = makeScalarsValue();
-    auto size = cbor::CBORWriter::write(value);
+    auto value = makeScalarsBytes();
+    auto size = rewriteCanonicalBytes(value.span(), kCBORRewriteReadDepth, kCBORDefaultMaxNestingDepth);
     ASSERT_TRUE(size);
+    ASSERT_TRUE(value == *size);
     run("CBORWriteScalars"_s, size->size(), 0x0616c42b88ecd7abULL, 5050u, [&] {
         Hash hash;
-        writeAndHash(hash, value);
+        writeAndHash(hash, value.span());
         return hash.value();
     });
 }
@@ -407,15 +413,15 @@ TEST(WebAuthnBench, CBORWriteScalars)
 TEST(WebAuthnBench, CBORWriteDepth)
 {
     // Nesting depths either side of the limit, with the default limit and with smaller ones.
-    Vector<cbor::CBORValue> values;
+    Vector<Vector<uint8_t>> values;
     for (unsigned depth : { 0u, 1u, 2u, 15u, 16u, 17u, 18u })
-        values.append(makeNestedArray(depth));
-    run("CBORWriteDepth"_s, 64, 0xd56d0bddc97ca5f5ULL, 2360000u, [&] {
+        values.append(nestedArrayBytes(depth));
+    run("CBORWriteDepth"_s, 64, 0xd56d0bddc97ca5f5ULL, 280000u, [&] {
         Hash hash;
         for (auto& value : values) {
-            writeAndHash(hash, value);
-            writeAndHash(hash, value, 1);
-            writeAndHash(hash, value, 0);
+            writeAndHash(hash, value.span());
+            writeAndHash(hash, value.span(), 1);
+            writeAndHash(hash, value.span(), 0);
         }
         return hash.value();
     });
@@ -1230,7 +1236,7 @@ TEST(WebAuthnBench, PinParsers)
         }
         Vector<uint8_t> rawKey = patternBytes(65, 3);
         rawKey[0] = 0x04;
-        hashValue(hash, cbor::CBORValue(fido::pin::encodeCOSEPublicKey(rawKey)));
+        hashCanonical(hash, coseKeyBytes(rawKey).span());
         return hash.value();
     });
 }
@@ -1286,6 +1292,80 @@ TEST(WebAuthnBench, PinRequests)
             }
             hash.addFlag(!!fido::pin::HmacSecretRequest::create(protocol, shortSalt, std::nullopt, keys.peerKey.copyRef()));
             hash.addFlag(!!fido::pin::HmacSecretRequest::create(protocol, salt1, shortSalt, keys.peerKey.copyRef()));
+        }
+        return hash.value();
+    });
+}
+
+// ---- Attestation response getters ----
+
+// The authenticator data of an attestation object: the fixed fields, a credential ID, then the COSE key.
+static Vector<uint8_t> attestationAuthData(std::span<const uint8_t> coseKey)
+{
+    Vector<uint8_t> authData = patternBytes(32, 40); // rpIdHash
+    authData.append(0x45); // flags: up, uv, at
+    authData.appendVector(Vector<uint8_t> { 0, 0, 0, 1 }); // signCount
+    for (unsigned i = 0; i < 16; ++i)
+        authData.append(0); // aaguid
+    authData.append(0);
+    authData.append(16); // credentialIdLength
+    authData.appendVector(patternBytes(16, 41));
+    authData.append(coseKey);
+    return authData;
+}
+
+// A WebAuthn attestation object: "fmt", "attStmt", "authData", in canonical order.
+static Vector<uint8_t> attestationObject(std::span<const uint8_t> authData)
+{
+    CBORBuilder object;
+    object.head(5, 3);
+    object.text("fmt");
+    object.text("none");
+    object.text("attStmt");
+    object.head(5, 0);
+    object.text("authData");
+    object.byteString(authData);
+    return object.take();
+}
+
+// A COSE key {1: kty, 3: alg, -1: crv, -2: x (or n)} as getPublicKey reads it.
+static Vector<uint8_t> coseKey(int64_t kty, int64_t algorithm, int64_t curve, std::span<const uint8_t> x)
+{
+    CBORBuilder key;
+    key.head(5, 4);
+    key.integer(1);
+    key.integer(kty);
+    key.integer(3);
+    key.integer(algorithm);
+    key.integer(-1);
+    key.integer(curve);
+    key.integer(-2);
+    key.byteString(x);
+    return key.take();
+}
+
+TEST(WebAuthnBench, AttestationGetters)
+{
+    // The three getters the web process runs on an attestation object that arrived over IPC: the ES256 key a page reads
+    // most, and the keys and authenticator data on the paths that return nothing. None of them asserts on its input.
+    Vector<Vector<uint8_t>> objects;
+    objects.append(attestationObject(attestationAuthData(Bytes { TestData::kTestECPublicKeyCOSE }).span())); // ES256
+    objects.append(attestationObject(attestationAuthData(coseKey(3, -257, 0, patternBytes(256, 50).span()).span()).span())); // RS256
+    objects.append(attestationObject(attestationAuthData(coseKey(1, -8, 6, patternBytes(32, 51).span()).span()).span())); // EdDSA
+    objects.append(attestationObject(attestationAuthData(coseKey(1, -7, 6, patternBytes(32, 52).span()).span()).span())); // ES256 with a wrong curve and type
+    auto noKey = attestationAuthData({ });
+    objects.append(attestationObject(noKey.span())); // no key after the credential ID
+    objects.append(attestationObject(noKey.span().first(40))); // shorter than the credential ID length field
+    size_t bytes = 0;
+    for (auto& object : objects)
+        bytes += object.size();
+    run("AttestationGetters"_s, bytes, 0x61062806b8261198ULL, 150000u, [&] {
+        Hash hash;
+        for (auto& object : objects) {
+            auto response = AuthenticatorAttestationResponse::create(patternBytes(16, 41), object, AuthenticatorAttachment::CrossPlatform, { });
+            hashBuffer(hash, response->getAuthenticatorData().get());
+            hashBuffer(hash, response->getPublicKey().get());
+            hash.add(static_cast<uint64_t>(response->getPublicKeyAlgorithm()));
         }
         return hash.value();
     });
