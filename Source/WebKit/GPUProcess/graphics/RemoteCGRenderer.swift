@@ -294,6 +294,9 @@ final class RemoteCGRenderer {
     private var imageReplays: [RemoteCGRendererRecordedImages] = []
     // A live DrawGlyphs's glyphs and advances, copied out of the message.
     private let liveGlyphRun = IPCTypes.GlyphRun.Storage()
+    // A live StrokeLinesWithColorAndThickness's lines and DrawLinesForText's segments, copied out of the message.
+    private let liveLineStrokes = IPCTypes.LineStrokes.Storage()
+    private let liveLineSegments = IPCTypes.LineSegments.Storage()
     // The descriptions of the effects of the filters it drew last (RemoteCGRendererFilters.swift).
     private let filterDescriptions = RemoteCGRendererFilterDescriptions()
     #if WTF_PLATFORM_MAC
@@ -414,8 +417,14 @@ final class RemoteCGRenderer {
         state.receiveSave()
     }
 
-    func restore(state: inout CGRendererCore) {
-        state.receiveRestore()
+    // RemoteGraphicsContext::restore() and restoreTransform(): a restore of a level that wasn't saved for its purpose is
+    // invalid, apart from one with nothing saved, which the web process sends for the levels it saved in a previous GPU
+    // process. A replay ignores either, as GraphicsContext does.
+    func restore(state: inout CGRendererCore) throws(InvalidMessage) {
+        let isValid = state.receiveRestore()
+        if replayLevel == 0 {
+            try messageCheck { isValid }
+        }
     }
 
     func translate(state: inout CGRendererCore, x: Float, y: Float) {
@@ -440,6 +449,17 @@ final class RemoteCGRenderer {
 
     func concatCTM(state: inout CGRendererCore, ctm: WebCore.AffineTransform) {
         state.receiveConcatCTM(ctm)
+    }
+
+    func saveTransform(state: inout CGRendererCore) {
+        state.receiveSaveTransform()
+    }
+
+    func restoreTransform(state: inout CGRendererCore) throws(InvalidMessage) {
+        let isValid = state.receiveRestoreTransform()
+        if replayLevel == 0 {
+            try messageCheck { isValid }
+        }
     }
 
     func setFillPackedColor(state: inout CGRendererCore, color: UInt32) {
@@ -539,14 +559,6 @@ final class RemoteCGRenderer {
         state.receiveClearRect(cgRect(rect))
     }
 
-    func applyStrokePattern(state: inout CGRendererCore) {
-        state.receiveApplyStrokePattern()
-    }
-
-    func applyFillPattern(state: inout CGRendererCore) {
-        state.receiveApplyFillPattern()
-    }
-
     func drawRect(state: inout CGRendererCore, rect: WebCore.FloatRect, borderThickness: Float) {
         state.receiveDrawRect(cgRect(rect), borderThickness)
     }
@@ -583,8 +595,15 @@ final class RemoteCGRenderer {
         state.receiveStrokePathSegment(lineSegment(line))
     }
 
-    func strokeLinesWithColorAndThickness(state: inout CGRendererCore, lines: [WebCore.PathDataLineColorThickness]) {
-        state.receiveStrokeLinesWithColorAndThickness(lines.span)
+    @_expose(!Cxx)
+    func lineStrokesDecodeContext(state: borrowing CGRendererCore) -> IPCTypes.LineStrokes.Storage {
+        liveLineStrokes
+    }
+
+    @_expose(!Cxx)
+    func strokeLinesWithColorAndThickness(state: inout CGRendererCore, lines: IPCTypes.LineStrokes) {
+        let elements = lines.storage.elements
+        state.receiveStrokeLinesWithColorAndThickness(elements.span.extracting(0..<lines.count))
     }
 
     func strokeArc(state: inout CGRendererCore, arc: WebCore.PathArc) {
@@ -961,7 +980,7 @@ final class RemoteCGRenderer {
     }
 
     // RemoteGraphicsContext's gradient and pattern handlers, whose brushes keep their color, and its gradient fills. A missing
-    // resource, or a pattern of the buffer the context draws into, is an invalid message, as in C++.
+    // resource is an invalid message, as in C++.
 
     // The brush of a cached gradient: nil for a missing gradient.
     private func cachedGradientBrush(_ identifier: WebKit.RemoteGradientIdentifier, _ spaceTransform: WebCore.AffineTransform) -> CGRendererBrushSource? {
@@ -1001,13 +1020,11 @@ final class RemoteCGRenderer {
         state.receiveSetStrokeSource(CGRendererNativeImagePatternBrushSource(tileImage.nativeImage, pattern), RemoteCGRendererBrushKind.pattern)
     }
 
-    // The brush of an image buffer's pattern. A missing image buffer, or the one the receiver draws into, is an invalid message.
+    // The brush of an image buffer's pattern. A missing image buffer is an invalid message.
     private func imageBufferPatternBrush(_ identifier: WebCore.RenderingResourceIdentifier, _ pattern: WebCore.PatternParameters) throws(InvalidMessage) -> CGRendererBrushSource {
         let tileImageBuffer = imageBuffer(identifier)
         try messageCheck { tileImageBuffer != nil }
-        let source = tileImageBuffer.flatMap { resources.imageBufferPatternBrush($0, pattern) }
-        try messageCheck { source != nil }
-        return source ?? CGRendererBrushSource()
+        return tileImageBuffer.map { CGRendererImageBufferPatternBrushSource($0, pattern) } ?? CGRendererBrushSource()
     }
 
     func setFillPatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
@@ -1306,16 +1323,23 @@ final class RemoteCGRenderer {
 
     // RemoteGraphicsContext's text decoration handlers.
 
+    @_expose(!Cxx)
+    func lineSegmentsDecodeContext(state: borrowing CGRendererCore) -> IPCTypes.LineSegments.Storage {
+        liveLineSegments
+    }
+
+    @_expose(!Cxx)
     func drawLinesForText(
         state: inout CGRendererCore,
         point: IPCTypes.FloatPoint,
         thickness: Float,
-        lineSegments: [WebCore.FloatSegment],
+        lineSegments: IPCTypes.LineSegments,
         printing: Bool,
         doubleLines: Bool,
         strokeStyle: WebCore.StrokeStyle
     ) {
-        state.receiveDrawLinesForText(lineSegments.span, point.x, point.y, thickness, printing, doubleLines, strokeStyle)
+        let segments = lineSegments.storage.elements
+        state.receiveDrawLinesForText(segments.span.extracting(0..<lineSegments.count), point.x, point.y, thickness, printing, doubleLines, strokeStyle)
     }
 
     // A live DrawGlyphs's glyphs and advances, which its dispatch copies out of the message into the renderer's storage for them.
@@ -1334,27 +1358,35 @@ final class RemoteCGRenderer {
         localAnchor: IPCTypes.FloatPoint,
         smoothingMode: WebCore.FontSmoothingMode
     ) throws(InvalidMessage) {
-        let storage = glyphsAdvances.storage
-        let count = glyphsAdvances.count
+        let storage: IPCTypes.GlyphRun.Storage
+        let count: Int
+        switch glyphsAdvances.glyphs {
+        case .recorded(let run):
+            let facts = run.facts
+            guard facts.draws else {
+                return
+            }
+            run.withFontGlyphsAndAdvances { font, glyphs, advances in
+                state.receiveDrawGlyphs(CGRendererMakeGlyphRun(font, glyphs, advances), facts, smoothingMode.rawValue, localAnchor.x, localAnchor.y)
+            }
+            return
+        case .live(let liveStorage, let liveCount):
+            storage = liveStorage
+            count = liveCount
+        }
         let glyphStorage = storage.glyphs
         let advanceStorage = storage.advances
         let glyphs = glyphStorage.span.extracting(0..<count)
         let advances = advanceStorage.span.extracting(0..<count)
-        if storage.isRecorded {
-            let facts = storage.recordedFacts
-            guard facts.draws, let font = storage.recordedFont else {
-                return
-            }
-            state.receiveDrawGlyphs(CGRendererMakeGlyphRun(font, glyphs, advances), facts, smoothingMode.rawValue, localAnchor.x, localAnchor.y)
-            return
-        }
         let cachedFont = resources.cachedFont(key: fontIdentifier.rawValue)
         try messageCheck { cachedFont != nil }
-        guard let cachedFont, let font = cachedFont.ctFont else {
+        guard let cachedFont else {
             return
         }
         let facts = cachedFont.factsForGlyphs(glyphs)
-        state.receiveDrawGlyphs(CGRendererMakeGlyphRun(font, glyphs, advances), facts, smoothingMode.rawValue, localAnchor.x, localAnchor.y)
+        _ = cachedFont.withCTFont { font in
+            state.receiveDrawGlyphs(CGRendererMakeGlyphRun(font, glyphs, advances), facts, smoothingMode.rawValue, localAnchor.x, localAnchor.y)
+        }
     }
 
     // RemoteGraphicsContext::drawDisplayList(): a missing display list is an invalid message. A recording draws the display

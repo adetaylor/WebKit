@@ -53,15 +53,32 @@ final class RemoteCGRendererFont: @unchecked Sendable {
     let sharedFont: WebKit.SharedFont
     @_expose(!Cxx)
     let ctFont: CTFont?
+    // ctFont's address, through which a draw borrows it without retaining it again (withCTFont()); 0 for none.
+    private let ctFontAddress: UInt
     private let facts: CGRendererGlyphFontFacts
     private let complexColorFormatGlyphsLock = Mutex<Void>(())
 
     @_expose(!Cxx)
     init(sharedFont: WebKit.SharedFont) {
         var facts = CGRendererGlyphFontFacts()
-        self.ctFont = WebKit.glyphFontFactsOf(sharedFont, &facts)
+        let ctFont = WebKit.glyphFontFactsOf(sharedFont, &facts)
+        self.ctFont = ctFont
+        self.ctFontAddress = ctFont.map { UInt(bitPattern: unsafe Unmanaged.passUnretained($0).toOpaque()) } ?? 0
         self.sharedFont = sharedFont
         self.facts = facts
+    }
+
+    // Calls body with the CTFont, unless the font has none, without retaining it: a draw of every run would otherwise retain it
+    // and release it, as an Objective-C object. False if the font has none.
+    @_expose(!Cxx)
+    func withCTFont(_ body: (CTFont) -> Void) -> Bool {
+        guard let address = unsafe UnsafeRawPointer(bitPattern: ctFontAddress) else {
+            return false
+        }
+        // Sound: the address is ctFont's, a constant of this font, which keeps the CTFont for as long as this font, which the caller
+        // keeps for the call.
+        unsafe Unmanaged<CTFont>.fromOpaque(address)._withUnsafeGuaranteedRef(body)
+        return true
     }
 
     // For the print process (RemoteSnapshotPrintData).
@@ -141,6 +158,11 @@ final class RemoteCGRendererRecordedResources {
         paths[RemoteIdentifierKey(value: key)] = path
     }
 
+    @used
+    func setMeshGradient(key: UInt64, gradient: WebCore.MeshGradient) {
+        meshGradients[RemoteIdentifierKey(value: key)] = gradient
+    }
+
     @_expose(!Cxx)
     func path(key: UInt64) -> WebCore.PathImpl? {
         paths[RemoteIdentifierKey(value: key)]
@@ -162,11 +184,6 @@ final class RemoteCGRendererRecordedResources {
             return firstFont.font
         }
         return otherFonts[RemoteIdentifierKey(value: key)]
-    }
-
-    @_expose(!Cxx)
-    var hasMeshGradients: Bool {
-        !meshGradients.isEmpty
     }
 
     // A recorder's: what the recording keeps under the identifier is the first it was given.
@@ -193,11 +210,9 @@ final class RemoteCGRendererRecordedResources {
         return storedValue(&otherFonts[RemoteIdentifierKey(value: key), default: font])
     }
 
-    // The resources, for the print process (RemoteSnapshotPrintData), whose recordings name no mesh gradients: the builder's last
-    // recording's.
+    // The resources, for the print process (RemoteSnapshotPrintData): the builder's last recording's.
     @_expose(!Cxx)
     func export(to builder: WebKit.RemoteSnapshotPrintDataBuilder) {
-        precondition(meshGradients.isEmpty)
         if let firstFont {
             builder.addFont(firstFont.key, firstFont.font.sharedFont)
         }
@@ -209,6 +224,9 @@ final class RemoteCGRendererRecordedResources {
         }
         for (key, path) in paths {
             builder.addPath(key.value, path)
+        }
+        for (key, gradient) in meshGradients {
+            builder.addMeshGradient(key.value, gradient)
         }
     }
 }
@@ -343,9 +361,14 @@ final class RemoteCGRendererResources {
             return false
         }
         let recordedFont = recording().addFont(font, key: fontIdentifier.rawValue)
-        let glyphStorage = glyphs.storage.glyphs
-        let facts = recordedFont.factsForGlyphs(glyphStorage.span.extracting(0..<glyphs.count))
-        glyphs.storage.setRecordedFont(recordedFont.ctFont, facts: facts)
+        guard case .recorded(let run) = glyphs.glyphs else {
+            return false
+        }
+        var facts = CGRendererGlyphFontFacts()
+        run.withGlyphsAndAdvances { runGlyphs, _ in
+            facts = recordedFont.factsForGlyphs(runGlyphs)
+        }
+        run.setRecordedFont(recordedFont.ctFont, facts: facts)
         return true
     }
 
@@ -428,15 +451,6 @@ final class RemoteCGRendererResources {
 
     func releaseSelfCopy() {
         selfCopy = nil
-    }
-
-    // The brush of a SetFillPatternImageBuffer or a SetStrokePatternImageBuffer: nil for the image buffer the receiver draws
-    // into, which is an invalid message.
-    func imageBufferPatternBrush(_ tileImageBuffer: WebCore.ImageBuffer, _ pattern: WebCore.PatternParameters) -> CGRendererBrushSource? {
-        if isSameImageBuffer(tileImageBuffer, targetImageBuffer) {
-            return nil
-        }
-        return CGRendererImageBufferPatternBrushSource(tileImageBuffer, pattern)
     }
 
     // The allocator of the images of the filters that a RemoteCGRenderer applies (RemoteCGRendererFilters.swift): the

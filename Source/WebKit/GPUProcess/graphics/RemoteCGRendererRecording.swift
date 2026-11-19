@@ -62,6 +62,22 @@ final class RemoteCGRendererRecordedImages {
         nativeImages = other.nativeImages
         imageBuffers = other.imageBuffers
     }
+
+    // The images, for the print process (RemoteSnapshotPrintData): the builder's last recording's. False where one's pixels
+    // can't be copied.
+    fileprivate func export(to builder: WebKit.RemoteSnapshotPrintDataBuilder) -> Bool {
+        for (key, image) in nativeImages {
+            guard builder.addNativeImage(key.value, image.nativeImage) else {
+                return false
+            }
+        }
+        for (key, imageBuffer) in imageBuffers {
+            guard builder.addImageBuffer(key.value, imageBuffer) else {
+                return false
+            }
+        }
+        return true
+    }
 }
 
 // A recording of RemoteCGRenderer's messages, which a display list or a snapshot's frame is: the messages, the resources they
@@ -111,12 +127,9 @@ final class RemoteCGRendererRecording {
     }
 
     // The messages as the stream sends them, for the print process: none if one draws what DisplayListData can't send there,
-    // such as an image or an ARKit badge.
+    // an ARKit badge.
     @_expose(!Cxx)
     func encodedMessages() -> WebKit.RemoteCGRendererRecordedMessageEncoder? {
-        if images != nil {
-            return nil
-        }
         #if USE_SYSTEM_PREVIEW
         for message in messages {
             if case .drawBadgeSystemImage = message {
@@ -132,11 +145,11 @@ final class RemoteCGRendererRecording {
 
 // What a recorder's DrawSnapshotFrame messages reference: nothing, which makes them invalid messages, the frames of the snapshot
 // it records a frame of, or, in the print process, which records a snapshot's recordings again, the frames that the snapshot
-// had.
+// had. The print process's recorder looks up the native images and image buffers that the GPU process sent with the recording.
 enum RemoteCGRendererSnapshotFrameReferences {
     case none
     case snapshot(RemoteSnapshot)
-    case rerecording
+    case rerecording(RemoteCGRendererRecordedImages)
 }
 
 // The lock of a recorder whose recording another thread draws (RemoteCGRendererRecordedDrawing), so that it draws whole
@@ -316,7 +329,9 @@ final class RemoteCGRendererRecorder {
                 try messageCheck { false }
                 return
             }
-            recordedDisplayLists[RemoteIdentifierKey(value: key)] = recording
+            if recordedDisplayLists.index(forKey: RemoteIdentifierKey(value: key)) == nil {
+                recordedDisplayLists[RemoteIdentifierKey(value: key)] = recording
+            }
         case .drawSnapshotFrame(let frameIdentifier):
             namesResource = false
             // A frame that the snapshot then waits for.
@@ -342,7 +357,7 @@ final class RemoteCGRendererRecorder {
     }
 
     private func recordNativeImage(key: UInt64) throws(InvalidMessage) {
-        let image = displayLists.backendResources?.nativeImage(key: key)
+        let image = foundNativeImage(key: key)
         try messageCheck { image != nil }
         // As the C++ keeps a recording's other resources, the first one an identifier names.
         let images = recordedImages()
@@ -356,7 +371,7 @@ final class RemoteCGRendererRecorder {
     }
 
     private func recordImageBuffer(key: UInt64) throws(InvalidMessage) {
-        let imageBuffer = displayLists.backendResources?.imageBuffer(key: key)
+        let imageBuffer = foundImageBuffer(key: key)
         try messageCheck { imageBuffer != nil }
         let images = recordedImages()
         if let imageBuffer, images.imageBuffers.index(forKey: RemoteIdentifierKey(value: key)) == nil {
@@ -366,11 +381,26 @@ final class RemoteCGRendererRecorder {
 
     // The native image, or else the image buffer, that an FEImage names (FEImage's SourceImage).
     private func recordNativeImageOrImageBuffer(key: UInt64) throws(InvalidMessage) {
-        if displayLists.backendResources?.nativeImage(key: key) != nil {
+        if foundNativeImage(key: key) != nil {
             try recordNativeImage(key: key)
         } else {
             try recordImageBuffer(key: key)
         }
+    }
+
+    // The native image or image buffer that a message names: the backend's, or the print process's.
+    private func foundNativeImage(key: UInt64) -> RemoteCGRendererImage? {
+        if case .rerecording(let images) = snapshotFrames {
+            return images.nativeImages[RemoteIdentifierKey(value: key)]
+        }
+        return displayLists.backendResources?.nativeImage(key: key)
+    }
+
+    private func foundImageBuffer(key: UInt64) -> WebCore.ImageBuffer? {
+        if case .rerecording(let images) = snapshotFrames {
+            return images.imageBuffers[RemoteIdentifierKey(value: key)]
+        }
+        return displayLists.backendResources?.imageBuffer(key: key)
     }
 
     // The recording's images, made when it first names one. A recording that currentRecording() made has its own copy.
@@ -501,7 +531,7 @@ final class RemoteCGRendererDisplayLists {
     // another, and the lookups need no dynamic exclusivity check.
     private var recordings: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
     // The backend's resources, which the recorders that record into these display lists look up: none for the print
-    // process's, whose recordings name no native images or image buffers.
+    // process's, whose recorders look up the images that the GPU process sent (RemoteCGRendererSnapshotFrameReferences).
     @_expose(!Cxx)
     let backendResources: RemoteRenderingBackendResources?
 
@@ -571,10 +601,11 @@ final class RemoteCGRendererSnapshotFrames {
     private var recordings: [UInt64: RemoteSnapshotFrameRecording] = [:]
     private var abandonedFrames: Set<UInt64> = []
     private var framesBeingDrawn: Set<UInt64> = []
-    // The print process's recordings, in the order of the snapshot's print data, the display lists that the next one draws,
-    // and its recorder while it records it.
+    // The print process's recordings, in the order of the snapshot's print data, the display lists and images that the next
+    // one draws, and its recorder while it records it.
     private var rerecordings: [RemoteCGRendererRecording] = []
     private var nextDisplayLists: [(key: UInt64, recording: RemoteCGRendererRecording)] = []
+    private var nextImages = RemoteCGRendererRecordedImages()
     private var rerecorder: (recorder: RemoteCGRendererRecorder, resources: RemoteCGRendererResources)?
 
     @_expose(!Cxx)
@@ -613,6 +644,38 @@ final class RemoteCGRendererSnapshotFrames {
         return true
     }
 
+    // A native image or image buffer, by key, that the recording that the print process records next draws, as the GPU process
+    // looked it up: false for a key that another of its images of the kind has.
+    @used
+    func addNativeImageToNextRecording(key: UInt64, nativeImage: WebCore.NativeImage) -> Bool {
+        let key = RemoteIdentifierKey(value: key)
+        guard nextImages.nativeImages.index(forKey: key) == nil else {
+            return false
+        }
+        var width: Float = 0
+        var height: Float = 0
+        var headroom: Float = 0
+        let image = WebKit.nativeImageFactsOf(nativeImage, &width, &height, &headroom)
+        nextImages.nativeImages[key] = RemoteCGRendererImage(
+            nativeImage: nativeImage,
+            image: image,
+            width: width,
+            height: height,
+            headroom: headroom
+        )
+        return true
+    }
+
+    @used
+    func addImageBufferToNextRecording(key: UInt64, imageBuffer: WebCore.ImageBuffer) -> Bool {
+        let key = RemoteIdentifierKey(value: key)
+        guard nextImages.imageBuffers.index(forKey: key) == nil else {
+            return false
+        }
+        nextImages.imageBuffers[key] = imageBuffer
+        return true
+    }
+
     // The receiver of the messages of the recording that the print process records next, until endRerecording(), with the
     // resources that the GPU process looked up for it.
     @used
@@ -624,11 +687,13 @@ final class RemoteCGRendererSnapshotFrames {
             _ = displayLists.add(displayList.recording, key: displayList.key)
         }
         nextDisplayLists = []
+        let images = nextImages
+        nextImages = RemoteCGRendererRecordedImages()
         let recorder = RemoteCGRendererRecorder(
             resources: resources,
             displayLists: displayLists,
             videoFrameSources: nil,
-            snapshotFrames: .rerecording
+            snapshotFrames: .rerecording(images)
         )
         rerecorder = (recorder, resources)
         return RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder)
@@ -684,12 +749,14 @@ final class RemoteCGRendererSnapshotFrames {
                 }
                 displayLists.append((key.value, index))
             }
-            // The print process draws no mesh gradients.
-            guard var encoder = recording.encodedMessages(), !recording.resources.hasMeshGradients else {
+            guard var encoder = recording.encodedMessages() else {
                 return nil
             }
             builder.addRecording(&encoder)
             recording.resources.export(to: builder)
+            if let images = recording.images, !images.export(to: builder) {
+                return nil
+            }
             for displayList in displayLists {
                 builder.addDisplayList(displayList.key, displayList.index)
             }
