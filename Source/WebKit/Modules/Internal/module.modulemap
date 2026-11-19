@@ -209,6 +209,18 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module InteractionInformationAtPosition {
+        requires cplusplus20,objc,macos
+        header "../../Shared/Cocoa/InteractionInformationAtPosition.h"
+        export *
+    }
+
+    module InteractionInformationRequest {
+        requires cplusplus20,macos
+        header "../../Shared/Cocoa/InteractionInformationRequest.h"
+        export *
+    }
+
     module WebNavigationState {
         requires cplusplus20
         header "../../UIProcess/WebNavigationState.h"
