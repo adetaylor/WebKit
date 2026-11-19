@@ -1316,8 +1316,7 @@ void RemoteMediaPlayerProxy::setPreferredSpeakerID()
 {
     RefPtr manager = m_manager.get();
     RefPtr connection = manager->gpuConnectionToWebProcess();
-    Ref audioSession = connection->audioSessionProxy();
-    audioSession->setPreferredSpeakerID(m_configuration.audioOutputDeviceId);
+    connection->setAudioSessionPreferredSpeakerID(m_configuration.audioOutputDeviceId);
 }
 #endif
 
