@@ -8490,34 +8490,6 @@ void WebViewImpl::endSuppressingSingleClickGestureForTextSelection()
 {
     [m_appKitGestureController endSuppressingSingleClickGestureForTextSelection];
 }
-
-bool WebViewImpl::moveMagnificationOriginIfMagnifying(CGPoint originInViewCoordinates)
-{
-    if (RefPtr gestureController = this->gestureController(); gestureController && gestureController->hasActiveMagnificationGesture()) {
-        gestureController->moveMagnificationOrigin(originInViewCoordinates);
-        return true;
-    }
-    return false;
-}
-
-bool WebViewImpl::handleMagnificationGestureIfMagnifying(double scale, WebEventPhase phase, CGPoint originInViewCoordinates, WebEventInputSource inputSource)
-{
-    Ref gestureController = ensureGestureController();
-    if (!gestureController->hasActiveMagnificationGesture())
-        return false;
-    gestureController->handleMagnificationGesture(scale, phase, originInViewCoordinates, inputSource);
-    return true;
-}
-
-void WebViewImpl::handleSmartMagnificationGesture(CGPoint originInViewCoordinates)
-{
-    protect(ensureGestureController())->handleSmartMagnificationGesture(originInViewCoordinates);
-}
-
-bool WebViewImpl::handleScrollWheelEventForNavigationGesture(const NativeWebWheelEvent& event)
-{
-    return protect(ensureGestureController())->handleScrollWheelEvent(event);
-}
 #endif // HAVE(APPKIT_GESTURES_SUPPORT)
 
 #if HAVE(NSREFRESHCONTROLLER)
