@@ -94,7 +94,6 @@ public:
     // made and nothing else destroys.
     SWIFT_UNSAFE uintptr_t createSwiftState(uintptr_t islandShell);
     SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
-    bool isValidObjectName(uint32_t name) const WTF_REQUIRES_CAPABILITY(workQueue());
     uint32_t objectName(uint32_t name) const WTF_REQUIRES_CAPABILITY(workQueue());
     uint32_t takeObjectName(uint32_t name) WTF_REQUIRES_CAPABILITY(workQueue());
     void addObjectName(uint32_t name, uint32_t object) WTF_REQUIRES_CAPABILITY(workQueue());
