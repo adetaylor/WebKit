@@ -543,6 +543,12 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module WKClickHighlightView {
+        requires cplusplus20,objc,macos
+        header "../../UIProcess/Cocoa/WKClickHighlightView.h"
+        export *
+    }
+
     module WKUserContentControllerInternal {
         requires cplusplus20,objc
         header "../../UIProcess/API/Cocoa/WKUserContentControllerInternal.h"

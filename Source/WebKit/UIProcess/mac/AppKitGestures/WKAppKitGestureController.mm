@@ -2656,7 +2656,7 @@ ALLOW_NEW_API_WITHOUT_GUARDS_END
     return page->pageScaleFactor() * page->viewScaleFactor();
 }
 
-- (WebCore::FloatRect)clickHighlightControllerUnobscuredRect:(WKClickHighlightController *)controller
+- (CGRect)clickHighlightControllerUnobscuredRect:(WKClickHighlightController *)controller
 {
     RetainPtr webView = _view.get();
     if (!webView)
@@ -2667,7 +2667,7 @@ ALLOW_NEW_API_WITHOUT_GUARDS_END
     return unobscuredRect;
 }
 
-- (WebCore::FloatRect)clickHighlightControllerBoundaryRect:(WKClickHighlightController *)controller
+- (CGRect)clickHighlightControllerBoundaryRect:(WKClickHighlightController *)controller
 {
     return [self clickHighlightControllerUnobscuredRect:controller];
 }
