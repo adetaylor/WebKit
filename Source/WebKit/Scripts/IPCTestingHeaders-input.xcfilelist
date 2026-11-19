@@ -64,6 +64,7 @@ $(SRCROOT)/Platform/IPC/StreamConnectionWorkQueue.h
 $(SRCROOT)/Platform/IPC/StreamMessageReceiver.h
 $(SRCROOT)/Platform/IPC/StreamServerConnection.h
 $(SRCROOT)/Platform/IPC/StreamServerConnectionBuffer.h
+$(SRCROOT)/Platform/IPC/SwiftCoding.h
 $(SRCROOT)/Platform/IPC/SyncRequestID.h
 $(SRCROOT)/Platform/IPC/ThreadSafeObjectHeap.h
 $(SRCROOT)/Platform/IPC/Timeout.h

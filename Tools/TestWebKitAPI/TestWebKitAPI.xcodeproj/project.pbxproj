@@ -1554,6 +1554,7 @@
 				IPC/StreamConnectionEncoderTests.cpp,
 				IPC/StreamConnectionTests.cpp,
 				IPC/StreamConnectionWorkQueueTests.cpp,
+				IPC/SwiftCodingEdgeCaseTests.cpp,
 				IPC/ThreadSafeObjectHeapTests.cpp,
 				IPC/TransferStringObjCTests.mm,
 				IPC/TransferStringTests.cpp,
