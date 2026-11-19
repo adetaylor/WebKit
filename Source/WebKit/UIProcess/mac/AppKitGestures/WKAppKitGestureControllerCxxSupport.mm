@@ -239,14 +239,6 @@ private:
 
 #endif // ENABLE(MOMENTUM_EVENT_DISPATCHER)
 
-// The Swift implementation provides -_gestureRecognizer:canPreventGestureRecognizer:; this adds the conformance to
-// the private protocol, which the class's header does not declare.
-@interface WKAppKitGestureController (NSGestureRecognizerDelegatePrivate) <NSGestureRecognizerDelegatePrivate>
-@end
-
-@implementation WKAppKitGestureController (NSGestureRecognizerDelegatePrivate)
-@end
-
 @implementation WKAppKitGestureControllerCxxSupport {
     WeakObjCPtr<WKAppKitGestureController> _controller;
     // Made by -setUpPositionInformation, which the controller sends before any other position-information message.
