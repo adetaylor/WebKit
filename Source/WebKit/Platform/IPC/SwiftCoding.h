@@ -415,10 +415,14 @@ private:
     {
     }
 
+    // As ArgumentCoder<std::span> decodes them: no bytes are an empty span with no data, which callers such as ANGLE's
+    // robust entry points tell apart from a zero-length buffer.
     std::span<const uint8_t> bytes() const
     {
         auto buffer = borrowed().span();
         RELEASE_ASSERT(m_offset <= buffer.size() && m_size <= buffer.size() - m_offset);
+        if (!m_size)
+            return { };
         return buffer.subspan(m_offset, m_size);
     }
 
