@@ -683,7 +683,7 @@ final class UserMediaCaptureManagerProxyState {
     private func framePublisher(usesFrameHeap: Bool) -> CaptureFramePublisher {
         let connection = gpuConnection
         let identity = WebKit.userMediaCaptureResourceOwner(connection)
-        return CaptureFramePublisher(heap: usesFrameHeap ? connection.videoFrameObjectHeap().frames : nil, resourceOwner: identity.__convertToBool() ? identity : nil)
+        return CaptureFramePublisher(heap: usesFrameHeap ? connection.videoFrameObjectHeap().frames : nil, resourceOwner: Bool(fromCxx: identity) ? identity : nil)
     }
 
     // What the GPU process does for the capture of a page's device, before it starts (GPUProxyForCapture and
