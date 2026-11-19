@@ -971,7 +971,7 @@ final class RemoteCGRenderer {
     }
 
     // RemoteGraphicsContext's gradient and pattern handlers, whose brushes keep their color, and its gradient fills. A missing
-    // resource, or a pattern of the buffer the context draws into, is an invalid message, as in C++.
+    // resource is an invalid message, as in C++.
 
     // The brush of a cached gradient: nil for a missing gradient.
     private func cachedGradientBrush(_ identifier: WebKit.RemoteGradientIdentifier, _ spaceTransform: WebCore.AffineTransform) -> CGRendererBrushSource? {
@@ -1011,13 +1011,11 @@ final class RemoteCGRenderer {
         state.receiveSetStrokeSource(CGRendererNativeImagePatternBrushSource(tileImage.nativeImage, pattern), RemoteCGRendererBrushKind.pattern)
     }
 
-    // The brush of an image buffer's pattern. A missing image buffer, or the one the receiver draws into, is an invalid message.
+    // The brush of an image buffer's pattern. A missing image buffer is an invalid message.
     private func imageBufferPatternBrush(_ identifier: WebCore.RenderingResourceIdentifier, _ pattern: WebCore.PatternParameters) throws(InvalidMessage) -> CGRendererBrushSource {
         let tileImageBuffer = imageBuffer(identifier)
         try messageCheck { tileImageBuffer != nil }
-        let source = tileImageBuffer.flatMap { resources.imageBufferPatternBrush($0, pattern) }
-        try messageCheck { source != nil }
-        return source ?? CGRendererBrushSource()
+        return tileImageBuffer.map { CGRendererImageBufferPatternBrushSource($0, pattern) } ?? CGRendererBrushSource()
     }
 
     func setFillPatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {

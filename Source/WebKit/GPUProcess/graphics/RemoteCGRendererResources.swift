@@ -430,15 +430,6 @@ final class RemoteCGRendererResources {
         selfCopy = nil
     }
 
-    // The brush of a SetFillPatternImageBuffer or a SetStrokePatternImageBuffer: nil for the image buffer the receiver draws
-    // into, which is an invalid message.
-    func imageBufferPatternBrush(_ tileImageBuffer: WebCore.ImageBuffer, _ pattern: WebCore.PatternParameters) -> CGRendererBrushSource? {
-        if isSameImageBuffer(tileImageBuffer, targetImageBuffer) {
-            return nil
-        }
-        return CGRendererImageBufferPatternBrushSource(tileImageBuffer, pattern)
-    }
-
     // The allocator of the images of the filters that a RemoteCGRenderer applies (RemoteCGRendererFilters.swift): the
     // backend's shared resource cache's, as RemoteGraphicsContext's, or for a replay or a renderer without a backend, the
     // default one.
