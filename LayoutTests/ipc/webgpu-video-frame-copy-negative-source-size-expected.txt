@@ -1,0 +1,3 @@
+This test passes if RemoteQueue::CopyExternalImageFromVideoFrameToTexture() with a negative source size is an invalid message, which stops the stream that sent it.
+
+PASS

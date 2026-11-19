@@ -1,0 +1,3 @@
+This test passes if a WebGPU object created under an identifier that is already in use is dropped, and the object that has the identifier keeps it and keeps receiving its messages.
+
+PASS

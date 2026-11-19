@@ -40,7 +40,7 @@ final class RemoteXRView {
     // Adds this receiver of a view's messages to the registry that the link names.
     @_expose(!Cxx)
     static func add(_ link: WebGPURegistryLink) {
-        guard let objects = link.objects else {
+        guard let objects = link.objectsForNewEntry else {
             return
         }
         let receiver = RemoteXRView(link)

@@ -52,7 +52,7 @@ final class RemoteBuffer {
     // Adds the buffer, with this receiver of its messages, to the registry that the link names.
     @_expose(!Cxx)
     static func add(_ buffer: BufferReference, mappedAtCreation: Bool, _ link: WebGPURegistryLink) {
-        guard let objects = link.objects else {
+        guard let objects = link.objectsForNewEntry else {
             return
         }
         let receiver = RemoteBuffer(buffer, mappedAtCreation: mappedAtCreation, link)

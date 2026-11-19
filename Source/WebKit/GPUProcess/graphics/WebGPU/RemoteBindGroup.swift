@@ -41,7 +41,7 @@ final class RemoteBindGroup {
     // Adds the bind group, with this receiver of its messages, to the registry that the link names.
     @_expose(!Cxx)
     static func add(_ bindGroup: BindGroupReference, _ link: WebGPURegistryLink) {
-        guard let objects = link.objects else {
+        guard let objects = link.objectsForNewEntry else {
             return
         }
         let receiver = RemoteBindGroup(bindGroup, link)

@@ -42,7 +42,7 @@ final class RemoteXRBinding {
     // Adds the binding, with this receiver of its messages, to the registry that the link names.
     @_expose(!Cxx)
     static func add(_ binding: XRBindingReference, _ link: WebGPURegistryLink) {
-        guard let objects = link.objects else {
+        guard let objects = link.objectsForNewEntry else {
             return
         }
         let receiver = RemoteXRBinding(binding, link)
