@@ -496,6 +496,50 @@ enum IPCCoding {
             }
         }
 
+        /// WebCore::PathImpl, as the platform path or path stream that C++ decodes it into.
+        enum PathImpl: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCore.PathImpl {
+                guard let path = decoder.decodePathImpl() else {
+                    throw IPCDecodingError()
+                }
+                return path
+            }
+
+            static func encode(_ value: WebCore.PathImpl, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodePathImpl(value)
+            }
+        }
+
+        /// WebCore::ImageBufferFormat, which C++ checks the enums of as it decodes it.
+        enum ImageBufferFormat: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCore.ImageBufferFormat {
+                var format = WebCore.ImageBufferFormat()
+                guard decoder.decodeImageBufferFormat(&format) else {
+                    throw IPCDecodingError()
+                }
+                return format
+            }
+
+            static func encode(_ value: WebCore.ImageBufferFormat, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeImageBufferFormat(value)
+            }
+        }
+
+        /// WebCore::ImageBufferResourceLimits.
+        enum ImageBufferResourceLimits: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCore.ImageBufferResourceLimits {
+                var limits = WebCore.ImageBufferResourceLimits()
+                guard decoder.decodeImageBufferResourceLimits(&limits) else {
+                    throw IPCDecodingError()
+                }
+                return limits
+            }
+
+            static func encode(_ value: WebCore.ImageBufferResourceLimits, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeImageBufferResourceLimits(value)
+            }
+        }
+
         #if ENABLE_MEDIA_STREAM
         /// WebCore::MediaConstraints, as the WebCore::CaptureConstraints that holds them.
         enum MediaConstraints: IPCCoder {

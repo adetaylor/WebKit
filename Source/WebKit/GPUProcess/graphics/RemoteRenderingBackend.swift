@@ -203,11 +203,11 @@ extension WebKit.RemoteRenderingBackend {
             .takeRetainedValue()
     }
 
-    // Ends every receiver, which releases the references that they and the recorders' resources hold to this, empties the
-    // display lists and the caches, which the work queue fills, and stops the stream connection.
+    // Ends every receiver, which releases the references that they and the recorders' resources hold to this, and empties the
+    // display lists and the caches, which the work queue fills, once the owner has stopped the stream connection.
     @cxx
     @implementation
-    func workQueueUninitialize() {
+    func didStopReceiving() {
         let state = self.state
         for receiver in state.removeAllImageBuffers().values {
             receiver.stopReceivingMessages()
@@ -231,9 +231,6 @@ extension WebKit.RemoteRenderingBackend {
             imageBufferSet.stopListeningForIPC()
         }
         state.resources.releaseAllCachedResources()
-        let connection = streamConnection()
-        connection.stopReceivingMessages(.RemoteRenderingBackend, identifier().toUInt64())
-        connection.invalidate()
     }
 
     func addImageBuffer(
@@ -261,8 +258,8 @@ extension WebKit.RemoteRenderingBackend {
         return WebKit.RefPtrImageBuffer(receiver.imageBuffer)
     }
 
-    private func removeImageBuffer(_ identifier: WebCore.RenderingResourceIdentifier) -> Bool {
-        guard let receiver = state.removeImageBuffer(key: identifier.toUInt64()) else {
+    private func removeImageBuffer(key: UInt64) -> Bool {
+        guard let receiver = state.removeImageBuffer(key: key) else {
             return false
         }
         receiver.stopReceivingMessages()
@@ -304,10 +301,6 @@ extension WebKit.RemoteRenderingBackend {
     ) -> Bool {
         let cached = RemoteCGRendererImage(nativeImage: nativeImage, image: image, width: width, height: height, headroom: headroom)
         return state.resources.cacheNativeImage(cached, key: identifier.toUInt64(), replaces: replaces)
-    }
-
-    private func removeNativeImage(_ identifier: WebCore.RenderingResourceIdentifier) -> Bool {
-        state.resources.releaseNativeImage(key: identifier.toUInt64())
     }
 
     // A recorder of the RemoteCGRenderer messages to it, as RemoteGraphicsContext records them into a WebCore display list
@@ -391,18 +384,14 @@ extension WebKit.RemoteRenderingBackend {
         return true
     }
 
-    private func sinkSnapshotRecorder(
-        _ identifier: WebKit.RemoteSnapshotRecorderIdentifier,
-        _ frameIdentifier: WebCore.FrameIdentifier
-    ) -> Bool {
-        let key = identifier.toUInt64()
+    private func sinkSnapshotRecorder(key: UInt64, frameKey: UInt64) -> Bool {
         guard let snapshotRecorder = state.snapshotRecorders.removeValue(forKey: RemoteIdentifierKey(value: key)) else {
             return false
         }
         _ = tryStopReceivingMessages(.RemoteCGRenderer, key)
         let recorder = snapshotRecorder.recorder
         let recording = RemoteSnapshotFrameRecording(recording: recorder.takeRecording(), backend: self)
-        recorder.snapshot?.setFrame(frameIdentifier.toUInt64(), recording)
+        recorder.snapshot?.setFrame(frameKey, recording)
         return true
     }
 
@@ -627,12 +616,8 @@ extension WebKit.RemoteRenderingBackend {
         )
     }
 
-    @cxx
-    @implementation
-    func releaseImageBuffer(_ identifier: WebCore.RenderingResourceIdentifier) {
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("Missing ImageBuffer") { removeImageBuffer(identifier) }
-        }
+    func releaseImageBuffer(identifier: IPCTypes.RenderingResourceIdentifier) throws(InvalidMessage) {
+        try messageCheck("Missing ImageBuffer") { removeImageBuffer(key: identifier.rawValue) }
     }
 
     // The buffer, which nothing else may have, leaves its receiver.
@@ -643,22 +628,18 @@ extension WebKit.RemoteRenderingBackend {
         return imageBuffer
     }
 
-    @cxx
-    @implementation
     func sinkImageBufferIntoNativeImage(
-        _ identifier: WebCore.RenderingResourceIdentifier,
-        _ imageIdentifier: WebCore.RenderingResourceIdentifier
-    ) {
-        handleMessage { () throws(InvalidMessage) in
-            // Like releaseImageBuffer(), the buffer is gone after this. The web process does not release it again.
-            var imageBuffer = try takeUnsharedImageBuffer(identifier)
-            // The buffer may have failed to allocate.
-            let image = WebKit.RemoteRenderingBackend.sinkIntoNativeImage(&imageBuffer).get()
-                ?? WebKit.RemoteRenderingBackend.createPlaceholderNativeImage().get()
-            try messageCheck("NativeImage could not be created") { image != nil }
-            try messageCheck("NativeImage already exists") {
-                image.map { putNativeImageInCache($0, imageIdentifier, false) } ?? false
-            }
+        identifier: IPCTypes.RenderingResourceIdentifier,
+        imageIdentifier: IPCTypes.RenderingResourceIdentifier
+    ) throws(InvalidMessage) {
+        // Like releaseImageBuffer(), the buffer is gone after this. The web process does not release it again.
+        var imageBuffer = try takeUnsharedImageBuffer(WebCore.RenderingResourceIdentifier(identifier.rawValue))
+        // The buffer may have failed to allocate.
+        let image = WebKit.RemoteRenderingBackend.sinkIntoNativeImage(&imageBuffer).get()
+            ?? WebKit.RemoteRenderingBackend.createPlaceholderNativeImage().get()
+        try messageCheck("NativeImage could not be created") { image != nil }
+        try messageCheck("NativeImage already exists") {
+            image.map { putNativeImageInCache($0, WebCore.RenderingResourceIdentifier(imageIdentifier.rawValue), false) } ?? false
         }
     }
 
@@ -669,37 +650,36 @@ extension WebKit.RemoteRenderingBackend {
         return WebKit.RemoteRenderingBackend.sinkIntoNativeImage(&imageBuffer)
     }
 
-    @cxx
-    @implementation
     func moveToSerializedBuffer(
-        _ identifier: WebCore.RenderingResourceIdentifier,
-        _ serializedIdentifier: WebKit.RemoteSerializedImageBufferIdentifier
-    ) {
-        handleMessage { () throws(InvalidMessage) in
-            // This transfers ownership of the RemoteImageBuffer contents to the transfer heap.
-            var imageBuffer = try takeUnsharedImageBuffer(identifier)
-            try messageCheck("Duplicate SerializedImageBuffer") {
-                // Avoid leaking cross-RemoteRenderingBackend state through context by releasing the context.
-                WebKit.RemoteRenderingBackend.addSerializedImageBuffer(sharedResourceCache(), serializedIdentifier, &imageBuffer)
-            }
+        identifier: IPCTypes.RenderingResourceIdentifier,
+        serializedIdentifier: IPCTypes.RemoteSerializedImageBufferIdentifier
+    ) throws(InvalidMessage) {
+        // This transfers ownership of the RemoteImageBuffer contents to the transfer heap.
+        var imageBuffer = try takeUnsharedImageBuffer(WebCore.RenderingResourceIdentifier(identifier.rawValue))
+        let serializedIdentifier = WebKit.RemoteSerializedImageBufferIdentifier(serializedIdentifier.rawValue)
+        try messageCheck("Duplicate SerializedImageBuffer") {
+            // Avoid leaking cross-RemoteRenderingBackend state through context by releasing the context.
+            WebKit.RemoteRenderingBackend.addSerializedImageBuffer(sharedResourceCache(), serializedIdentifier, &imageBuffer)
         }
     }
 
-    @cxx
-    @implementation
     func moveToImageBuffer(
-        _ identifier: WebKit.RemoteSerializedImageBufferIdentifier,
-        _ imageBufferIdentifier: WebCore.RenderingResourceIdentifier,
-        _ contextIdentifier: WebKit.RemoteGraphicsContextIdentifier
-    ) {
-        handleMessage { () throws(InvalidMessage) in
-            let imageBuffer = sharedResourceCache().takeSerializedImageBuffer(identifier).get()
-            try messageCheck("Missing SerializedImageBuffer") { imageBuffer != nil }
-            guard let imageBuffer else {
-                return
-            }
-            imageBuffer.transferToNewContext(imageBufferCreationContext())
-            try messageCheck("Duplicate ImageBuffer") { addImageBuffer(imageBuffer, imageBufferIdentifier, contextIdentifier) }
+        identifier: IPCTypes.RemoteSerializedImageBufferIdentifier,
+        imageBufferIdentifier: IPCTypes.RenderingResourceIdentifier,
+        contextIdentifier: IPCTypes.RemoteGraphicsContextIdentifier
+    ) throws(InvalidMessage) {
+        let imageBuffer = sharedResourceCache().takeSerializedImageBuffer(WebKit.RemoteSerializedImageBufferIdentifier(identifier.rawValue)).get()
+        try messageCheck("Missing SerializedImageBuffer") { imageBuffer != nil }
+        guard let imageBuffer else {
+            return
+        }
+        imageBuffer.transferToNewContext(imageBufferCreationContext())
+        try messageCheck("Duplicate ImageBuffer") {
+            addImageBuffer(
+                imageBuffer,
+                WebCore.RenderingResourceIdentifier(imageBufferIdentifier.rawValue),
+                WebKit.RemoteGraphicsContextIdentifier(contextIdentifier.rawValue)
+            )
         }
     }
 
@@ -835,28 +815,16 @@ extension WebKit.RemoteRenderingBackend {
         }
     }
 
-    @cxx
-    @implementation
-    func releaseNativeImage(_ identifier: WebCore.RenderingResourceIdentifier) {
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("NativeImage released before being cached.") { removeNativeImage(identifier) }
-        }
+    func releaseNativeImage(identifier: IPCTypes.RenderingResourceIdentifier) throws(InvalidMessage) {
+        try messageCheck("NativeImage released before being cached.") { state.resources.releaseNativeImage(key: identifier.rawValue) }
     }
 
-    @cxx
-    @implementation
-    func cachePathImpl(_ path: WebKit.RefPathImpl, _ identifier: WebKit.RemotePathImplIdentifier) {
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("Path already cached.") { state.resources.cachePathImpl(path.get(), key: identifier.toUInt64()) }
-        }
+    func cachePathImpl(path: WebCore.PathImpl, identifier: IPCTypes.RemotePathImplIdentifier) throws(InvalidMessage) {
+        try messageCheck("Path already cached.") { state.resources.cachePathImpl(path, key: identifier.rawValue) }
     }
 
-    @cxx
-    @implementation
-    func releasePathImpl(_ identifier: WebKit.RemotePathImplIdentifier) {
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("Path released before being cached.") { state.resources.releasePathImpl(key: identifier.toUInt64()) }
-        }
+    func releasePathImpl(identifier: IPCTypes.RemotePathImplIdentifier) throws(InvalidMessage) {
+        try messageCheck("Path released before being cached.") { state.resources.releasePathImpl(key: identifier.rawValue) }
     }
 
     @cxx
@@ -907,12 +875,8 @@ extension WebKit.RemoteRenderingBackend {
         }
     }
 
-    @cxx
-    @implementation
-    func releaseFilter(_ identifier: WebCore.RenderingResourceIdentifier) {
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("Filter released before being cached.") { state.resources.releaseFilter(key: identifier.toUInt64()) }
-        }
+    func releaseFilter(identifier: IPCTypes.RenderingResourceIdentifier) throws(InvalidMessage) {
+        try messageCheck("Filter released before being cached.") { state.resources.releaseFilter(key: identifier.rawValue) }
     }
 
     @cxx
@@ -934,12 +898,8 @@ extension WebKit.RemoteRenderingBackend {
         }
     }
 
-    @cxx
-    @implementation
-    func releaseFont(_ identifier: WebCore.RenderingResourceIdentifier) {
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("Font released before being cached.") { state.resources.releaseFont(key: identifier.toUInt64()) }
-        }
+    func releaseFont(identifier: IPCTypes.RenderingResourceIdentifier) throws(InvalidMessage) {
+        try messageCheck("Font released before being cached.") { state.resources.releaseFont(key: identifier.rawValue) }
     }
 
     @cxx
@@ -956,48 +916,37 @@ extension WebKit.RemoteRenderingBackend {
         }
     }
 
-    @cxx
-    @implementation
-    func releaseFontCustomPlatformData(_ identifier: WebCore.RenderingResourceIdentifier) {
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("FontCustomPlatformData released before being cached.") {
-                state.resources.releaseFontCustomPlatformData(key: identifier.toUInt64())
-            }
-        }
+    func releaseFontCustomPlatformData(identifier: IPCTypes.RenderingResourceIdentifier) throws(InvalidMessage) {
+        try messageCheck("FontCustomPlatformData released before being cached.") { state.resources.releaseFontCustomPlatformData(key: identifier.rawValue) }
     }
 
-    @cxx
-    @implementation
     func releaseMemory() {
         state.resources.releaseMemoryCaches()
         state.displayLists.removeAll()
     }
 
-    @cxx
-    @implementation
-    func createImageBufferSet(_ identifier: WebKit.ImageBufferSetIdentifier, _ contextIdentifier: WebKit.RemoteGraphicsContextIdentifier) {
+    func createImageBufferSet(
+        identifier: IPCTypes.ImageBufferSetIdentifier,
+        contextIdentifier: IPCTypes.RemoteGraphicsContextIdentifier
+    ) throws(InvalidMessage) {
         let state = self.state
-        let key = RemoteIdentifierKey(value: identifier.toUInt64())
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("Duplicate ImageBufferSet") { state.imageBufferSets[key] == nil }
-            #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
-            let imageBufferSet = RemoteImageBufferSet.create(identifier: identifier, contextIdentifier: contextIdentifier, backend: self)
-            try messageCheck("Another receiver has the ImageBufferSet's identifier") { imageBufferSet != nil }
-            state.imageBufferSets[key] = imageBufferSet
-            #else
-            state.imageBufferSets[key] = WebKit.RemoteImageBufferSet.create(identifier, contextIdentifier, self).get()
-            #endif
-        }
+        let key = RemoteIdentifierKey(value: identifier.rawValue)
+        try messageCheck("Duplicate ImageBufferSet") { state.imageBufferSets[key] == nil }
+        let identifier = WebKit.ImageBufferSetIdentifier(identifier.rawValue)
+        let contextIdentifier = WebKit.RemoteGraphicsContextIdentifier(contextIdentifier.rawValue)
+        #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
+        let imageBufferSet = RemoteImageBufferSet.create(identifier: identifier, contextIdentifier: contextIdentifier, backend: self)
+        try messageCheck("Another receiver has the ImageBufferSet's identifier") { imageBufferSet != nil }
+        state.imageBufferSets[key] = imageBufferSet
+        #else
+        state.imageBufferSets[key] = WebKit.RemoteImageBufferSet.create(identifier, contextIdentifier, self).get()
+        #endif
     }
 
-    @cxx
-    @implementation
-    func releaseImageBufferSet(_ identifier: WebKit.ImageBufferSetIdentifier) {
-        let imageBufferSet = state.imageBufferSets.removeValue(forKey: RemoteIdentifierKey(value: identifier.toUInt64()))
+    func releaseImageBufferSet(identifier: IPCTypes.ImageBufferSetIdentifier) throws(InvalidMessage) {
+        let imageBufferSet = state.imageBufferSets.removeValue(forKey: RemoteIdentifierKey(value: identifier.rawValue))
         imageBufferSet?.stopListeningForIPC()
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("Missing ImageBufferSet") { imageBufferSet != nil }
-        }
+        try messageCheck("Missing ImageBufferSet") { imageBufferSet != nil }
     }
 
     #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
@@ -1157,29 +1106,20 @@ extension WebKit.RemoteRenderingBackend {
         }
     }
 
-    @cxx
-    @implementation
     func sinkSnapshotRecorderIntoSnapshotFrame(
-        _ identifier: WebKit.RemoteSnapshotRecorderIdentifier,
-        _ frameIdentifier: WebCore.FrameIdentifier,
-        _ completionHandler: WebKit.SinkSnapshotRecorderIntoSnapshotFrameCompletionHandler?
-    ) {
+        identifier: IPCTypes.RemoteSnapshotRecorderIdentifier,
+        frameIdentifer frameIdentifier: IPCTypes.FrameIdentifier,
+        reply: consuming RemoteRenderingBackendSinkSnapshotRecorderIntoSnapshotFrameReply
+    ) throws(InvalidMessage) {
         // FIXME: using global identifiers (frameIdentifier) is not secure. Do not follow this pattern.
-        handleMessage { () throws(InvalidMessage) in
-            try messageCheck("Recorder sunk into snapshot before being cached") { sinkSnapshotRecorder(identifier, frameIdentifier) }
-            if let completionHandler {
-                completionHandler.pointee(true)
-            }
+        try messageCheck("Recorder sunk into snapshot before being cached") {
+            sinkSnapshotRecorder(key: identifier.rawValue, frameKey: frameIdentifier.rawValue)
         }
+        reply.send(true)
     }
 
-    @cxx
-    @implementation
-    func getImageBufferResourceLimitsForTesting(_ completionHandler: WebKit.GetImageBufferResourceLimitsForTestingCompletionHandler?) {
-        let limits = sharedResourceCache().getResourceLimitsForTesting(acceleratedImageBufferLimit())
-        if let completionHandler {
-            completionHandler.pointee(limits)
-        }
+    func getImageBufferResourceLimitsForTesting(reply: consuming RemoteRenderingBackendGetImageBufferResourceLimitsForTestingReply) {
+        reply.send(sharedResourceCache().getResourceLimitsForTesting(acceleratedImageBufferLimit()))
     }
 }
 

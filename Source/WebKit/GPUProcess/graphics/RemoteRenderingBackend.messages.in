@@ -31,32 +31,32 @@
 messages -> RemoteRenderingBackend Stream {
     CreateImageBuffer(WebCore::FloatSize logicalSize, WebCore::RenderingMode renderingMode, WebCore::RenderingPurpose renderingPurpose, float resolutionScale, WebCore::ColorSpace colorSpace, struct WebCore::ImageBufferFormat bufferFormat, WebCore::RenderingResourceIdentifier identifier, WebKit::RemoteGraphicsContextIdentifier contextIdentifier)
     CreateMappableImageBuffer(WebCore::FloatSize logicalSize, WebCore::RenderingMode renderingMode, WebCore::RenderingPurpose renderingPurpose, float resolutionScale, WebCore::ColorSpace colorSpace, struct WebCore::ImageBufferFormat bufferFormat, WebKit::ImageBufferBackendHandle backingStore, WebCore::RenderingResourceIdentifier identifier, WebKit::RemoteGraphicsContextIdentifier contextIdentifier) NotStreamEncodable
-    ReleaseImageBuffer(WebCore::RenderingResourceIdentifier identifier)
-    SinkImageBufferIntoNativeImage(WebCore::RenderingResourceIdentifier identifier, WebCore::RenderingResourceIdentifier imageIdentifier)
+    ReleaseImageBuffer(WebCore::RenderingResourceIdentifier identifier) SwiftTypes
+    SinkImageBufferIntoNativeImage(WebCore::RenderingResourceIdentifier identifier, WebCore::RenderingResourceIdentifier imageIdentifier) SwiftTypes
     CreateDisplayListRecorder(WebKit::RemoteDisplayListRecorderIdentifier identifier)
     SinkDisplayListRecorderIntoDisplayList(WebKit::RemoteDisplayListRecorderIdentifier identifier, WebKit::RemoteDisplayListIdentifier displayListIdentifier)
     ReleaseDisplayList(WebKit::RemoteDisplayListIdentifier identifier) StreamBatched
-    GetImageBufferResourceLimitsForTesting() -> (struct WebCore::ImageBufferResourceLimits limits) Async
+    GetImageBufferResourceLimitsForTesting() -> (struct WebCore::ImageBufferResourceLimits limits) Async SwiftTypes
     DestroyGetPixelBufferSharedMemory()
     NativeImageBitmap(WebCore::RenderingResourceIdentifier identifier) -> (std::optional<WebCore::ShareableBitmapHandle> handle) Synchronous NotStreamEncodableReply
     CacheNativeImage(WebCore::ShareableBitmapHandle handle, WebCore::RenderingResourceIdentifier renderingResourceIdentifier) NotStreamEncodable
     CacheNativeImageFromSharedNativeImage(WebKit::RemoteNativeImageReadReference nativeImageReference)
-    ReleaseNativeImage(WebCore::RenderingResourceIdentifier identifier)
-    CachePathImpl(Ref<WebCore::PathImpl> path, WebKit::RemotePathImplIdentifier identifier)
-    ReleasePathImpl(WebKit::RemotePathImplIdentifier identifier)
+    ReleaseNativeImage(WebCore::RenderingResourceIdentifier identifier) SwiftTypes
+    CachePathImpl(Ref<WebCore::PathImpl> path, WebKit::RemotePathImplIdentifier identifier) SwiftTypes
+    ReleasePathImpl(WebKit::RemotePathImplIdentifier identifier) SwiftTypes
     CacheFont(struct WebCore::FontInternalAttributes data, struct WebCore::FontPlatformDataAttributes platformData, std::optional<WebCore::RenderingResourceIdentifier> renderingResourceIdentifier) NotStreamEncodable
-    ReleaseFont(WebCore::RenderingResourceIdentifier identifier)
+    ReleaseFont(WebCore::RenderingResourceIdentifier identifier) SwiftTypes
     CacheFontCustomPlatformData(struct WebCore::FontCustomPlatformSerializedData fontCustomPlatformData) NotStreamEncodable
-    ReleaseFontCustomPlatformData(WebCore::RenderingResourceIdentifier identifier)
+    ReleaseFontCustomPlatformData(WebCore::RenderingResourceIdentifier identifier) SwiftTypes
     CacheGradient(Ref<const WebCore::Gradient> gradient, WebKit::RemoteGradientIdentifier identifier)
     ReleaseGradient(WebKit::RemoteGradientIdentifier identifier)
     CacheMeshGradient(Ref<WebCore::MeshGradient> gradient, WebKit::RemoteMeshGradientIdentifier identifier)
     ReleaseMeshGradient(WebKit::RemoteMeshGradientIdentifier identifier)
     CacheFilter(Ref<WebCore::Filter> filter) NotStreamEncodable
-    ReleaseFilter(WebCore::RenderingResourceIdentifier identifier)
-    ReleaseMemory()
-    CreateImageBufferSet(WebKit::ImageBufferSetIdentifier identifier, WebKit::RemoteGraphicsContextIdentifier contextIdentifier)
-    ReleaseImageBufferSet(WebKit::ImageBufferSetIdentifier identifier)
+    ReleaseFilter(WebCore::RenderingResourceIdentifier identifier) SwiftTypes
+    ReleaseMemory() SwiftTypes
+    CreateImageBufferSet(WebKit::ImageBufferSetIdentifier identifier, WebKit::RemoteGraphicsContextIdentifier contextIdentifier) SwiftTypes
+    ReleaseImageBufferSet(WebKit::ImageBufferSetIdentifier identifier) SwiftTypes
 
 #if PLATFORM(COCOA)
     PrepareImageBufferSetsForDisplay(Vector<WebKit::ImageBufferSetPrepareBufferForDisplayInputData> swapBuffersInput)
@@ -70,15 +70,15 @@ messages -> RemoteRenderingBackend Stream {
     Flush(IPC::Semaphore semaphore) NotStreamEncodable
 #endif
 
-    MoveToSerializedBuffer(WebCore::RenderingResourceIdentifier identifier, WebKit::RemoteSerializedImageBufferIdentifier serializedIdentifier)
-    MoveToImageBuffer(WebKit::RemoteSerializedImageBufferIdentifier identifier, WebCore::RenderingResourceIdentifier imageBufferIdentifier, WebKit::RemoteGraphicsContextIdentifier contextIdentifier)
+    MoveToSerializedBuffer(WebCore::RenderingResourceIdentifier identifier, WebKit::RemoteSerializedImageBufferIdentifier serializedIdentifier) SwiftTypes
+    MoveToImageBuffer(WebKit::RemoteSerializedImageBufferIdentifier identifier, WebCore::RenderingResourceIdentifier imageBufferIdentifier, WebKit::RemoteGraphicsContextIdentifier contextIdentifier) SwiftTypes
 
     MoveSerializedBufferToTransferHeap(WebKit::RemoteSerializedImageBufferIdentifier serializedIdentifier) -> (std::optional<WebCore::ImageBufferTransferIdentifier> transferIdentifier) Synchronous
     TakeTransferredBuffer(struct WebCore::ImageBufferTransferHandle handle, WebCore::RenderingResourceIdentifier imageBufferIdentifier, WebKit::RemoteGraphicsContextIdentifier contextIdentifier)
 
     CreateSnapshot(WebKit::RemoteSnapshotIdentifier snapshotIdentifier, WebCore::FrameIdentifier rootFrameIdentifier, WebCore::FloatSize size) -> () Synchronous
     CreateSnapshotRecorder(WebKit::RemoteSnapshotRecorderIdentifier identifier, WebKit::RemoteSnapshotIdentifier snapshotIdentifier)
-    SinkSnapshotRecorderIntoSnapshotFrame(WebKit::RemoteSnapshotRecorderIdentifier identifier, WebCore::FrameIdentifier frameIdentifer) -> (bool success)
+    SinkSnapshotRecorderIntoSnapshotFrame(WebKit::RemoteSnapshotRecorderIdentifier identifier, WebCore::FrameIdentifier frameIdentifer) -> (bool success) SwiftTypes
 
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     [EnabledBy=ShapeDetection] CreateBarcodeDetector(WebKit::ShapeDetectionIdentifier identifier, WebCore::ShapeDetection::BarcodeDetectorOptions barcodeDetectorOptions) AllowedWhenWaitingForSyncReply SwiftTypes

@@ -60,6 +60,9 @@ typedef struct CGColorSpace* CGColorSpaceRef;
 
 namespace WebCore {
 class CaptureConstraints;
+struct ImageBufferResourceLimits;
+struct ImageBufferFormat;
+class PathImpl;
 }
 
 namespace IPC {
@@ -285,6 +288,9 @@ public:
     // it is malformed.
     WebCore::SharedBuffer* WTF_NULLABLE decodeSharedBuffer() SWIFT_RETURNS_RETAINED;
     WebCore::VideoInfo* WTF_NULLABLE decodeVideoInfo() SWIFT_RETURNS_RETAINED;
+    WebCore::PathImpl* WTF_NULLABLE decodePathImpl() SWIFT_RETURNS_RETAINED;
+    [[nodiscard]] bool decodeImageBufferFormat(WebCore::ImageBufferFormat&);
+    [[nodiscard]] bool decodeImageBufferResourceLimits(WebCore::ImageBufferResourceLimits&);
 #if ENABLE(MEDIA_STREAM)
     // A WebCore::MediaConstraints, as the WebCore::CaptureConstraints that Swift reads it through. Sending: the holder is
     // new, and Swift has its only reference, so dispatch can send it to a handler on the main actor.
@@ -599,6 +605,9 @@ public:
     // Encodes a C++-decoded value with its own ArgumentCoder.
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
     void encodeVideoInfo(const WebCore::VideoInfo&);
+    void encodePathImpl(const WebCore::PathImpl&);
+    void encodeImageBufferFormat(const WebCore::ImageBufferFormat&);
+    void encodeImageBufferResourceLimits(const WebCore::ImageBufferResourceLimits&);
 #if ENABLE(MEDIA_STREAM)
     void encodeCaptureConstraints(const WebCore::CaptureConstraints&);
 #endif
