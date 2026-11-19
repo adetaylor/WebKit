@@ -607,7 +607,16 @@ list(APPEND WebKit_SOURCES
 
     ${WEBKIT_DIR}/UIProcess/mac/_WKCaptionStyleMenuControllerAVKitMac.mm
     ${WEBKIT_DIR}/UIProcess/mac/_WKCaptionStyleMenuControllerMac.mm
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Arbitration.swift
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Clicks.swift
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Drag.swift
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+ImageAnalysis.swift
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+PositionInformation.swift
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Scrolling.swift
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Tracking.swift
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Transform.swift
     ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController.swift
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureControllerSupport.swift
     ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKDOMDoubleClickGestureRecognizer.swift
     ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKDirectionalScrollLockTracker.swift
     ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKFastScrollTracker.swift
