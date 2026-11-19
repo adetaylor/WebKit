@@ -1301,6 +1301,7 @@ list(APPEND TestIPC_SOURCES
     Helpers/cocoa/UtilitiesCocoa.mm
 
     Tests/IPC/IPCSerialization.mm
+    Tests/IPC/SwiftCodingEdgeCaseTests.cpp
     Tests/IPC/TransferStringObjCTests.mm
 )
 
