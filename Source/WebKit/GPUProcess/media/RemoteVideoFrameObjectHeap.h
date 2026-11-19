@@ -77,12 +77,12 @@ public:
     void add(RemoteVideoFrameReference reference, Ref<WebCore::VideoFrame>&& frame)
     {
 #if PLATFORM(COCOA)
-        swiftAdd(reference.identifier().toUInt64(), frame->pixelBuffer(), static_cast<uint16_t>(frame->rotation()), frame->isMirrored());
+        swiftAdd(reference.identifier().toUInt64(), reference.version(), frame->pixelBuffer(), static_cast<uint16_t>(frame->rotation()), frame->isMirrored());
 #else
 #if ASSERT_ENABLED
         frame->markAsPublished();
 #endif
-        swiftAdd(reference.identifier().toUInt64(), frame.ptr());
+        swiftAdd(reference.identifier().toUInt64(), reference.version(), frame.ptr());
 #endif
     }
 
@@ -112,9 +112,9 @@ private:
     // The forwarder of the heap's messages to the Swift state, which the connection keeps while it is registered.
     Ref<RemoteVideoFrameObjectHeapMessageForwarder> createMessageForwarder();
 #if PLATFORM(COCOA)
-    void swiftAdd(uint64_t identifier, CVPixelBufferRef WTF_NULLABLE, uint16_t rotation, bool isMirrored);
+    void swiftAdd(uint64_t identifier, uint64_t version, CVPixelBufferRef WTF_NULLABLE, uint16_t rotation, bool isMirrored);
 #else
-    void swiftAdd(uint64_t identifier, WebCore::VideoFrame* WTF_NONNULL);
+    void swiftAdd(uint64_t identifier, uint64_t version, WebCore::VideoFrame* WTF_NONNULL);
 #endif
 
     const Ref<IPC::Connection> m_connection;

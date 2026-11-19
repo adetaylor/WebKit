@@ -416,16 +416,16 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     #if WTF_PLATFORM_COCOA
     @cxx
     @implementation
-    func swiftAdd(_ identifier: UInt64, _ pixelBuffer: CVPixelBuffer?, _ rotation: UInt16, _ isMirrored: Bool) {
+    func swiftAdd(_ identifier: UInt64, _ version: UInt64, _ pixelBuffer: CVPixelBuffer?, _ rotation: UInt16, _ isMirrored: Bool) {
         let frame = HeapFrame(pixelBuffer: pixelBuffer, rotation: rotation, isMirrored: isMirrored)
-        state.add(VideoFrameReference(identifier: identifier, version: 0), frame)
+        state.add(VideoFrameReference(identifier: identifier, version: version), frame)
     }
 
     #else
     @cxx
     @implementation
-    func swiftAdd(_ identifier: UInt64, _ frame: WebCore.VideoFrame) {
-        state.add(VideoFrameReference(identifier: identifier, version: 0), HeapFrame(frame: frame))
+    func swiftAdd(_ identifier: UInt64, _ version: UInt64, _ frame: WebCore.VideoFrame) {
+        state.add(VideoFrameReference(identifier: identifier, version: version), HeapFrame(frame: frame))
     }
     #endif
 
