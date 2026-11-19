@@ -78,6 +78,7 @@ _test_receiver_names = [
     'TestWithSwiftImplementation',
     'TestWithSwiftImplementationAndSuperclass',
     'TestWithSwiftImplementationAndWantsDispatch',
+    'TestWithSwiftTarget',
     'TestWithSwiftTypes',
     'TestWithSwiftTypesOptIn',
     'TestWithSwiftWorkQueue',

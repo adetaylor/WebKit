@@ -76,19 +76,20 @@ enum class ReceiverName : uint8_t {
     , TestWithSwiftImplementation = 32
     , TestWithSwiftImplementationAndSuperclass = 33
     , TestWithSwiftImplementationAndWantsDispatch = 34
-    , TestWithSwiftTypes = 35
-    , TestWithSwiftTypesOptIn = 36
-    , TestWithSwiftWorkQueue = 37
-    , TestWithValidator = 38
-    , TestWithWantsAsyncDispatch = 39
-    , TestWithWantsDispatch = 40
-    , TestWithWantsDispatchNoSyncMessages = 41
-    , TestWithWorkQueueSwiftImplementation = 42
-    , TestWithWorkQueueSwiftState = 43
-    , TestWithoutAttributes = 44
-    , TestWithoutUsingIPCConnection = 45
-    , IPC = 46
-    , Invalid = 47
+    , TestWithSwiftTarget = 35
+    , TestWithSwiftTypes = 36
+    , TestWithSwiftTypesOptIn = 37
+    , TestWithSwiftWorkQueue = 38
+    , TestWithValidator = 39
+    , TestWithWantsAsyncDispatch = 40
+    , TestWithWantsDispatch = 41
+    , TestWithWantsDispatchNoSyncMessages = 42
+    , TestWithWorkQueueSwiftImplementation = 43
+    , TestWithWorkQueueSwiftState = 44
+    , TestWithoutAttributes = 45
+    , TestWithoutUsingIPCConnection = 46
+    , IPC = 47
+    , Invalid = 48
 };
 
 enum class MessageName : uint16_t {
@@ -235,6 +236,7 @@ enum class MessageName : uint16_t {
     TestWithSwiftImplementation_SendDirect,
     TestWithSwiftImplementation_SendString,
     TestWithSwiftImplementation_SendStringAsyncReply,
+    TestWithSwiftTarget_SendString,
     TestWithSwiftTypesOptIn_CxxTypedMessageReply,
     TestWithSwiftTypesOptIn_SwiftTypedMessageReply,
     TestWithSwiftTypesOptIn_SwiftTypedMessageWithoutReply,
@@ -437,6 +439,7 @@ enum class MessageName : uint16_t {
     TestWithSwiftImplementationAndWantsDispatch_SendStringSync,
     TestWithSwiftImplementationAndWantsDispatch_TestSyncMessage,
     TestWithSwiftImplementation_SendStringSync,
+    TestWithSwiftTarget_SendStringSync,
     TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage,
     TestWithSwiftTypesOptIn_SwiftTypedSynchronousMessage,
     TestWithSwiftTypes_SynchronousMessage,

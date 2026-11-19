@@ -3246,6 +3246,8 @@ def generate_swift_message_handler(receiver):
     message_forwarder_class = class_name + 'MessageForwarder'
     ref_message_forwarder_class = 'Ref' + message_forwarder_class
     weak_ref_class = class_name + 'WeakRef'
+    if not implementation and receiver.swift_target:
+        class_name = receiver.swift_target
 
     if receiver.condition:
         result.append('#if %s\n' % swift_receiver_condition(receiver))
@@ -3273,8 +3275,8 @@ def generate_swift_message_handler(receiver):
         else:
             result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
             result.append('    private weak var target: %s?\n' % (class_name))
-        if receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE):
-            # Only Swift makes it, and the C++ header can't take an actor.
+        if receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE) or receiver.swift_target:
+            # Only Swift makes it, and the C++ header can't take an actor, or a target that a C++ class's name hides.
             result.append('    @_expose(!Cxx)\n')
         result.append('    init(target: %s) {\n' % (class_name))
         result.append('        self.target = target\n')

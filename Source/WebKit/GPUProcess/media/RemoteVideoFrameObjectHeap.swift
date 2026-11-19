@@ -40,7 +40,7 @@ private var releaseLog: os.Logger {
     os.Logger(WTF.osLog(WebKit.LogChannel.WebRTC()))
 }
 
-private typealias ProxyProcessorMessages = WebKit.RemoteVideoFrameObjectHeap.RemoteVideoFrameObjectHeapProxyProcessorMessages
+private typealias ProxyProcessorMessages = VideoFrameHeap.RemoteVideoFrameObjectHeapProxyProcessorMessages
 
 // What converts the frames the web process reads back: their rotation, and their conversion to 32-bit BGRA.
 private struct ConversionSessions {
@@ -154,13 +154,15 @@ private struct VideoFrameTable {
 }
 
 // The frames of a RemoteVideoFrameObjectHeap, for any thread, which its Swift readers and producers use directly, and the
-// handler of its message that releases one.
+// target of its messages, which its generated forwarder dispatches on the heap's work queue.
 final class VideoFrameHeap: Sendable {
     fileprivate let frames = Mutex(VideoFrameTable())
+    // Whether the heap has stopped its messages, on the main thread.
+    fileprivate let isClosed = Atomic<Bool>(false)
     #if WTF_PLATFORM_COCOA
     // The heap queue's reader of the frames the web process shares, and the writer of the frames it reads back, which
     // removeAll() disables on any thread.
-    private let frameSource = Mutex(SharedVideoFrameSource(heap: nil, resourceOwner: WebCore.ProcessIdentity(), hasResourceOwner: false, useIOSurfaceBufferPool: false))
+    private let frameSource = Mutex(SharedVideoFrameSource())
     private let writer: WebKit.SharedVideoFrameWriterForSwift = WebKit.SharedVideoFrameWriterForSwift.create()
     // What the writer hands the semaphore and memory it makes to, made once for the heap's connection.
     private let writerCallbacks = Mutex<WriterCallbacks?>(nil)
@@ -378,8 +380,7 @@ private final class WriterCallbacks: @unchecked Sendable {
 #endif
 
 // The members of the C++ heap (RemoteVideoFrameObjectHeap.h) that reach its Swift state, which m_swiftState holds
-// retained, by address, from the heap's constructor to its destructor, and the handlers of its messages that take Swift
-// types and the heap, on its work queue.
+// retained, by address, from the heap's constructor to its destructor.
 extension WebKit.RemoteVideoFrameObjectHeap {
     @cxx
     @implementation
@@ -390,7 +391,8 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     @cxx
     @implementation
     static func destroySwiftState(_ swiftState: UInt) {
-        _ = unsafe Unmanaged<VideoFrameHeap>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
+        let state = unsafe Unmanaged<VideoFrameHeap>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
+        assert(state.isClosed.load(ordering: .sequentiallyConsistent))
     }
 
     private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
@@ -414,22 +416,34 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     #if WTF_PLATFORM_COCOA
     @cxx
     @implementation
-    func swiftAdd(_ identifier: UInt64, _ pixelBuffer: CVPixelBuffer?, _ rotation: UInt16, _ isMirrored: Bool) {
+    func swiftAdd(_ identifier: UInt64, _ version: UInt64, _ pixelBuffer: CVPixelBuffer?, _ rotation: UInt16, _ isMirrored: Bool) {
         let frame = HeapFrame(pixelBuffer: pixelBuffer, rotation: rotation, isMirrored: isMirrored)
-        state.add(VideoFrameReference(identifier: identifier, version: 0), frame)
+        state.add(VideoFrameReference(identifier: identifier, version: version), frame)
     }
 
     #else
     @cxx
     @implementation
-    func swiftAdd(_ identifier: UInt64, _ frame: WebCore.VideoFrame) {
-        state.add(VideoFrameReference(identifier: identifier, version: 0), HeapFrame(frame: frame))
+    func swiftAdd(_ identifier: UInt64, _ version: UInt64, _ frame: WebCore.VideoFrame) {
+        state.add(VideoFrameReference(identifier: identifier, version: version), HeapFrame(frame: frame))
     }
     #endif
 
     @cxx
     @implementation
-    func swiftRemoveAll() {
+    func createMessageForwarder() -> RefRemoteVideoFrameObjectHeapMessageForwarder {
+        WebKit.RemoteVideoFrameObjectHeapMessageForwarder.create(target: state)
+    }
+
+    @cxx
+    @implementation
+    func close() {
+        assert(WTF.isMainThread())
+        let state = self.state
+        if state.isClosed.exchange(true, ordering: .sequentiallyConsistent) {
+            return
+        }
+        stopReceivingMessages()
         state.removeAll()
     }
 
