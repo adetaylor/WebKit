@@ -78,24 +78,15 @@ void RemoteSnapshotPDFDrawingTask::sendToPrintProcess(ProcessIdentifier printPro
 {
     RefPtr sink = m_sink;
     RefPtr connection = protect(GPUProcess::singleton())->webProcessConnection(printProcessIdentifier);
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     auto printData = connection ? sink->createPrintData() : std::nullopt;
     if (!printData) {
         fallback();
         return;
     }
+    printData->setOwnershipOfMemory(connection->webProcessIdentity());
     // The message refers to its arguments until it is sent.
     auto size = sink->size();
     auto message = Messages::GPUProcessConnection::DrawSnapshotPrintDataToPDF(WTF::move(*printData), size);
-#else
-    auto displayListData = connection ? sink->createDisplayListData() : std::nullopt;
-    if (!displayListData) {
-        fallback();
-        return;
-    }
-    displayListData->setOwnershipOfMemory(connection->webProcessIdentity());
-    auto message = Messages::GPUProcessConnection::DrawDisplayListToPDF(WTF::move(*displayListData), sink->size());
-#endif
 
     protect(connection->connection())->sendWithAsyncReply(WTF::move(message), [protectedThis = Ref { *this }](RefPtr<SharedBuffer>&& pdf) {
         if (pdf)

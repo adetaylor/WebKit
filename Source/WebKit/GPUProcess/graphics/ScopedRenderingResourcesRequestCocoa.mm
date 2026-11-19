@@ -33,36 +33,11 @@
 #import <pal/spi/cocoa/MetalSPI.h>
 #import <wtf/BlockObjCExceptions.h>
 #import <wtf/RetainPtr.h>
-#import <wtf/RunLoop.h>
-#import <wtf/Seconds.h>
 
 OBJC_PROTOCOL(MTLDevice);
 OBJC_PROTOCOL(MTLDeviceSPI);
 
 namespace WebKit {
-
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-
-static constexpr Seconds freeRenderingResourcesTimeout = 1_s;
-static bool didScheduleFreeRenderingResources;
-
-void ScopedRenderingResourcesRequest::scheduleFreeRenderingResources()
-{
-    if (didScheduleFreeRenderingResources)
-        return;
-    RunLoop::mainSingleton().dispatchAfter(freeRenderingResourcesTimeout, freeRenderingResources);
-    didScheduleFreeRenderingResources = true;
-}
-
-void ScopedRenderingResourcesRequest::freeRenderingResources()
-{
-    didScheduleFreeRenderingResources = false;
-    if (s_requests)
-        return;
-    purgeDevices();
-}
-
-#endif
 
 void ScopedRenderingResourcesRequest::purgeDevices()
 {

@@ -93,16 +93,6 @@ class SecurityOriginData;
 
 namespace WebKit {
 
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-// Whether the web process has a remote command listener, the commands it supports, as a mask of 1 << command type, and
-// whether it supports seeking.
-struct RemoteCommandListenerState {
-    bool hasListener { false };
-    uint32_t commands { 0 };
-    bool supportsSeeking { false };
-};
-#endif
-
 #if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
 // The output unit of an audio destination that iOS's spatial experience is set on, 0 if there's no such destination, and
 // whether its web process preferred a spatial experience when it made it.
@@ -115,14 +105,12 @@ struct RemoteAudioDestinationSpatialTarget {
 class GPUProcess;
 class LayerHostingContext;
 class LibWebRTCCodecsProxyMessageForwarder;
-class RemoteAudioHardwareListenerProxy;
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 using RefPtrCDMInstance = RefPtr<WebCore::CDMInstance>;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 using RefPtrLegacyCDMSessionClientSwiftAdapter = RefPtr<WebCore::LegacyCDMSessionClientSwiftAdapter>;
 #endif
-class RemoteMediaEngineConfigurationFactoryProxy;
 class RemoteMediaSessionHelperProxy;
 class RemoteRenderingBackend;
 class RemoteSampleBufferDisplayLayerManagerMessageForwarder;
@@ -201,13 +189,7 @@ public:
     SWIFT_MAIN_ACTOR void swiftDidRemoveFromGPUProcess();
     // Implemented in Swift: whether the page owns Now Playing; the session that gets the remote commands, 0 for none;
     // this connection's process closed while its connection was the NowPlayingManager's client.
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    SWIFT_MAIN_ACTOR bool swiftIsActiveNowPlayingPage(uint64_t pageIdentifier) const;
-#endif
     SWIFT_MAIN_ACTOR uint64_t swiftRemoteCommandTargetSession() const;
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    SWIFT_MAIN_ACTOR RemoteCommandListenerState swiftRemoteCommandListenerState() const;
-#endif
     SWIFT_MAIN_ACTOR void swiftNowPlayingClientDidClose();
 
     // For IPC::registerSwiftReceiver(): routes the web process's messages for the receiver name and destination, 0 for
@@ -263,9 +245,6 @@ public:
 #endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     SWIFT_MAIN_ACTOR void startCapturingAudio();
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    void processIsStartingToCaptureAudio(GPUConnectionToWebProcess&);
-#endif
 #endif
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
@@ -280,9 +259,6 @@ public:
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     // Implemented in Swift: a legacy CDM session, for the media players.
     SWIFT_MAIN_ACTOR RefPtrLegacyCDMSessionClientSwiftAdapter legacyCDMSession(uint64_t identifier) const;
-#endif
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-    RemoteMediaEngineConfigurationFactoryProxy& mediaEngineConfigurationFactoryProxy();
 #endif
 #if ENABLE(VIDEO)
     RemoteMediaPlayerManagerProxy& remoteMediaPlayerManagerProxy() { return m_remoteMediaPlayerManagerProxy.get(); }
@@ -370,17 +346,8 @@ private:
 #else
     SWIFT_MAIN_ACTOR void swiftAddRenderingBackend(uint64_t identifier, RemoteRenderingBackend&);
 #endif
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    // Whether the state had it.
-    SWIFT_MAIN_ACTOR bool swiftReleaseRenderingBackend(uint64_t identifier);
-#endif
 #if ENABLE(WEBGL)
     SWIFT_MAIN_ACTOR void swiftAddGraphicsContextGL(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, WebCore::GraphicsContextGLAttributes);
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    SWIFT_MAIN_ACTOR bool swiftHasGraphicsContextGL(uint64_t identifier);
-    // Whether none is left.
-    SWIFT_MAIN_ACTOR bool swiftReleaseGraphicsContextGL(uint64_t identifier);
-#endif
 #if !PLATFORM(COCOA)
     void createGraphicsContextGLResources(WebCore::GraphicsContextGLAttributes, uint64_t identifier, RemoteRenderingBackend&, IPC::SwiftReceiverOwner&);
 #endif
@@ -390,11 +357,6 @@ private:
     SWIFT_MAIN_ACTOR void swiftAddGPU(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, MachSendRight webProcessResourceOwner, RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity webProcessIdentity, bool hasWebProcessIdentity);
 #else
     SWIFT_MAIN_ACTOR void swiftAddGPU(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, MachSendRight webProcessResourceOwner);
-#endif
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    SWIFT_MAIN_ACTOR bool swiftHasGPU(uint64_t identifier);
-    // Whether none is left.
-    SWIFT_MAIN_ACTOR bool swiftReleaseGPU(uint64_t identifier);
 #endif
 #if ENABLE(GPU_PROCESS_MODEL)
     void createGPUModel(RemoteRenderingBackend&, IPC::SwiftReceiverOwner&, uint64_t identifier);
@@ -437,13 +399,6 @@ private:
 
     // Implemented in Swift: for the track renderer units, whether this connection's process is the one that most recently
     // started capturing audio, and the audio session's interruptions.
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    SWIFT_MAIN_ACTOR void swiftLastToCaptureAudioChanged(bool isLastToCaptureAudio);
-#endif
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    SWIFT_MAIN_ACTOR void swiftBeginAudioSessionInterruption();
-    SWIFT_MAIN_ACTOR void swiftEndAudioSessionInterruption();
-#endif
 
     void setLastAudioMediaStreamTrackRendererDeviceUsed(const String& deviceID);
 #endif
@@ -556,10 +511,6 @@ private:
 #endif
     PAL::SessionID m_sessionID;
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    class AudioSessionInterruptionForwarder;
-    const RefPtr<AudioSessionInterruptionForwarder> m_audioSessionInterruptionForwarder;
-#endif
 
     RefPtr<RemoteSampleBufferDisplayLayerManagerMessageForwarder> m_sampleBufferDisplayLayerManager;
     RefPtr<RemoteSampleBufferDisplayLayerMessageForwarder> m_sampleBufferDisplayLayers;
@@ -584,17 +535,9 @@ private:
 #if PLATFORM(IOS_FAMILY)
     const RefPtr<RemoteMediaSessionHelperProxy> m_mediaSessionHelperProxy;
 #endif
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-    const std::unique_ptr<RemoteMediaEngineConfigurationFactoryProxy> m_mediaEngineConfigurationFactoryProxy;
-#endif
 
 #if HAVE(VISIBILITY_PROPAGATION_VIEW)
     HashMap<std::pair<WebPageProxyIdentifier, WebCore::PageIdentifier>, std::unique_ptr<LayerHostingContext>> m_visibilityPropagationContexts;
-#endif
-
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-    using RemoteAudioHardwareListenerMap = HashMap<RemoteAudioHardwareListenerIdentifier, Ref<RemoteAudioHardwareListenerProxy>>;
-    RemoteAudioHardwareListenerMap m_remoteAudioHardwareListenerMap;
 #endif
 
 #if USE(GRAPHICS_LAYER_WC)
@@ -602,16 +545,8 @@ private:
     RemoteWCLayerTreeHostMap m_remoteWCLayerTreeHostMap;
 #endif
 
-#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    HashMap<WebCore::PageIdentifier, WebCore::NowPlayingInfo> m_nowPlayingInfos;
-#endif
     bool m_isNowPlayingManagerClient { false };
     const bool m_isLockdownModeEnabled { false };
-
-#if ENABLE(EXTENSION_CAPABILITIES) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
-    HashMap<WebCore::PageIdentifier, String> m_mediaPlaybackEnvironments;
-    HashMap<WebCore::PageIdentifier, String> m_displayCaptureEnvironments;
-#endif
 
 #if ENABLE(IPC_TESTING_API)
     const Ref<IPCTester> m_ipcTester;

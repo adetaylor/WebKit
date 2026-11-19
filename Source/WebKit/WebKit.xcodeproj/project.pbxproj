@@ -5470,11 +5470,9 @@
 		2D9EA30E1A96CBFF002D2807 /* WebPageInjectedBundleClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebPageInjectedBundleClient.h; sourceTree = "<group>"; };
 		2D9EA3101A96D9EB002D2807 /* WebPageInjectedBundleClient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebPageInjectedBundleClient.cpp; sourceTree = "<group>"; };
 		2D9FB2002375209D0049F936 /* GPUConnectionToWebProcess.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUConnectionToWebProcess.h; sourceTree = "<group>"; };
-		2D9FB2012375209D0049F936 /* GPUProcess.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GPUProcess.cpp; sourceTree = "<group>"; };
 		2D9FB2022375209D0049F936 /* GPUProcess.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = GPUProcess.messages.in; sourceTree = "<group>"; };
 		2D9FB2032375209D0049F936 /* GPUProcessCreationParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUProcessCreationParameters.h; sourceTree = "<group>"; };
 		2D9FB2052375209D0049F936 /* GPUProcessIOS.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GPUProcessIOS.mm; sourceTree = "<group>"; };
-		2D9FB2072375209D0049F936 /* GPUProcessMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GPUProcessMac.mm; sourceTree = "<group>"; };
 		2D9FB2082375209D0049F936 /* com.apple.WebKit.GPUProcess.sb.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = com.apple.WebKit.GPUProcess.sb.in; sourceTree = "<group>"; };
 		2D9FB2092375209D0049F936 /* GPUConnectionToWebProcess.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = GPUConnectionToWebProcess.messages.in; sourceTree = "<group>"; };
 		2D9FB20C2375209D0049F936 /* GPUConnectionToWebProcess.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GPUConnectionToWebProcess.cpp; sourceTree = "<group>"; };
@@ -8726,15 +8724,11 @@
 		CD20CE6F25CC90510069B542 /* RemoteAudioHardwareListener.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteAudioHardwareListener.cpp; sourceTree = "<group>"; };
 		CD20CE7125CC92E80069B542 /* RemoteAudioHardwareListener.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteAudioHardwareListener.messages.in; sourceTree = "<group>"; };
 		CD20CE7325CC96500069B542 /* RemoteAudioHardwareListenerIdentifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteAudioHardwareListenerIdentifier.h; sourceTree = "<group>"; };
-		CD20CE7425CC999F0069B542 /* RemoteAudioHardwareListenerProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteAudioHardwareListenerProxy.h; sourceTree = "<group>"; };
-		CD20CE7525CC999F0069B542 /* RemoteAudioHardwareListenerProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteAudioHardwareListenerProxy.cpp; sourceTree = "<group>"; };
 		CD20CE7725CD2B9D0069B542 /* RemoteAudioHardwareListenerMessageReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteAudioHardwareListenerMessageReceiver.cpp; sourceTree = "<group>"; };
 		CD20CE7925CD2B9E0069B542 /* RemoteAudioHardwareListenerMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteAudioHardwareListenerMessages.h; sourceTree = "<group>"; };
 		CD36C16C260A6EBE00C8C529 /* LocalAudioSessionRoutingArbitrator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalAudioSessionRoutingArbitrator.h; sourceTree = "<group>"; };
 		CD3EEF3125799618006563BB /* RemoteMediaEngineConfigurationFactory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteMediaEngineConfigurationFactory.h; sourceTree = "<group>"; };
 		CD3EEF3225799618006563BB /* RemoteMediaEngineConfigurationFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteMediaEngineConfigurationFactory.cpp; sourceTree = "<group>"; };
-		CD3EEF3325799717006563BB /* RemoteMediaEngineConfigurationFactoryProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteMediaEngineConfigurationFactoryProxy.h; sourceTree = "<group>"; };
-		CD3EEF3425799717006563BB /* RemoteMediaEngineConfigurationFactoryProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteMediaEngineConfigurationFactoryProxy.cpp; sourceTree = "<group>"; };
 		CD3EEF3525799795006563BB /* RemoteMediaEngineConfigurationFactoryProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteMediaEngineConfigurationFactoryProxy.messages.in; sourceTree = "<group>"; };
 		CD3EEF432579C1D4006563BB /* RemoteMediaEngineConfigurationFactoryProxyMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteMediaEngineConfigurationFactoryProxyMessages.h; sourceTree = "<group>"; };
 		CD3EEF442579C1D4006563BB /* RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.cpp; sourceTree = "<group>"; };
@@ -10167,8 +10161,6 @@
 				A1DD407FC8A0DE2B5E2B4755 /* GPUVideoFrameSource.swift */,
 				9B1229CF23FF2814008CA751 /* RemoteAudioDestinationManager.messages.in */,
 				C67A04F7A09E99C20F74D929 /* RemoteAudioDestinationManager.swift */,
-				CD20CE7525CC999F0069B542 /* RemoteAudioHardwareListenerProxy.cpp */,
-				CD20CE7425CC999F0069B542 /* RemoteAudioHardwareListenerProxy.h */,
 				F8911EBFEE157E4B9BA12AD7 /* RemoteAudioHardwareListenerProxy.swift */,
 				CDBB49F8240D8D530017C292 /* RemoteAudioSessionProxy.messages.in */,
 				7F5C6174987F774F7F27DD34 /* RemoteAudioSessionProxy.swift */,
@@ -10194,8 +10186,6 @@
 				E5C30446F4529E431AE2E5A1 /* RemoteLegacyCDMFactoryProxy.swift */,
 				CDE5551E2405A3DF008A3DDB /* RemoteLegacyCDMProxy.messages.in */,
 				CDE5550024058284008A3DDB /* RemoteLegacyCDMSessionProxy.messages.in */,
-				CD3EEF3425799717006563BB /* RemoteMediaEngineConfigurationFactoryProxy.cpp */,
-				CD3EEF3325799717006563BB /* RemoteMediaEngineConfigurationFactoryProxy.h */,
 				CD3EEF3525799795006563BB /* RemoteMediaEngineConfigurationFactoryProxy.messages.in */,
 				74E8BFE7FECB5E5FB2850930 /* RemoteMediaEngineConfigurationFactoryProxy.swift */,
 				0725EFAD239B024500A538A9 /* RemoteMediaPlayerManagerProxy.cpp */,
@@ -12845,7 +12835,6 @@
 				2D9FB2002375209D0049F936 /* GPUConnectionToWebProcess.h */,
 				2D9FB2092375209D0049F936 /* GPUConnectionToWebProcess.messages.in */,
 				69EC0543DEAF40339F1534BC /* GPUConnectionToWebProcess.swift */,
-				2D9FB2012375209D0049F936 /* GPUProcess.cpp */,
 				2D9FB2152375209D0049F936 /* GPUProcess.h */,
 				2D9FB2022375209D0049F936 /* GPUProcess.messages.in */,
 				219C838F24364575BC265172 /* GPUProcess.swift */,
@@ -12869,7 +12858,6 @@
 			isa = PBXGroup;
 			children = (
 				2D9FB2082375209D0049F936 /* com.apple.WebKit.GPUProcess.sb.in */,
-				2D9FB2072375209D0049F936 /* GPUProcessMac.mm */,
 				CD36C16C260A6EBE00C8C529 /* LocalAudioSessionRoutingArbitrator.h */,
 			);
 			path = mac;

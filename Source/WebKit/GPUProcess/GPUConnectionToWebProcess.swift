@@ -459,36 +459,12 @@ extension WebKit.GPUConnectionToWebProcess {
         nowPlayingArbiter.recompute()
     }
 
-    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
-    @cxx
-    @implementation
-    @MainActor
-    func swiftIsActiveNowPlayingPage(_ pageIdentifier: UInt64) -> Bool {
-        nowPlayingArbiter.isActive(process: state.processIdentifier, page: pageIdentifier)
-    }
-    #endif
-
     @cxx
     @implementation
     @MainActor
     func swiftRemoteCommandTargetSession() -> UInt64 {
         nowPlayingArbiter.remoteCommandTargetSession(in: state.processIdentifier) ?? 0
     }
-
-    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
-    @cxx
-    @implementation
-    @MainActor
-    func swiftRemoteCommandListenerState() -> WebKit.RemoteCommandListenerState {
-        var listenerState = WebKit.RemoteCommandListenerState()
-        if let listener = state.remoteCommandListener {
-            listenerState.hasListener = true
-            listenerState.commands = listener.commands.reduce(0) { $0 | UInt32(1) << $1.rawValue }
-            listenerState.supportsSeeking = listener.supportsSeeking
-        }
-        return listenerState
-    }
-    #endif
 
     #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
     @cxx
@@ -509,33 +485,7 @@ extension WebKit.GPUConnectionToWebProcess {
     }
 
     #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
-    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
-    @cxx
-    @implementation
-    @MainActor
-    func swiftLastToCaptureAudioChanged(_ isLastToCaptureAudio: Bool) {
-        MainActor.preconditionIsolated()
-        state.audioMediaStreamTrackRendererInternalUnitManager?.setIsLastToCaptureAudio(isLastToCaptureAudio)
-    }
-    #endif
 
-    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
-    @cxx
-    @implementation
-    @MainActor
-    func swiftBeginAudioSessionInterruption() {
-        MainActor.preconditionIsolated()
-        state.audioMediaStreamTrackRendererInternalUnitManager?.beginAudioSessionInterruption()
-    }
-
-    @cxx
-    @implementation
-    @MainActor
-    func swiftEndAudioSessionInterruption() {
-        MainActor.preconditionIsolated()
-        state.audioMediaStreamTrackRendererInternalUnitManager?.endAudioSessionInterruption()
-    }
-    #endif
     #endif
 
     #if ENABLE_WEB_AUDIO && WTF_PLATFORM_IOS_FAMILY
@@ -685,15 +635,6 @@ extension WebKit.GPUConnectionToWebProcess {
     }
     #endif
 
-    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
-    @cxx
-    @implementation
-    @MainActor
-    func swiftReleaseRenderingBackend(_ identifier: UInt64) -> Bool {
-        state.releaseRenderingBackend(identifier)
-    }
-    #endif
-
     @cxx
     @implementation
     @MainActor
@@ -707,24 +648,6 @@ extension WebKit.GPUConnectionToWebProcess {
     func swiftCloseStreamReceivers() {
         state.closeStreamReceivers()
     }
-
-    #if ENABLE_WEBGL && !ENABLE_GPU_PROCESS_CORE_SWIFT
-    @cxx
-    @implementation
-    @MainActor
-    func swiftHasGraphicsContextGL(_ identifier: UInt64) -> Bool {
-        state.graphicsContextGLOwners[identifier] != nil
-    }
-
-    @cxx
-    @implementation
-    @MainActor
-    func swiftReleaseGraphicsContextGL(_ identifier: UInt64) -> Bool {
-        let owner: IPC.SwiftReceiverOwner? = state.graphicsContextGLOwners.removeValue(forKey: identifier)
-        owner?.stopListeningForIPC()
-        return state.graphicsContextGLOwners.isEmpty
-    }
-    #endif
 
     #if ENABLE_WEBGL
 
@@ -795,25 +718,6 @@ extension WebKit.GPUConnectionToWebProcess {
         }
         RemoteGPU.create(owner, renderingBackend, identifier, webProcessResourceOwner)
         state.gpuOwners[identifier] = owner
-    }
-    #endif
-
-    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
-    @cxx
-    @implementation
-    @MainActor
-    func swiftHasGPU(_ identifier: UInt64) -> Bool {
-        state.gpuOwners[identifier] != nil
-    }
-
-    @cxx
-    @implementation
-    @MainActor
-    func swiftReleaseGPU(_ identifier: UInt64) -> Bool {
-        let owner = state.gpuOwners.removeValue(forKey: identifier)
-        assert(owner != nil, "The GPU has not been added")
-        owner?.stopListeningForIPC()
-        return state.gpuOwners.isEmpty
     }
     #endif
 

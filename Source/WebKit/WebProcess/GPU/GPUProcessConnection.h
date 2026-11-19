@@ -60,7 +60,6 @@ class Semaphore;
 }
 
 namespace WebKit {
-class DisplayListData;
 struct RemoteSnapshotPrintData;
 class RemoteAudioSourceProviderManager;
 class RemoteMediaPlayerManager;
@@ -167,11 +166,7 @@ private:
 #endif
 
 #if PLATFORM(COCOA)
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     void drawSnapshotPrintDataToPDF(RemoteSnapshotPrintData&&, const WebCore::FloatSize&, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&&);
-#else
-    void drawDisplayListToPDF(DisplayListData&&, const WebCore::FloatSize&, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&&);
-#endif
 #endif
 
     // The connection from the web process to the GPU process.

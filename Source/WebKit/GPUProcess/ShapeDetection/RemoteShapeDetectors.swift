@@ -192,17 +192,9 @@ private func cachedImage(
     _ backend: WebKit.RemoteRenderingBackend,
     _ identifier: IPCTypes.RenderingResourceIdentifier
 ) throws(InvalidMessage) -> CGImage? {
-    #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
     let cached = backend.state.resources.nativeImage(key: identifier.rawValue)
     try messageCheck("no native image has the identifier") { cached != nil }
     return cached?.image
-    #else
-    // The SDKs without the CG renderer in Swift cache native images in C++.
-    var found = false
-    let image = WebKit.copyCachedNativeImage(backend, identifier.rawValue, &found)
-    try messageCheck("no native image has the identifier") { found }
-    return image
-    #endif
 }
 
 private func ipcRect(_ rect: ShapeDetectionVision.Rect) -> IPCTypes.FloatRect {

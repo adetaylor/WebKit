@@ -146,18 +146,6 @@ void RemoteMediaPlayerProxy::nativeImageForCurrentTime(CompletionHandler<void(st
     completionHandler(surface->createSendRight(), nativeImage->colorSpace());
 }
 
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-void RemoteMediaPlayerProxy::colorSpace(CompletionHandler<void(WebCore::ColorSpace)>&& completionHandler)
-{
-    if (!m_player) {
-        completionHandler(WebCore::ColorSpace::SRGB());
-        return;
-    }
-
-    completionHandler(m_player->colorSpace());
-}
-#endif
-
 } // namespace WebKit
 
 #endif // ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
