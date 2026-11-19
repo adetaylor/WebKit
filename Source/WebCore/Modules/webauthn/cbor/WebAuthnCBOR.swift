@@ -1101,7 +1101,7 @@ func makeSwiftString(_ string: borrowing WTF.String) -> Swift.String {
             }
         }
     }
-    return Swift.String(decoding: utf8Bytes(of: string), as: UTF8.self)
+    return Swift.String(decoding: utf8Bytes(of: string), as: Unicode.UTF8.self)
 }
 
 /// `string` as a WTF string (`emptyString()` when empty, as `String::fromUTF8` gives).
