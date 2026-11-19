@@ -26,8 +26,8 @@
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    SwiftImplementation,
-    SwiftState=VideoFrameHeap,
+    SwiftReceiver,
+    SwiftTarget=VideoFrameHeap,
     SwiftSends=RemoteVideoFrameObjectHeapProxyProcessor
 ]
 messages -> RemoteVideoFrameObjectHeap WorkQueue {

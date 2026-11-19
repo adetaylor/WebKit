@@ -27,52 +27,25 @@
 #include "RemoteVideoFrameObjectHeap.h"
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
-#include "Connection.h"
 #include "RemoteVideoFrameObjectHeapMessages.h"
-#include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMallocInlines.h>
-#include <wtf/WorkQueue.h>
 
 namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteVideoFrameObjectHeap);
 
-static WorkQueue& remoteVideoFrameObjectHeapQueueSingleton()
-{
-    static NeverDestroyed queue = WorkQueue::create("org.webkit.RemoteVideoFrameObjectHeap"_s, WorkQueue::QOS::UserInteractive);
-    return queue.get();
-}
-
 Ref<RemoteVideoFrameObjectHeap> RemoteVideoFrameObjectHeap::create(Ref<IPC::Connection>&& connection)
 {
+    static NeverDestroyed queue = WorkQueue::create("org.webkit.RemoteVideoFrameObjectHeap"_s, WorkQueue::QOS::UserInteractive);
     Ref heap = adoptRef(*new RemoteVideoFrameObjectHeap(WTF::move(connection)));
-    heap->m_connection->addWorkQueueMessageReceiver(Messages::RemoteVideoFrameObjectHeap::messageReceiverName(), remoteVideoFrameObjectHeapQueueSingleton(), heap.get());
+    heap->createMessageForwarder()->startReceivingMessages(heap->m_connection, queue.get());
     return heap;
 }
 
-RemoteVideoFrameObjectHeap::RemoteVideoFrameObjectHeap(Ref<IPC::Connection>&& connection)
-    : m_connection(WTF::move(connection))
-    , m_swiftState(createSwiftState())
+void RemoteVideoFrameObjectHeap::stopReceivingMessages()
 {
-}
-
-RemoteVideoFrameObjectHeap::~RemoteVideoFrameObjectHeap()
-{
-    ASSERT(m_isClosed);
-    destroySwiftState(m_swiftState);
-}
-
-void RemoteVideoFrameObjectHeap::close()
-{
-    assertIsMainThread();
-
-    if (m_isClosed)
-        return;
-    m_isClosed = true;
-
     protect(m_connection)->removeWorkQueueMessageReceiver(Messages::RemoteVideoFrameObjectHeap::messageReceiverName());
-    swiftRemoveAll();
 }
 
 }
