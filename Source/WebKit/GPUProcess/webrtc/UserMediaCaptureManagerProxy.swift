@@ -864,13 +864,16 @@ final class UserMediaCaptureManagerProxyState {
             addMicrophoneSource(source, pageIdentifier.rawValue)
         }
 
+        // As C++ did, for the sources of video only.
+        if kind != .microphone, let constraints, constraints.isValid() {
+            try messageCheck { constraints.isWellFormed() }
+        }
         let sourceProxy = makeSourceProxy(identifier: identifier, connection: connection, source: source, framePublisher: framePublisher(usesFrameHeap: shouldUseGPUProcessRemoteFrames))
         proxies[identifier] = sourceProxy
 
         guard let constraints, constraints.isValid() else {
             return await sourceProxy.whenReady()
         }
-        try messageCheck { constraints.isWellFormed() }
 
         let failure: CaptureConstraintsFailure? = await withCheckedContinuation { continuation in
             sourceProxy.applyConstraints(constraints) { failure in
