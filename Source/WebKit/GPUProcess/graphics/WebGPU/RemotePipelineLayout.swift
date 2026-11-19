@@ -42,7 +42,7 @@ final class RemotePipelineLayout {
     // Adds the pipeline layout, with this receiver of its messages, to the registry that the link names.
     @_expose(!Cxx)
     static func add(_ pipelineLayout: PipelineLayoutReference, _ link: WebGPURegistryLink) {
-        guard let objects = link.objects else {
+        guard let objects = link.objectsForNewEntry else {
             return
         }
         let receiver = RemotePipelineLayout(pipelineLayout, link)

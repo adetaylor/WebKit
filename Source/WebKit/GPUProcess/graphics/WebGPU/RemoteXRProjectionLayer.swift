@@ -43,7 +43,7 @@ final class RemoteXRProjectionLayer {
     // Adds the layer, with this receiver of its messages, to the registry that the link names.
     @_expose(!Cxx)
     static func add(_ layer: XRProjectionLayerReference, _ link: WebGPURegistryLink) {
-        guard let objects = link.objects else {
+        guard let objects = link.objectsForNewEntry else {
             return
         }
         let receiver = RemoteXRProjectionLayer(layer, link)

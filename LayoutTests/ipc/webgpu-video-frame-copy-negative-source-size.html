@@ -1,0 +1,131 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true WebGPUEnabled=true ] -->
+<body>
+<p>This test passes if RemoteQueue::CopyExternalImageFromVideoFrameToTexture() with a negative source size is an invalid message, which stops the stream that sent it.</p>
+<pre id="log"></pre>
+<script>
+testRunner?.dumpAsText();
+testRunner?.waitUntilDone();
+
+function log(s)
+{
+    document.getElementById('log').textContent += s + '\n';
+}
+
+async function run()
+{
+    if (!window.IPC)
+        return 'PASS';
+
+    const { CoreIPC } = await import('./coreipc.js');
+    CoreIPC.default_timeout = 10;
+
+    // The GPU process only exposes WebGPU once the page has negotiated an adapter.
+    if (!await navigator.gpu?.requestAdapter())
+        return 'FAIL: navigator.gpu.requestAdapter() did not resolve with an adapter';
+
+    let nextId = (Math.floor(Math.random() * 100000) + 1) * 100000;
+    const freshId = () => ++nextId;
+
+    // Most of the WebGPU scalars and descriptors are alias-structs in some configurations and bare types in others.
+    const alias = (type, value) => (CoreIPC.typeInfo[type]?.length === 1 && CoreIPC.typeInfo[type][0].name === 'alias') ? { alias: value } : value;
+    const size64 = (value) => alias('WebCore::WebGPU::Size64', value);
+
+    const renderingBackend = freshId();
+    const renderingBackendStream = CoreIPC.newStreamConnection();
+    CoreIPC.GPU.GPUConnectionToWebProcess.CreateRenderingBackend(0, {
+        renderingBackendIdentifier: renderingBackend,
+        connectionHandle: renderingBackendStream,
+    });
+    if (IPC.messages.RemoteRenderingBackendProxy_DidInitialize) {
+        const didInitialize = renderingBackendStream.connection.waitForMessage(renderingBackend, IPC.messages.RemoteRenderingBackendProxy_DidInitialize.name, 5);
+        if (!didInitialize)
+            return 'FAIL: no RemoteRenderingBackendProxy::DidInitialize';
+        renderingBackendStream.connection.setSemaphores(didInitialize[0].value, didInitialize[1].value);
+    }
+
+    const gpu = freshId();
+    const gpuStream = CoreIPC.newStreamConnection();
+    CoreIPC.GPU.GPUConnectionToWebProcess.CreateGPU(0, {
+        identifier: gpu,
+        renderingBackendIdentifier: renderingBackend,
+        serverConnection: gpuStream,
+    });
+    const wasCreated = gpuStream.connection.waitForMessage(gpu, IPC.messages.RemoteGPUProxy_WasCreated.name, 5);
+    if (!wasCreated?.[0]?.value)
+        return 'FAIL: RemoteGPUProxy::WasCreated did not report success';
+    if (wasCreated.length >= 3)
+        gpuStream.connection.setSemaphores(wasCreated[1].value, wasCreated[2].value);
+
+    const iface = (name, identifier) => gpuStream.newInterface(name, identifier);
+    const remoteGPU = iface('RemoteGPU', gpu);
+
+    const adapter = freshId();
+    let gotAdapter = false;
+    remoteGPU.RequestAdapter({
+        options: alias('WebKit::WebGPU::RequestAdapterOptions', { powerPreference: {}, forceFallbackAdapter: false, xrCompatible: false }),
+        identifier: adapter,
+    }, () => { gotAdapter = true; });
+    if (!gotAdapter)
+        return 'FAIL: no reply to RemoteGPU::RequestAdapter';
+
+    function requestDevice(identifier, queueIdentifier)
+    {
+        let gotDevice = false;
+        iface('RemoteAdapter', adapter).RequestDevice({
+            deviceDescriptor: { label: '', requiredFeatures: [], requiredLimits: [] },
+            identifier,
+            queueIdentifier,
+        }, () => { gotDevice = true; });
+        return gotDevice;
+    }
+
+    // Whether there's an object with the identifier, or null if the stream gave no reply.
+    function exists(identifier)
+    {
+        let result = null;
+        try {
+            remoteGPU.IsValid({ identifier }, (reply) => { result = reply.exists; });
+        } catch {
+        }
+        return result;
+    }
+
+    if (!CoreIPC.messages.RemoteQueue_CopyExternalImageFromVideoFrameToTexture)
+        return 'PASS';
+
+    const device = freshId(), queueIdentifier = freshId();
+    if (!requestDevice(device, queueIdentifier))
+        return 'FAIL: no reply to RemoteAdapter::RequestDevice';
+    if (exists(device) !== true)
+        return 'FAIL: no device';
+
+    const coordinate = (value) => alias('WebCore::WebGPU::IntegerCoordinate', value);
+    const isVariantAlias = (type) => CoreIPC.typeInfo[type]?.[0]?.type?.startsWith('Variant<');
+    const extent3D = (width, height, depthOrArrayLayers) => {
+        const dict = { width: coordinate(width), height: coordinate(height), depthOrArrayLayers: coordinate(depthOrArrayLayers) };
+        return alias('WebKit::WebGPU::Extent3D', isVariantAlias('WebKit::WebGPU::Extent3D') ? { variantIndex: 1, variant: dict } : dict);
+    };
+    const origin3D = (x, y, z) => {
+        const dict = { x: coordinate(x), y: coordinate(y), z: coordinate(z) };
+        return { optionalValue: alias('WebKit::WebGPU::Origin3D', isVariantAlias('WebKit::WebGPU::Origin3D') ? { variantIndex: 1, variant: dict } : dict) };
+    };
+
+    // The size is checked before anything else, so the texture needn't exist.
+    iface('RemoteQueue', queueIdentifier).CopyExternalImageFromVideoFrameToTexture({
+        origin: {},
+        flipY: false,
+        mediaIdentifier: {},
+        sourceSize: { width: -1, height: 0 },
+        sharedFrame: {},
+        destination: { texture: freshId(), mipLevel: coordinate(0), origin: origin3D(0, 0, 0), aspect: 0, colorSpace: 0, premultipliedAlpha: true },
+        copySize: extent3D(1, 1, 1),
+    });
+    if (exists(device) !== null)
+        return 'FAIL: a negative source size was accepted';
+    return 'PASS';
+}
+
+run().then(log, (error) => log(`FAIL: ${error}`)).then(() => testRunner?.notifyDone());
+</script>
+</body>
+</html>

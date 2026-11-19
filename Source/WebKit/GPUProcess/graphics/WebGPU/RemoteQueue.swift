@@ -51,7 +51,7 @@ final class RemoteQueue {
     // Adds the queue, with this receiver of its messages, to the registry that the link names.
     @_expose(!Cxx)
     static func add(_ queue: QueueReference, _ link: WebGPURegistryLink) {
-        guard let objects = link.objects else {
+        guard let objects = link.objectsForNewEntry else {
             return
         }
         let receiver = RemoteQueue(queue, link)
@@ -250,17 +250,22 @@ final class RemoteQueue {
         sharedFrame: borrowing IPCTypes.SharedVideoFrame?,
         destination: IPCTypes.ImageCopyTextureTagged,
         copySize: IPCTypes.Extent3D
-    ) {
+    ) throws(InvalidMessage) {
+        try messageCheck {
+            sourceSize.width >= 0 && sourceSize.height >= 0
+        }
         let objects = link.objects
         let texture = objects?.object(destination.texture, as: TextureReference.self)
         assert(texture != nil)
         guard let objects, let texture, let videoFrames else {
             return
         }
-        var frame: (pixelBuffer: CVBuffer, rotation: UInt16, isMirrored: Bool, naturalWidth: UInt32, naturalHeight: UInt32)?
+        var frame: (pixelBuffer: CVBuffer, rotation: UInt16, isMirrored: Bool, width: UInt32, height: UInt32)?
         switch sharedFrame {
         case .some(let sharedFrame):
-            frame = videoFrames.read(sharedFrame).map { (cvBuffer($0.pixelBuffer), $0.rotation, $0.isMirrored, 0, 0) }
+            frame = videoFrames.read(sharedFrame).map {
+                (cvBuffer($0.pixelBuffer), $0.rotation, $0.isMirrored, UInt32(sourceSize.width), UInt32(sourceSize.height))
+            }
         case .none:
             if let mediaIdentifier {
                 let playerFrame = copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue)
@@ -280,9 +285,8 @@ final class RemoteQueue {
         // anamorphic video whose presented width differs from its coded width.
         image.pixelBufferRotation = videoFrameRotation(frame.rotation)
         image.pixelBufferIsMirrored = frame.isMirrored
-        // The size the web process gave, else the player's natural size.
-        image.sourceSize = WebGPU.Extent2D(width: sourceSize.width > 0 ? UInt32(sourceSize.width) : frame.naturalWidth,
-                                           height: sourceSize.height > 0 ? UInt32(sourceSize.height) : frame.naturalHeight)
+        // The size the web process gave for a shared frame; a media player's frame is its natural size.
+        image.sourceSize = WebGPU.Extent2D(width: frame.width, height: frame.height)
         image.origin = origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D(x: 0, y: 0)
         image.flipY = flipY
         image.hasAlpha = false

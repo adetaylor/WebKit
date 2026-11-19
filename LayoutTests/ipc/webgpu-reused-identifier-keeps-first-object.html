@@ -1,0 +1,172 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true WebGPUEnabled=true ] -->
+<body>
+<p>This test passes if a WebGPU object created under an identifier that is already in use is dropped, and the object that has the identifier keeps it and keeps receiving its messages.</p>
+<pre id="log"></pre>
+<script>
+testRunner?.dumpAsText();
+testRunner?.waitUntilDone();
+
+function log(s)
+{
+    document.getElementById('log').textContent += s + '\n';
+}
+
+async function run()
+{
+    if (!window.IPC)
+        return 'PASS';
+
+    const { CoreIPC } = await import('./coreipc.js');
+    CoreIPC.default_timeout = 10;
+
+    // The GPU process only exposes WebGPU once the page has negotiated an adapter.
+    if (!await navigator.gpu?.requestAdapter())
+        return 'FAIL: navigator.gpu.requestAdapter() did not resolve with an adapter';
+
+    let nextId = (Math.floor(Math.random() * 100000) + 1) * 100000;
+    const freshId = () => ++nextId;
+
+    // Most of the WebGPU scalars and descriptors are alias-structs in some configurations and bare types in others.
+    const alias = (type, value) => (CoreIPC.typeInfo[type]?.length === 1 && CoreIPC.typeInfo[type][0].name === 'alias') ? { alias: value } : value;
+    const size64 = (value) => alias('WebCore::WebGPU::Size64', value);
+
+    const renderingBackend = freshId();
+    const renderingBackendStream = CoreIPC.newStreamConnection();
+    CoreIPC.GPU.GPUConnectionToWebProcess.CreateRenderingBackend(0, {
+        renderingBackendIdentifier: renderingBackend,
+        connectionHandle: renderingBackendStream,
+    });
+    if (IPC.messages.RemoteRenderingBackendProxy_DidInitialize) {
+        const didInitialize = renderingBackendStream.connection.waitForMessage(renderingBackend, IPC.messages.RemoteRenderingBackendProxy_DidInitialize.name, 5);
+        if (!didInitialize)
+            return 'FAIL: no RemoteRenderingBackendProxy::DidInitialize';
+        renderingBackendStream.connection.setSemaphores(didInitialize[0].value, didInitialize[1].value);
+    }
+
+    const gpu = freshId();
+    const gpuStream = CoreIPC.newStreamConnection();
+    CoreIPC.GPU.GPUConnectionToWebProcess.CreateGPU(0, {
+        identifier: gpu,
+        renderingBackendIdentifier: renderingBackend,
+        serverConnection: gpuStream,
+    });
+    const wasCreated = gpuStream.connection.waitForMessage(gpu, IPC.messages.RemoteGPUProxy_WasCreated.name, 5);
+    if (!wasCreated?.[0]?.value)
+        return 'FAIL: RemoteGPUProxy::WasCreated did not report success';
+    if (wasCreated.length >= 3)
+        gpuStream.connection.setSemaphores(wasCreated[1].value, wasCreated[2].value);
+
+    const iface = (name, identifier) => gpuStream.newInterface(name, identifier);
+    const remoteGPU = iface('RemoteGPU', gpu);
+
+    const adapter = freshId();
+    let gotAdapter = false;
+    remoteGPU.RequestAdapter({
+        options: alias('WebKit::WebGPU::RequestAdapterOptions', { powerPreference: {}, forceFallbackAdapter: false, xrCompatible: false }),
+        identifier: adapter,
+    }, () => { gotAdapter = true; });
+    if (!gotAdapter)
+        return 'FAIL: no reply to RemoteGPU::RequestAdapter';
+
+    function requestDevice(identifier, queueIdentifier)
+    {
+        let gotDevice = false;
+        iface('RemoteAdapter', adapter).RequestDevice({
+            deviceDescriptor: { label: '', requiredFeatures: [], requiredLimits: [] },
+            identifier,
+            queueIdentifier,
+        }, () => { gotDevice = true; });
+        return gotDevice;
+    }
+
+    // Whether there's an object with the identifier, or null if the stream gave no reply.
+    function exists(identifier)
+    {
+        let result = null;
+        try {
+            remoteGPU.IsValid({ identifier }, (reply) => { result = reply.exists; });
+        } catch {
+        }
+        return result;
+    }
+
+    const device = freshId();
+    if (!requestDevice(device, freshId()))
+        return 'FAIL: no reply to RemoteAdapter::RequestDevice';
+    const remoteDevice = iface('RemoteDevice', device);
+
+    function awaitReply(remoteInterface, name, args)
+    {
+        return new Promise((resolve, reject) => {
+            let settled = false;
+            remoteInterface[name](args, (reply) => { settled = true; resolve(reply); });
+            const start = Date.now();
+            (function poll() {
+                if (settled)
+                    return;
+                if (Date.now() - start > 10000)
+                    return reject(new Error(`${name}: no reply`));
+                setTimeout(poll, 25);
+            })();
+        });
+    }
+
+    function createBuffer(identifier, size, usage)
+    {
+        remoteDevice.CreateBuffer({
+            descriptor: alias('WebKit::WebGPU::BufferDescriptor', { label: '', size: size64(size), usage: alias('WebCore::WebGPU::BufferUsageFlags', usage), mappedAtCreation: false }),
+            identifier,
+        });
+    }
+
+    const MapRead = 1, MapWrite = 2, CopySrc = 4, CopyDst = 8;
+
+    // The buffer that has the identifier maps for reading, and has its size; the one made again under it could do neither.
+    async function checkFirstBuffer(buffer, what)
+    {
+        const remoteBuffer = iface('RemoteBuffer', buffer);
+        const mapped = await awaitReply(remoteBuffer, 'MapAsync', { mapModeFlags: alias('WebCore::WebGPU::MapModeFlags', MapRead), offset: size64(0), size: {} });
+        if (mapped?.success !== true)
+            return `FAIL: ${what}: the first buffer did not map for reading`;
+        let range = null;
+        remoteBuffer.GetMappedRange({ offset: size64(0), size: {} }, (reply) => { range = reply?.data?.optionalValue; });
+        if (range?.length !== 16)
+            return `FAIL: ${what}: GetMappedRange returned ${range?.length} bytes, not the first buffer's 16`;
+        return null;
+    }
+
+    const buffer = freshId();
+    createBuffer(buffer, 16, MapRead | CopyDst);
+    createBuffer(buffer, 32, MapWrite | CopySrc);
+    let failure = await checkFirstBuffer(buffer, 'a buffer made again under its identifier');
+    if (failure)
+        return failure;
+
+    const otherBuffer = freshId();
+    createBuffer(otherBuffer, 16, MapRead | CopyDst);
+    remoteDevice.CreateCommandEncoder({ descriptor: { optionalValue: alias('WebKit::WebGPU::CommandEncoderDescriptor', { label: '' }) }, identifier: otherBuffer });
+    failure = await checkFirstBuffer(otherBuffer, 'a command encoder made under a buffer\'s identifier');
+    if (failure)
+        return failure;
+
+    // A device whose queue is given the device's identifier keeps it; the queue is dropped.
+    const sharedDevice = freshId();
+    if (!requestDevice(sharedDevice, sharedDevice))
+        return 'FAIL: no reply to RemoteAdapter::RequestDevice with the queue under the device\'s identifier';
+    if (exists(sharedDevice) !== true)
+        return 'FAIL: the device whose queue had its identifier is gone';
+    const bufferOfSharedDevice = freshId();
+    iface('RemoteDevice', sharedDevice).CreateBuffer({
+        descriptor: alias('WebKit::WebGPU::BufferDescriptor', { label: '', size: size64(16), usage: alias('WebCore::WebGPU::BufferUsageFlags', CopyDst), mappedAtCreation: false }),
+        identifier: bufferOfSharedDevice,
+    });
+    if (exists(bufferOfSharedDevice) !== true)
+        return 'FAIL: the device whose queue had its identifier no longer receives its messages';
+
+    return 'PASS';
+}
+
+run().then(log, (error) => log(`FAIL: ${error}`)).then(() => testRunner?.notifyDone());
+</script>
+</body>
+</html>

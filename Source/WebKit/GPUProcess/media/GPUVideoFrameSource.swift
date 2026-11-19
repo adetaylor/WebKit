@@ -64,9 +64,12 @@ func copyMediaPlayerFrame(_ renderingBackend: WebKit.RemoteRenderingBackend, _ m
     return reader.frame
 }
 
-// 0 for a size that is negative, not a number, or too large.
+// 0 for a size that is negative or not a number; clamped to Int32.max, as the size travels as an IntSize.
 private func cssPixels(_ size: Float) -> UInt32 {
-    size > 0 && size < 4_294_967_040 ? UInt32(size) : 0
+    guard size > 0 else {
+        return 0
+    }
+    return size < Float(Int32.max) ? UInt32(size) : UInt32(Int32.max)
 }
 
 #endif // ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT && WTF_PLATFORM_COCOA && ENABLE_VIDEO

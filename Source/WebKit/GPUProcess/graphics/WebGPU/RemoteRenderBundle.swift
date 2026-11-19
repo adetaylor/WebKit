@@ -42,7 +42,7 @@ final class RemoteRenderBundle {
     // Adds the render bundle, with this receiver of its messages, to the registry that the link names.
     @_expose(!Cxx)
     static func add(_ renderBundle: RenderBundleReference, _ link: WebGPURegistryLink) {
-        guard let objects = link.objects else {
+        guard let objects = link.objectsForNewEntry else {
             return
         }
         let receiver = RemoteRenderBundle(renderBundle, link)
