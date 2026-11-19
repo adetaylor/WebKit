@@ -235,8 +235,11 @@ String ipcTesterCGRendererWireFormMismatches()
         { PathDataLine { { 1, 2 }, { 3, 4 } }, PackedColor::RGBA { 0x336699ff }, 2 },
         { PathDataLine { { -1, 0.5 }, { 1e30, -0.0f } }, PackedColor::RGBA { 0 }, 0.25 },
     };
-    checkCGRendererWireForm<Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness>(mismatches, "StrokeLinesWithColorAndThickness"_s, { lines.span() });
-    checkCGRendererWireForm<Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness>(mismatches, "StrokeLinesWithColorAndThickness of no lines"_s, { std::span<const PathDataLineColorThickness> { } });
+    for (uint8_t variant : { 0, 1 }) {
+        checkCGRendererWireForm<Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness>(mismatches, "StrokeLinesWithColorAndThickness"_s, { lines.span() }, std::nullopt, variant);
+        checkCGRendererWireForm<Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness>(mismatches, "StrokeLinesWithColorAndThickness of fewer lines"_s, { lines.span().last(1) }, std::nullopt, variant);
+        checkCGRendererWireForm<Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness>(mismatches, "StrokeLinesWithColorAndThickness of no lines"_s, { std::span<const PathDataLineColorThickness> { } }, std::nullopt, variant);
+    }
 
     CGRendererShadowValues shadowValues { 3, -4, 5, 0.5, 0x11223344, true, true, false };
     CGRendererColorData shadowColor { 0.25, 0.5, 0.75, 1, 0x336699ff, 0, 2, false, true };
@@ -250,8 +253,11 @@ String ipcTesterCGRendererWireFormMismatches()
         checkCGRendererWireForm<Messages::RemoteCGRenderer::SetStyle>(mismatches, "SetStyle"_s, { kind, shadowValues, shadowColor, true, 1.5, 2.5, matrix });
 
     Vector<FloatSegment> lineSegments { { 0, 10 }, { 12.5, 20 }, { -1, 1e20 } };
-    checkCGRendererWireForm<Messages::RemoteCGRenderer::DrawLinesForText>(mismatches, "DrawLinesForText"_s, { FloatPoint { 1, 2 }, 1.5, lineSegments.span(), false, true, StrokeStyle::WavyStroke });
-    checkCGRendererWireForm<Messages::RemoteCGRenderer::DrawLinesForText>(mismatches, "DrawLinesForText of no segments"_s, { FloatPoint { }, 0, std::span<const FloatSegment> { }, true, false, StrokeStyle::SolidStroke });
+    for (uint8_t variant : { 0, 1 }) {
+        checkCGRendererWireForm<Messages::RemoteCGRenderer::DrawLinesForText>(mismatches, "DrawLinesForText"_s, { FloatPoint { 1, 2 }, 1.5, lineSegments.span(), false, true, StrokeStyle::WavyStroke }, std::nullopt, variant);
+        checkCGRendererWireForm<Messages::RemoteCGRenderer::DrawLinesForText>(mismatches, "DrawLinesForText of fewer segments"_s, { FloatPoint { 1, 2 }, 1.5, lineSegments.span().first(1), false, false, StrokeStyle::SolidStroke }, std::nullopt, variant);
+        checkCGRendererWireForm<Messages::RemoteCGRenderer::DrawLinesForText>(mismatches, "DrawLinesForText of no segments"_s, { FloatPoint { }, 0, std::span<const FloatSegment> { }, true, false, StrokeStyle::SolidStroke }, std::nullopt, variant);
+    }
 
     // A live run (variant 0) decodes into storage it reuses, which a longer run then a shorter one checks, and a recorded run
     // (variant 1) into storage of its own. Swift takes the advances at float precision, as RemoteGraphicsContext's DrawGlyphs

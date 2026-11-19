@@ -640,10 +640,13 @@ private func reencode<Coder: IPCCoder>(_: Coder.Type, _ decoder: inout IPC.Swift
 // run then a shorter one decode into storage larger than the run. Only the main thread uses it, one call at a time, as only a
 // renderer's work queue uses the renderer's (GlyphRun.Storage).
 private let ipcTesterLiveGlyphRun = IPCTypes.GlyphRun.Storage()
+private let ipcTesterLiveLineStrokes = IPCTypes.LineStrokes.Storage()
+private let ipcTesterLiveLineSegments = IPCTypes.LineSegments.Storage()
 
 // For ipcTesterCGRendererWireFormMismatches(): decodes the arguments of one of RemoteCGRenderer's messages with the coders that
 // its Swift dispatch decodes them with, and encodes them again with the same coders. A DrawGlyphs's run decodes into storage of
-// its own for variant 1, as the recorder's does, and else into ipcTesterLiveGlyphRun. False if they don't decode.
+// its own for variant 1, as the recorder's does, and else into ipcTesterLiveGlyphRun, and so do line strokes and segments. False
+// if they don't decode.
 @_expose(Cxx)
 func ipcTesterReencodeCGRendererArguments(_ messageName: UInt16, _ decoder: inout IPC.SwiftDecoder, _ encoder: IPC.SwiftReplyEncoder, _ variant: UInt8) -> Bool {
     do throws(IPCDecodingError) {
@@ -654,7 +657,13 @@ func ipcTesterReencodeCGRendererArguments(_ messageName: UInt16, _ decoder: inou
         case .RemoteCGRenderer_FillPathSegment, .RemoteCGRenderer_StrokePathSegment:
             try reencode(IPCCoding.CxxDecoded.PathSegment.self, &decoder, encoder)
         case .RemoteCGRenderer_StrokeLinesWithColorAndThickness:
-            try reencode(IPCCoding.TrivialSpan<WebCore.PathDataLineColorThickness>.self, &decoder, encoder)
+            let lines =
+                if variant == 1 {
+                    try IPCTypes.LineStrokes.decode(from: &decoder)
+                } else {
+                    try IPCTypes.LineStrokes.decode(from: &decoder, context: ipcTesterLiveLineStrokes)
+                }
+            IPCTypes.LineStrokes.encode(lines, to: encoder)
         case .RemoteCGRenderer_SetDropShadow:
             try reencode(IPCTypes.CxxName.CGRendererShadowValues.self, &decoder, encoder)
             try reencode(IPCTypes.CxxName.CGRendererColorData.self, &decoder, encoder)
@@ -670,7 +679,13 @@ func ipcTesterReencodeCGRendererArguments(_ messageName: UInt16, _ decoder: inou
         case .RemoteCGRenderer_DrawLinesForText:
             try reencode(IPCTypes.CxxName.WebCore_FloatPoint.self, &decoder, encoder)
             try reencode(Float.self, &decoder, encoder)
-            try reencode(IPCCoding.TrivialSpan<WebCore.FloatSegment>.self, &decoder, encoder)
+            let segments =
+                if variant == 1 {
+                    try IPCTypes.LineSegments.decode(from: &decoder)
+                } else {
+                    try IPCTypes.LineSegments.decode(from: &decoder, context: ipcTesterLiveLineSegments)
+                }
+            IPCTypes.LineSegments.encode(segments, to: encoder)
             try reencode(Bool.self, &decoder, encoder)
             try reencode(Bool.self, &decoder, encoder)
             try reencode(IPCCoding.CxxEnum<WebCore.StrokeStyle>.self, &decoder, encoder)

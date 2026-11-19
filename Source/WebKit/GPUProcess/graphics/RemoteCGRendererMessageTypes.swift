@@ -79,44 +79,19 @@ extension IPCTypes.CGRendererColorData {
 extension IPCTypes {
     /// The glyph run of RemoteCGRenderer's DrawGlyphs, an IPC::ArrayReferenceTuple<GlyphBufferGlyph, GlyphBufferAdvance>: its
     /// count, then its glyphs and its advances, each as a std::span. Swift copies them out of the message, which the web process
-    /// can still write while it is handled, with the advances at the precision they have in RemoteGraphicsContext's DrawGlyphs,
-    /// into storage: a live dispatch's is the renderer's own, which it reuses for every run ('SwiftDecodeContext='), and a
-    /// recorder's is the run's own, which the recording keeps with the font that the recorder finds for it.
+    /// can still write while it is handled, with the advances at the precision they have in RemoteGraphicsContext's DrawGlyphs:
+    /// a live dispatch into the renderer's storage, which it reuses for every run ('SwiftDecodeContext='), and a recorder into
+    /// one allocation of the run's own, which the recording keeps with the font that the recorder finds for it.
     struct GlyphRun: IPCCoder, Sendable {
-        /// The glyphs and advances of runs, as many as a run's count, and a recorded run's font.
+        /// The glyphs and advances of a live dispatch's runs, as many as a run's count.
         ///
-        /// Unchecked Sendable, as RemoteCGRendererRecordedGlyphs's run was thread-safe ref-counted: a live dispatch's storage is
-        /// the renderer's, which only its stream's work queue decodes into and reads, one message at a time; a recorded run's is
-        /// written once, as it is decoded and then by setRecordedFont() on the recorder's queue, before any replay reads it.
+        /// Unchecked Sendable: only the renderer's stream's work queue decodes into it and reads it, one message at a time.
         final class Storage: @unchecked Sendable {
-            fileprivate(set) var glyphs: ContiguousArray<CGGlyph>
-            fileprivate(set) var advances: ContiguousArray<CGSize>
-            /// Whether this is a recorded run's, whose font the recorder gives it (setRecordedFont()).
-            let isRecorded: Bool
-            private(set) var recordedFont: CTFont?
-            private(set) var recordedFacts = CGRendererGlyphFontFacts()
-            private var hasRecordedFont = false
+            fileprivate(set) var glyphs = ContiguousArray<CGGlyph>()
+            fileprivate(set) var advances = ContiguousArray<CGSize>()
 
             /// The storage that a live dispatch decodes each run into, which grows to the longest.
             init() {
-                glyphs = []
-                advances = []
-                isRecorded = false
-            }
-
-            fileprivate init(recordedCount count: Int) {
-                glyphs = ContiguousArray(repeating: 0, count: count)
-                advances = ContiguousArray(repeating: .zero, count: count)
-                isRecorded = true
-            }
-
-            /// Gives a recorded run the CTFont of the font that the recorder found for it, and the font's facts for the run,
-            /// once, before anything replays it.
-            func setRecordedFont(_ font: CTFont?, facts: CGRendererGlyphFontFacts) {
-                precondition(isRecorded && !hasRecordedFont, "A recorded run gets its font once")
-                hasRecordedFont = true
-                recordedFont = font
-                recordedFacts = facts
             }
 
             fileprivate func makeRoom(for count: Int) {
@@ -127,15 +102,30 @@ extension IPCTypes {
             }
         }
 
-        let storage: Storage
-        /// How many of the storage's glyphs and advances are the run's.
-        let count: Int
+        /// Unchecked Sendable, for the storage it names. A live run's Storage is the renderer's, which only the renderer's stream's
+        /// work queue decodes into and reads, one message at a time, during the message's dispatch. A recorded run's
+        /// IPCRecordedGlyphRun is written as it is decoded and once more, by setRecordedFont(), from the recorder's record(), before
+        /// record() appends the message that holds it to the recorder's messages; record() does both under the recorder's lock, or
+        /// on its one queue for a recorder without one, and anything that replays the run reaches it only through the recording
+        /// that takeRecording() or currentRecording() gives, under that lock or on that queue, after the append.
+        enum Glyphs: @unchecked Sendable {
+            /// A live dispatch's run, the first count of the storage's glyphs and advances.
+            case live(Storage, count: Int)
+            case recorded(IPCRecordedGlyphRun)
+        }
+
+        let glyphs: Glyphs
 
         static func decode(from decoder: inout IPC.SwiftDecoder, context storage: Storage) throws(IPCDecodingError) -> GlyphRun {
             let count = try decodeCount(from: &decoder)
-            storage.makeRoom(for: count)
-            try decodeGlyphsAndAdvances(from: &decoder, count: count, glyphs: &storage.glyphs, advances: &storage.advances)
-            return GlyphRun(storage: storage, count: count)
+            // C++ decodes an empty run without aligning the decoder.
+            if count > 0 {
+                storage.makeRoom(for: count)
+                guard decoder.decodeGlyphRun(glyphs: &storage.glyphs, advances: &storage.advances, count: count) else {
+                    throw IPCDecodingError()
+                }
+            }
+            return GlyphRun(glyphs: .live(storage, count: count))
         }
 
         static func decodeFailed(context: Storage) {
@@ -143,18 +133,22 @@ extension IPCTypes {
 
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> GlyphRun {
             let count = try decodeCount(from: &decoder)
-            let storage = Storage(recordedCount: count)
-            try decodeGlyphsAndAdvances(from: &decoder, count: count, glyphs: &storage.glyphs, advances: &storage.advances)
-            return GlyphRun(storage: storage, count: count)
+            guard let run = IPCRecordedGlyphRun.decode(count: count, from: &decoder) else {
+                throw IPCDecodingError()
+            }
+            return GlyphRun(glyphs: .recorded(run))
         }
 
         static func encode(_ value: GlyphRun, to encoder: IPC.SwiftReplyEncoder) {
-            encoder.encode(UInt64(value.count))
-            if value.count == 0 {
-                return
+            switch value.glyphs {
+            case .live(let storage, let count):
+                encoder.encode(UInt64(count))
+                if count > 0 {
+                    encoder.encodeGlyphRun(glyphs: storage.glyphs, advances: storage.advances, count: count)
+                }
+            case .recorded(let run):
+                run.encode(to: encoder)
             }
-            encoder.encodeElements(value.storage.glyphs, count: value.count)
-            encoder.encodeElements(value.storage.advances, count: value.count)
         }
 
         private static func decodeCount(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Int {
@@ -168,25 +162,6 @@ extension IPCTypes {
                 throw IPCDecodingError()
             }
             return count
-        }
-
-        private static func decodeGlyphsAndAdvances(
-            from decoder: inout IPC.SwiftDecoder,
-            count: Int,
-            glyphs: inout ContiguousArray<CGGlyph>,
-            advances: inout ContiguousArray<CGSize>
-        ) throws(IPCDecodingError) {
-            // C++ decodes an empty run without aligning the decoder.
-            if count == 0 {
-                return
-            }
-            guard decoder.decodeElements(into: &glyphs, count: count), decoder.decodeElements(into: &advances, count: count) else {
-                throw IPCDecodingError()
-            }
-            for index in 0..<count {
-                let advance = advances[index]
-                advances[index] = CGSize(width: CGFloat(Float(advance.width)), height: CGFloat(Float(advance.height)))
-            }
         }
     }
 }

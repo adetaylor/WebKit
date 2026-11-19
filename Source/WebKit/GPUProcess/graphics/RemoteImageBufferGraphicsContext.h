@@ -98,7 +98,7 @@ public:
     void waitForDisplayBuffer();
 
     // RemoteCGRenderer's handlers' state, the context's renderer, which the context lends for one message.
-    WebCore::GraphicsContextCG::SwiftRendererLend lendSwiftReceiverState() { return WebCore::GraphicsContextCG::lendSwiftRenderer(cgContext()); }
+    ALWAYS_INLINE WebCore::GraphicsContextCG::SwiftRendererLend lendSwiftReceiverState() { return WebCore::GraphicsContextCG::lendSwiftRenderer(cgContext()); }
 
 private:
     RemoteImageBufferGraphicsContext(WebCore::ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& backend)

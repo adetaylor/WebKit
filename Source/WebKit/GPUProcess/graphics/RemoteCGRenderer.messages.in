@@ -51,6 +51,8 @@ messages -> RemoteCGRenderer Stream {
     Scale
     SetCTM
     ConcatCTM
+    SaveTransform
+    RestoreTransform
     SetFillPackedColor(uint32_t color) StreamBatched
     SetStrokePackedColor(uint32_t color) StreamBatched
     SetStrokePackedColorAndThickness(uint32_t color, float thickness) StreamBatched
@@ -75,8 +77,6 @@ messages -> RemoteCGRenderer Stream {
     StrokeRect
     StrokeEllipse
     ClearRect
-    ApplyStrokePattern
-    ApplyFillPattern
     DrawRect
     DrawEllipse
     FillLine
@@ -86,7 +86,7 @@ messages -> RemoteCGRenderer Stream {
     FillBezierCurve
     FillPathSegment(WebCore::PathSegment segment) StreamBatched SwiftTypes
     StrokeLine
-    StrokeLinesWithColorAndThickness(std::span<const WebCore::PathDataLineColorThickness> lines) StreamBatched SwiftTypes
+    StrokeLinesWithColorAndThickness(std::span<const WebCore::PathDataLineColorThickness> lines) StreamBatched SwiftTypes SwiftDecodeContext=lineStrokesDecodeContext
     StrokeArc
     StrokeClosedArc
     StrokeQuadCurve
@@ -127,7 +127,7 @@ messages -> RemoteCGRenderer Stream {
     SetStrokePatternNativeImage
     SetStrokePatternImageBuffer
     FillRectWithCachedGradient(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier) StreamBatched
-    DrawLinesForText(WebCore::FloatPoint point, float thickness, std::span<const WebCore::FloatSegment> lineSegments, bool printing, bool doubleLines, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched SwiftTypes
+    DrawLinesForText(WebCore::FloatPoint point, float thickness, std::span<const WebCore::FloatSegment> lineSegments, bool printing, bool doubleLines, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched SwiftTypes SwiftDecodeContext=lineSegmentsDecodeContext
     DrawDotsForDocumentMarker(WebCore::FloatRect rect, enum:uint8_t WebCore::DocumentMarkerLineStyleMode mode, CGRendererColorValue color) StreamBatched
     DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance> glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched SwiftTypes SwiftDecodeContext=glyphRunDecodeContext
     FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched

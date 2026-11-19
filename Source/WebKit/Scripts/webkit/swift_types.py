@@ -105,12 +105,21 @@ _HAND_WRITTEN_TYPES = {
     # A glyph run as RemoteCGRenderer's DrawGlyphs sends it, whose Swift form (RemoteCGRendererMessageTypes.swift) is its copy of the
     # glyphs and of the advances.
     'IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>': 'IPCTypes.GlyphRun',
+    # The line strokes and segments of the CG renderer's per-draw messages, which their live dispatches decode into storage
+    # that the renderer reuses, rather than into a new Array.
+    'std::span<const WebCore::PathDataLineColorThickness>': 'IPCTypes.LineStrokes',
+    'std::span<const WebCore::FloatSegment>': 'IPCTypes.LineSegments',
 }
 
 # Hand-written forms whose coder also decodes with a context, decode(from:context:), which a lent-state dispatch asks its
 # handler for ('SwiftDecodeContext='): what of the value the handler will use, or where it decodes it to. A malformed
 # message's dispatch calls its decodeFailed(context:).
-_DECODE_CONTEXT_TYPES = frozenset(['WebCore::Path', 'IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>'])
+_DECODE_CONTEXT_TYPES = frozenset([
+    'WebCore::Path',
+    'IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>',
+    'std::span<const WebCore::PathDataLineColorThickness>',
+    'std::span<const WebCore::FloatSegment>',
+])
 
 
 def is_trivial_span_element(cpp_type):

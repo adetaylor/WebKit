@@ -36,7 +36,6 @@
 #if PLATFORM(COCOA)
 #include <WebCore/FloatRect.h> // NOLINT
 #endif
-#include <WebCore/FloatSegment.h> // NOLINT
 #include <WebCore/GlyphBufferMembers.h> // NOLINT
 #include <WebCore/GraphicsTypes.h> // NOLINT
 #include <WebCore/Path.h> // NOLINT

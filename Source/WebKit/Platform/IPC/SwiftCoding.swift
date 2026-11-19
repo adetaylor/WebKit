@@ -37,6 +37,9 @@ import IOSurface
 #if canImport(CoreGraphics)
 import CoreGraphics
 import Foundation
+#if canImport(CoreText)
+import CoreText
+#endif
 #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
 @_spi(WebKitGPU) internal import WebCore
 #endif
@@ -1276,6 +1279,259 @@ extension IPCCoding {
 }
 
 #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+// The CG renderer's spans of trivially copyable elements, decoded and encoded without a generic call out of this file, which
+// a build that isn't whole-module would not specialize, at the cost of metadata lookups for every message.
+
+extension IPC.SwiftDecoder {
+    /// The count of a std::span's elements of the given stride, which must fit in what is left of the message.
+    fileprivate mutating func decodeSpanCount(stride: Int) throws(IPCDecodingError) -> Int {
+        guard let count = Int(exactly: try UInt64.decode(from: &self)) else {
+            throw IPCDecodingError()
+        }
+        guard count <= remainingByteCount() / stride else {
+            markInvalid()
+            throw IPCDecodingError()
+        }
+        return count
+    }
+
+    /// Decodes count elements into the start of storage, which grows to hold them if it can't.
+    fileprivate mutating func decodeElements<Element: IPCTrivialSpanElement & BitwiseCopyable>(reusing storage: inout ContiguousArray<Element>, count: Int) -> Bool {
+        if storage.count >= count {
+            return decodeElements(into: &storage, count: count)
+        }
+        var decoded = false
+        storage = unsafe ContiguousArray(unsafeUninitializedCapacity: count) { buffer, initializedCount in
+            // Sound: the decoder writes every byte of the count elements, or fails, when none of them is counted.
+            let bytes = unsafe UnsafeMutableRawBufferPointer(rebasing: UnsafeMutableRawBufferPointer(buffer)[0..<(count * MemoryLayout<Element>.stride)])
+            decoded = unsafe self.decodeBytes(into: bytes, alignment: MemoryLayout<Element>.alignment)
+            initializedCount = decoded ? count : 0
+        }
+        return decoded
+    }
+
+    /// Decodes a glyph run's count glyphs, then its count advances, as C++ decodes an IPC::ArrayReferenceTuple's spans, into the
+    /// start of arrays with room for them, with the advances at float precision.
+    mutating func decodeGlyphRun(glyphs: inout ContiguousArray<CGGlyph>, advances: inout ContiguousArray<CGSize>, count: Int) -> Bool {
+        precondition(count >= 0 && count <= glyphs.count && count <= advances.count)
+        guard decodeElements(into: &glyphs, count: count), decodeElements(into: &advances, count: count) else {
+            return false
+        }
+        advances.withUnsafeMutableBufferPointer { buffer in
+            // Sound: the count advances are within the array, which lends them for this call.
+            unsafe roundAdvancesToFloatPrecision(UnsafeMutableBufferPointer(rebasing: buffer[0..<count]))
+        }
+        return true
+    }
+}
+
+extension IPC.SwiftReplyEncoder {
+    func encodeGlyphRun(glyphs: ContiguousArray<CGGlyph>, advances: ContiguousArray<CGSize>, count: Int) {
+        encodeElements(glyphs, count: count)
+        encodeElements(advances, count: count)
+    }
+
+    fileprivate func encodeSpan<Element: IPCTrivialSpanElement & BitwiseCopyable>(_ elements: ContiguousArray<Element>, count: Int) {
+        encode(UInt64(count))
+        if count > 0 {
+            encodeElements(elements, count: count)
+        }
+    }
+}
+
+// Rounds each advance to float precision, as RemoteGraphicsContext's DrawGlyphs has advances. Unsafe: the advances must be valid
+// for this call.
+@unsafe
+private func roundAdvancesToFloatPrecision(_ advances: UnsafeMutableBufferPointer<CGSize>) {
+    for index in advances.indices {
+        let advance = unsafe advances[index]
+        unsafe advances[index] = CGSize(width: CGFloat(Float(advance.width)), height: CGFloat(Float(advance.height)))
+    }
+}
+
+/// A recorded glyph run's header: how many glyphs it has, and the font that the recorder found for it, with its facts for the
+/// run, which the recorder sets once, before anything replays the run. Only IPCRecordedGlyphRun reaches it.
+fileprivate struct IPCRecordedGlyphRunHeader {
+    fileprivate let count: Int
+    fileprivate var font: CTFont?
+    // font's address, through which a replay borrows it without retaining it again; 0 for none.
+    fileprivate var fontAddress: UInt = 0
+    fileprivate var facts = CGRendererGlyphFontFacts()
+    fileprivate var hasFont = false
+
+    fileprivate init(count: Int) {
+        self.count = count
+    }
+}
+
+// A recorded glyph run's advances and glyphs, in one allocation: count advances, then count glyphs. Only IPCRecordedGlyphRun
+// reaches it, so that nothing else can change its header, which the unsafe accesses below rely on.
+fileprivate final class IPCRecordedGlyphRunBuffer: ManagedBuffer<IPCRecordedGlyphRunHeader, CGSize> {
+}
+
+/// A recorded glyph run's advances and glyphs, in one allocation, with the font that the recorder found for it.
+///
+/// Unchecked Sendable, as RemoteCGRendererRecordedGlyphs's run was thread-safe ref-counted: see IPCTypes.GlyphRun.Glyphs.
+struct IPCRecordedGlyphRun: @unchecked Sendable {
+    fileprivate let buffer: IPCRecordedGlyphRunBuffer
+
+    /// Decodes a run of count glyphs, as IPC::ArrayReferenceTuple's spans of them and of their advances, with the advances at float
+    /// precision: nil if they don't decode.
+    static func decode(count: Int, from decoder: inout IPC.SwiftDecoder) -> IPCRecordedGlyphRun? {
+        precondition(count >= 0)
+        let glyphSlots = (count * MemoryLayout<CGGlyph>.stride + MemoryLayout<CGSize>.stride - 1) / MemoryLayout<CGSize>.stride
+        let created = IPCRecordedGlyphRunBuffer.create(minimumCapacity: max(count + glyphSlots, 1)) { _ in IPCRecordedGlyphRunHeader(count: count) }
+        // Sound: create() makes an instance of the class it is called on.
+        let buffer = unsafe unsafeDowncast(created, to: IPCRecordedGlyphRunBuffer.self)
+        if count == 0 {
+            return IPCRecordedGlyphRun(buffer: buffer)
+        }
+        let decoded = unsafe buffer.withUnsafeMutablePointerToElements { elements in
+            // Sound: the advances are the first count elements, and the glyphs, bound as CGGlyph here and only ever read as
+            // CGGlyph, are the bytes after them, all within the capacity that create() allocated for count, which the header
+            // keeps and nothing outside this file can change; the decoder writes every byte of each, or fails, when the run is
+            // dropped, and every bit pattern of a CGGlyph and a CGSize is a value.
+            let glyphs = unsafe UnsafeMutableRawPointer(elements + count).bindMemory(to: CGGlyph.self, capacity: count)
+            guard unsafe decoder.decodeBytes(into: UnsafeMutableRawBufferPointer(start: glyphs, count: count * MemoryLayout<CGGlyph>.stride), alignment: MemoryLayout<CGGlyph>.alignment),
+                unsafe decoder.decodeBytes(into: UnsafeMutableRawBufferPointer(start: elements, count: count * MemoryLayout<CGSize>.stride), alignment: MemoryLayout<CGSize>.alignment)
+            else {
+                return false
+            }
+            unsafe roundAdvancesToFloatPrecision(UnsafeMutableBufferPointer(start: elements, count: count))
+            return true
+        }
+        return decoded ? IPCRecordedGlyphRun(buffer: buffer) : nil
+    }
+
+    var count: Int {
+        buffer.header.count
+    }
+
+    var facts: CGRendererGlyphFontFacts {
+        buffer.header.facts
+    }
+
+    func setRecordedFont(_ font: CTFont?, facts: CGRendererGlyphFontFacts) {
+        precondition(!buffer.header.hasFont, "A recorded run gets its font once")
+        buffer.header.font = font
+        buffer.header.fontAddress = font.map { UInt(bitPattern: unsafe Unmanaged.passUnretained($0).toOpaque()) } ?? 0
+        buffer.header.facts = facts
+        buffer.header.hasFont = true
+    }
+
+    /// Calls body with the run's glyphs and advances, which last only for the call.
+    func withGlyphsAndAdvances(_ body: (Span<CGGlyph>, Span<CGSize>) -> Void) {
+        let count = buffer.header.count
+        if count == 0 {
+            body(Span(), Span())
+            return
+        }
+        unsafe buffer.withUnsafeMutablePointerToElements { elements in
+            // Sound: as in decode(); the run keeps its storage while body has the spans.
+            let glyphs = unsafe UnsafeRawPointer(elements + count).assumingMemoryBound(to: CGGlyph.self)
+            body(unsafe Span(_unsafeStart: glyphs, count: count), unsafe Span(_unsafeStart: UnsafePointer(elements), count: count))
+        }
+    }
+
+    /// Calls body with the font that the recorder found for the run, without retaining it, and with the run's glyphs and advances,
+    /// which last only for the call, unless the run has no font.
+    func withFontGlyphsAndAdvances(_ body: (CTFont, Span<CGGlyph>, Span<CGSize>) -> Void) {
+        guard let address = unsafe UnsafeRawPointer(bitPattern: buffer.header.fontAddress) else {
+            return
+        }
+        withGlyphsAndAdvances { glyphs, advances in
+            // Sound: the address is the header's font's, which the run keeps until it goes, and which nothing outside this file can
+            // change; the caller keeps the run for the call.
+            unsafe Unmanaged<CTFont>.fromOpaque(address)._withUnsafeGuaranteedRef { body($0, glyphs, advances) }
+        }
+    }
+
+    /// Encodes the run as C++ encodes an IPC::ArrayReferenceTuple of its glyphs and advances.
+    func encode(to encoder: IPC.SwiftReplyEncoder) {
+        let count = buffer.header.count
+        encoder.encode(UInt64(count))
+        if count == 0 {
+            return
+        }
+        unsafe buffer.withUnsafeMutablePointerToElements { elements in
+            // Sound: as in decode(); the bytes are only read, while the run keeps its storage.
+            let glyphs = unsafe UnsafeRawPointer(elements + count)
+            encoder.encodeBytes(unsafe Span<UInt8>(_unsafeBytes: UnsafeRawBufferPointer(start: glyphs, count: count * MemoryLayout<CGGlyph>.stride)), MemoryLayout<CGGlyph>.alignment)
+            encoder.encodeBytes(unsafe Span<UInt8>(_unsafeBytes: UnsafeRawBufferPointer(start: elements, count: count * MemoryLayout<CGSize>.stride)), MemoryLayout<CGSize>.alignment)
+        }
+    }
+}
+
+extension IPCTypes {
+    /// StrokeLinesWithColorAndThickness's lines, a std::span of them. A live dispatch decodes them into storage that the
+    /// renderer reuses ('SwiftDecodeContext='), and a recorder's decode into storage of their own; count of its elements are
+    /// the lines.
+    struct LineStrokes: IPCCoder, Sendable {
+        /// Unchecked Sendable, as IPCTypes.GlyphRun.Storage is: only one queue decodes into and reads a live dispatch's.
+        final class Storage: @unchecked Sendable {
+            fileprivate(set) var elements = ContiguousArray<WebCore.PathDataLineColorThickness>()
+
+            init() {
+            }
+        }
+
+        let storage: Storage
+        let count: Int
+
+        static func decode(from decoder: inout IPC.SwiftDecoder, context storage: Storage) throws(IPCDecodingError) -> LineStrokes {
+            let count = try decoder.decodeSpanCount(stride: MemoryLayout<WebCore.PathDataLineColorThickness>.stride)
+            // C++ decodes an empty span without aligning the decoder.
+            guard count == 0 || decoder.decodeElements(reusing: &storage.elements, count: count) else {
+                throw IPCDecodingError()
+            }
+            return LineStrokes(storage: storage, count: count)
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> LineStrokes {
+            try decode(from: &decoder, context: Storage())
+        }
+
+        static func decodeFailed(context: Storage) {
+        }
+
+        static func encode(_ value: LineStrokes, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encodeSpan(value.storage.elements, count: value.count)
+        }
+    }
+
+    /// DrawLinesForText's segments, a std::span of them, decoded as LineStrokes are.
+    struct LineSegments: IPCCoder, Sendable {
+        final class Storage: @unchecked Sendable {
+            fileprivate(set) var elements = ContiguousArray<WebCore.FloatSegment>()
+
+            init() {
+            }
+        }
+
+        let storage: Storage
+        let count: Int
+
+        static func decode(from decoder: inout IPC.SwiftDecoder, context storage: Storage) throws(IPCDecodingError) -> LineSegments {
+            let count = try decoder.decodeSpanCount(stride: MemoryLayout<WebCore.FloatSegment>.stride)
+            guard count == 0 || decoder.decodeElements(reusing: &storage.elements, count: count) else {
+                throw IPCDecodingError()
+            }
+            return LineSegments(storage: storage, count: count)
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> LineSegments {
+            try decode(from: &decoder, context: Storage())
+        }
+
+        static func decodeFailed(context: Storage) {
+        }
+
+        static func encode(_ value: LineSegments, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encodeSpan(value.storage.elements, count: value.count)
+        }
+    }
+}
+
 extension IPCCoding.CxxDecoded {
     /// WebCore::PathSegment, which C++ decodes as it does, into the plain values that the CG renderer takes of it
     /// (CGRendererPathSegmentValues()), in one call, and encodes again from them.

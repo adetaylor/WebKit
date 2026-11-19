@@ -1690,7 +1690,7 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithStreamSwiftRecordable_DrawGlyphs:
         return Vector<ArgumentDescription> {
             { "glyphs"_s, "IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>"_s },
-            { "segments"_s, "std::span<const WebCore::FloatSegment>"_s },
+            { "advances"_s, "std::span<const WebCore::GlyphBufferAdvance>"_s },
         };
     case MessageName::TestWithStreamSwiftRecordable_SetMatrix:
         return Vector<ArgumentDescription> {

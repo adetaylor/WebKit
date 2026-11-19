@@ -90,8 +90,10 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('std::array<WebCore::FloatPoint, 20>', ('[IPCTypes.FloatPoint]', 'IPCCoding.FixedSpan<IPCTypes.CxxName.WebCore_FloatPoint, IPCCoding.Extent20>')),
             ('WebCore::PathSegment', ('CGRendererPathSegment', 'IPCCoding.CxxDecoded.PathSegment')),
             ('std::array<WebCore::FloatPoint, 6>', ('[IPCTypes.FloatPoint]', 'IPCCoding.FixedSpan<IPCTypes.CxxName.WebCore_FloatPoint, IPCCoding.Extent6>')),
-            ('std::span<const WebCore::FloatSegment>', ('[WebCore.FloatSegment]', 'IPCCoding.TrivialSpan<WebCore.FloatSegment>')),
-            ('std::span<const ::WebCore::PathDataLineColorThickness>', ('[WebCore.PathDataLineColorThickness]', 'IPCCoding.TrivialSpan<WebCore.PathDataLineColorThickness>')),
+            ('std::span<const WebCore::GlyphBufferAdvance>', ('[CGSize]', 'IPCCoding.TrivialSpan<CGSize>')),
+            ('std::span<const ::WebCore::GlyphBufferGlyph>', ('[CGGlyph]', 'IPCCoding.TrivialSpan<CGGlyph>')),
+            ('std::span<const WebCore::FloatSegment>', ('IPCTypes.LineSegments', 'IPCTypes.LineSegments')),
+            ('const std::span<const WebCore::PathDataLineColorThickness>&', ('IPCTypes.LineStrokes', 'IPCTypes.LineStrokes')),
         ]:
             self.assertEqual(swift_types.swift_type_and_coder(cpp_type), expected)
 

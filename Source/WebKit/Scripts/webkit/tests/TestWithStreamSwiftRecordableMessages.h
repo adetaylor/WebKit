@@ -399,7 +399,7 @@ private:
 
 class DrawGlyphs {
 public:
-    using Arguments = std::tuple<IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>, std::span<const WebCore::FloatSegment>>;
+    using Arguments = std::tuple<IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>, std::span<const WebCore::GlyphBufferAdvance>>;
 
     static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftRecordable_DrawGlyphs; }
     static constexpr bool isSync = false;
@@ -409,9 +409,9 @@ public:
     static constexpr bool isStreamEncodable = true;
     static constexpr bool isStreamBatched = true;
 
-    DrawGlyphs(const IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>& glyphs, const std::span<const WebCore::FloatSegment>& segments)
+    DrawGlyphs(const IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>& glyphs, const std::span<const WebCore::GlyphBufferAdvance>& advances)
         : m_glyphs(glyphs)
-        , m_segments(segments)
+        , m_advances(advances)
     {
     }
 
@@ -419,12 +419,12 @@ public:
     void encode(Encoder& encoder)
     {
         SUPPRESS_FORWARD_DECL_ARG encoder << m_glyphs;
-        SUPPRESS_FORWARD_DECL_ARG encoder << m_segments;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_advances;
     }
 
 private:
     SUPPRESS_FORWARD_DECL_MEMBER const IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>& m_glyphs;
-    SUPPRESS_FORWARD_DECL_MEMBER const std::span<const WebCore::FloatSegment>& m_segments;
+    SUPPRESS_FORWARD_DECL_MEMBER const std::span<const WebCore::GlyphBufferAdvance>& m_advances;
 };
 
 class SetMatrix {

@@ -241,11 +241,11 @@ final class TestWithStreamSwiftRecordableWeakRef {
         decoder: inout IPC.SwiftDecoder
     ) -> IPC.SwiftLentStateDispatch {
         let glyphs: IPCTypes.GlyphRun
-        let segments: [WebCore.FloatSegment]
+        let advances: [CGSize]
         let decodeContext = target.glyphsDecodeContext(state: state)
         do {
             glyphs = try IPCTypes.GlyphRun.decode(from: &decoder, context: decodeContext)
-            segments = try IPCCoding.TrivialSpan<WebCore.FloatSegment>.decode(from: &decoder)
+            advances = try IPCCoding.TrivialSpan<CGSize>.decode(from: &decoder)
         } catch {
             IPCTypes.GlyphRun.decodeFailed(context: decodeContext)
             return .Invalid
@@ -255,7 +255,7 @@ final class TestWithStreamSwiftRecordableWeakRef {
                 target.drawGlyphs(
                     state: &state,
                     glyphs: glyphs,
-                    segments: segments
+                    advances: advances
                 )
             )
         } catch {
@@ -317,7 +317,7 @@ extension TestWithStreamSwiftRecordable {
         #endif
         case setLabel(label: String?, tag: UInt64?)
         case fillPath(path: IPCTypes.Path)
-        case drawGlyphs(glyphs: IPCTypes.GlyphRun, segments: [WebCore.FloatSegment])
+        case drawGlyphs(glyphs: IPCTypes.GlyphRun, advances: [CGSize])
         case setMatrix(matrix: IPCCoding.StdArray20<Float>.Value, strokeStyle: WebCore.StrokeStyle)
     }
 
@@ -374,12 +374,12 @@ extension TestWithStreamSwiftRecordable {
                         path: path
                     )
                 )
-            case .drawGlyphs(let glyphs, let segments):
+            case .drawGlyphs(let glyphs, let advances):
                 _ = try? mayThrowInvalidMessage(
                     target.drawGlyphs(
                         state: &state,
                         glyphs: glyphs,
-                        segments: segments
+                        advances: advances
                     )
                 )
             case .setMatrix(let matrix, let strokeStyle):
@@ -417,10 +417,10 @@ extension TestWithStreamSwiftRecordable {
                 let messageEncoder = encoder.encoderForFillPath()
                 IPCTypes.Path.encode(path, to: messageEncoder)
                 encoder.appendEncodedMessage(messageEncoder)
-            case .drawGlyphs(let glyphs, let segments):
+            case .drawGlyphs(let glyphs, let advances):
                 let messageEncoder = encoder.encoderForDrawGlyphs()
                 IPCTypes.GlyphRun.encode(glyphs, to: messageEncoder)
-                IPCCoding.TrivialSpan<WebCore.FloatSegment>.encode(segments, to: messageEncoder)
+                IPCCoding.TrivialSpan<CGSize>.encode(advances, to: messageEncoder)
                 encoder.appendEncodedMessage(messageEncoder)
             case .setMatrix(let matrix, let strokeStyle):
                 let messageEncoder = encoder.encoderForSetMatrix()
@@ -619,10 +619,10 @@ final class TestWithStreamSwiftRecordableRecorderWeakRef {
         decoder: inout IPC.SwiftDecoder
     ) -> IPC.SwiftLentStateDispatch {
         let glyphs: IPCTypes.GlyphRun
-        let segments: [WebCore.FloatSegment]
+        let advances: [CGSize]
         do {
             glyphs = try IPCTypes.GlyphRun.decode(from: &decoder)
-            segments = try IPCCoding.TrivialSpan<WebCore.FloatSegment>.decode(from: &decoder)
+            advances = try IPCCoding.TrivialSpan<CGSize>.decode(from: &decoder)
         } catch {
             return .Invalid
         }
@@ -630,7 +630,7 @@ final class TestWithStreamSwiftRecordableRecorderWeakRef {
             try target.record(
                 .drawGlyphs(
                     glyphs: glyphs,
-                    segments: segments
+                    advances: advances
                 )
             )
         } catch {
