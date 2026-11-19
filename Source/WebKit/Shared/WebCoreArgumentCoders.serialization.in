@@ -3230,13 +3230,13 @@ enum class WebCore::MediaPlayerMovieLoadType : uint8_t {
     HttpLiveStream
 };
 
-enum class WebCore::MediaPlayerPreload : uint8_t {
+[Swift] enum class WebCore::MediaPlayerPreload : uint8_t {
     None,
     MetaData,
     Auto
 };
 
-enum class WebCore::MediaPlayerVideoGravity : uint8_t {
+[Swift] enum class WebCore::MediaPlayerVideoGravity : uint8_t {
     Resize,
     ResizeAspect,
     ResizeAspectFill
@@ -3248,7 +3248,7 @@ enum class WebCore::MediaPlayerSupportsType : uint8_t {
     MayBeSupported
 };
 
-enum class WebCore::MediaPlayerBufferingPolicy : uint8_t {
+[Swift] enum class WebCore::MediaPlayerBufferingPolicy : uint8_t {
     Default,
     LimitReadAhead,
     MakeResourcesPurgeable,
@@ -3288,7 +3288,7 @@ enum class WebCore::MediaPlayerWirelessPlaybackTargetType : uint8_t {
     Large,
 };
 
-enum class WebCore::MediaPlayerViewportVisibility : uint8_t {
+[Swift] enum class WebCore::MediaPlayerViewportVisibility : uint8_t {
     NotVisible,
     IntersectingViewport,
     VisibleInViewport,

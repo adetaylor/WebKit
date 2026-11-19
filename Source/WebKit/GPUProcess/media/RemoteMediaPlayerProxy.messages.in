@@ -47,28 +47,28 @@ messages -> RemoteMediaPlayerProxy {
 
     SeekToTarget(struct WebCore::SeekTarget target) -> (std::expected<WebCore::MediaTimeUpdateData, WebCore::PlatformMediaError> result)
 
-    SetPreload(enum:uint8_t WebCore::MediaPlayerPreload preload)
+    SetPreload(enum:uint8_t WebCore::MediaPlayerPreload preload) SwiftTypes SwiftSyncHandler
     SetPrivateBrowsingMode(bool privateMode) SwiftTypes SwiftSyncHandler
     SetPreservesPitch(bool preservesPitch) SwiftTypes SwiftSyncHandler
-    SetPitchCorrectionAlgorithm(enum:uint8_t WebCore::MediaPlayerPitchCorrectionAlgorithm algorithm)
+    SetPitchCorrectionAlgorithm(enum:uint8_t WebCore::MediaPlayerPitchCorrectionAlgorithm algorithm) SwiftTypes SwiftSyncHandler
 
     PrepareForRendering() SwiftTypes SwiftSyncHandler
     SetPageIsVisible(bool visible) SwiftTypes SwiftSyncHandler
-    SetViewportVisibility(enum:uint8_t WebCore::MediaPlayerViewportVisibility visibility)
+    SetViewportVisibility(enum:uint8_t WebCore::MediaPlayerViewportVisibility visibility) SwiftTypes SwiftSyncHandler
     SetShouldMaintainAspectRatio(bool maintainAspectRatio) SwiftTypes SwiftSyncHandler
     AcceleratedRenderingStateChanged(bool canBeAccelerated) SwiftTypes SwiftSyncHandler
     SetShouldDisableSleep(bool disable) SwiftTypes SwiftSyncHandler
     SetRate(double rate) SwiftTypes SwiftSyncHandler
-    DidLoadingProgress() -> (bool flag)
+    DidLoadingProgress() -> (bool flag) SwiftTypes
 
 #if ENABLE(VIDEO_PRESENTATION_MODE)
     [EnabledBy=VideoPresentationManagerEnabled || VideoPresentationModeAPIEnabled] UpdateVideoFullscreenInlineImage() SwiftTypes SwiftSyncHandler
-    [EnabledBy=VideoPresentationManagerEnabled || VideoPresentationModeAPIEnabled] SetVideoFullscreenMode(WebCore::MediaPlayerEnums::VideoFullscreenMode mode)
-    [EnabledBy=VideoPresentationManagerEnabled || VideoPresentationModeAPIEnabled] SetVideoFullscreenGravity(enum:uint8_t WebCore::MediaPlayerVideoGravity gravity)
+    [EnabledBy=VideoPresentationManagerEnabled || VideoPresentationModeAPIEnabled] SetVideoFullscreenMode(uint32_t mode) SwiftTypes SwiftSyncHandler
+    [EnabledBy=VideoPresentationManagerEnabled || VideoPresentationModeAPIEnabled] SetVideoFullscreenGravity(enum:uint8_t WebCore::MediaPlayerVideoGravity gravity) SwiftTypes SwiftSyncHandler
     [EnabledBy=VideoPresentationManagerEnabled || VideoPresentationModeAPIEnabled] VideoFullscreenStandbyChanged(bool standby) SwiftTypes SwiftSyncHandler
 #endif
 
-    SetBufferingPolicy(enum:uint8_t WebCore::MediaPlayerBufferingPolicy policy)
+    SetBufferingPolicy(enum:uint8_t WebCore::MediaPlayerBufferingPolicy policy) SwiftTypes SwiftSyncHandler
     SetPresentationSize(WebCore::IntSize size) SwiftTypes SwiftSyncHandler
 
 #if PLATFORM(COCOA)
@@ -82,14 +82,14 @@ messages -> RemoteMediaPlayerProxy {
 #endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    [EnabledBy=LegacyEncryptedMediaAPIEnabled] SetLegacyCDMSession(std::optional<WebKit::RemoteLegacyCDMSessionIdentifier> instanceId)
+    [EnabledBy=LegacyEncryptedMediaAPIEnabled] SetLegacyCDMSession(std::optional<WebKit::RemoteLegacyCDMSessionIdentifier> instanceId) SwiftTypes SwiftSyncHandler
     [EnabledBy=LegacyEncryptedMediaAPIEnabled] KeyAdded() SwiftTypes SwiftSyncHandler
 #endif
 
 #if ENABLE(ENCRYPTED_MEDIA)
-    [EnabledBy=EncryptedMediaAPIEnabled] CdmInstanceAttached(WebKit::RemoteCDMInstanceIdentifier instanceId)
-    [EnabledBy=EncryptedMediaAPIEnabled] CdmInstanceDetached(WebKit::RemoteCDMInstanceIdentifier instanceId)
-    [EnabledBy=EncryptedMediaAPIEnabled] AttemptToDecryptWithInstance(WebKit::RemoteCDMInstanceIdentifier instanceId)
+    [EnabledBy=EncryptedMediaAPIEnabled] CdmInstanceAttached(WebKit::RemoteCDMInstanceIdentifier instanceId) SwiftTypes SwiftSyncHandler
+    [EnabledBy=EncryptedMediaAPIEnabled] CdmInstanceDetached(WebKit::RemoteCDMInstanceIdentifier instanceId) SwiftTypes SwiftSyncHandler
+    [EnabledBy=EncryptedMediaAPIEnabled] AttemptToDecryptWithInstance(WebKit::RemoteCDMInstanceIdentifier instanceId) SwiftTypes SwiftSyncHandler
 #endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA) && ENABLE(ENCRYPTED_MEDIA)
@@ -102,16 +102,16 @@ messages -> RemoteMediaPlayerProxy {
     NotifyTrackModeChanged() SwiftTypes SwiftSyncHandler
     TracksChanged() SwiftTypes SwiftSyncHandler
 
-    AudioTrackSetEnabled(WebCore::TrackID trackId, bool enabled)
-    VideoTrackSetSelected(WebCore::TrackID trackId, bool selected)
-    TextTrackSetMode(WebCore::TrackID trackId, enum:uint8_t WebCore::InbandTextTrackPrivateMode mode)
+    AudioTrackSetEnabled(uint64_t trackId, bool enabled) SwiftTypes SwiftSyncHandler
+    VideoTrackSetSelected(uint64_t trackId, bool selected) SwiftTypes SwiftSyncHandler
+    TextTrackSetMode(uint64_t trackId, enum:uint8_t WebCore::InbandTextTrackPrivateMode mode) SwiftTypes SwiftSyncHandler
 
-    PerformTaskAtTime(MediaTime mediaTime) -> (std::optional<MediaTime> mediaTime)
+    PerformTaskAtTime(MediaTime mediaTime) -> (std::optional<MediaTime> mediaTime) SwiftTypes
     IsCrossOrigin(WebCore::SecurityOriginData origin) -> (std::optional<bool> crossOrigin) Synchronous
 
     SetVideoPlaybackMetricsUpdateInterval(double interval) SwiftTypes SwiftSyncHandler
 
-    SetPreferredDynamicRangeMode(enum:uint8_t WebCore::DynamicRangeMode mode)
+    SetPreferredDynamicRangeMode(enum:uint8_t WebCore::DynamicRangeMode mode) SwiftTypes SwiftSyncHandler
     SetPlatformDynamicRangeLimit(WebCore::PlatformDynamicRangeLimit platformDynamicRangeLimit)
 
 #if PLATFORM(IOS_FAMILY)
@@ -147,17 +147,17 @@ messages -> RemoteMediaPlayerProxy {
     SetShouldCheckHardwareSupport(bool value) SwiftTypes SwiftSyncHandler
 
 #if HAVE(SPATIAL_TRACKING_LABEL)
-    SetDefaultSpatialTrackingLabel(String defaultSpatialTrackingLabel);
-    SetSpatialTrackingLabel(String spatialTrackingLabel);
+    SetDefaultSpatialTrackingLabel(String defaultSpatialTrackingLabel) SwiftTypes SwiftSyncHandler
+    SetSpatialTrackingLabel(String spatialTrackingLabel) SwiftTypes SwiftSyncHandler
 #endif
 
 #if HAVE(SPATIAL_AUDIO_EXPERIENCE)
     SetPrefersSpatialAudioExperience(bool value) SwiftTypes SwiftSyncHandler
 #endif
 
-    AudioOutputDeviceChanged(String deviceId)
+    AudioOutputDeviceChanged(String deviceId) SwiftTypes SwiftSyncHandler
     IsInFullscreenOrPictureInPictureChanged(bool value) SwiftTypes SwiftSyncHandler
-    SetSoundStageSize(enum:uint8_t WebCore::MediaPlayerSoundStageSize value)
+    SetSoundStageSize(enum:uint8_t WebCore::MediaPlayerSoundStageSize value) SwiftTypes SwiftSyncHandler
 
     SetHasMessageClientForTesting(bool value)
 

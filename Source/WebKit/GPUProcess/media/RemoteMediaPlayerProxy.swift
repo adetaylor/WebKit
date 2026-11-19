@@ -23,6 +23,8 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_VIDEO && ENABLE_GPU_PROCESS_MEDIA_SWIFT
 
+@_spi(WebKitGPU) internal import WebCore
+import WebCore_Private.Core.MediaPlayer
 import WebKit_Internal
 
 private let lessFrequentTimeupdateEventInterval = 2.0
@@ -77,7 +79,7 @@ extension WebKit.RemoteMediaPlayerProxy {
         if prepareForRendering {
             player.prepareForRendering()
         }
-        m_videoContentScale = videoContentScale
+        clientAdapter.setContentsScale(videoContentScale)
     }
 
     @cxx
@@ -123,12 +125,13 @@ extension WebKit.RemoteMediaPlayerProxy {
         )
     }
 
-    @cxx
-    @implementation
-    func didLoadingProgress(_ completionHandler: WebKit.RemoteMediaPlayerProxy.DidLoadingProgressCompletionHandler) {
-        player().didLoadingProgress(consuming: .init { completionHandler.pointee($0) })
-
+    @MainActor
+    func didLoadingProgress(connection _: IPC.Connection) async -> Bool {
+        let player = player()
         Messages.MediaPlayerPrivateRemote.sendReportGPUMemoryFootprint(webProcessConnection, destinationID, UInt64(WTF.memoryFootprint()))
+        return await withCheckedContinuation { continuation in
+            player.didLoadingProgress(consuming: .init(continuation))
+        }
     }
 
     @cxx
@@ -190,15 +193,17 @@ extension WebKit.RemoteMediaPlayerProxy {
         _ = player().pauseAtHostTime(time)
     }
 
-    @cxx
-    @implementation
-    func setBufferingPolicy(_ policy: WebCore.MediaPlayerBufferingPolicy) {
+    func setBufferingPolicy(connection _: IPC.Connection, policy ipcValue: IPCTypes.MediaPlayerBufferingPolicy) {
+        guard let policy = WebCore.MediaPlayerBufferingPolicy(rawValue: ipcValue.rawValue) else {
+            return
+        }
         player().setBufferingPolicy(policy)
     }
 
-    @cxx
-    @implementation
-    func setPreload(_ preload: WebCore.MediaPlayerPreload) {
+    func setPreload(connection _: IPC.Connection, preload ipcValue: IPCTypes.MediaPlayerPreload) {
+        guard let preload = WebCore.MediaPlayerPreload(rawValue: ipcValue.rawValue) else {
+            return
+        }
         player().setPreload(preload)
     }
 
@@ -238,16 +243,15 @@ extension WebKit.RemoteMediaPlayerProxy {
         player().setMuted(muted)
     }
 
-    @cxx
-    @implementation
-    func setPitchCorrectionAlgorithm(_ algorithm: WebCore.MediaPlayerPitchCorrectionAlgorithm) {
+    func setPitchCorrectionAlgorithm(connection _: IPC.Connection, algorithm ipcValue: IPCTypes.MediaPlayerPitchCorrectionAlgorithm) {
+        guard let algorithm = WebCore.MediaPlayerPitchCorrectionAlgorithm(rawValue: ipcValue.rawValue) else {
+            return
+        }
         player().setPitchCorrectionAlgorithm(algorithm)
     }
 
-    @cxx
-    @implementation
-    func audioOutputDeviceChanged(_ deviceId: WTF.String) {
-        m_configuration.audioOutputDeviceId = deviceId
+    func audioOutputDeviceChanged(connection _: IPC.Connection, deviceId: String?) {
+        m_configuration.audioOutputDeviceId = WTF.String(deviceId)
         player().audioOutputDeviceChanged()
 
         #if WTF_PLATFORM_IOS_FAMILY && USE_AUDIO_SESSION
@@ -255,28 +259,25 @@ extension WebKit.RemoteMediaPlayerProxy {
         #endif
     }
 
-    @cxx
-    @implementation
-    func setSoundStageSize(_ size: WebCore.MediaPlayerSoundStageSize) {
-        if m_soundStageSize == size {
+    func setSoundStageSize(connection _: IPC.Connection, value ipcValue: IPCTypes.MediaPlayerSoundStageSize) {
+        guard let size = WebCore.MediaPlayerSoundStageSize(rawValue: ipcValue.rawValue) else {
             return
         }
-        m_soundStageSize = size
+        if clientAdapter.mediaPlayerSoundStageSize() == size {
+            return
+        }
+        clientAdapter.setSoundStageSize(size)
 
         player().soundStageSizeDidChange()
     }
 
     #if HAVE_SPATIAL_TRACKING_LABEL
-    @cxx
-    @implementation
-    func setDefaultSpatialTrackingLabel(_ defaultSpatialTrackingLabel: WTF.String) {
-        player().setDefaultSpatialTrackingLabel(defaultSpatialTrackingLabel)
+    func setDefaultSpatialTrackingLabel(connection _: IPC.Connection, defaultSpatialTrackingLabel: String?) {
+        player().setDefaultSpatialTrackingLabel(WTF.String(defaultSpatialTrackingLabel))
     }
 
-    @cxx
-    @implementation
-    func setSpatialTrackingLabel(_ spatialTrackingLabel: WTF.String) {
-        player().setSpatialTrackingLabel(spatialTrackingLabel)
+    func setSpatialTrackingLabel(connection _: IPC.Connection, spatialTrackingLabel: String?) {
+        player().setSpatialTrackingLabel(WTF.String(spatialTrackingLabel))
     }
     #endif
 
@@ -303,27 +304,28 @@ extension WebKit.RemoteMediaPlayerProxy {
         player().setPageIsVisible(visible)
     }
 
-    @cxx
-    @implementation
-    func setViewportVisibility(_ visibility: WebCore.MediaPlayerViewportVisibility) {
+    func setViewportVisibility(connection _: IPC.Connection, visibility ipcValue: IPCTypes.MediaPlayerViewportVisibility) {
+        guard let visibility = WebCore.MediaPlayerViewportVisibility(rawValue: ipcValue.rawValue) else {
+            return
+        }
         alwaysLog("setViewportVisibility", "\(visibility.rawValue)")
         player().setViewportVisibility(visibility)
     }
 
     func acceleratedRenderingStateChanged(connection _: IPC.Connection, canBeAccelerated renderingCanBeAccelerated: Bool) {
         alwaysLog("acceleratedRenderingStateChanged", "\(renderingCanBeAccelerated)")
-        m_renderingCanBeAccelerated = renderingCanBeAccelerated
+        clientAdapter.setRenderingCanBeAccelerated(renderingCanBeAccelerated)
         player().acceleratedRenderingStateChanged()
     }
 
     @cxx
     @implementation
     func playerContentBoxRectChanged(_ contentRect: WebCore.LayoutRect) {
-        if m_playerContentBoxRect == contentRect {
+        if clientAdapter.mediaPlayerContentBoxRect() == contentRect {
             return
         }
 
-        m_playerContentBoxRect = contentRect
+        clientAdapter.setContentBoxRect(contentRect)
 
         player().playerContentBoxRectChanged(contentRect)
     }
@@ -342,12 +344,14 @@ extension WebKit.RemoteMediaPlayerProxy {
         }
 
         m_configuration.shouldDisableHDR = shouldDisable
+        clientAdapter.setShouldDisableHDR(shouldDisable)
         player().setShouldDisableHDR(shouldDisable)
     }
 
-    @cxx
-    @implementation
-    func setPreferredDynamicRangeMode(_ mode: WebCore.DynamicRangeMode) {
+    func setPreferredDynamicRangeMode(connection _: IPC.Connection, mode ipcValue: IPCTypes.DynamicRangeMode) {
+        guard let mode = WebCore.DynamicRangeMode(rawValue: ipcValue.rawValue) else {
+            return
+        }
         player().setPreferredDynamicRangeMode(mode)
     }
 
@@ -359,7 +363,7 @@ extension WebKit.RemoteMediaPlayerProxy {
 
     func setShouldCheckHardwareSupport(connection _: IPC.Connection, value: Bool) {
         player().setShouldCheckHardwareSupport(value)
-        m_shouldCheckHardwareSupport = value
+        clientAdapter.setShouldCheckHardwareSupport(value)
     }
 
     func isInFullscreenOrPictureInPictureChanged(connection _: IPC.Connection, value isInFullscreenOrPictureInPicture: Bool) {
@@ -385,21 +389,20 @@ extension WebKit.RemoteMediaPlayerProxy {
         player().updateVideoFullscreenInlineImage()
     }
 
-    @cxx
-    @implementation
-    func setVideoFullscreenMode(_ mode: UInt32) {
-        m_fullscreenMode = mode
+    func setVideoFullscreenMode(connection _: IPC.Connection, mode: UInt32) {
+        clientAdapter.setFullscreenMode(mode)
         player().setVideoFullscreenMode(mode)
     }
 
     func videoFullscreenStandbyChanged(connection _: IPC.Connection, standby: Bool) {
-        m_videoFullscreenStandby = standby
+        clientAdapter.setIsVideoFullscreenStandby(standby)
         player().videoFullscreenStandbyChanged()
     }
 
-    @cxx
-    @implementation
-    func setVideoFullscreenGravity(_ gravity: WebCore.MediaPlayerVideoGravity) {
+    func setVideoFullscreenGravity(connection _: IPC.Connection, gravity ipcValue: IPCTypes.MediaPlayerVideoGravity) {
+        guard let gravity = WebCore.MediaPlayerVideoGravity(rawValue: ipcValue.rawValue) else {
+            return
+        }
         player().setVideoFullscreenGravity(gravity)
     }
     #endif
@@ -435,6 +438,63 @@ extension WebKit.RemoteMediaPlayerProxy {
     func keyAdded(connection _: IPC.Connection) {
         player().keyAdded()
     }
+
+    @MainActor
+    func setLegacyCDMSession(connection _: IPC.Connection, instanceId: IPCTypes.RemoteLegacyCDMSessionIdentifier?) {
+        guard let connection = m_manager.get()?.swiftGPUConnection() else {
+            assertionFailure("The media player outlived its connection")
+            return
+        }
+        let identifier = instanceId?.rawValue ?? 0
+        if m_legacySessionIdentifier == identifier {
+            return
+        }
+
+        let sessions = connection.state.legacyCDMFactory
+        if m_legacySessionIdentifier != 0, sessions?.session(m_legacySessionIdentifier) != nil {
+            setPlayerLegacyCDMSession(nil)
+        }
+
+        m_legacySessionIdentifier = identifier
+
+        if identifier != 0, let client = sessions?.session(identifier) {
+            setPlayerLegacyCDMSession(client)
+        }
+    }
+    #endif
+
+    #if ENABLE_ENCRYPTED_MEDIA
+    @MainActor
+    func cdmInstanceAttached(connection _: IPC.Connection, instanceId: IPCTypes.RemoteCDMInstanceIdentifier) {
+        if let instance = cdmInstance(instanceId) {
+            player().cdmInstanceAttached(instance)
+        }
+    }
+
+    @MainActor
+    func cdmInstanceDetached(connection _: IPC.Connection, instanceId: IPCTypes.RemoteCDMInstanceIdentifier) {
+        if let instance = cdmInstance(instanceId) {
+            player().cdmInstanceDetached(instance)
+        }
+    }
+
+    @MainActor
+    func attemptToDecryptWithInstance(connection _: IPC.Connection, instanceId: IPCTypes.RemoteCDMInstanceIdentifier) {
+        if let instance = cdmInstance(instanceId) {
+            player().attemptToDecryptWithInstance(instance)
+        }
+    }
+
+    // The C++ instance of one of the web process's CDM instances: none for the Swift ClearKey instances, or once the web
+    // process has gone.
+    @MainActor
+    private func cdmInstance(_ identifier: IPCTypes.RemoteCDMInstanceIdentifier) -> WebCore.CDMInstance? {
+        guard let connection = m_manager.get()?.swiftGPUConnection() else {
+            assertionFailure("The media player outlived its connection")
+            return nil
+        }
+        return connection.state.cdmFactory?.cxxInstance(identifier.rawValue)
+    }
     #endif
 
     #if ENABLE_LEGACY_ENCRYPTED_MEDIA && ENABLE_ENCRYPTED_MEDIA
@@ -445,8 +505,6 @@ extension WebKit.RemoteMediaPlayerProxy {
 
     // MARK: Cached state
 
-    @cxx
-    @implementation
     func startUpdateCachedStateMessageTimer() {
         if isUpdateCachedStateMessageTimerActive() {
             return
@@ -461,8 +519,6 @@ extension WebKit.RemoteMediaPlayerProxy {
         sendCachedState()
     }
 
-    @cxx
-    @implementation
     func updateCachedState(_ forceCurrentTimeUpdate: Bool) {
         let player = player()
         if !m_observingTimeChanges || forceCurrentTimeUpdate {
@@ -477,16 +533,12 @@ extension WebKit.RemoteMediaPlayerProxy {
         }
     }
 
-    @cxx
-    @implementation
     func sendCachedState() {
         updateCachedState(false)
         Messages.MediaPlayerPrivateRemote.sendUpdateCachedState(webProcessConnection, destinationID, m_cachedState)
         m_cachedState.bufferedRanges = nil
     }
 
-    @cxx
-    @implementation
     func updateCachedMediaCharacteristics() {
         let player = player()
         m_cachedState.hasAudio = player.hasAudio()
@@ -506,8 +558,6 @@ extension WebKit.RemoteMediaPlayerProxy {
         m_nextPlaybackQualityMetricsUpdateTime = ProcessInfo.processInfo.systemUptime + interval - metricsAdvanceUpdate
     }
 
-    @cxx
-    @implementation
     func maybeUpdateCachedVideoMetrics() {
         if m_cachedState.paused || m_videoPlaybackMetricsUpdateInterval == 0 || ProcessInfo.processInfo.systemUptime < m_nextPlaybackQualityMetricsUpdateTime || m_hasPlaybackMetricsUpdatePending {
             return
@@ -516,8 +566,6 @@ extension WebKit.RemoteMediaPlayerProxy {
         updateCachedVideoMetrics()
     }
 
-    @cxx
-    @implementation
     func updateCachedVideoMetrics() {
         alwaysLog("updateCachedVideoMetrics")
         m_nextPlaybackQualityMetricsUpdateTime = ProcessInfo.processInfo.systemUptime + m_videoPlaybackMetricsUpdateInterval
@@ -546,16 +594,12 @@ extension WebKit.RemoteMediaPlayerProxy {
 
     // MARK: MediaPlayerClient
 
-    @cxx
-    @implementation
     func mediaPlayerNetworkStateChanged() {
         updateCachedState(true)
         m_cachedState.networkState = player().networkState()
         Messages.MediaPlayerPrivateRemote.sendNetworkStateChanged(webProcessConnection, destinationID, m_cachedState)
     }
 
-    @cxx
-    @implementation
     func mediaPlayerReadyStateChanged() {
         let player = player()
         let newReadyState = player.readyState()
@@ -588,20 +632,14 @@ extension WebKit.RemoteMediaPlayerProxy {
         Messages.MediaPlayerPrivateRemote.sendReadyStateChanged(webProcessConnection, destinationID, m_cachedState, newReadyState)
     }
 
-    @cxx
-    @implementation
     func mediaPlayerVolumeChanged() {
         Messages.MediaPlayerPrivateRemote.sendVolumeChanged(webProcessConnection, destinationID, player().volume())
     }
 
-    @cxx
-    @implementation
     func mediaPlayerMuteChanged() {
         Messages.MediaPlayerPrivateRemote.sendMuteChanged(webProcessConnection, destinationID, player().muted())
     }
 
-    @cxx
-    @implementation
     func mediaPlayerTimeChanged() {
         updateCachedState(true)
 
@@ -610,24 +648,18 @@ extension WebKit.RemoteMediaPlayerProxy {
         Messages.MediaPlayerPrivateRemote.sendTimeChanged(webProcessConnection, destinationID, m_cachedState, timeUpdateData(player, player.currentTime()))
     }
 
-    @cxx
-    @implementation
     func mediaPlayerDurationChanged() {
         updateCachedState(true)
         m_cachedState.duration = player().duration()
         Messages.MediaPlayerPrivateRemote.sendDurationChanged(webProcessConnection, destinationID, m_cachedState)
     }
 
-    @cxx
-    @implementation
     func mediaPlayerPlaybackStateChanged() {
         let player = player()
         m_cachedState.paused = player.paused()
         Messages.MediaPlayerPrivateRemote.sendPlaybackStateChanged(webProcessConnection, destinationID, m_cachedState.paused, timeUpdateData(player, player.currentTime()))
     }
 
-    @cxx
-    @implementation
     func mediaPlayerRateChanged() {
         updateCachedVideoMetrics()
         sendCachedState()
@@ -654,27 +686,19 @@ extension WebKit.RemoteMediaPlayerProxy {
         Messages.MediaPlayerPrivateRemote.sendDestroyResourceLoader(webProcessConnection, destinationID, loaderIdentifier)
     }
 
-    @cxx
-    @implementation
     func mediaPlayerEngineFailedToLoad() {
         Messages.MediaPlayerPrivateRemote.sendEngineFailedToLoad(webProcessConnection, destinationID, Int64(player().platformErrorCode()))
     }
 
-    @cxx
-    @implementation
     func mediaPlayerResourceNotSupported() {
         Messages.MediaPlayerPrivateRemote.sendResourceNotSupported(webProcessConnection, destinationID)
     }
 
-    @cxx
-    @implementation
     func mediaPlayerSizeChanged() {
         m_cachedState.naturalSize = player().naturalSize()
         Messages.MediaPlayerPrivateRemote.sendSizeChanged(webProcessConnection, destinationID, m_cachedState.naturalSize)
     }
 
-    @cxx
-    @implementation
     func mediaPlayerCharacteristicChanged() {
         updateCachedVideoMetrics()
         updateCachedState(false)
@@ -683,14 +707,10 @@ extension WebKit.RemoteMediaPlayerProxy {
         Messages.MediaPlayerPrivateRemote.sendCharacteristicChanged(webProcessConnection, destinationID, m_cachedState)
     }
 
-    @cxx
-    @implementation
     func mediaPlayerBufferedTimeRangesChanged() {
         m_bufferedChanged = true
     }
 
-    @cxx
-    @implementation
     func mediaPlayerSeekableTimeRangesChanged() {
         let player = player()
         m_cachedState.minTimeSeekable = player.minTimeSeekable()
@@ -703,17 +723,19 @@ extension WebKit.RemoteMediaPlayerProxy {
         }
     }
 
+    #if ENABLE_LEGACY_ENCRYPTED_MEDIA
+    fileprivate func mediaPlayerKeyNeeded(_ message: WebCore.SharedBuffer) {
+        WebKit.sendMediaPlayerKeyNeeded(webProcessConnection, destinationID, message)
+    }
+    #endif
+
     #if ENABLE_ENCRYPTED_MEDIA
-    @cxx
-    @implementation
     func mediaPlayerWaitingForKeyChanged() {
         Messages.MediaPlayerPrivateRemote.sendWaitingForKeyChanged(webProcessConnection, destinationID, player().waitingForKey())
     }
     #endif
 
     #if ENABLE_WIRELESS_PLAYBACK_TARGET
-    @cxx
-    @implementation
     func mediaPlayerCurrentPlaybackTargetIsWirelessChanged(_ isCurrentPlaybackTargetWireless: Bool) {
         let player = player()
         m_cachedState.wirelessPlaybackTargetName = player.wirelessPlaybackTargetName()
@@ -723,6 +745,56 @@ extension WebKit.RemoteMediaPlayerProxy {
         Messages.MediaPlayerPrivateRemote.sendCurrentPlaybackTargetIsWirelessChanged(webProcessConnection, destinationID, isCurrentPlaybackTargetWireless)
     }
     #endif
+
+    // MARK: MediaPlayerClient values
+
+    @cxx
+    @implementation
+    static func makeMediaPlayerClientDelegateBox() -> UInt {
+        makeSwiftMediaPlayerClientDelegateBox(RemoteMediaPlayerClient())
+    }
+
+    @cxx
+    @implementation
+    func connectMediaPlayerClientDelegate() {
+        guard let delegate = clientAdapter.mediaPlayerClientDelegate as? RemoteMediaPlayerClient else {
+            preconditionFailure("The media player client adapter has no RemoteMediaPlayerClient")
+        }
+        delegate.proxy = weakPtrForSwift()
+
+        let adapter = clientAdapter
+        adapter.setRenderingCanBeAccelerated(m_configuration.renderingCanBeAccelerated)
+        adapter.setContentBoxRect(m_configuration.playerContentBoxRect)
+        adapter.setIsVideo(m_configuration.isVideo)
+        adapter.setShouldUsePersistentCache(m_configuration.shouldUsePersistentCache)
+        adapter.setShouldDisableHDR(m_configuration.shouldDisableHDR)
+    }
+
+    private var clientAdapter: WebCore.SwiftMediaPlayerClientAdapter {
+        m_clientAdapter.get()
+    }
+
+    // MARK: For RemoteMediaPlayerClient, which can't reach the proxy's private members
+
+    fileprivate var referrer: WTF.String {
+        m_configuration.referrer
+    }
+
+    fileprivate var userAgent: WTF.String {
+        m_configuration.userAgent
+    }
+
+    fileprivate var sourceApplicationIdentifier: WTF.String {
+        m_configuration.sourceApplicationIdentifier
+    }
+
+    fileprivate var audioOutputDeviceId: WTF.String {
+        m_configuration.audioOutputDeviceId
+    }
+
+    fileprivate var gpuConnection: WebKit.GPUConnectionToWebProcess? {
+        m_manager.get()?.swiftGPUConnection()
+    }
 
     // MARK: Sends
 
@@ -748,7 +820,7 @@ extension WebKit.RemoteMediaPlayerProxy {
         guard willLogAlways() else {
             return
         }
-        let identifier = Swift.String(logIdentifierForSwift(), radix: 16, uppercase: true)
+        let identifier = Swift.String(m_configuration.logIdentifier, radix: 16, uppercase: true)
         let suffix = values()
         let message = "RemoteMediaPlayerProxy::\(function)(\(identifier))" + (suffix.isEmpty ? "" : " \(suffix)")
         logAlways(WTF.String(message))
@@ -842,6 +914,40 @@ private final class RemoteMediaPlayerTracks {
     }
 }
 
+// A player's Swift state: its tracks' proxies, and the reply to its pending PerformTaskAtTime. A media player tracks one
+// pending task at a time (see MediaPlayerPrivateAVFoundationObjC::performTaskAtMediaTime), so a new one cancels the
+// previous one, and the state cancels the last one when the proxy goes.
+private final class RemoteMediaPlayerSwiftState {
+    let tracks: RemoteMediaPlayerTracks
+    private var taskAtTimeReply: CheckedContinuation<IPCTypes.MediaTime?, Never>?
+
+    init(tracks: RemoteMediaPlayerTracks) {
+        self.tracks = tracks
+    }
+
+    deinit {
+        replyToTaskAtTime(nil)
+    }
+
+    func waitForTaskAtTime(_ reply: CheckedContinuation<IPCTypes.MediaTime?, Never>) {
+        taskAtTimeReply = reply
+    }
+
+    func replyToTaskAtTime(_ time: IPCTypes.MediaTime?) {
+        guard let reply = taskAtTimeReply else {
+            return
+        }
+        taskAtTimeReply = nil
+        reply.resume(returning: time)
+    }
+}
+
+extension IPCTypes.MediaTime {
+    fileprivate init(_ time: WTF.MediaTime) {
+        self.init(timeValue: time.timeValue(), timeScale: time.timeScale(), timeFlags: time.timeFlags())
+    }
+}
+
 extension WebKit.RemoteMediaPlayerProxy {
     @cxx
     @implementation
@@ -849,14 +955,14 @@ extension WebKit.RemoteMediaPlayerProxy {
         let tracks = MainActor.assumeIsolated {
             RemoteMediaPlayerTracks()
         }
-        return UInt(bitPattern: unsafe Unmanaged.passRetained(tracks).toOpaque())
+        return UInt(bitPattern: unsafe Unmanaged.passRetained(RemoteMediaPlayerSwiftState(tracks: tracks)).toOpaque())
     }
 
     @cxx
     @implementation
     static func destroySwiftTracks(_ swiftTracks: UInt) {
-        // Safety: the destructor passes the tracks that createSwiftTracks() made, once.
-        unsafe Unmanaged<RemoteMediaPlayerTracks>.fromOpaque(tracksAddress(swiftTracks)).release()
+        // Safety: the destructor passes the state that createSwiftTracks() made, once.
+        unsafe Unmanaged<RemoteMediaPlayerSwiftState>.fromOpaque(tracksAddress(swiftTracks)).release()
     }
 
     private static func tracksAddress(_ swiftTracks: UInt) -> UnsafeMutableRawPointer {
@@ -866,74 +972,256 @@ extension WebKit.RemoteMediaPlayerProxy {
         return unsafe address
     }
 
+    private var swiftState: RemoteMediaPlayerSwiftState {
+        // Safety: m_swiftTracks is a retained RemoteMediaPlayerSwiftState from the constructor to the destructor, and
+        // nothing else changes it.
+        unsafe Unmanaged<RemoteMediaPlayerSwiftState>.fromOpaque(Self.tracksAddress(swiftTracks())).takeUnretainedValue()
+    }
+
     private var tracks: RemoteMediaPlayerTracks {
-        // Safety: m_swiftTracks is a retained RemoteMediaPlayerTracks from the constructor to the destructor, and nothing
-        // else changes it.
-        unsafe Unmanaged<RemoteMediaPlayerTracks>.fromOpaque(Self.tracksAddress(swiftTracks())).takeUnretainedValue()
+        swiftState.tracks
     }
 
     @cxx
     @implementation
-    @MainActor
-    func addRemoteAudioTrackProxy(_ track: WebCore.AudioTrackPrivate) {
-        tracks.addAudioTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+    func cancelPendingTaskAtTime() {
+        swiftState.replyToTaskAtTime(nil)
     }
 
-    @cxx
-    @implementation
     @MainActor
-    func addRemoteVideoTrackProxy(_ track: WebCore.VideoTrackPrivate) {
-        tracks.addVideoTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+    func performTaskAtTime(connection _: IPC.Connection, mediaTime: IPCTypes.MediaTime) async -> IPCTypes.MediaTime? {
+        let state = swiftState
+        state.replyToTaskAtTime(nil)
+
+        let player = player()
+        let taskTime = WTF.MediaTime(mediaTime.timeValue, mediaTime.timeScale, mediaTime.timeFlags)
+        let currentTime = player.currentTime()
+        if WebKit.mediaTimeIsLessThanOrEqual(taskTime, currentTime) {
+            return IPCTypes.MediaTime(currentTime)
+        }
+
+        let weakThis = weakPtrForSwift()
+        return await withCheckedContinuation { (reply: CheckedContinuation<IPCTypes.MediaTime?, Never>) in
+            state.waitForTaskAtTime(reply)
+            _ = WebKit.performMediaPlayerTaskAtTime(player, consuming: WebKit.MediaPlayerTimeTask { (time: WTF.MediaTime) in
+                weakThis.get()?.swiftState.replyToTaskAtTime(IPCTypes.MediaTime(time))
+            }, taskTime)
+        }
     }
 
-    @cxx
-    @implementation
     @MainActor
-    func addRemoteTextTrackProxy(_ track: WebCore.InbandTextTrackPrivate) {
-        tracks.addTextTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+    fileprivate func mediaPlayerDidAddAudioTrack(_ track: WebCore.AudioTrackPrivate) {
+        if prepareTrackForProxy(track) {
+            tracks.addAudioTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+        }
     }
 
-    @cxx
-    @implementation
     @MainActor
-    func removeAudioTrackProxy(_ identifier: WebCore.TrackID) {
-        tracks.removeAudioTrack(identifier)
+    fileprivate func mediaPlayerDidAddVideoTrack(_ track: WebCore.VideoTrackPrivate) {
+        if prepareTrackForProxy(track) {
+            tracks.addVideoTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+        }
     }
 
-    @cxx
-    @implementation
     @MainActor
-    func removeVideoTrackProxy(_ identifier: WebCore.TrackID) {
-        tracks.removeVideoTrack(identifier)
+    fileprivate func mediaPlayerDidAddTextTrack(_ track: WebCore.InbandTextTrackPrivate) {
+        if prepareTrackForProxy(track) {
+            tracks.addTextTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+        }
     }
 
-    @cxx
-    @implementation
     @MainActor
-    func removeTextTrackProxy(_ identifier: WebCore.TrackID) {
-        tracks.removeTextTrack(identifier)
+    fileprivate func mediaPlayerDidRemoveAudioTrack(_ track: WebCore.AudioTrackPrivate) {
+        Messages.MediaPlayerPrivateRemote.sendRemoveRemoteAudioTrack(webProcessConnection, destinationID, track.id())
+        tracks.removeAudioTrack(track.id())
     }
 
-    @cxx
-    @implementation
     @MainActor
-    func audioTrackSetEnabled(_ identifier: WebCore.TrackID, _ enabled: Bool) {
-        tracks.setAudioTrackEnabled(identifier, enabled)
+    fileprivate func mediaPlayerDidRemoveVideoTrack(_ track: WebCore.VideoTrackPrivate) {
+        Messages.MediaPlayerPrivateRemote.sendRemoveRemoteVideoTrack(webProcessConnection, destinationID, track.id())
+        tracks.removeVideoTrack(track.id())
     }
 
-    @cxx
-    @implementation
     @MainActor
-    func videoTrackSetSelected(_ identifier: WebCore.TrackID, _ selected: Bool) {
-        tracks.setVideoTrackSelected(identifier, selected)
+    fileprivate func mediaPlayerDidRemoveTextTrack(_ track: WebCore.InbandTextTrackPrivate) {
+        Messages.MediaPlayerPrivateRemote.sendRemoveRemoteTextTrack(webProcessConnection, destinationID, track.id())
+        tracks.removeTextTrack(track.id())
     }
 
-    @cxx
-    @implementation
     @MainActor
-    func textTrackSetMode(_ identifier: WebCore.TrackID, _ mode: WebCore.InbandTextTrackPrivateMode) {
-        tracks.setTextTrackMode(identifier, mode)
+    func audioTrackSetEnabled(connection _: IPC.Connection, trackId: UInt64, enabled: Bool) {
+        tracks.setAudioTrackEnabled(trackId, enabled)
     }
+
+    @MainActor
+    func videoTrackSetSelected(connection _: IPC.Connection, trackId: UInt64, selected: Bool) {
+        tracks.setVideoTrackSelected(trackId, selected)
+    }
+
+    @MainActor
+    func textTrackSetMode(connection _: IPC.Connection, trackId: UInt64, mode ipcValue: IPCTypes.InbandTextTrackPrivateMode) {
+        guard let mode = WebCore.InbandTextTrackPrivateMode(rawValue: ipcValue.rawValue) else {
+            return
+        }
+        tracks.setTextTrackMode(trackId, mode)
+    }
+}
+
+// The proxy's media player's client: its callbacks, for the proxy while it lives. The proxy's
+// SwiftMediaPlayerClientAdapter owns it, and it holds the proxy weakly.
+final class RemoteMediaPlayerClient: MediaPlayerClientDelegate {
+    // Set as soon as the proxy is adopted, before it receives any message.
+    fileprivate var proxy = WebKit.RemoteMediaPlayerProxy.WeakRemoteMediaPlayerProxy()
+
+    func mediaPlayerNetworkStateChanged() {
+        proxy.get()?.mediaPlayerNetworkStateChanged()
+    }
+
+    func mediaPlayerReadyStateChanged() {
+        proxy.get()?.mediaPlayerReadyStateChanged()
+    }
+
+    func mediaPlayerVolumeChanged() {
+        proxy.get()?.mediaPlayerVolumeChanged()
+    }
+
+    func mediaPlayerMuteChanged() {
+        proxy.get()?.mediaPlayerMuteChanged()
+    }
+
+    func mediaPlayerTimeChanged() {
+        proxy.get()?.mediaPlayerTimeChanged()
+    }
+
+    func mediaPlayerDurationChanged() {
+        proxy.get()?.mediaPlayerDurationChanged()
+    }
+
+    func mediaPlayerRateChanged() {
+        proxy.get()?.mediaPlayerRateChanged()
+    }
+
+    func mediaPlayerPlaybackStateChanged() {
+        proxy.get()?.mediaPlayerPlaybackStateChanged()
+    }
+
+    func mediaPlayerResourceNotSupported() {
+        proxy.get()?.mediaPlayerResourceNotSupported()
+    }
+
+    func mediaPlayerSizeChanged() {
+        proxy.get()?.mediaPlayerSizeChanged()
+    }
+
+    func mediaPlayerFirstVideoFrameAvailable() {
+        proxy.get()?.mediaPlayerFirstVideoFrameAvailable()
+    }
+
+    func mediaPlayerCharacteristicChanged() {
+        proxy.get()?.mediaPlayerCharacteristicChanged()
+    }
+
+    func mediaPlayerRenderingModeChanged() {
+        proxy.get()?.mediaPlayerRenderingModeChanged()
+    }
+
+    func mediaPlayerEngineFailedToLoad() {
+        proxy.get()?.mediaPlayerEngineFailedToLoad()
+    }
+
+    func mediaPlayerBufferedTimeRangesChanged() {
+        proxy.get()?.mediaPlayerBufferedTimeRangesChanged()
+    }
+
+    func mediaPlayerSeekableTimeRangesChanged() {
+        proxy.get()?.mediaPlayerSeekableTimeRangesChanged()
+    }
+
+    func mediaPlayerVideoLayerSize() -> WebCore.FloatSize {
+        proxy.get()?.mediaPlayerVideoLayerSize() ?? WebCore.FloatSize()
+    }
+
+    func mediaPlayerReferrer() -> WTF.String {
+        proxy.get()?.referrer ?? WTF.String()
+    }
+
+    func mediaPlayerUserAgent() -> WTF.String {
+        proxy.get()?.userAgent ?? WTF.String()
+    }
+
+    func mediaPlayerSourceApplicationIdentifier() -> WTF.String {
+        proxy.get()?.sourceApplicationIdentifier ?? WTF.String()
+    }
+
+    func audioOutputDeviceId() -> WTF.String {
+        proxy.get()?.audioOutputDeviceId ?? WTF.String()
+    }
+
+    func mediaPlayerMediaCacheDirectory() -> WTF.String? {
+        proxy.get()?.gpuConnection?.mediaCacheDirectory()
+    }
+
+    #if ENABLE_LEGACY_ENCRYPTED_MEDIA || ENABLE_ENCRYPTED_MEDIA
+    func mediaPlayerMediaKeysStorageDirectory() -> WTF.String? {
+        proxy.get()?.gpuConnection?.mediaKeysStorageDirectory()
+    }
+    #endif
+
+    @MainActor
+    func mediaPlayerDidAddAudioTrack(_ track: WebCore.AudioTrackPrivate) {
+        proxy.get()?.mediaPlayerDidAddAudioTrack(track)
+    }
+
+    @MainActor
+    func mediaPlayerDidRemoveAudioTrack(_ track: WebCore.AudioTrackPrivate) {
+        proxy.get()?.mediaPlayerDidRemoveAudioTrack(track)
+    }
+
+    @MainActor
+    func mediaPlayerDidAddVideoTrack(_ track: WebCore.VideoTrackPrivate) {
+        proxy.get()?.mediaPlayerDidAddVideoTrack(track)
+    }
+
+    @MainActor
+    func mediaPlayerDidRemoveVideoTrack(_ track: WebCore.VideoTrackPrivate) {
+        proxy.get()?.mediaPlayerDidRemoveVideoTrack(track)
+    }
+
+    @MainActor
+    func mediaPlayerDidAddTextTrack(_ track: WebCore.InbandTextTrackPrivate) {
+        proxy.get()?.mediaPlayerDidAddTextTrack(track)
+    }
+
+    @MainActor
+    func mediaPlayerDidRemoveTextTrack(_ track: WebCore.InbandTextTrackPrivate) {
+        proxy.get()?.mediaPlayerDidRemoveTextTrack(track)
+    }
+
+    #if ENABLE_LEGACY_ENCRYPTED_MEDIA
+    func mediaPlayerKeyNeeded(_ message: WebCore.SharedBuffer) {
+        proxy.get()?.mediaPlayerKeyNeeded(message)
+    }
+    #endif
+
+    #if ENABLE_ENCRYPTED_MEDIA
+    func mediaPlayerWaitingForKeyChanged() {
+        proxy.get()?.mediaPlayerWaitingForKeyChanged()
+    }
+    #endif
+
+    #if ENABLE_WIRELESS_PLAYBACK_TARGET
+    func mediaPlayerCurrentPlaybackTargetIsWirelessChanged(_ isCurrentPlaybackTargetWireless: Bool) {
+        proxy.get()?.mediaPlayerCurrentPlaybackTargetIsWirelessChanged(isCurrentPlaybackTargetWireless)
+    }
+
+    func playbackTargetType() -> WebCore.MediaPlaybackTargetType {
+        #if WTF_PLATFORM_IOS_FAMILY
+        proxy.get()?.playbackTargetType() ?? .None
+        #else
+        .None
+        #endif
+    }
+    #endif
 }
 
 #endif // ENABLE_GPU_PROCESS && ENABLE_VIDEO && ENABLE_GPU_PROCESS_MEDIA_SWIFT

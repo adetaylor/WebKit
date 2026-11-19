@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 header: <WebCore/ScreenProperties.h>
-enum class WebCore::DynamicRangeMode : uint8_t {
+[Swift] enum class WebCore::DynamicRangeMode : uint8_t {
     None,
     Standard,
     HLG,

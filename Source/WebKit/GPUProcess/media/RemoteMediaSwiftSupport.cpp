@@ -122,6 +122,11 @@ CVBufferRef videoFramePixelBuffer(const VideoFrame& frame)
 {
     return frame.pixelBuffer();
 }
+
+bool performMediaPlayerTaskAtTime(MediaPlayer& player, MediaPlayerTimeTask&& task, const MediaTime& time)
+{
+    return player.performTaskAtTime(WTF::move(task), time);
+}
 #endif
 
 PlatformMediaCapabilitiesDecodingInfo createMediaDecodingConfiguration(const PlatformMediaDecodingConfiguration& configuration)
@@ -154,6 +159,13 @@ void sendParseWebVTTCueData(IPC::Connection& connection, uint64_t mediaPlayerIde
 {
     connection.send(Messages::MediaPlayerPrivateRemote::ParseWebVTTCueData(trackID, data.span()), mediaPlayerIdentifier);
 }
+
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+void sendMediaPlayerKeyNeeded(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, const SharedBuffer& message)
+{
+    connection.send(Messages::MediaPlayerPrivateRemote::MediaPlayerKeyNeeded(message.span()), mediaPlayerIdentifier);
+}
+#endif
 
 void sendGenericCue(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, RemoteTextTrackCueChange change, InbandGenericCue& cue)
 {
