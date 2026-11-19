@@ -156,6 +156,7 @@ final class RemoteGraphicsContextGL {
     private var client: WebKit.RemoteGraphicsContextGLClient?
     private var shell: WebCore.GraphicsContextGLCocoa?
     private var estimatedMemoryCost: UInt64?
+    private var readbackBytes: [UInt8] = []
     private let idleSpareDrawingBufferReleaseTimer = IdleSpareDrawingBufferReleaseTimer()
     private var idleSpareDrawingBufferReleaseScheduled = false
     private var didDisplaySinceIdleSpareDrawingBufferReleaseScheduled = false
@@ -205,6 +206,7 @@ final class RemoteGraphicsContextGL {
         #if WTF_PLATFORM_COCOA
         shell = nil
         client = nil
+        readbackBytes = []
         #endif
     }
 
@@ -553,11 +555,12 @@ extension RemoteGraphicsContextGL {
             context.addError(.InvalidOperation)
             return []
         }
-        var data = [UInt8](repeating: 0, count: Int(dataSize))
+        var data = takeZeroedReadbackBytes(count: Int(dataSize))
         let succeeded = data.withUnsafeMutableBufferPointer { buffer in
             // Safety: the context writes at most the span's bytes, which the buffer holds during the call.
             unsafe context.getBufferSubDataWithStatus(glTarget, Int(truncatingIfNeeded: offset), WTF.MutableSpanUInt8(buffer))
         }
+        readbackBytes = data
         return succeeded ? data : []
     }
 
@@ -586,11 +589,12 @@ extension RemoteGraphicsContextGL {
         var pixels: [UInt8] = []
         var readArea: WebCore.IntSize?
         if replyImageBytes <= readPixelsInlineSizeLimit {
-            pixels = [UInt8](repeating: 0, count: Int(replyImageBytes))
+            pixels = takeZeroedReadbackBytes(count: Int(replyImageBytes))
             readArea = pixels.withUnsafeMutableBufferPointer { buffer in
                 // Safety: the context writes at most the span's bytes, which the buffer holds during the call.
                 Optional(fromCxx: unsafe context.readPixelsWithStatus(WebCore.IntRect(rect.location.x, rect.location.y, rect.size.width, rect.size.height), format, type, packReverseRowOrder ? 1 : 0, WTF.MutableSpanUInt8(buffer)))
             }
+            readbackBytes = pixels
         } else {
             context.addError(.OutOfMemory)
         }
@@ -598,6 +602,16 @@ extension RemoteGraphicsContextGL {
             return (nil, [])
         }
         return (IPCTypes.IntSize(width: readArea.width(), height: readArea.height()), pixels)
+    }
+
+    // The storage of the last inline readback's reply, which the next one reuses once the reply has gone, so that
+    // readbacks don't allocate and free their bytes each time.
+    private func takeZeroedReadbackBytes(count: Int) -> [UInt8] {
+        var bytes: [UInt8] = []
+        swap(&bytes, &readbackBytes)
+        bytes.removeAll(keepingCapacity: true)
+        bytes.append(contentsOf: repeatElement(0, count: count))
+        return bytes
     }
 
     func readPixelsSharedMemory(rect: IPCTypes.IntRect, format: UInt32, type: UInt32, packReverseRowOrder: Bool, handle: CxxDecodedArguments.RemoteGraphicsContextGL.ReadPixelsSharedMemoryHandle) -> IPCTypes.IntSize? {
