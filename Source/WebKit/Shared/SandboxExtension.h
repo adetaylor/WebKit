@@ -32,6 +32,7 @@
 #include <wtf/ProcessID.h>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
@@ -78,7 +79,9 @@ private:
 };
 #endif
 
-class SandboxExtensionHandle {
+// Not copyable in Swift: a copy of a handle without an extension would crash, and one with an extension would be a second
+// grant of it.
+class SWIFT_NONCOPYABLE SandboxExtensionHandle {
 public:
     SandboxExtensionHandle();
     SandboxExtensionHandle(const SandboxExtensionHandle&);

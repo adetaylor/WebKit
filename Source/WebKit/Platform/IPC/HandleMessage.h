@@ -378,7 +378,8 @@ struct MethodSignatureValidationImpl<std::tuple<StreamServerConnection*, Message
 template<typename... MessageArgumentTypes>
 struct MethodSignatureValidationImpl<std::tuple<MessageArgumentTypes...>, std::tuple<>> {
     static constexpr bool expectsConnectionArgument = false;
-    using MessageArguments = std::tuple<std::remove_cvref_t<MessageArgumentTypes>...>;
+    // A handler that Swift implements takes a move-only argument as a MoveOnlyArgument, made from the decoded value.
+    using MessageArguments = std::tuple<typename WTF::RemoveMoveOnlyArgument<std::remove_cvref_t<MessageArgumentTypes>>::Type...>;
     using CompletionHandlerType = void;
     static constexpr std::identity wrapCompletionHandler { };
     static constexpr std::identity unwrapCompletionHandler { };

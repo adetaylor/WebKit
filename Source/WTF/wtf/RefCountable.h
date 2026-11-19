@@ -25,6 +25,9 @@
 
 #pragma once
 
+#include <optional>
+#include <wtf/Assertions.h>
+#include <wtf/Lock.h>
 #include <wtf/Ref.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -86,4 +89,73 @@ private:
     T m_value;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
+// A move-only value that C++ hands to Swift, which can't take a move-only C++ type as a parameter of a function that it
+// implements with @cxx @implementation. Swift gets the box, a reference type, and takes the value out of it once, as a
+// non-copyable value that it can borrow, or move into C++ (a T&& parameter imports with a 'consuming:' label).
+template<typename T>
+class MoveOnlyBox final : public ThreadSafeRefCounted<MoveOnlyBox<T>> {
+public:
+    static Ref<MoveOnlyBox> create(T&& value)
+    {
+        return adoptRef(*new MoveOnlyBox(WTF::move(value)));
+    }
+
+#ifdef __swift__
+    // As RefCountable does, for the same reason.
+    void ref() const
+    {
+        ThreadSafeRefCounted<MoveOnlyBox<T>>::ref();
+    }
+
+    void deref() const
+    {
+        ThreadSafeRefCounted<MoveOnlyBox<T>>::deref();
+    }
+#endif
+
+    // The value, which only one caller can take, on any thread.
+    T take()
+    {
+        Locker locker { m_lock };
+        RELEASE_ASSERT(m_value);
+        return *std::exchange(m_value, std::nullopt);
+    }
+
+private:
+    explicit MoveOnlyBox(T&& value)
+        : m_value(WTF::move(value))
+    {
+    }
+
+    Lock m_lock;
+    std::optional<T> m_value WTF_GUARDED_BY_LOCK(m_lock);
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// A move-only parameter of a function that Swift implements with @cxx @implementation: a box of the value, which C++
+// callers and IPC dispatch make implicitly from the value they would pass. Copies share the box.
+template<typename T>
+class MoveOnlyArgument {
+public:
+    MoveOnlyArgument(T&& value)
+        : m_box(MoveOnlyBox<T>::create(WTF::move(value)))
+    {
+    }
+
+    T take() const { return m_box->take(); }
+
+private:
+    Ref<MoveOnlyBox<T>> m_box;
+};
+
+// The type that a parameter of type MoveOnlyArgument<T> is made from.
+template<typename T> struct RemoveMoveOnlyArgument {
+    using Type = T;
+};
+template<typename T> struct RemoveMoveOnlyArgument<MoveOnlyArgument<T>> {
+    using Type = T;
+};
+
 } // namespace WTF
+
+using WTF::MoveOnlyArgument;
+using WTF::MoveOnlyBox;
