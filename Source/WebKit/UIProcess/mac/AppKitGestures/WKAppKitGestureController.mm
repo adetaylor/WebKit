@@ -883,7 +883,8 @@ static BOOL isCatchingDeceleratingScroll(NSGestureRecognizer *scrollViewPanGestu
     if (!webView)
         return;
 
-    _positionInformationManager = makeUnique<WebKit::PositionInformationManager>(*[webView _protectedPage]);
+    if (!_positionInformationManager)
+        _positionInformationManager = makeUnique<WebKit::PositionInformationManager>(*[webView _protectedPage]);
 
     [self setUpGestureRecognizers];
     [self addGesturesToWebView];
