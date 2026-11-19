@@ -1308,7 +1308,7 @@ static BOOL isCatchingDeceleratingScroll(NSGestureRecognizer *scrollViewPanGestu
     impl->dismissContentRelativeChildWindowsWithAnimation(false);
 
     auto magnificationOrigin = [webView convertPoint:[gesture locationInView:nil] fromView:nil];
-    protect(impl->ensureGestureController())->handleSmartMagnificationGesture(magnificationOrigin);
+    impl->handleSmartMagnificationGesture(magnificationOrigin);
 }
 
 - (void)domDoubleClickGestureRecognized:(NSGestureRecognizer *)gesture
@@ -2698,10 +2698,8 @@ ALLOW_NEW_API_WITHOUT_GUARDS_END
 
     if (RefPtr page = [webView _protectedPage]; page->delegatesScalingToUIProcess()) {
         CheckedPtr impl = [webView _impl];
-        if (RefPtr gestureController = impl->gestureController(); gestureController && gestureController->hasActiveMagnificationGesture()) {
+        if (impl->moveMagnificationOriginIfMagnifying(locationInView))
             gestureDelta = { };
-            gestureController->moveMagnificationOrigin(locationInView);
-        }
     }
 
     auto pinnedState = [webView _protectedPage]->pinnedStateIncludingAncestorsAtPoint(locationInView);
@@ -2753,7 +2751,7 @@ ALLOW_NEW_API_WITHOUT_GUARDS_END
     auto dispatchWheelEvent = [&](WebCore::FloatSize delta) {
         [self interruptMomentumForScrollWheelEvent];
 
-        _lastPanWheelEventWasHandledByViewGestureController = forwardToGestureController && protect(impl->ensureGestureController())->handleScrollWheelEvent(makeWheelEvent(delta));
+        _lastPanWheelEventWasHandledByViewGestureController = forwardToGestureController && impl->handleScrollWheelEventForNavigationGesture(makeWheelEvent(delta));
         if (_lastPanWheelEventWasHandledByViewGestureController) {
             WK_APPKIT_GESTURE_CONTROLLER_RELEASE_LOG_DEBUG([webView _protectedPage]->logIdentifier(), "View gesture controller handled gesture");
             return;
@@ -2996,17 +2994,14 @@ ALLOW_NEW_API_WITHOUT_GUARDS_END
     if (phase == WebKit::WebEventPhase::Began)
         viewImpl->dismissContentRelativeChildWindowsWithAnimation(false);
 
-    Ref gestureController = viewImpl->ensureGestureController();
-
 #if ENABLE(MAC_GESTURE_EVENTS)
-    if (gestureController->hasActiveMagnificationGesture()) {
-        gestureController->handleMagnificationGesture(magnification, phase, webEvent ? webEvent->position() : WebCore::FloatPoint { }, WebKit::WebEventInputSource::Touch);
+    if (viewImpl->handleMagnificationGestureIfMagnifying(magnification, phase, webEvent ? webEvent->position() : WebCore::FloatPoint { }, WebKit::WebEventInputSource::Touch))
         return;
-    }
 
     if (webEvent)
         page->handleGestureEvent(*webEvent);
 #else
+    Ref gestureController = viewImpl->ensureGestureController();
     gestureController->handleMagnificationGesture(magnification, phase, webEvent ? webEvent->position() : WebCore::FloatPoint { }, WebKit::WebEventInputSource::Touch);
 #endif
 }
