@@ -316,7 +316,9 @@ final class RemoteCGRendererRecorder {
                 try messageCheck { false }
                 return
             }
-            recordedDisplayLists[RemoteIdentifierKey(value: key)] = recording
+            if recordedDisplayLists.index(forKey: RemoteIdentifierKey(value: key)) == nil {
+                recordedDisplayLists[RemoteIdentifierKey(value: key)] = recording
+            }
         case .drawSnapshotFrame(let frameIdentifier):
             namesResource = false
             // A frame that the snapshot then waits for.
