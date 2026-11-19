@@ -229,3 +229,161 @@ extension WebCore.CDMSessionType {
 }
 
 #endif // ENABLE_WEBCORE_SWIFT && ENABLE_ENCRYPTED_MEDIA
+
+#if ENABLE_ENCRYPTED_MEDIA
+
+// MARK: Client adapters
+
+import WebCore_Private.Core.CDMPrivate
+import WebCore_Private.Core.SharedBuffer
+import wtf
+
+// What a CDM instance tells its client. Each call is on the main thread.
+@_spi(WebKitGPU) @MainActor public protocol CDMInstanceClientDelegate: AnyObject {
+    func cdmInstanceDidReceiveUnrequestedInitializationData(type: WTF.String, initData: WebCore.SharedBuffer)
+}
+
+private typealias CDMInstanceClientDelegateBox = SwiftDelegateBox<any CDMInstanceClientDelegate>
+
+// An instance of the CDM, if it makes one, with a client whose callbacks go to `delegate`, which owns the adapter.
+@_spi(WebKitGPU) @MainActor public func makeCDMInstanceClientSwiftAdapter(
+    cdm: WebCore.CDMPrivateClientSwiftAdapter,
+    delegate: any CDMInstanceClientDelegate
+) -> (adapter: WebCore.CDMInstanceClientSwiftAdapter, instance: WebCore.CDMInstance)? {
+    guard let instance = cdm.createInstance() else {
+        return nil
+    }
+    // Safety: the box is retained for the adapter, whose destructor releases it.
+    let adapter = unsafe WebCore.CDMInstanceClientSwiftAdapter.create(cdm, instance, CDMInstanceClientDelegateBox.retained { [weak delegate] in delegate })
+    return (adapter, instance)
+}
+
+extension WebCore.CDMInstanceClientSwiftAdapter {
+    private var delegate: (any CDMInstanceClientDelegate)? {
+        unsafe CDMInstanceClientDelegateBox.loadDelegate(m_delegateBox)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func didReceiveUnrequestedInitializationData(_ type: WTF.String, _ initData: WebCore.SharedBuffer) {
+        MainActor.preconditionIsolated()
+        delegate?.cdmInstanceDidReceiveUnrequestedInitializationData(type: type, initData: initData)
+    }
+
+    @cxx
+    @implementation
+    static func releaseDelegateBox(_ box: UInt) {
+        unsafe CDMInstanceClientDelegateBox.release(box)
+    }
+}
+
+#endif // ENABLE_ENCRYPTED_MEDIA
+
+#if ENABLE_LEGACY_ENCRYPTED_MEDIA
+
+// MARK: Legacy client adapters
+
+import WebCore_Private.Core.LegacyCDM
+import WebCore_Private.Core.MediaPlayer
+import WebCore_Private.Core.SharedBuffer
+import wtf
+
+// What a legacy CDM asks its client. Each call is on the main thread.
+@_spi(WebKitGPU) @MainActor public protocol LegacyCDMClientDelegate: AnyObject {
+    // The media player the CDM is for, if any.
+    func legacyCDMMediaPlayer() -> WebCore.RefPtrLegacyCDMMediaPlayer
+}
+
+// What a legacy CDM session tells and asks its client. Each call is on the main thread.
+@_spi(WebKitGPU) @MainActor public protocol LegacyCDMSessionClientDelegate: AnyObject {
+    func legacyCDMSessionSendMessage(_ message: WebCore.SharedBuffer?, destinationURL: WTF.String)
+    func legacyCDMSessionSendError(_ errorCode: UInt16, systemCode: UInt32)
+    func legacyCDMSessionMediaKeysStorageDirectory() -> WTF.String
+}
+
+private typealias LegacyCDMClientDelegateBox = SwiftDelegateBox<any LegacyCDMClientDelegate>
+private typealias LegacyCDMSessionClientDelegateBox = SwiftDelegateBox<any LegacyCDMSessionClientDelegate>
+
+// The legacy CDM for the key system, if any, with a client whose callbacks go to `delegate`, which owns the adapter.
+@_spi(WebKitGPU) @MainActor public func makeLegacyCDMClientSwiftAdapter(
+    keySystem: WTF.String,
+    delegate: any LegacyCDMClientDelegate
+) -> WebCore.LegacyCDMClientSwiftAdapter? {
+    // Safety: the box is retained for the adapter, or released if there's none.
+    unsafe WebCore.LegacyCDMClientSwiftAdapter.create(keySystem, LegacyCDMClientDelegateBox.retained { [weak delegate] in delegate })
+}
+
+// A session of the legacy CDM, with a client whose callbacks go to `delegate`, which owns the adapter.
+@_spi(WebKitGPU) @MainActor public func makeLegacyCDMSessionClientSwiftAdapter(
+    cdm: WebCore.LegacyCDMClientSwiftAdapter,
+    logger: WTF.Logger,
+    logIdentifier: UInt64,
+    delegate: any LegacyCDMSessionClientDelegate
+) -> WebCore.LegacyCDMSessionClientSwiftAdapter {
+    // Safety: the box is retained for the adapter, whose destructor releases it.
+    unsafe WebCore.LegacyCDMSessionClientSwiftAdapter.create(
+        cdm,
+        logger,
+        logIdentifier,
+        LegacyCDMSessionClientDelegateBox.retained { [weak delegate] in delegate }
+    )
+}
+
+extension WebCore.LegacyCDMClientSwiftAdapter {
+    private var delegate: (any LegacyCDMClientDelegate)? {
+        unsafe LegacyCDMClientDelegateBox.loadDelegate(m_delegateBox)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func delegateMediaPlayer() -> WebCore.RefPtrLegacyCDMMediaPlayer {
+        MainActor.preconditionIsolated()
+        return delegate?.legacyCDMMediaPlayer() ?? WebCore.RefPtrLegacyCDMMediaPlayer(nil)
+    }
+
+    @cxx
+    @implementation
+    static func releaseDelegateBox(_ box: UInt) {
+        unsafe LegacyCDMClientDelegateBox.release(box)
+    }
+}
+
+extension WebCore.LegacyCDMSessionClientSwiftAdapter {
+    private var delegate: (any LegacyCDMSessionClientDelegate)? {
+        unsafe LegacyCDMSessionClientDelegateBox.loadDelegate(m_delegateBox)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func delegateSendMessage(_ message: WebCore.SharedBuffer?, _ destinationURL: WTF.String) {
+        MainActor.preconditionIsolated()
+        delegate?.legacyCDMSessionSendMessage(message, destinationURL: destinationURL)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func delegateSendError(_ errorCode: UInt16, _ systemCode: UInt32) {
+        MainActor.preconditionIsolated()
+        delegate?.legacyCDMSessionSendError(errorCode, systemCode: systemCode)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func delegateMediaKeysStorageDirectory() -> WTF.String {
+        MainActor.preconditionIsolated()
+        return delegate?.legacyCDMSessionMediaKeysStorageDirectory() ?? WTF.String()
+    }
+
+    @cxx
+    @implementation
+    static func releaseDelegateBox(_ box: UInt) {
+        unsafe LegacyCDMSessionClientDelegateBox.release(box)
+    }
+}
+
+#endif // ENABLE_LEGACY_ENCRYPTED_MEDIA

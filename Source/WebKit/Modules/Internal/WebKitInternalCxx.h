@@ -92,6 +92,7 @@
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMFactoryProxyMessages.h"
+#include "RemoteCDMInstanceMessages.h"
 #include "RemoteCDMInstanceProxyMessages.h"
 #include "RemoteCDMInstanceSessionProxyMessages.h"
 #include "RemoteCDMProxyMessages.h"
@@ -101,6 +102,7 @@
 #include "RemoteImageDecoderAVFProxyMessages.h"
 #include "RemoteLegacyCDMFactoryProxyMessages.h"
 #include "RemoteLegacyCDMProxyMessages.h"
+#include "RemoteLegacyCDMSessionMessages.h"
 #include "RemoteLegacyCDMSessionProxyMessages.h"
 #include "RemoteMediaEngineConfigurationFactoryProxyMessages.h"
 #include "RemoteMediaSwiftSupport.h"

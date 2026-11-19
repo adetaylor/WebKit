@@ -70,7 +70,7 @@ final class RemoteLegacyCDMFactoryProxy {
     // The session the web process's RemoteLegacyCDMSession with that identifier stands for, for the media players.
     @_expose(!Cxx)
     @MainActor
-    func session(_ identifier: UInt64) -> WebKit.RemoteLegacyCDMSessionClient? {
+    func session(_ identifier: UInt64) -> WebCore.LegacyCDMSessionClientSwiftAdapter? {
         sessions[identifier]?.client
     }
 
@@ -98,13 +98,11 @@ final class RemoteLegacyCDMFactoryProxy {
         keySystem: String?,
         playerId: IPCTypes.MediaPlayerIdentifier?
     ) -> IPCTypes.RemoteLegacyCDMIdentifier? {
-        guard let gpuConnection = self.connection else {
+        guard let gpuConnection = self.connection,
+            let cdm = RemoteLegacyCDMProxy(factory: self, keySystem: IPCCoding.WTFString.cxxString(keySystem), playerId: playerId)
+        else {
             return nil
         }
-        guard let client = WebKit.RemoteLegacyCDMClient.create(gpuConnection, IPCCoding.WTFString.cxxString(keySystem)) else {
-            return nil
-        }
-        let cdm = RemoteLegacyCDMProxy(factory: self, client: client, playerId: playerId)
         let identifier = WTF.ObjectIdentifierMainThreadAccessTraits.generateIdentifierInternal()
         assert(cdms[identifier] == nil)
         cdmRegistrations[identifier] = IPC.registerSwiftReceiver(gpuConnection, cdm.getMessageReceiver(), .RemoteLegacyCDMProxy, identifier)
@@ -154,19 +152,27 @@ extension RemoteLegacyCDMFactoryProxy: GPUConnectionReceiver {
     }
 }
 
-// Receives the messages of one of the web process's RemoteLegacyCDMs.
+// Receives the messages of one of the web process's RemoteLegacyCDMs, and is its legacy CDM's client, which finds the
+// media player the web process names.
 @_expose(Cxx)
 final class RemoteLegacyCDMProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteLegacyCDMProxyMessageForwarder?
     private weak var factory: RemoteLegacyCDMFactoryProxy?
-    private let client: WebKit.RemoteLegacyCDMClient
+    // Optional just because of an initialization order issue. Always occupied after initialization finished.
+    private var client: WebCore.LegacyCDMClientSwiftAdapter?
+    private var playerId: IPCTypes.MediaPlayerIdentifier?
 
+    // Nil if no legacy CDM supports the key system.
     @_expose(!Cxx)
-    init(factory: RemoteLegacyCDMFactoryProxy, client: WebKit.RemoteLegacyCDMClient, playerId: IPCTypes.MediaPlayerIdentifier?) {
+    @MainActor
+    init?(factory: RemoteLegacyCDMFactoryProxy, keySystem: WTF.String, playerId: IPCTypes.MediaPlayerIdentifier?) {
         self.factory = factory
+        self.playerId = playerId
+        guard let client = makeLegacyCDMClientSwiftAdapter(keySystem: keySystem, delegate: self) else {
+            return nil
+        }
         self.client = client
-        client.setPlayerIdentifier(playerId?.rawValue ?? 0)
         self.messageForwarder = WebKit.RemoteLegacyCDMProxyMessageForwarder.create(target: self)
     }
 
@@ -192,18 +198,22 @@ final class RemoteLegacyCDMProxy {
 
     @MainActor
     func supportsMIMEType(connection: IPC.Connection, mimeType: String?) -> Bool {
-        client.supportsMIMEType(IPCCoding.WTFString.cxxString(mimeType))
+        client?.supportsMIMEType(IPCCoding.WTFString.cxxString(mimeType)) ?? false
     }
 
     @MainActor
     func createSession(connection: IPC.Connection, logIdentifier: UInt64) -> IPCTypes.RemoteLegacyCDMSessionIdentifier? {
-        guard let factory, let gpuConnection = factory.connection else {
+        guard let factory, let gpuConnection = factory.connection, let client else {
             return nil
         }
         let identifier = WTF.ObjectIdentifierMainThreadAccessTraits.generateIdentifierInternal()
         let session = RemoteLegacyCDMSessionProxy(
             factory: factory,
-            client: WebKit.RemoteLegacyCDMSessionClient.create(gpuConnection, client, identifier, logIdentifier)
+            cdm: client,
+            logger: gpuConnection.logger(),
+            connection: connection,
+            identifier: identifier,
+            logIdentifier: logIdentifier
         )
         factory.add(session: session, identifier: identifier)
         return IPCTypes.RemoteLegacyCDMSessionIdentifier(rawValue: identifier)
@@ -211,24 +221,50 @@ final class RemoteLegacyCDMProxy {
 
     @MainActor
     func setPlayerId(connection: IPC.Connection, playerId: IPCTypes.MediaPlayerIdentifier?) {
-        client.setPlayerIdentifier(playerId?.rawValue ?? 0)
+        self.playerId = playerId
     }
 }
 
-// Receives the messages of one of the web process's RemoteLegacyCDMSessions.
+extension RemoteLegacyCDMProxy: LegacyCDMClientDelegate {
+    @_expose(!Cxx)
+    @MainActor
+    func legacyCDMMediaPlayer() -> WebCore.RefPtrLegacyCDMMediaPlayer {
+        guard let playerId, let connection = factory?.connection else {
+            return WebCore.RefPtrLegacyCDMMediaPlayer(nil)
+        }
+        return WebKit.legacyCDMMediaPlayer(connection, playerId.rawValue)
+    }
+}
+
+// Receives the messages of one of the web process's RemoteLegacyCDMSessions, and is its legacy CDM session's client, which
+// sends the session's messages and errors to it.
 @_expose(Cxx)
 final class RemoteLegacyCDMSessionProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteLegacyCDMSessionProxyMessageForwarder?
     // Until the factory removes the session.
     private weak var factory: RemoteLegacyCDMFactoryProxy?
+    // The connection to the web process's RemoteLegacyCDMSession with that identifier.
+    private let connection: IPC.Connection
+    private let identifier: UInt64
+    // Optional just because of an initialization order issue. Always occupied after initialization finished.
     @_expose(!Cxx)
-    let client: WebKit.RemoteLegacyCDMSessionClient
+    private(set) var client: WebCore.LegacyCDMSessionClientSwiftAdapter?
 
     @_expose(!Cxx)
-    init(factory: RemoteLegacyCDMFactoryProxy, client: WebKit.RemoteLegacyCDMSessionClient) {
+    @MainActor
+    init(
+        factory: RemoteLegacyCDMFactoryProxy,
+        cdm: WebCore.LegacyCDMClientSwiftAdapter,
+        logger: WTF.Logger,
+        connection: IPC.Connection,
+        identifier: UInt64,
+        logIdentifier: UInt64
+    ) {
         self.factory = factory
-        self.client = client
+        self.connection = connection
+        self.identifier = identifier
+        self.client = makeLegacyCDMSessionClientSwiftAdapter(cdm: cdm, logger: logger, logIdentifier: logIdentifier, delegate: self)
         self.messageForwarder = WebKit.RemoteLegacyCDMSessionProxyMessageForwarder.create(target: self)
     }
 
@@ -240,11 +276,11 @@ final class RemoteLegacyCDMSessionProxy {
         return messageForwarder
     }
 
+    // The session no longer reaches the web process.
     @_expose(!Cxx)
     @MainActor
     func invalidate() {
         factory = nil
-        client.invalidate()
     }
 
     @used
@@ -269,7 +305,7 @@ final class RemoteLegacyCDMSessionProxy {
         var destinationURL = WTF.String()
         var errorCode: UInt16 = 0
         var systemCode: UInt32 = 0
-        let nextMessage = client.generateKeyRequest(
+        let nextMessage = client?.generateKeyRequest(
             IPCCoding.WTFString.cxxString(mimeType),
             initData,
             IPCCoding.WTFString.cxxString(mediaKeysHashSalt),
@@ -282,7 +318,7 @@ final class RemoteLegacyCDMSessionProxy {
 
     @MainActor
     func releaseKeys(connection: IPC.Connection) {
-        client.releaseKeys()
+        client?.releaseKeys()
     }
 
     @MainActor
@@ -293,13 +329,39 @@ final class RemoteLegacyCDMSessionProxy {
         var succeeded = false
         var errorCode: UInt16 = 0
         var systemCode: UInt32 = 0
-        let nextMessage = client.update(update, &succeeded, &errorCode, &systemCode)
+        let nextMessage = client?.update(update, &succeeded, &errorCode, &systemCode)
         return (succeeded, nextMessage, errorCode, systemCode)
     }
 
     @MainActor
     func cachedKeyForKeyID(connection: IPC.Connection, keyId: String?) -> WebCore.SharedBuffer? {
-        client.cachedKeyForKeyID(IPCCoding.WTFString.cxxString(keyId))
+        client?.cachedKeyForKeyID(IPCCoding.WTFString.cxxString(keyId))
+    }
+}
+
+extension RemoteLegacyCDMSessionProxy: LegacyCDMSessionClientDelegate {
+    @_expose(!Cxx)
+    @MainActor
+    func legacyCDMSessionSendMessage(_ message: WebCore.SharedBuffer?, destinationURL: WTF.String) {
+        guard factory != nil else {
+            return
+        }
+        Messages.RemoteLegacyCDMSession.sendSendMessage(connection, identifier, message, destinationURL)
+    }
+
+    @_expose(!Cxx)
+    @MainActor
+    func legacyCDMSessionSendError(_ errorCode: UInt16, systemCode: UInt32) {
+        guard factory != nil else {
+            return
+        }
+        Messages.RemoteLegacyCDMSession.sendSendError(connection, identifier, errorCode, systemCode)
+    }
+
+    @_expose(!Cxx)
+    @MainActor
+    func legacyCDMSessionMediaKeysStorageDirectory() -> WTF.String {
+        factory?.connection?.mediaKeysStorageDirectory() ?? WTF.String()
     }
 }
 
@@ -307,9 +369,9 @@ extension WebKit.GPUConnectionToWebProcess {
     @cxx
     @implementation
     @MainActor
-    func legacyCDMSession(_ identifier: UInt64) -> WebKit.RefPtrRemoteLegacyCDMSessionClient {
+    func legacyCDMSession(_ identifier: UInt64) -> WebKit.RefPtrLegacyCDMSessionClientSwiftAdapter {
         MainActor.preconditionIsolated()
-        return WebKit.RefPtrRemoteLegacyCDMSessionClient(state.legacyCDMFactory?.session(identifier))
+        return WebKit.RefPtrLegacyCDMSessionClientSwiftAdapter(state.legacyCDMFactory?.session(identifier))
     }
 }
 
