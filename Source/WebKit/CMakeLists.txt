@@ -1043,6 +1043,7 @@ if (APPLE)
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteImageBufferMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteImageBufferSetMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
         GPUProcess/graphics/RemoteRenderingBackend.cpp
         GPUProcess/graphics/RemoteSnapshotSink.cpp
@@ -1875,6 +1876,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteGraphicsContextGLMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferSetMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRenderer.swift
@@ -1886,6 +1888,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteImageBuffer.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteImageBufferSet.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferSetMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteRenderingBackend.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteResourceCache.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/ScopedRenderingResourcesRequest.swift

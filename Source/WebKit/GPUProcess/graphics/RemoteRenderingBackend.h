@@ -224,6 +224,7 @@ public:
     // A handle to a bitmap of the image, which the image draws from from then on: none if it can't be made.
     OptionalShareableBitmapHandle createBitmapHandleReplacingPlatformImage(WebCore::NativeImage&);
     static void appendVolatileBuffers(ImageBufferSetVolatileBuffers& buffers, ImageBufferSetIdentifier identifier, OptionSetBufferInSetType volatileBuffers) { buffers.append({ identifier, volatileBuffers }); }
+    static void appendRawVolatileBuffers(ImageBufferSetVolatileBuffers& buffers, ImageBufferSetIdentifier identifier, uint8_t volatileBuffers) { buffers.append({ identifier, OptionSet<BufferInSetType>::fromRaw(volatileBuffers) }); }
     static bool hasHandle(const OptionalShareableBitmapHandle& handle) { return !!handle; }
     static RefPtrNativeImage createNativeImage(WebCore::ShareableBitmap&);
     // The image buffer's IOSurface, if it has one, and whether its colour space is Display P3.

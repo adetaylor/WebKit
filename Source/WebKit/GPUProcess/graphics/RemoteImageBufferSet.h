@@ -29,108 +29,26 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 
-#include "ImageBufferBackendHandleSharing.h"
-#include "ImageBufferSetIdentifier.h"
+// With the CG renderer in Swift, a layer's image buffer set is RemoteImageBufferSet.swift.
+
 #include "PrepareBackingStoreBuffersData.h"
-#include "RemoteGraphicsContextIdentifier.h"
 #include "RemoteImageBufferSetConfiguration.h"
-#include "RemoteRenderingBackend.h"
 #include "RenderingUpdateID.h"
-#include "StreamMessageReceiver.h"
-#include "StreamServerConnection.h"
-#include <WebCore/ImageBuffer.h>
-#include <wtf/SwiftBridging.h>
+#include <wtf/Forward.h>
+
+namespace IPC {
+template<typename> class CxxDecodedArgument;
+class SwiftReplyEncoder;
+}
+
+namespace WebCore {
+class ImageBuffer;
+}
 
 namespace WebKit {
 
-// A set's buffers, as the end of its preparation for display leaves them.
-struct RemoteImageBufferSetBuffers {
-    RefPtr<WebCore::ImageBuffer> front;
-    RefPtr<WebCore::ImageBuffer> back;
-    RefPtr<WebCore::ImageBuffer> secondaryBack;
-
-    static RemoteImageBufferSetBuffers make(RefPtrImageBuffer front, RefPtrImageBuffer back, RefPtrImageBuffer secondaryBack) { return { WTF::move(front), WTF::move(back), WTF::move(secondaryBack) }; }
-};
-
-// The image buffers of a layer: the front buffer that a rendering update draws into, and the back buffers that the display
-// may still show. Implemented in Swift (RemoteImageBufferSet.swift), on the state that m_swiftState holds, on the rendering
-// backend's work queue; the replies that hold C++ handles are made here.
-class SWIFT_PRIVATE_FILEID("WebKit/RemoteImageBufferSet.swift") RemoteImageBufferSet final : public IPC::StreamMessageReceiver {
-public:
-    static Ref<RemoteImageBufferSet> create(ImageBufferSetIdentifier identifier, RemoteGraphicsContextIdentifier contextIdentifier, RemoteRenderingBackend& backend)
-    {
-        Ref set = adoptRef(*new RemoteImageBufferSet(identifier, createSwiftState(contextIdentifier, backend), backend));
-        backend.streamConnection().startReceivingMessages(set.get(), IPC::ReceiverName::RemoteImageBufferSet, identifier.toUInt64());
-        return set;
-    }
-    ~RemoteImageBufferSet() { destroySwiftState(m_swiftState); }
-    void stopListeningForIPC() { m_renderingBackend->streamConnection().stopReceivingMessages(IPC::ReceiverName::RemoteImageBufferSet, m_identifier.toUInt64()); }
-    void ref() const { StreamMessageReceiver::ref(); }
-    void deref() const { StreamMessageReceiver::deref(); }
-
-    // Makes the front buffer valid, by swapping in a back buffer or allocating one, and, unless it needs no display, starts
-    // receiving its drawing. For a full display, the dirty region becomes the layer's bounds.
-    SwapBuffersDisplayRequirement ensureBufferForDisplay(ImageBufferSetPrepareBufferForDisplayInputData&, bool isSync);
-    // Copies what the dirty region leaves of the previous frame into the new front buffer, clips to the region, and clears
-    // the pixels to be drawn, unless drawing will be opaque.
-    void prepareBufferForDisplay(WebCore::Region dirtyRegion, bool requiresClearedPixels);
-    bool makeBuffersVolatile(OptionSet<BufferInSetType> requestedBuffers, OptionSet<BufferInSetType>& volatileBuffers, bool forcePurge)
-    {
-        auto result = swiftMakeBuffersVolatile(requestedBuffers.toRaw(), forcePurge);
-        volatileBuffers = OptionSet<BufferInSetType>::fromRaw(result & 0xff);
-        return !(result & swiftSomeBuffersStayedNonVolatile);
-    }
-    bool isPreparingForDisplay() const;
-
-private:
-    RemoteImageBufferSet(ImageBufferSetIdentifier identifier, uintptr_t swiftState, RemoteRenderingBackend& backend)
-        : m_identifier(identifier)
-        , m_renderingBackend(backend)
-        , m_swiftState(swiftState)
-    {
-    }
-
-    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
-
-    // Messages
-    void updateConfiguration(RemoteImageBufferSetConfiguration);
-    void endPrepareForDisplay(RenderingUpdateID renderingUpdateID, CompletionHandler<void(ImageBufferSetPrepareBufferForDisplayOutputData, RenderingUpdateID)>&& completionHandler)
-    {
-        ImageBufferSetPrepareBufferForDisplayOutputData outputData;
-        auto buffers = swiftEndPrepareForDisplay();
-        auto identifier = [](const RefPtr<WebCore::ImageBuffer>& buffer) -> std::optional<WebCore::RenderingResourceIdentifier> {
-            return buffer ? std::optional { buffer->renderingResourceIdentifier() } : std::nullopt;
-        };
-        // The handle is a C++ variant.
-        if (buffers.front)
-            outputData.backendHandle = downcast<ImageBufferBackendHandleSharing>(*buffers.front->toBackendSharing()).createBackendHandle();
-        outputData.bufferCacheIdentifiers = { identifier(buffers.front), identifier(buffers.back), identifier(buffers.secondaryBack) };
-        // If we failed to allocate a front buffer then nothing was painted, so let the web process know that it needs to
-        // repaint the whole layer next time.
-        if (!buffers.front)
-            outputData.displayRequirement = SwapBuffersDisplayRequirement::NeedsFullDisplay;
-        completionHandler(WTF::move(outputData), renderingUpdateID);
-    }
-    void submitDrawingCommands();
-
-    // Stops receiving the front buffer's drawing, flushes it, and returns the buffers.
-    RemoteImageBufferSetBuffers swiftEndPrepareForDisplay();
-    // The BufferInSetType raw values of the buffers it made volatile, and swiftSomeBuffersStayedNonVolatile if it failed to
-    // make one volatile.
-    // rdar://191583570
-    uint16_t swiftMakeBuffersVolatile(uint8_t requestedBuffers, bool forcePurge);
-    static constexpr uint16_t swiftSomeBuffersStayedNonVolatile = 1 << 8;
-    static uintptr_t createSwiftState(RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
-    SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
-    uintptr_t swiftState() const { return m_swiftState; }
-    ImageBufferSetIdentifier identifier() const { return m_identifier; }
-
-    const ImageBufferSetIdentifier m_identifier;
-    const Ref<RemoteRenderingBackend> m_renderingBackend;
-    const uintptr_t m_swiftState;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-using RefRemoteImageBufferSet = Ref<RemoteImageBufferSet>;
+// The reply to a set's EndPrepareForDisplay, for RemoteImageBufferSet.swift: the front buffer's backend handle is a C++ variant.
+void encodeImageBufferSetEndPrepareForDisplayReply(IPC::SwiftReplyEncoder&, IPC::CxxDecodedArgument<RenderingUpdateID>&, WebCore::ImageBuffer* WTF_NULLABLE frontBuffer, WebCore::ImageBuffer* WTF_NULLABLE backBuffer, WebCore::ImageBuffer* WTF_NULLABLE secondaryBackBuffer);
 
 } // namespace WebKit
 

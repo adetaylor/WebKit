@@ -168,6 +168,7 @@
 #include "RemoteImageBufferGraphicsContext.h"
 #include "RemoteImageBufferMessages.h"
 #include "RemoteImageBufferSet.h"
+#include "RemoteImageBufferSetMessages.h"
 #include "RemoteRenderingBackend.h"
 #endif
 

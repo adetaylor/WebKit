@@ -131,7 +131,11 @@ final class RemoteRenderingBackendState {
     var displayListRecorders: [RemoteIdentifierKey: DisplayListRecorder] = [:]
     var snapshotRecorders: [RemoteIdentifierKey: DisplayListRecorder] = [:]
     // The receivers of the backend's image buffer sets' messages, which stop receiving them when they leave.
+    #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
+    var imageBufferSets: [RemoteIdentifierKey: RemoteImageBufferSet] = [:]
+    #else
     var imageBufferSets: [RemoteIdentifierKey: WebKit.RemoteImageBufferSet] = [:]
+    #endif
     // Which buffer sets of the last PrepareImageBufferSetsForDisplaySync need display, kept for the next, so that each rendering
     // update reuses its storage.
     var setsNeedingDisplay: [Bool] = []
@@ -976,7 +980,13 @@ extension WebKit.RemoteRenderingBackend {
         let key = RemoteIdentifierKey(value: identifier.toUInt64())
         handleMessage { () throws(InvalidMessage) in
             try messageCheck("Duplicate ImageBufferSet") { state.imageBufferSets[key] == nil }
+            #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
+            let imageBufferSet = RemoteImageBufferSet.create(identifier: identifier, contextIdentifier: contextIdentifier, backend: self)
+            try messageCheck("Another receiver has the ImageBufferSet's identifier") { imageBufferSet != nil }
+            state.imageBufferSets[key] = imageBufferSet
+            #else
             state.imageBufferSets[key] = WebKit.RemoteImageBufferSet.create(identifier, contextIdentifier, self).get()
+            #endif
         }
     }
 
@@ -990,8 +1000,14 @@ extension WebKit.RemoteRenderingBackend {
         }
     }
 
+    #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
+    private typealias ImageBufferSet = RemoteImageBufferSet
+    #else
+    private typealias ImageBufferSet = WebKit.RemoteImageBufferSet
+    #endif
+
     private func imageBufferSet(_ identifier: WebKit.ImageBufferSetIdentifier, _ reason: StaticString) throws(InvalidMessage)
-        -> WebKit.RemoteImageBufferSet
+        -> ImageBufferSet
     {
         let imageBufferSet = state.imageBufferSets[RemoteIdentifierKey(value: identifier.toUInt64())]
         try messageCheck(reason) { imageBufferSet != nil }
@@ -1008,10 +1024,17 @@ extension WebKit.RemoteRenderingBackend {
         handleMessage { () throws(InvalidMessage) in
             for index in 0..<inputs.size() {
                 let imageBufferSet = try imageBufferSet(inputs[index].remoteBufferSet, "BufferSet is being updated before being created")
+                #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
+                let displayRequirement = imageBufferSet.ensureBufferForDisplay(&inputs[index], isSync: false)
+                if displayRequirement != .NeedsNoDisplay {
+                    imageBufferSet.prepareBufferForDisplay(dirtyRegion: inputs[index].dirtyRegion, requiresClearedPixels: inputs[index].requiresClearedPixels)
+                }
+                #else
                 let displayRequirement = imageBufferSet.ensureBufferForDisplay(&inputs[index], false)
                 if displayRequirement != .NeedsNoDisplay {
                     imageBufferSet.prepareBufferForDisplay(inputs[index].dirtyRegion, inputs[index].requiresClearedPixels)
                 }
+                #endif
             }
         }
     }
@@ -1029,7 +1052,11 @@ extension WebKit.RemoteRenderingBackend {
         handleMessage { () throws(InvalidMessage) in
             for index in 0..<inputs.size() {
                 let imageBufferSet = try imageBufferSet(inputs[index].remoteBufferSet, "BufferSet is being updated before being created")
+                #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
+                let requirement = imageBufferSet.ensureBufferForDisplay(&inputs[index], isSync: true)
+                #else
                 let requirement = imageBufferSet.ensureBufferForDisplay(&inputs[index], true)
+                #endif
                 requirements[index] = requirement
                 state.setsNeedingDisplay.append(requirement != .NeedsNoDisplay)
             }
@@ -1046,7 +1073,11 @@ extension WebKit.RemoteRenderingBackend {
         handleMessage { () throws(InvalidMessage) in
             for index in 0..<inputs.size() where state.setsNeedingDisplay[index] {
                 let imageBufferSet = try imageBufferSet(inputs[index].remoteBufferSet, "BufferSet is being updated before being created")
+                #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
+                imageBufferSet.prepareBufferForDisplay(dirtyRegion: inputs[index].dirtyRegion, requiresClearedPixels: inputs[index].requiresClearedPixels)
+                #else
                 imageBufferSet.prepareBufferForDisplay(inputs[index].dirtyRegion, inputs[index].requiresClearedPixels)
+                #endif
             }
         }
     }
@@ -1070,6 +1101,15 @@ extension WebKit.RemoteRenderingBackend {
                 try messageCheck("BufferSet is being marked volatile while preparing for display") {
                     !imageBufferSet.isPreparingForDisplay()
                 }
+                #if ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT
+                let (volatileBuffers, succeeded) = imageBufferSet.makeBuffersVolatile(requestedBuffers.toRaw(), forcePurge: forcePurge)
+                if !succeeded {
+                    allSucceeded = false
+                }
+                if volatileBuffers != 0 {
+                    WebKit.RemoteRenderingBackend.appendRawVolatileBuffers(&markedBufferSets, setIdentifier, volatileBuffers)
+                }
+                #else
                 var volatileBuffers = WebKit.OptionSetBufferInSetType()
                 if !imageBufferSet.makeBuffersVolatile(requestedBuffers, &volatileBuffers, forcePurge) {
                     allSucceeded = false
@@ -1077,6 +1117,7 @@ extension WebKit.RemoteRenderingBackend {
                 if !volatileBuffers.isEmpty() {
                     WebKit.RemoteRenderingBackend.appendVolatileBuffers(&markedBufferSets, setIdentifier, volatileBuffers)
                 }
+                #endif
             }
             isValid = true
         }
