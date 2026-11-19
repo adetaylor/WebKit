@@ -6191,6 +6191,7 @@
 		CD1F9B1827023A2A00617EB6 /* VideoTrackClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B1727023A2900617EB6 /* VideoTrackClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD1F9B1A27023A7600617EB6 /* AudioTrackClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B1927023A7600617EB6 /* AudioTrackClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD1F9B1C27024BC200617EB6 /* TrackPrivateBaseClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B1B27024BC100617EB6 /* TrackPrivateBaseClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		5C1A7E000000000000003A05 /* TrackPrivateClientSwiftAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1A7E000000000000003A04 /* TrackPrivateClientSwiftAdapters.swift */; };
 		CD1F9B212702565E00617EB6 /* TextTrackClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B202702565E00617EB6 /* TextTrackClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD1F9B42270CED9D00617EB6 /* JSMediaKeyMessageType.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B3F270CED8400617EB6 /* JSMediaKeyMessageType.h */; };
 		CD1F9B43270CED9D00617EB6 /* JSMediaKeyMessageEventInit.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1F9B41270CED8600617EB6 /* JSMediaKeyMessageEventInit.h */; };
@@ -21619,6 +21620,8 @@
 		CD1F9B1727023A2900617EB6 /* VideoTrackClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VideoTrackClient.h; sourceTree = "<group>"; };
 		CD1F9B1927023A7600617EB6 /* AudioTrackClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioTrackClient.h; sourceTree = "<group>"; };
 		CD1F9B1B27024BC100617EB6 /* TrackPrivateBaseClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TrackPrivateBaseClient.h; sourceTree = "<group>"; };
+		5C1A7E000000000000003A03 /* TrackPrivateClientSwiftAdapters.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TrackPrivateClientSwiftAdapters.cpp; sourceTree = "<group>"; };
+		5C1A7E000000000000003A04 /* TrackPrivateClientSwiftAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPrivateClientSwiftAdapters.swift; sourceTree = "<group>"; };
 		CD1F9B202702565E00617EB6 /* TextTrackClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextTrackClient.h; sourceTree = "<group>"; };
 		CD1F9B3D270CED8300617EB6 /* JSMediaKeyMessageEventInit.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = JSMediaKeyMessageEventInit.cpp; sourceTree = "<group>"; };
 		CD1F9B3F270CED8400617EB6 /* JSMediaKeyMessageType.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JSMediaKeyMessageType.h; sourceTree = "<group>"; };
@@ -37723,6 +37726,8 @@
 				076E11BE1F683E0D00177395 /* TrackPrivateBase.cpp */,
 				BE913D7F181EF8E500DCB09E /* TrackPrivateBase.h */,
 				CD1F9B1B27024BC100617EB6 /* TrackPrivateBaseClient.h */,
+				5C1A7E000000000000003A03 /* TrackPrivateClientSwiftAdapters.cpp */,
+				5C1A7E000000000000003A04 /* TrackPrivateClientSwiftAdapters.swift */,
 				7209C47E2931C86400633C0D /* TransparencyLayerContextSwitcher.cpp */,
 				7209C47F2931C86400633C0D /* TransparencyLayerContextSwitcher.h */,
 				74DB626030009D7000996038 /* TypedArrayPixelBuffer.cpp */,
@@ -52182,6 +52187,10 @@
 				D5D694719C454413958692D7 /* ContentSecurityPolicyTrustedTypesDirective.swift in Sources */,
 				463642A729687D53003D43F2 /* CoreHapticsSoftLink.mm in Sources */,
 				46C696CC1E7205FC00597937 /* CPUMonitor.cpp in Sources */,
+				DFBF5B4347A24B659A925C82 /* CrossOriginAccessControl.swift in Sources */,
+				D3AD122B89884F7BACE7A703 /* CrossOriginEmbedderPolicy.swift in Sources */,
+				6E21F342A935416A96DE601E /* CrossOriginOpenerPolicy.swift in Sources */,
+				7DF4E08248144A53B05EF35A /* CrossOriginPreflightResultCache.swift in Sources */,
 				C55C00000000000000000008 /* CSSCalcEvaluation.swift in Sources */,
 				C55C00000000000000000006 /* CSSCalcNode.swift in Sources */,
 				C55C0000000000000000000A /* CSSCalcParser.swift in Sources */,
@@ -52189,10 +52198,6 @@
 				C55C0000000000000000000E /* CSSCalcSimplification.swift in Sources */,
 				C55C00000000000000000004 /* CSSCalcSwift.swift in Sources */,
 				0D44E4F7866406B16EE8E5A3 /* CSSFilterRenderer.swift in Sources */,
-				DFBF5B4347A24B659A925C82 /* CrossOriginAccessControl.swift in Sources */,
-				D3AD122B89884F7BACE7A703 /* CrossOriginEmbedderPolicy.swift in Sources */,
-				6E21F342A935416A96DE601E /* CrossOriginOpenerPolicy.swift in Sources */,
-				7DF4E08248144A53B05EF35A /* CrossOriginPreflightResultCache.swift in Sources */,
 				EA5E606D888149549E845C5C /* CSSNumericValueSwift.swift in Sources */,
 				C55B00000000000000000004 /* CSSParserFastPathsSwift.swift in Sources */,
 				C55D00000000000000000004 /* CSSPropertyConsumerSwift.swift in Sources */,
@@ -52252,6 +52257,7 @@
 				E5861383C5FDA54E95E56E35 /* FEMorphologySoftwareApplier.swift in Sources */,
 				302C29DC86EFC615E31B91EA /* FEOffsetCoreImageApplier.swift in Sources */,
 				2FB1886BC76C158FB96C58D2 /* FEOffsetSoftwareApplier.swift in Sources */,
+				8591F392A95D43AB81716611 /* FetchHeaders.swift in Sources */,
 				29B402C67B0FAF893A3FEC72 /* FETileCoreImageApplier.swift in Sources */,
 				438198B3980CE97E3546B5C3 /* FETileSoftwareApplier.swift in Sources */,
 				C5A8869A8017446784B2C58F /* FETurbulenceCoreImageApplier.swift in Sources */,
@@ -52263,7 +52269,6 @@
 				051878F9FFBBDCAB67019E3B /* FilterImageCoreImage.swift in Sources */,
 				E4DCB2E8232B2774CE214DFE /* FilterImageImpl.swift in Sources */,
 				44428BC0239608D55EA7B2DD /* FilterMath.swift in Sources */,
-				8591F392A95D43AB81716611 /* FetchHeaders.swift in Sources */,
 				7CE6CBFD187F394900D46BF5 /* FormatConverter.cpp in Sources */,
 				182D187F1A4EF0CCD58D4057 /* FormatDescriptionCodecString.swift in Sources */,
 				4667EA3E2968D9DA00BAB1E2 /* GameControllerHapticEffect.mm in Sources */,
@@ -52309,11 +52314,11 @@
 				46CA943127B8695800F4F5FF /* InbandTextTrackPrivateAVFObjC.mm in Sources */,
 				CD063F821E23FA8900812BE3 /* InitDataRegistry.cpp in Sources */,
 				164E2985AC07D03F56C95977 /* InitDataRegistry.swift in Sources */,
+				4CD4AE32F9AB434C9CA780A2 /* IntegrityPolicy.swift in Sources */,
 				8130383DB225B6A7C0CDF935 /* IOSurface.swift in Sources */,
 				2653C6D27D97ADA649EE4AEC /* ISOBoxes.swift in Sources */,
 				77D8E7F6A75292D03DD77910 /* ISOFairPlayStreamingPssh.swift in Sources */,
 				71837F278D1F314AED51ADEF /* ISOVTTCue.swift in Sources */,
-				4CD4AE32F9AB434C9CA780A2 /* IntegrityPolicy.swift in Sources */,
 				EE042903F1A0DE0100A1B2C3 /* JSDOMBindingFacade.cpp in Sources */,
 				2D1CE026F32F4DD98F662746 /* JSDOMWindow.cpp in Sources */,
 				AE9D0D864E151BAC3ECB750E /* JSDOMWindowConstructorAttributes.cpp in Sources */,
@@ -52405,8 +52410,6 @@
 				021D763A29C2AC6B00063684 /* ScrollbarsControllerMac.mm in Sources */,
 				5C0A1D000000000000000004 /* ScrollbarsControllerMac.swift in Sources */,
 				BCEF869F0E844E9D00A85CD5 /* ScrollbarThemeMac.mm in Sources */,
-				CC0CB8ACCE2346138109190E /* SecurityContext.swift in Sources */,
-				BD3DD043845E40D5AA07BBE6 /* SecurityPolicy.swift in Sources */,
 				5C0A17000000000000000008 /* ScrollerPairMac.swift in Sources */,
 				080A195D8A0745058214F772 /* ScrollingTree.swift in Sources */,
 				76B37E8F84B3451587255CA4 /* ScrollingTreeLatchingController.swift in Sources */,
@@ -52417,6 +52420,8 @@
 				5C0A1100000000000000000A /* ScrollPhysicsGeometry.swift in Sources */,
 				5C0A1100000000000000000C /* ScrollSnapAnimationState.swift in Sources */,
 				5C0A1C000000000000000002 /* ScrollView.swift in Sources */,
+				CC0CB8ACCE2346138109190E /* SecurityContext.swift in Sources */,
+				BD3DD043845E40D5AA07BBE6 /* SecurityPolicy.swift in Sources */,
 				43B85ED418CBEC5200E31AF4 /* SelectorPseudoClassAndCompatibilityElementMap.cpp in Sources */,
 				26AA0F9E18D2A18B00419381 /* SelectorPseudoElementMap.cpp in Sources */,
 				5CFC9C842B71AE1800F8D289 /* SerializedPlatformDataCueValue.mm in Sources */,
@@ -52454,10 +52459,10 @@
 				51D8380C2F5ACAA000E06540 /* SpatialAudioPlaybackHelperIOS.mm in Sources */,
 				B9CA3B412CAB1D3E00B2607C /* SpatialImageControls.cpp in Sources */,
 				41514FDB2E92DC40002074EA /* StreamPipeToUtilities.cpp in Sources */,
-				C3EB8EEB81CB4CA3A6AABE00 /* SubresourceIntegrity.swift in Sources */,
 				C55C00000000000000000010 /* StyleCalculationSwift.swift in Sources */,
 				EE5716363D30463BB1D2F0A9 /* StyleTransformFunctionSwift.swift in Sources */,
 				D4AB6D265E6D4FC680B78613 /* StyleTransformListSwift.swift in Sources */,
+				C3EB8EEB81CB4CA3A6AABE00 /* SubresourceIntegrity.swift in Sources */,
 				92C095638807E40F0E344621 /* SVGFilterRenderer.swift in Sources */,
 				A833C7CA0A2CF06B00D57664 /* SVGNames.cpp in Sources */,
 				5C1A7E000000000000003B02 /* SwiftDelegateBox.swift in Sources */,
@@ -52468,6 +52473,7 @@
 				BE39137129B267F500FA5D4F /* TextTransformCocoa.cpp in Sources */,
 				51DF6D800B92A18E00C2DC85 /* ThreadCheck.mm in Sources */,
 				7DDAA97A27A449BA89D62987 /* TimingAllowOrigin.swift in Sources */,
+				5C1A7E000000000000003A05 /* TrackPrivateClientSwiftAdapters.swift in Sources */,
 				F4FD8A7220C64FDA7BA4884D /* TransformationMatrix.swift in Sources */,
 				0D0B4DA32EBD20E30053FB12 /* UnifiedSource1-ARC.mm in Sources */,
 				0B2AA9B7DC40569673FC9868 /* UnifiedSource1-header-RenderStyleGetters.cpp in Sources */,

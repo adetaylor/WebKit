@@ -366,6 +366,7 @@ platform/gamepad/mac/LogitechGamepad.cpp
 platform/gamepad/mac/MultiGamepadProvider.mm @nonARC
 platform/gamepad/mac/StadiaHIDGamepad.cpp
 platform/graphics/MediaPlaybackTargetPicker.cpp
+platform/graphics/TrackPrivateClientSwiftAdapters.cpp
 platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.mm @nonARC @no-unify-when(bundle<=8)
 platform/graphics/avfoundation/AudioSourceProviderAVFObjC.mm @nonARC @no-unify-when(bundle<=8)
 platform/graphics/avfoundation/AudioVideoRendererAVFObjC.mm @nonARC

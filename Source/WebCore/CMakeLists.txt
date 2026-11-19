@@ -3764,6 +3764,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMFairPlayStreamingParsing.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.swift
         ${WEBCORE_DIR}/platform/SwiftDelegateBox.swift
+        ${WEBCORE_DIR}/platform/graphics/TrackPrivateClientSwiftAdapters.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMInstanceFairPlayStreamingAVF.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/FormatDescriptionCodecString.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/ISOFairPlayStreamingPssh.swift
