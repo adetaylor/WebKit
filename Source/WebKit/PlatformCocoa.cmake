@@ -132,6 +132,8 @@ list(APPEND WebKit_SOURCES
     Platform/IPC/cocoa/SharedFileHandleCocoa.cpp
 
     Platform/cocoa/FloatRectCG.swift
+    Platform/cocoa/FloatSizeCG.swift
+    Platform/cocoa/IntPointCG.swift
     Platform/cocoa/IntRectCG.swift
     Platform/cocoa/WKMaterialHostingSupport.swift
 

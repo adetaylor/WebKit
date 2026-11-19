@@ -277,6 +277,8 @@
 		074A6FC72D5F1FAF0027F958 /* KeyEventInterpretationContext.h in Headers */ = {isa = PBXBuildFile; fileRef = 074A6FC52D5F1DEA0027F958 /* KeyEventInterpretationContext.h */; };
 		074D6A652F385435006089F6 /* IntRectCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 074D6A642F38542D006089F6 /* IntRectCG.swift */; };
 		074D6A672F3854F0006089F6 /* FloatRectCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 074D6A662F3854D7006089F6 /* FloatRectCG.swift */; };
+		0ADBE5DEF5F74906894AA722 /* FloatSizeCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5476442D392847AFAE24CD3A /* FloatSizeCG.swift */; };
+		4FE57E1A10284A05A301B7AB /* IntPointCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA78295BA974B22B15E247F /* IntPointCG.swift */; };
 		074E75FE1DF2211900D318EC /* UserMediaProcessManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 074E75FB1DF1FD1300D318EC /* UserMediaProcessManager.h */; };
 		074E87E12CF8EA3D0059E469 /* WebPage+NavigationDeciding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 074E87E02CF8EA3D0059E469 /* WebPage+NavigationDeciding.swift */; };
 		074F34812CC5F7D500CA5301 /* WKIntelligenceTextEffectCoordinator.h in Headers */ = {isa = PBXBuildFile; fileRef = 074F34802CC5F7D500CA5301 /* WKIntelligenceTextEffectCoordinator.h */; };
@@ -3786,6 +3788,8 @@
 		074A6FC82D5F20190027F958 /* KeyEventInterpretationContext.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = KeyEventInterpretationContext.serialization.in; sourceTree = "<group>"; };
 		074D6A642F38542D006089F6 /* IntRectCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntRectCG.swift; sourceTree = "<group>"; };
 		074D6A662F3854D7006089F6 /* FloatRectCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatRectCG.swift; sourceTree = "<group>"; };
+		5476442D392847AFAE24CD3A /* FloatSizeCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatSizeCG.swift; sourceTree = "<group>"; };
+		9DA78295BA974B22B15E247F /* IntPointCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntPointCG.swift; sourceTree = "<group>"; };
 		074E75FB1DF1FD1300D318EC /* UserMediaProcessManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UserMediaProcessManager.h; sourceTree = "<group>"; };
 		074E75FC1DF2002400D318EC /* UserMediaProcessManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UserMediaProcessManager.cpp; sourceTree = "<group>"; };
 		074E76001DF7075D00D318EC /* MediaDeviceSandboxExtensions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MediaDeviceSandboxExtensions.cpp; sourceTree = "<group>"; };
@@ -5668,7 +5672,6 @@
 		3366F02E3024FD10002EEB9A /* WebExtensionOffscreenDocumentParameters.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = WebExtensionOffscreenDocumentParameters.serialization.in; sourceTree = "<group>"; };
 		3366F03130250860002EEB9A /* WebExtensionContextAPIOffscreenCocoa.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebExtensionContextAPIOffscreenCocoa.mm; sourceTree = "<group>"; };
 		336E07462EBCC1C100B4D635 /* WKAppKitGestureController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WKAppKitGestureController.h; sourceTree = "<group>"; };
-		336E07472EBCC1C100B4D635 /* WKAppKitGestureController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = WKAppKitGestureController.mm; sourceTree = "<group>"; };
 		337041FF2B5895C00077FF78 /* WebExtensionAPIWebRequestEvent.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = WebExtensionAPIWebRequestEvent.idl; sourceTree = "<group>"; };
 		337042002B58A0880077FF78 /* JSWebExtensionAPIWebRequestEvent.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = JSWebExtensionAPIWebRequestEvent.mm; sourceTree = "<group>"; };
 		337042012B58A0880077FF78 /* JSWebExtensionAPIWebRequestEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSWebExtensionAPIWebRequestEvent.h; sourceTree = "<group>"; };
@@ -10011,7 +10014,6 @@
 			isa = PBXGroup;
 			children = (
 				336E07462EBCC1C100B4D635 /* WKAppKitGestureController.h */,
-				336E07472EBCC1C100B4D635 /* WKAppKitGestureController.mm */,
 				073B19992FEFB66B00BD5D69 /* WKAppKitGestureController.swift */,
 				FF395CD6FB7C47E5AE7C0E29 /* WKAppKitGestureControllerCxxSupport.h */,
 				F6D6BC14EA0247C987651F65 /* WKAppKitGestureControllerCxxSupport.mm */,
@@ -14569,8 +14571,10 @@
 				A141DF512B07054900E80B2D /* ExtensionCapabilityGrant.h */,
 				A141DF532B07069700E80B2D /* ExtensionCapabilityGrant.mm */,
 				074D6A662F3854D7006089F6 /* FloatRectCG.swift */,
+				5476442D392847AFAE24CD3A /* FloatSizeCG.swift */,
 				F4351B9D25EEC84C00D63892 /* ImageAnalysisUtilities.h */,
 				F4351B9F25EEC87800D63892 /* ImageAnalysisUtilities.mm */,
+				9DA78295BA974B22B15E247F /* IntPointCG.swift */,
 				074D6A642F38542D006089F6 /* IntRectCG.swift */,
 				BCE0937614FB128B001138D9 /* LayerHostingContext.h */,
 				BCE0937514FB128B001138D9 /* LayerHostingContext.mm */,
@@ -22748,6 +22752,7 @@
 				E31586CE2AD610F30062ED2A /* ExtensionEventHandler.mm in Sources */,
 				E34DAD392B753FA700FABEE2 /* ExtensionProcess.mm in Sources */,
 				074D6A672F3854F0006089F6 /* FloatRectCG.swift in Sources */,
+				0ADBE5DEF5F74906894AA722 /* FloatSizeCG.swift in Sources */,
 				079A4DA72D72CEDC00CA387F /* Foundation+Extras.swift in Sources */,
 				CDA93DB122F8BCF400490A69 /* FullscreenTouchSecheuristicParameters.cpp in Sources */,
 				D89CD6068EF808220467B402 /* GeneratedSerializers.swift in Sources */,
@@ -22776,6 +22781,7 @@
 				2749F6442146561B008380BF /* InjectedBundleNodeHandle.cpp in Sources */,
 				2749F6452146561E008380BF /* InjectedBundleRangeHandle.cpp in Sources */,
 				48E4FD912C91486DA934D031 /* InspectorPassthroughChannel.cpp in Sources */,
+				4FE57E1A10284A05A301B7AB /* IntPointCG.swift in Sources */,
 				074D6A652F385435006089F6 /* IntRectCG.swift in Sources */,
 				6557892C92BD46381365332E /* IPCSwiftStreamTester.swift in Sources */,
 				2F91FA1CDEACAF899B5A59E8 /* IPCSwiftStreamTesterMessageReceiver.swift in Sources */,

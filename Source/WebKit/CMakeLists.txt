@@ -1104,8 +1104,6 @@ if (APPLE)
         UIProcess/mac/ViewGestureControllerMac.mm
         UIProcess/mac/WebViewImpl.mm
 
-        UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
-
         UIProcess/RemoteLayerTree/RemoteScrollingCoordinatorProxy.cpp
         UIProcess/RemoteLayerTree/mac/RemoteLayerTreeEventDispatcher.mm
         WebProcess/WebPage/MomentumEventDispatcher.cpp

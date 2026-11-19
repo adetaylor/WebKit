@@ -31,9 +31,7 @@
 
 #import <AppKit/NSGestureRecognizer.h>
 
-OBJC_CLASS NSPanGestureRecognizer;
 OBJC_CLASS WKClickHighlightController;
-OBJC_CLASS WKDeferringGestureRecognizer;
 OBJC_CLASS WKWebView;
 
 NS_HEADER_AUDIT_BEGIN(nullability, sendability)
@@ -69,29 +67,7 @@ NS_SWIFT_UI_ACTOR
 - (void)disableDoubleTapGesturesDuringTapIfNecessaryForRequest:(uint64_t)requestID;
 - (void)didNotHandleTapAsClickAtPoint:(NSPoint)point;
 
-// Exposed for Swift
 @property (nonatomic, readonly, nullable) WKWebView *webView;
-@property (nonatomic, strong, nullable) NSPanGestureRecognizer *panGestureRecognizer;
-@property (nonatomic, strong, nullable, setter=setDOMDoubleClickGestureRecognizer:) NSClickGestureRecognizer *domDoubleClickGestureRecognizer;
-- (void)configureForScrolling:(NSPanGestureRecognizer *)gesture;
-- (void)configureForDOMDoubleClick:(NSClickGestureRecognizer *)gesture;
-- (void)configureForImageAnalysisDeferral:(WKDeferringGestureRecognizer *)gesture;
-- (void)panGestureRecognized:(NSGestureRecognizer *)gesture;
-- (void)domDoubleClickGestureRecognized:(NSGestureRecognizer *)gesture;
-
-@end
-
-@interface WKAppKitGestureController (Swift)
-
-- (void)setUpPanGestureRecognizer;
-- (void)setUpDOMDoubleClickGestureRecognizer;
-- (void)resetDOMDoubleClickGestureRecognizer;
-- (BOOL)takeCompletedDOMDoubleClick;
-- (WKDeferringGestureRecognizer *)makeImageAnalysisDeferringGestureRecognizerWithName:(NSString *)name;
-
-- (NSPoint)panVelocityInView:(nullable NSView *)view;
-
-+ (NSString *)loggingDescriptionForGestureRecognizer:(nullable NSGestureRecognizer *)gestureRecognizer;
 
 @end
 
