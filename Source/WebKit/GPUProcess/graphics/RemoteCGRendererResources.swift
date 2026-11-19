@@ -233,26 +233,30 @@ final class RemoteCGRendererResources {
     // receiver lets go after the draw.
     private var selfCopy: WebCore.ImageBuffer?
 
-    private init(backend: WebKit.RemoteRenderingBackend?, target: WebCore.ImageBuffer?) {
+    // An image buffer's receiver's.
+    init(backend: WebKit.RemoteRenderingBackend, target: WebCore.ImageBuffer) {
         self.backend = backend
-        self.cache = backend?.state.resources.cache
+        self.cache = backend.state.resources.cache
         self.targetImageBuffer = target
     }
 
-    // An image buffer's receiver's.
-    convenience init(backend: WebKit.RemoteRenderingBackend, target: WebCore.ImageBuffer) {
-        self.init(backend: backend, target: target)
-    }
-
     // A recorder's.
-    convenience init(recorderOf backend: WebKit.RemoteRenderingBackend) {
-        self.init(backend: backend, target: nil)
+    init(recorderOf backend: WebKit.RemoteRenderingBackend) {
+        self.backend = backend
+        self.cache = backend.state.resources.cache
+        self.targetImageBuffer = nil
     }
 
     // A replay's into the context that lends its renderer for it (GraphicsContextCG::lendSwiftRendererForReplay()), and the
     // print process's recorder's.
+    private init() {
+        self.backend = nil
+        self.cache = nil
+        self.targetImageBuffer = nil
+    }
+
     static func forReplay() -> RemoteCGRendererResources {
-        RemoteCGRendererResources(backend: nil, target: nil)
+        RemoteCGRendererResources()
     }
 
     deinit {
