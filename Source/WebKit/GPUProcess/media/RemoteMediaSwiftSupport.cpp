@@ -29,26 +29,21 @@
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
 
 #include "GPUConnectionToWebProcess.h"
-#include "Logging.h"
+#include "RemoteMediaPlayerManagerProxy.h"
 #include "SharedBufferReference.h"
 #include "SwiftCoding.h"
 #include <WebCore/PlatformMediaEngineConfigurationFactory.h>
-#include <wtf/TZoneMallocInlines.h>
-
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-#include "RemoteCDMInstanceMessages.h"
-#include <WebCore/CDMFactory.h>
-#endif
-
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-#include "RemoteLegacyCDMSessionMessages.h"
-#include "RemoteMediaPlayerManagerProxy.h"
-#include <JavaScriptCore/GenericTypedArrayViewInlines.h>
-#include <JavaScriptCore/TypedArrayAdaptors.h>
-#endif
 
 #if ENABLE(VIDEO)
 #include <WebCore/VideoFrame.h>
+#endif
+
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "MediaPlayerPrivateRemoteMessages.h"
+#include <WebCore/InbandGenericCue.h>
+#if ENABLE(DATACUE_VALUE)
+#include <WebCore/SerializedPlatformDataCue.h>
+#endif
 #endif
 
 #if HAVE(AVASSETREADER)
@@ -66,201 +61,18 @@ WebCore::SharedBuffer* makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE)
 }
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMInstanceClient);
-WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMPrivateHandle);
-
-RemoteCDMInstanceClient::RemoteCDMInstanceClient(GPUConnectionToWebProcess& connection, RemoteCDMPrivateHandle& cdm, Ref<CDMInstance>&& instance, uint64_t identifier)
-    : m_connection(connection)
-    , m_cdm(cdm)
-    , m_instance(WTF::move(instance))
-    , m_identifier(identifier)
-#if !RELEASE_LOG_DISABLED
-    , m_logger(cdm.logger())
-    , m_logIdentifier(cdm.logIdentifier())
+CDMPrivateClientSwiftAdapter* createCDMPrivate(GPUConnectionToWebProcess& connection, const String& keySystem, const String& mediaKeysHashSalt)
+{
+    return CDMPrivateClientSwiftAdapter::create(keySystem, mediaKeysHashSalt, connection.logger());
+}
 #endif
-{
-    m_instance->setClient(*this);
-}
-
-RemoteCDMInstanceClient::~RemoteCDMInstanceClient()
-{
-    m_instance->clearClient();
-}
-
-void RemoteCDMInstanceClient::unrequestedInitializationDataReceived(const String& type, Ref<SharedBuffer>&& initData)
-{
-    if (RefPtr connection = m_connection.get(); connection && m_cdm)
-        connection->connection().send(Messages::RemoteCDMInstance::UnrequestedInitializationDataReceived(type, WTF::move(initData)), m_identifier);
-}
-
-RemoteCDMPrivateHandle* RemoteCDMPrivateHandle::create(GPUConnectionToWebProcess& connection, const String& keySystem, const String& mediaKeysHashSalt)
-{
-    auto& factories = CDMFactory::registeredFactories();
-    auto index = factories.findIf([&](auto& factory) {
-        return factory->supportsKeySystem(keySystem);
-    });
-    if (index == notFound)
-        return nullptr;
-    RefPtr factory = factories[index].ptr();
-    Ref handle = adoptRef(*new RemoteCDMPrivateHandle(connection, connection.logger()));
-    handle->m_private = factory->createCDM(keySystem, mediaKeysHashSalt, handle.get());
-    if (!handle->m_private)
-        return nullptr;
-    return &handle.leakRef();
-}
-
-RemoteCDMPrivateHandle::RemoteCDMPrivateHandle(GPUConnectionToWebProcess& connection, const Logger& logger)
-    : m_connection(connection)
-    , m_logger(logger)
-{
-}
-
-RemoteCDMPrivateHandle::~RemoteCDMPrivateHandle() = default;
-
-RemoteCDMInstanceClient* RemoteCDMPrivateHandle::createInstance(uint64_t identifier)
-{
-    RefPtr connection = m_connection.get();
-    RefPtr instance = m_private->createInstance();
-    if (!connection || !instance)
-        return nullptr;
-    return &adoptRef(*new RemoteCDMInstanceClient(*connection, *this, instance.releaseNonNull(), identifier)).leakRef();
-}
-
-void RemoteCDMPrivateHandle::setLogIdentifier(uint64_t logIdentifier)
-{
-    m_logIdentifier = logIdentifier;
-#if !RELEASE_LOG_DISABLED
-    m_private->setLogIdentifier(logIdentifier);
-#endif
-}
-
-#endif // ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteLegacyCDMSessionClient);
-
-static RefPtr<Uint8Array> convertToUint8Array(SharedBuffer* buffer)
+RefPtr<MediaPlayer> legacyCDMMediaPlayer(GPUConnectionToWebProcess& connection, uint64_t playerIdentifier)
 {
-    if (!buffer)
-        return nullptr;
-    auto arrayBuffer = buffer->tryCreateArrayBuffer();
-    if (!arrayBuffer)
-        return nullptr;
-    return Uint8Array::create(arrayBuffer.releaseNonNull(), 0, buffer->size());
+    return protect(connection.remoteMediaPlayerManagerProxy())->mediaPlayer(MediaPlayerIdentifier { playerIdentifier });
 }
-
-template<typename T>
-static SharedBuffer* convertToSharedBuffer(const T& array)
-{
-    return array ? &SharedBuffer::create(array->span()).leakRef() : nullptr;
-}
-
-RemoteLegacyCDMClient* RemoteLegacyCDMClient::create(GPUConnectionToWebProcess& connection, const String& keySystem)
-{
-    RefPtr cdm = LegacyCDM::create(keySystem);
-    if (!cdm)
-        return nullptr;
-    return &adoptRef(*new RemoteLegacyCDMClient(connection, cdm.releaseNonNull())).leakRef();
-}
-
-RemoteLegacyCDMClient::RemoteLegacyCDMClient(GPUConnectionToWebProcess& connection, Ref<LegacyCDM>&& cdm)
-    : m_connection(connection)
-    , m_cdm(WTF::move(cdm))
-{
-    m_cdm->setClient(this);
-}
-
-RemoteLegacyCDMClient::~RemoteLegacyCDMClient()
-{
-    m_cdm->setClient(nullptr);
-}
-
-RefPtr<MediaPlayer> RemoteLegacyCDMClient::cdmMediaPlayer(const LegacyCDM*) const
-{
-    RefPtr connection = m_connection.get();
-    if (!m_playerIdentifier || !connection)
-        return nullptr;
-    return protect(connection->remoteMediaPlayerManagerProxy())->mediaPlayer(MediaPlayerIdentifier { m_playerIdentifier });
-}
-
-RemoteLegacyCDMSessionClient* RemoteLegacyCDMSessionClient::create(GPUConnectionToWebProcess& connection, RemoteLegacyCDMClient& cdm, uint64_t identifier, uint64_t logIdentifier)
-{
-    return &adoptRef(*new RemoteLegacyCDMSessionClient(connection, cdm.cdm(), identifier, logIdentifier)).leakRef();
-}
-
-RemoteLegacyCDMSessionClient::RemoteLegacyCDMSessionClient(GPUConnectionToWebProcess& connection, LegacyCDM& cdm, uint64_t identifier, uint64_t logIdentifier)
-    : m_connection(connection)
-    , m_identifier(identifier)
-    , m_logger(connection.logger())
-    , m_logIdentifier(logIdentifier)
-    , m_session(cdm.createSession(*this))
-{
-#if !RELEASE_LOG_DISABLED
-    if (!m_session)
-        m_logger->error(JOIN_LOG_CHANNEL_WITH_PREFIX(LOG_CHANNEL_PREFIX, EME), Logger::LogSiteIdentifier("RemoteLegacyCDMSessionProxy"_s, __func__, m_logIdentifier), "could not create CDM session."_s);
 #endif
-}
-
-RemoteLegacyCDMSessionClient::~RemoteLegacyCDMSessionClient() = default;
-
-SharedBuffer* RemoteLegacyCDMSessionClient::generateKeyRequest(const String& mimeType, SharedBuffer* initData, const String& mediaKeysHashSalt, String& destinationURL, uint16_t& errorCode, uint32_t& systemCode)
-{
-    destinationURL = emptyString();
-    errorCode = 0;
-    systemCode = 0;
-    auto initDataArray = m_session ? convertToUint8Array(initData) : nullptr;
-    if (!initDataArray)
-        return nullptr;
-    m_mediaKeysHashSalt = mediaKeysHashSalt;
-    destinationURL = { };
-    return convertToSharedBuffer(m_session->generateKeyRequest(mimeType, initDataArray.get(), destinationURL, errorCode, systemCode));
-}
-
-void RemoteLegacyCDMSessionClient::releaseKeys()
-{
-    if (m_session)
-        m_session->releaseKeys();
-}
-
-SharedBuffer* RemoteLegacyCDMSessionClient::update(SharedBuffer* update, bool& succeeded, uint16_t& errorCode, uint32_t& systemCode)
-{
-    succeeded = false;
-    errorCode = 0;
-    systemCode = 0;
-    auto updateArray = m_session ? convertToUint8Array(update) : nullptr;
-    if (!updateArray)
-        return nullptr;
-    RefPtr<Uint8Array> nextMessage;
-    succeeded = m_session->update(updateArray.get(), nextMessage, errorCode, systemCode);
-    return convertToSharedBuffer(nextMessage);
-}
-
-SharedBuffer* RemoteLegacyCDMSessionClient::cachedKeyForKeyID(const String& keyId) const
-{
-    return m_session ? convertToSharedBuffer(m_session->cachedKeyForKeyID(keyId)) : nullptr;
-}
-
-void RemoteLegacyCDMSessionClient::sendMessage(Uint8Array* message, String destinationURL)
-{
-    if (RefPtr connection = m_connection.get())
-        connection->connection().send(Messages::RemoteLegacyCDMSession::SendMessage(adoptRef(convertToSharedBuffer(message)), destinationURL), m_identifier);
-}
-
-void RemoteLegacyCDMSessionClient::sendError(MediaKeyErrorCode errorCode, uint32_t systemCode)
-{
-    if (RefPtr connection = m_connection.get())
-        connection->connection().send(Messages::RemoteLegacyCDMSession::SendError(errorCode, systemCode), m_identifier);
-}
-
-String RemoteLegacyCDMSessionClient::mediaKeysStorageDirectory() const
-{
-    RefPtr connection = m_connection.get();
-    return connection ? connection->mediaKeysStorageDirectory() : emptyString();
-}
-
-#endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)
 
 #if HAVE(AVASSETREADER)
 
@@ -331,6 +143,50 @@ PlatformMediaCapabilitiesEncodingInfo createMediaEncodingConfiguration(const Pla
     RELEASE_ASSERT(result);
     return WTF::move(*result);
 }
+
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+void sendAddDataCue(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, const MediaTime& start, const MediaTime& end, const SharedBuffer& data)
+{
+    connection.send(Messages::MediaPlayerPrivateRemote::AddDataCue(trackID, start, end, data.span()), mediaPlayerIdentifier);
+}
+
+void sendParseWebVTTCueData(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, const SharedBuffer& data)
+{
+    connection.send(Messages::MediaPlayerPrivateRemote::ParseWebVTTCueData(trackID, data.span()), mediaPlayerIdentifier);
+}
+
+void sendGenericCue(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, RemoteTextTrackCueChange change, InbandGenericCue& cue)
+{
+    switch (change) {
+    case RemoteTextTrackCueChange::Add:
+        connection.send(Messages::MediaPlayerPrivateRemote::AddGenericCue(trackID, cue.cueData()), mediaPlayerIdentifier);
+        return;
+    case RemoteTextTrackCueChange::Update:
+        connection.send(Messages::MediaPlayerPrivateRemote::UpdateGenericCue(trackID, cue.cueData()), mediaPlayerIdentifier);
+        return;
+    case RemoteTextTrackCueChange::Remove:
+        connection.send(Messages::MediaPlayerPrivateRemote::RemoveGenericCue(trackID, cue.cueData()), mediaPlayerIdentifier);
+        return;
+    }
+}
+
+#if ENABLE(DATACUE_VALUE)
+void sendDataCue(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, RemoteTextTrackCueChange change, const MediaTime& start, const MediaTime& end, SerializedPlatformDataCue& cue, const String& type)
+{
+    switch (change) {
+    case RemoteTextTrackCueChange::Add:
+        connection.send(Messages::MediaPlayerPrivateRemote::AddDataCueWithType(trackID, start, end, cue.encodableValue(), type), mediaPlayerIdentifier);
+        return;
+    case RemoteTextTrackCueChange::Update:
+        connection.send(Messages::MediaPlayerPrivateRemote::UpdateDataCue(trackID, start, end, cue.encodableValue()), mediaPlayerIdentifier);
+        return;
+    case RemoteTextTrackCueChange::Remove:
+        connection.send(Messages::MediaPlayerPrivateRemote::RemoveDataCue(trackID, start, end, cue.encodableValue()), mediaPlayerIdentifier);
+        return;
+    }
+}
+#endif
+#endif
 
 } // namespace WebKit
 

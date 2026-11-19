@@ -25,7 +25,8 @@
 
 [
     DispatchedFrom=GPU,
-    DispatchedTo=WebContent
+    DispatchedTo=WebContent,
+    CxxSenders=GPU_PROCESS_CDM_SWIFT
 ]
 messages -> RemoteCDMInstance {
     UnrequestedInitializationDataReceived(String type, Ref<WebCore::SharedBuffer> initData)

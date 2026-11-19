@@ -31,7 +31,10 @@
 #include <WebCore/TrackPrivateBase.h>
 #include <WebCore/VideoTrackPrivateClient.h>
 #include <wtf/Function.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
+
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 namespace WebCore {
 
@@ -110,12 +113,52 @@ private:
 
     using SharedSelectedChangedCallback = Shared<SelectedChangedCallback>;
     RefPtr<SharedSelectedChangedCallback> m_selectedChangedCallback WTF_GUARDED_BY_LOCK(m_lock);
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+#if PLATFORM(COCOA)
+// A track client for Swift (TrackPrivateClientSwiftAdapters.swift). The adapter is its track's client from create() to its
+// destruction, with the callbacks on the main thread, and forwards them to the Swift delegate that create() is given:
+// an Unmanaged retained box that the adapter releases when destroyed, which holds the delegate weakly.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/TrackPrivateClientSwiftAdapters.swift") SwiftVideoTrackPrivateClientAdapter final
+    : public ThreadSafeRefCounted<SwiftVideoTrackPrivateClientAdapter, WTF::DestructionThread::Main>
+    , public VideoTrackPrivateClient {
+    WTF_MAKE_TZONE_ALLOCATED_INLINE(SwiftVideoTrackPrivateClientAdapter);
+public:
+    // Unsafe: the box must be a retained delegate box made for this adapter.
+    SWIFT_UNSAFE static SwiftVideoTrackPrivateClientAdapter* WTF_NONNULL create(VideoTrackPrivate&, uintptr_t delegateBox) SWIFT_RETURNS_RETAINED;
+    WEBCORE_EXPORT ~SwiftVideoTrackPrivateClientAdapter();
+
+    void ref() const final { ThreadSafeRefCounted::ref(); }
+    void deref() const final { ThreadSafeRefCounted::deref(); }
+
+    // For Swift, which doesn't import VideoTrackPrivate's configuration(), which returns a reference, or its operator==.
+    static PlatformVideoTrackConfiguration configuration(const VideoTrackPrivate& track) { return track.configuration(); }
+    static bool equal(const VideoTrackPrivate& a, const VideoTrackPrivate& b) { return a == b; }
+
+private:
+    SwiftVideoTrackPrivateClientAdapter(VideoTrackPrivate&, uintptr_t delegateBox);
+    // Unsafe: the box must be one that create() was given, which only the destructor releases.
+    SWIFT_UNSAFE static void releaseDelegateBox(uintptr_t);
+
+    SWIFT_MAIN_ACTOR void idChanged(TrackID) final;
+    SWIFT_MAIN_ACTOR SWIFT_UNSAFE void labelChanged(const String&) final;
+    SWIFT_MAIN_ACTOR SWIFT_UNSAFE void languageChanged(const String&) final;
+    SWIFT_MAIN_ACTOR void willRemove() final;
+    SWIFT_MAIN_ACTOR void selectedChanged(bool) final;
+    SWIFT_MAIN_ACTOR SWIFT_UNSAFE void configurationChanged(const PlatformVideoTrackConfiguration&) final;
+
+    const Ref<VideoTrackPrivate> m_track;
+    const uintptr_t m_delegateBox;
+    size_t m_clientIndex { 0 };
 };
+#endif
 
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::VideoTrackPrivate)
 static bool isType(const WebCore::TrackPrivateBase& track) { return track.type() == WebCore::TrackPrivateBase::Type::Video; }
 SPECIALIZE_TYPE_TRAITS_END()
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif

@@ -39,6 +39,8 @@
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
 
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
+
 #if !RELEASE_LOG_DISABLED
 namespace WTF {
 class Logger;
@@ -179,6 +181,73 @@ private:
     bool m_supported { false };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
+#if PLATFORM(COCOA)
+
+// A C++ CDM, for Swift: the CDM of the first registered factory that supports the key system, as its own client.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT CDMPrivateClientSwiftAdapter final : public RefCounted<CDMPrivateClientSwiftAdapter>, private CDMPrivateClient {
+    WTF_MAKE_TZONE_ALLOCATED_EXPORT(CDMPrivateClientSwiftAdapter, WEBCORE_EXPORT);
+public:
+    // Null if no CDM supports the key system.
+    WEBCORE_EXPORT static CDMPrivateClientSwiftAdapter* WTF_NULLABLE create(const String& keySystem, const String& mediaKeysHashSalt, const Logger&) SWIFT_RETURNS_RETAINED;
+    WEBCORE_EXPORT ~CDMPrivateClientSwiftAdapter();
+    void ref() const { RefCounted::ref(); }
+    void deref() const { RefCounted::deref(); }
+
+    // Null if the CDM makes none.
+    WEBCORE_EXPORT CDMInstance* WTF_NULLABLE createInstance() SWIFT_RETURNS_RETAINED;
+    void loadAndInitialize() { m_private->loadAndInitialize(); }
+    WEBCORE_EXPORT void setLogIdentifier(uint64_t);
+    uint64_t logIdentifier() const { return m_logIdentifier; }
+#if !RELEASE_LOG_DISABLED
+    const Logger& logger() const final { return m_logger; }
+#endif
+
+private:
+    explicit CDMPrivateClientSwiftAdapter(const Logger&);
+
+    const Ref<const Logger> m_logger;
+    std::unique_ptr<CDMPrivate> m_private;
+    uint64_t m_logIdentifier { 0 };
+};
+
+// A CDM instance whose client is a Swift CDMInstanceClientDelegate, which CDMSupportedConfiguration.swift gives it. Each
+// call is on the main thread.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/CDMSupportedConfiguration.swift") CDMInstanceClientSwiftAdapter final : public CDMInstanceClient, public RefCounted<CDMInstanceClientSwiftAdapter> {
+    WTF_MAKE_TZONE_ALLOCATED_EXPORT(CDMInstanceClientSwiftAdapter, WEBCORE_EXPORT);
+public:
+    // Takes over `delegateBox`, a retained Swift delegate box.
+    SWIFT_UNSAFE static CDMInstanceClientSwiftAdapter* WTF_NONNULL create(CDMPrivateClientSwiftAdapter&, CDMInstance&, uintptr_t delegateBox) SWIFT_RETURNS_RETAINED;
+    WEBCORE_EXPORT ~CDMInstanceClientSwiftAdapter();
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+    CDMInstance& instance() const { return m_instance; }
+    String keySystem() const { return m_instance->keySystem(); }
+
+private:
+    CDMInstanceClientSwiftAdapter(CDMPrivateClientSwiftAdapter&, CDMInstance&, uintptr_t delegateBox);
+
+    void unrequestedInitializationDataReceived(const String& type, Ref<SharedBuffer>&& initData) final { didReceiveUnrequestedInitializationData(type, initData.get()); }
+#if !RELEASE_LOG_DISABLED
+    const Logger& logger() const final { return m_logger; }
+    uint64_t logIdentifier() const final { return m_logIdentifier; }
+#endif
+
+    SWIFT_MAIN_ACTOR void didReceiveUnrequestedInitializationData(String type, SharedBuffer&);
+    SWIFT_UNSAFE static void releaseDelegateBox(uintptr_t);
+
+    const Ref<CDMInstance> m_instance;
+    const uintptr_t m_delegateBox;
+#if !RELEASE_LOG_DISABLED
+    const Ref<const Logger> m_logger;
+    const uint64_t m_logIdentifier;
+#endif
+};
+
+#endif // PLATFORM(COCOA)
+
 }
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif
