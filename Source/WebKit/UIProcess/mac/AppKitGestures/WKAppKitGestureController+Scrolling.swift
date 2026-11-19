@@ -246,8 +246,11 @@ extension WKAppKitGestureController {
             return
         }
 
-        if page.delegatesScalingToUIProcess(), impl.moveMagnificationOriginIfMagnifying(locationInViewCoordinates) {
+        if page.delegatesScalingToUIProcess(), let gestureController = impl.gestureController(),
+            gestureController.hasActiveMagnificationGesture()
+        {
             gestureDelta = WebCore.FloatSize()
+            gestureController.moveMagnificationOrigin(locationInView)
         }
 
         let pinnedState = page.pinnedStateIncludingAncestorsAtPoint(locationInView)
@@ -299,9 +302,10 @@ extension WKAppKitGestureController {
 
             lastPanWheelEventWasHandledByViewGestureController =
                 forwardToGestureController
-                && impl.handleScrollWheelEventForNavigationGesture(
-                    WebKit.NativeWebWheelEvent.create(makeWheelEvent(delta, phase: phase)).get()
-                )
+                && impl.ensureGestureController()
+                    .handleScrollWheelEvent(
+                        WebKit.NativeWebWheelEvent.create(makeWheelEvent(delta, phase: phase)).get()
+                    )
             if lastPanWheelEventWasHandledByViewGestureController {
                 Logger.viewGestures.debug(
                     "[pageProxyID=\(self.pageLogIdentifier)] \(#function): View gesture controller handled gesture"

@@ -126,8 +126,14 @@ extension WKAppKitGestureController {
             impl.dismissContentRelativeChildWindowsWithAnimation(false)
         }
 
-        let origin = event.map { CGPoint($0.position()) } ?? .zero
-        if impl.handleMagnificationGestureIfMagnifying(magnification, phase, origin, .Touch) {
+        let gestureController = impl.ensureGestureController()
+        if gestureController.hasActiveMagnificationGesture() {
+            gestureController.handleMagnificationGesture(
+                magnification,
+                phase,
+                event.map { WebCore.FloatPoint($0.position()) } ?? WebCore.FloatPoint(),
+                .Touch
+            )
             return
         }
 

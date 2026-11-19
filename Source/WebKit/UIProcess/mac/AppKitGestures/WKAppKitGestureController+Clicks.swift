@@ -160,7 +160,7 @@ extension WKAppKitGestureController {
         impl.dismissContentRelativeChildWindowsWithAnimation(false)
 
         let magnificationOrigin = webView.convert(gesture.location(in: nil), from: nil)
-        impl.handleSmartMagnificationGesture(magnificationOrigin)
+        impl.ensureGestureController().handleSmartMagnificationGesture(WebCore.FloatPoint(magnificationOrigin))
     }
 
     @objc

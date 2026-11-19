@@ -263,6 +263,12 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module ViewGestureController {
+        requires cplusplus20,objc,macos
+        header "../../UIProcess/ViewGestureController.h"
+        export *
+    }
+
     module WebViewImpl {
         header "../../UIProcess/mac/WebViewImpl.h"
         export *
