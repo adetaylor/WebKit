@@ -35,6 +35,7 @@
 #import "GPUProcessCreationParameters.h"
 #import "GPUProcessProxyMessages.h"
 #import "GPUProcessSessionParameters.h"
+#import "Logging.h"
 #import "RemoteSnapshotPDFDrawingTask.h"
 #import "RemoteSnapshotSink.h"
 #import "SandboxInitializationParameters.h"
@@ -197,6 +198,11 @@ void GPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier iden
     Ref connection = newConnection.get();
     if (m_webProcessConnections.add(identifier, WTF::move(newConnection)).isNewEntry)
         didAddWebProcessConnection(connection);
+}
+
+GPUConnectionToWebProcess* GPUProcess::webProcessConnection(WebCore::ProcessIdentifier identifier) const
+{
+    return m_webProcessConnections.get(identifier);
 }
 
 void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& connection)

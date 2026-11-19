@@ -52,6 +52,7 @@
 #include <WebCore/ShareableBitmap.h>
 #include <pal/SessionID.h>
 #include <wtf/Language.h>
+#include <wtf/MemoryPressureHandler.h>
 #include <wtf/MonotonicTime.h>
 #include <wtf/RefCountable.h>
 #include <wtf/SwiftBridging.h>
@@ -112,7 +113,7 @@ public:
 
     void removeGPUConnectionToWebProcess(GPUConnectionToWebProcess&);
     void connectionToWebProcessClosed(IPC::Connection&) { }
-    GPUConnectionToWebProcess* webProcessConnection(WebCore::ProcessIdentifier identifier) const { return m_webProcessConnections.get(identifier); }
+    GPUConnectionToWebProcess* webProcessConnection(WebCore::ProcessIdentifier) const;
     IPC::Connection* WTF_NULLABLE uiProcessConnection() const { return parentProcessConnection(); }
 
     SWIFT_MAIN_ACTOR String mediaCacheDirectory(PAL::SessionID) const;
