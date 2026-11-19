@@ -755,4 +755,185 @@ extension WebKit.RemoteMediaPlayerProxy {
     }
 }
 
+// MARK: Track proxies
+
+@MainActor
+private protocol RemoteTrackProxy: AnyObject {
+    var id: WebCore.TrackID { get }
+}
+
+extension RemoteAudioTrackProxy: RemoteTrackProxy {}
+extension RemoteVideoTrackProxy: RemoteTrackProxy {}
+extension RemoteTextTrackProxy: RemoteTrackProxy {}
+
+// The proxies of a player's tracks, by kind, in the order that the player added them.
+@MainActor
+private final class RemoteMediaPlayerTracks {
+    private var audioTracks: [RemoteAudioTrackProxy] = []
+    private var videoTracks: [RemoteVideoTrackProxy] = []
+    private var textTracks: [RemoteTextTrackProxy] = []
+
+    func addAudioTrack(_ track: WebCore.AudioTrackPrivate, connection: IPC.Connection, mediaPlayerIdentifier: UInt64) {
+        Self.add(to: &audioTracks, identifier: track.id(), isTrack: { $0.isTrack(track) }) {
+            RemoteAudioTrackProxy(track: track, connection: connection, mediaPlayerIdentifier: mediaPlayerIdentifier)
+        }
+    }
+
+    func addVideoTrack(_ track: WebCore.VideoTrackPrivate, connection: IPC.Connection, mediaPlayerIdentifier: UInt64) {
+        Self.add(to: &videoTracks, identifier: track.id(), isTrack: { $0.isTrack(track) }) {
+            RemoteVideoTrackProxy(track: track, connection: connection, mediaPlayerIdentifier: mediaPlayerIdentifier)
+        }
+    }
+
+    func addTextTrack(_ track: WebCore.InbandTextTrackPrivate, connection: IPC.Connection, mediaPlayerIdentifier: UInt64) {
+        Self.add(to: &textTracks, identifier: track.id(), isTrack: { $0.isTrack(track) }) {
+            RemoteTextTrackProxy(track: track, connection: connection, mediaPlayerIdentifier: mediaPlayerIdentifier)
+        }
+    }
+
+    func removeAudioTrack(_ identifier: WebCore.TrackID) {
+        if let index = audioTracks.firstIndex(where: { $0.id == identifier }) {
+            audioTracks.remove(at: index)
+        }
+    }
+
+    func removeVideoTrack(_ identifier: WebCore.TrackID) {
+        if let index = videoTracks.firstIndex(where: { $0.id == identifier }) {
+            videoTracks.remove(at: index)
+        }
+    }
+
+    func removeTextTrack(_ identifier: WebCore.TrackID) {
+        if let index = textTracks.firstIndex(where: { $0.id == identifier }) {
+            textTracks.remove(at: index)
+        }
+    }
+
+    func setAudioTrackEnabled(_ identifier: WebCore.TrackID, _ enabled: Bool) {
+        audioTracks.first { $0.id == identifier }?.setEnabled(enabled)
+    }
+
+    func setVideoTrackSelected(_ identifier: WebCore.TrackID, _ selected: Bool) {
+        videoTracks.first { $0.id == identifier }?.setSelected(selected)
+    }
+
+    func setTextTrackMode(_ identifier: WebCore.TrackID, _ mode: WebCore.InbandTextTrackPrivateMode) {
+        textTracks.first { $0.id == identifier }?.setMode(mode)
+    }
+
+    // Nothing if the track already has a proxy, a new proxy in place of the one with the track's identifier if there is
+    // one, otherwise a new proxy at the end.
+    private static func add<Proxy: RemoteTrackProxy>(
+        to proxies: inout [Proxy],
+        identifier: WebCore.TrackID,
+        isTrack: (Proxy) -> Bool,
+        makeProxy: () -> Proxy
+    ) {
+        for index in proxies.indices {
+            if isTrack(proxies[index]) {
+                return
+            }
+            if proxies[index].id == identifier {
+                proxies[index] = makeProxy()
+                return
+            }
+        }
+        proxies.append(makeProxy())
+    }
+}
+
+extension WebKit.RemoteMediaPlayerProxy {
+    @cxx
+    @implementation
+    static func createSwiftTracks() -> UInt {
+        let tracks = MainActor.assumeIsolated {
+            RemoteMediaPlayerTracks()
+        }
+        return UInt(bitPattern: unsafe Unmanaged.passRetained(tracks).toOpaque())
+    }
+
+    @cxx
+    @implementation
+    static func destroySwiftTracks(_ swiftTracks: UInt) {
+        // Safety: the destructor passes the tracks that createSwiftTracks() made, once.
+        unsafe Unmanaged<RemoteMediaPlayerTracks>.fromOpaque(tracksAddress(swiftTracks)).release()
+    }
+
+    private static func tracksAddress(_ swiftTracks: UInt) -> UnsafeMutableRawPointer {
+        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftTracks) else {
+            preconditionFailure("The player has no tracks")
+        }
+        return unsafe address
+    }
+
+    private var tracks: RemoteMediaPlayerTracks {
+        // Safety: m_swiftTracks is a retained RemoteMediaPlayerTracks from the constructor to the destructor, and nothing
+        // else changes it.
+        unsafe Unmanaged<RemoteMediaPlayerTracks>.fromOpaque(Self.tracksAddress(swiftTracks())).takeUnretainedValue()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func addRemoteAudioTrackProxy(_ track: WebCore.AudioTrackPrivate) {
+        tracks.addAudioTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func addRemoteVideoTrackProxy(_ track: WebCore.VideoTrackPrivate) {
+        tracks.addVideoTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func addRemoteTextTrackProxy(_ track: WebCore.InbandTextTrackPrivate) {
+        tracks.addTextTrack(track, connection: webProcessConnection, mediaPlayerIdentifier: destinationID)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func removeAudioTrackProxy(_ identifier: WebCore.TrackID) {
+        tracks.removeAudioTrack(identifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func removeVideoTrackProxy(_ identifier: WebCore.TrackID) {
+        tracks.removeVideoTrack(identifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func removeTextTrackProxy(_ identifier: WebCore.TrackID) {
+        tracks.removeTextTrack(identifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func audioTrackSetEnabled(_ identifier: WebCore.TrackID, _ enabled: Bool) {
+        tracks.setAudioTrackEnabled(identifier, enabled)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func videoTrackSetSelected(_ identifier: WebCore.TrackID, _ selected: Bool) {
+        tracks.setVideoTrackSelected(identifier, selected)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func textTrackSetMode(_ identifier: WebCore.TrackID, _ mode: WebCore.InbandTextTrackPrivateMode) {
+        tracks.setTextTrackMode(identifier, mode)
+    }
+}
+
 #endif // ENABLE_GPU_PROCESS && ENABLE_VIDEO && ENABLE_GPU_PROCESS_MEDIA_SWIFT

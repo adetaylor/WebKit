@@ -34,6 +34,7 @@
 #include <WebCore/PlatformMediaEncodingConfiguration.h>
 #include <WebCore/SharedBuffer.h>
 #include <wtf/EscapableByteSpan.h>
+#include <wtf/MediaTime.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeWeakPtr.h>
@@ -54,9 +55,16 @@
 #include <WebCore/ShareableBitmap.h>
 #endif
 
+namespace IPC {
+class Connection;
+}
+
 namespace WebCore {
+class InbandGenericCue;
 class MediaPlayer;
+class SerializedPlatformDataCue;
 class VideoFrame;
+using TrackID = uint64_t;
 }
 
 namespace WebKit {
@@ -230,6 +238,19 @@ CVBufferRef WTF_NULLABLE videoFramePixelBuffer(const WebCore::VideoFrame&) CF_RE
 // Cocoa's media engine configuration factories answer synchronously.
 WebCore::PlatformMediaCapabilitiesDecodingInfo createMediaDecodingConfiguration(const WebCore::PlatformMediaDecodingConfiguration&);
 WebCore::PlatformMediaCapabilitiesEncodingInfo createMediaEncodingConfiguration(const WebCore::PlatformMediaEncodingConfiguration&);
+
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+// A text track's cues for the web process (MediaPlayerPrivateRemote.messages.in), for Swift, which can't import a generic
+// cue's GenericCueData or a data cue's SerializedPlatformDataCueValue, or pass the senders a std::span.
+void sendAddDataCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, const MediaTime& start, const MediaTime& end, const WebCore::SharedBuffer&);
+void sendParseWebVTTCueData(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, const WebCore::SharedBuffer&);
+enum class RemoteTextTrackCueChange : uint8_t { Add, Update, Remove };
+void sendGenericCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, RemoteTextTrackCueChange, WebCore::InbandGenericCue&);
+#if ENABLE(DATACUE_VALUE)
+// The type is the added cue's.
+void sendDataCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::TrackID, RemoteTextTrackCueChange, const MediaTime& start, const MediaTime& end, WebCore::SerializedPlatformDataCue&, const String& type);
+#endif
+#endif
 
 } // namespace WebKit
 

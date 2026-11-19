@@ -51,6 +51,14 @@
 #include <WebCore/VideoFrame.h>
 #endif
 
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "MediaPlayerPrivateRemoteMessages.h"
+#include <WebCore/InbandGenericCue.h>
+#if ENABLE(DATACUE_VALUE)
+#include <WebCore/SerializedPlatformDataCue.h>
+#endif
+#endif
+
 #if HAVE(AVASSETREADER)
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/NativeImage.h>
@@ -331,6 +339,50 @@ PlatformMediaCapabilitiesEncodingInfo createMediaEncodingConfiguration(const Pla
     RELEASE_ASSERT(result);
     return WTF::move(*result);
 }
+
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+void sendAddDataCue(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, const MediaTime& start, const MediaTime& end, const SharedBuffer& data)
+{
+    connection.send(Messages::MediaPlayerPrivateRemote::AddDataCue(trackID, start, end, data.span()), mediaPlayerIdentifier);
+}
+
+void sendParseWebVTTCueData(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, const SharedBuffer& data)
+{
+    connection.send(Messages::MediaPlayerPrivateRemote::ParseWebVTTCueData(trackID, data.span()), mediaPlayerIdentifier);
+}
+
+void sendGenericCue(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, RemoteTextTrackCueChange change, InbandGenericCue& cue)
+{
+    switch (change) {
+    case RemoteTextTrackCueChange::Add:
+        connection.send(Messages::MediaPlayerPrivateRemote::AddGenericCue(trackID, cue.cueData()), mediaPlayerIdentifier);
+        return;
+    case RemoteTextTrackCueChange::Update:
+        connection.send(Messages::MediaPlayerPrivateRemote::UpdateGenericCue(trackID, cue.cueData()), mediaPlayerIdentifier);
+        return;
+    case RemoteTextTrackCueChange::Remove:
+        connection.send(Messages::MediaPlayerPrivateRemote::RemoveGenericCue(trackID, cue.cueData()), mediaPlayerIdentifier);
+        return;
+    }
+}
+
+#if ENABLE(DATACUE_VALUE)
+void sendDataCue(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, TrackID trackID, RemoteTextTrackCueChange change, const MediaTime& start, const MediaTime& end, SerializedPlatformDataCue& cue, const String& type)
+{
+    switch (change) {
+    case RemoteTextTrackCueChange::Add:
+        connection.send(Messages::MediaPlayerPrivateRemote::AddDataCueWithType(trackID, start, end, cue.encodableValue(), type), mediaPlayerIdentifier);
+        return;
+    case RemoteTextTrackCueChange::Update:
+        connection.send(Messages::MediaPlayerPrivateRemote::UpdateDataCue(trackID, start, end, cue.encodableValue()), mediaPlayerIdentifier);
+        return;
+    case RemoteTextTrackCueChange::Remove:
+        connection.send(Messages::MediaPlayerPrivateRemote::RemoveDataCue(trackID, start, end, cue.encodableValue()), mediaPlayerIdentifier);
+        return;
+    }
+}
+#endif
+#endif
 
 } // namespace WebKit
 

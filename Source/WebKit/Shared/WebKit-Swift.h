@@ -115,17 +115,20 @@
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "AudioTrackPrivateRemoteConfiguration.h"
 #include "MediaPlayerPrivateRemoteMessages.h"
-#include "RemoteAudioTrackProxy.h"
 #include "RemoteMediaPlayerManagerProxy.h"
 #include "RemoteMediaPlayerManagerProxyMessages.h"
 #include "RemoteMediaPlayerProxy.h"
 #include "RemoteMediaResource.h"
 #include "RemoteMediaResourceLoader.h"
 #include "RemoteMediaResourceLoaderMessages.h"
-#include "RemoteTextTrackProxy.h"
-#include "RemoteVideoTrackProxy.h"
 #include "ScopedRenderingResourcesRequest.h"
+#include "TextTrackPrivateRemoteConfiguration.h"
+#include "VideoTrackPrivateRemoteConfiguration.h"
+#include <WebCore/AudioTrackPrivate.h>
+#include <WebCore/InbandTextTrackPrivate.h>
+#include <WebCore/VideoTrackPrivate.h>
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
