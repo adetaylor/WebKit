@@ -57,6 +57,7 @@ def parse(file):
     swift_receiver_build_enabled_by = None
     swift_receiver_state_lender = None
     swift_state = None
+    swift_target = None
     swift_types = False
     swift_implementation = False
     swift_receiver_owner = False
@@ -99,6 +100,9 @@ def parse(file):
                     continue
                 if match.group('name') == model.SWIFT_STATE_ATTRIBUTE:
                     swift_state = match.group('value')
+                    continue
+                if match.group('name') == model.SWIFT_TARGET_ATTRIBUTE:
+                    swift_target = match.group('value')
                     continue
                 if match.group('name') == 'ReceiverName':
                     receiver_name = match.group('value')
@@ -278,7 +282,7 @@ def parse(file):
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_ACTOR_ATTRIBUTE]
     if swift_destination_id:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_DESTINATION_ID_ATTRIBUTE]
-    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends, swift_receiver_owner_provider, swift_state, swift_implementation_build_enabled_by)
+    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends, swift_receiver_owner_provider, swift_state, swift_implementation_build_enabled_by, swift_target)
     if cxx_senders:
         if receiver.has_attribute(model.STREAM_ATTRIBUTE):
             raise Exception("ERROR: Receiver %s has '%s', which is for receivers whose messages are sent on an IPC::Connection" % (destination, model.CXX_SENDERS_ATTRIBUTE))

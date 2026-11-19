@@ -173,6 +173,14 @@ final class SharedVideoFrameSource {
         shouldUseIOSurfaceBufferPool = true
     }
 
+    // Without a heap, attributing the pixel buffers to this process, without an IOSurface buffer pool.
+    @_expose(!Cxx)
+    init() {
+        heap = nil
+        resourceOwner = nil
+        shouldUseIOSurfaceBufferPool = false
+    }
+
     // Each takes a right of its own to the port that the caller's IPC::Semaphore or SharedMemory::Handle owns.
     @_expose(Cxx)
     func setSemaphore(_ port: mach_port_t) {
