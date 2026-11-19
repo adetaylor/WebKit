@@ -30,9 +30,12 @@
 
 #include "GeneratedSerializers.h"
 #include <WebCore/ColorSpace.h>
+#include <WebCore/ImageBufferFormat.h>
+#include <WebCore/ImageBufferResourceLimits.h>
 #include <WebCore/MediaConstraints.h>
 #include <WebCore/MediaConstraintsEvaluation.h>
 #include <WebCore/Path.h>
+#include <WebCore/PathImpl.h>
 #include <WebCore/PathSegment.h>
 #include <WebCore/SharedBuffer.h>
 #include <WebCore/TrackInfo.h>
@@ -53,6 +56,32 @@ WebCore::VideoInfo* SwiftDecoder::decodeVideoInfo()
     if (!info) [[unlikely]]
         return nullptr;
     return &info->leakRef();
+}
+
+WebCore::PathImpl* SwiftDecoder::decodePathImpl()
+{
+    auto path = borrowed().decode<Ref<WebCore::PathImpl>>();
+    if (!path) [[unlikely]]
+        return nullptr;
+    return &path->leakRef();
+}
+
+bool SwiftDecoder::decodeImageBufferFormat(WebCore::ImageBufferFormat& format)
+{
+    auto decoded = borrowed().decode<WebCore::ImageBufferFormat>();
+    if (!decoded) [[unlikely]]
+        return false;
+    format = *decoded;
+    return true;
+}
+
+bool SwiftDecoder::decodeImageBufferResourceLimits(WebCore::ImageBufferResourceLimits& limits)
+{
+    auto decoded = borrowed().decode<WebCore::ImageBufferResourceLimits>();
+    if (!decoded) [[unlikely]]
+        return false;
+    limits = *decoded;
+    return true;
 }
 
 #if ENABLE(MEDIA_STREAM)
@@ -140,6 +169,34 @@ void SwiftReplyEncoder::encodeVideoInfo(const WebCore::VideoInfo& info)
     RELEASE_ASSERT(!m_inStream);
     RELEASE_ASSERT(m_encoder);
     *m_encoder << info;
+}
+
+void SwiftReplyEncoder::encodePathImpl(const WebCore::PathImpl& path)
+{
+    if (m_inStream) {
+        streamEncoder() << path;
+        return;
+    }
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << path;
+}
+
+void SwiftReplyEncoder::encodeImageBufferFormat(const WebCore::ImageBufferFormat& format)
+{
+    if (m_inStream) {
+        streamEncoder() << format;
+        return;
+    }
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << format;
+}
+
+void SwiftReplyEncoder::encodeImageBufferResourceLimits(const WebCore::ImageBufferResourceLimits& limits)
+{
+    // ImageBufferResourceLimits is not stream encodable.
+    RELEASE_ASSERT(!m_inStream);
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << limits;
 }
 
 #if ENABLE(MEDIA_STREAM)

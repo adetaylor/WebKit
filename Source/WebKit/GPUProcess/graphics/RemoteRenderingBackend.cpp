@@ -114,12 +114,19 @@ Ref<RemoteRenderingBackend> RemoteRenderingBackend::create(GPUConnectionToWebPro
 }
 
 RemoteRenderingBackend::RemoteRenderingBackend(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteRenderingBackendIdentifier identifier, Ref<IPC::StreamServerConnection>&& streamConnection)
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    : m_streamConnection(WTF::move(streamConnection))
+#else
     : m_workQueue(IPC::StreamConnectionWorkQueue::create("RemoteRenderingBackend work queue"_s))
     , m_streamConnection(WTF::move(streamConnection))
+#endif
     , m_gpuConnectionToWebProcess(gpuConnectionToWebProcess)
     , m_sharedResourceCache(gpuConnectionToWebProcess.sharedResourceCache())
     , m_sharedPreferencesForWebProcess(gpuConnectionToWebProcess.sharedPreferencesForWebProcessValue())
     , m_renderingBackendIdentifier(identifier)
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    , m_owner(IPC::SwiftReceiverOwner::create(m_streamConnection.copyRef(), "RemoteRenderingBackend work queue"_s, IPC::ReceiverName::RemoteRenderingBackend, identifier.toUInt64(), m_sharedPreferencesForWebProcess, gpuConnectionToWebProcess.terminateWebProcessOnInvalidMessage()))
+#endif
 {
     ASSERT(RunLoop::isMain());
     weakPtrFactory().prepareForUseOnlyOnNonMainThread();
@@ -133,14 +140,6 @@ RemoteRenderingBackend::~RemoteRenderingBackend()
 {
     if (auto swiftState = std::exchange(m_swiftState, 0))
         destroySwiftState(swiftState);
-}
-
-void RemoteRenderingBackend::didReceiveInvalidMessage(IPC::StreamServerConnection&, IPC::MessageName messageName, const Vector<uint32_t>&)
-{
-    RELEASE_LOG_FAULT_WITH_PAYLOAD(IPC, "Received an invalid message %s from WebContent process %" PRIu64 ", requesting for it to be terminated.", description(messageName), m_gpuConnectionToWebProcess->webProcessIdentifier().toUInt64());
-    callOnMainRunLoop([gpuConnectionToWebProcess = m_gpuConnectionToWebProcess, messageName] {
-        gpuConnectionToWebProcess->terminateWebProcess(messageName);
-    });
 }
 
 void RemoteRenderingBackend::cacheNativeImageFromSharedNativeImage(RemoteNativeImageReadReference&& reference)
