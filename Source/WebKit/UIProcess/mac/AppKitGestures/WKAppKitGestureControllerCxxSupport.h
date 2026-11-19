@@ -29,6 +29,7 @@
 
 #if HAVE(APPKIT_GESTURES_SUPPORT)
 
+#import "AppKitSPI.h"
 #import "InteractionInformationAtPosition.h"
 #import "InteractionInformationRequest.h"
 #import "TransactionID.h"
@@ -117,7 +118,7 @@ NS_SWIFT_UI_ACTOR
 @interface WKAppKitGestureController (WKClickHighlightControllerDelegate) <WKClickHighlightControllerDelegate>
 @end
 
-@interface WKAppKitGestureController (NSGestureRecognizerDelegate) <NSGestureRecognizerDelegate>
+@interface WKAppKitGestureController (NSGestureRecognizerDelegate) <NSGestureRecognizerDelegatePrivate>
 @end
 
 @interface WKAppKitGestureController (WKDeferringGestureRecognizerDelegate) <WKDeferringGestureRecognizerDelegate>
