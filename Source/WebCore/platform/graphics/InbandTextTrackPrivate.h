@@ -35,6 +35,8 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
 
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
+
 namespace WebCore {
 
 enum class InbandTextTrackPrivateMode : uint8_t {
@@ -185,6 +187,8 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::InbandTextTrackPrivate)
 static bool isType(const WebCore::TrackPrivateBase& track) { return track.type() == WebCore::TrackPrivateBase::Type::Text; }
 SPECIALIZE_TYPE_TRAITS_END()
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif // ENABLE(VIDEO)
 

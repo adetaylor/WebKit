@@ -34,6 +34,8 @@
 
 #if ENABLE(VIDEO)
 
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
+
 namespace WebCore {
 
 class AudioInfo;
@@ -158,5 +160,7 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::AudioTrackPrivate)
 static bool isType(const WebCore::TrackPrivateBase& track) { return track.type() == WebCore::TrackPrivateBase::Type::Audio; }
 SPECIALIZE_TYPE_TRAITS_END()
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif

@@ -36,6 +36,8 @@
 #include <wtf/TZoneMalloc.h>
 #include <wtf/text/WTFString.h>
 
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
+
 namespace WebCore {
 
 class LegacyCDM;
@@ -166,5 +168,7 @@ private:
 #endif // PLATFORM(COCOA)
 
 }
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif // ENABLE(LEGACY_ENCRYPTED_MEDIA)

@@ -39,6 +39,8 @@
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
 
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
+
 #if !RELEASE_LOG_DISABLED
 namespace WTF {
 class Logger;
@@ -245,5 +247,7 @@ private:
 #endif // PLATFORM(COCOA)
 
 }
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif

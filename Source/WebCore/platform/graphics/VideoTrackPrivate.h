@@ -34,6 +34,8 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
 
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
+
 namespace WebCore {
 
 class VideoInfo;
@@ -156,5 +158,7 @@ private:
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::VideoTrackPrivate)
 static bool isType(const WebCore::TrackPrivateBase& track) { return track.type() == WebCore::TrackPrivateBase::Type::Video; }
 SPECIALIZE_TYPE_TRAITS_END()
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif
