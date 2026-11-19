@@ -46,6 +46,8 @@
 #include <wtf/WeakHashSet.h>
 #include <wtf/text/WTFString.h>
 
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
+
 namespace WTF {
 class Logger;
 }
@@ -351,5 +353,7 @@ struct LogArgument<WebCore::AudioSession::SoundStageSize> {
 };
 
 } // namespace WTF
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif // USE(AUDIO_SESSION)

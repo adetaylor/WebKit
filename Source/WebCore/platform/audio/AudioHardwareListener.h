@@ -32,6 +32,8 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
+
 namespace WebCore {
 
 enum class AudioHardwareActivityType {
@@ -107,3 +109,5 @@ private:
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 }
+
+IGNORE_CLANG_WARNINGS_END
