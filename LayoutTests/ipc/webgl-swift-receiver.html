@@ -76,6 +76,15 @@ promise_test(async () => {
     const binding = sendSync('RemoteGraphicsContextGL_GetIntegeri_v', [{ type: 'uint32_t', value: UNIFORM_BUFFER_BINDING }, { type: 'uint32_t', value: 0 }]).arguments.map(argument => argument.value);
     assert_array_equals(binding, [0, 0, 0, 0], 'GetIntegeri_v(UNIFORM_BUFFER_BINDING, 0)');
 
+    // Every value is a name, including the largest ones, and deleting a name that isn't there changes nothing.
+    for (const name of [0xFFFFFFFF, 0xFFFFFFFE]) {
+        send('RemoteGraphicsContextGL_CreateBuffer', [{ type: 'uint32_t', value: name }]);
+        assert_true(sendSync('RemoteGraphicsContextGL_IsBuffer', [{ type: 'uint32_t', value: name }]).arguments[0].value, `IsBuffer of buffer ${name}`);
+        for (let i = 0; i < 200; ++i)
+            send('RemoteGraphicsContextGL_DeleteBuffer', [{ type: 'uint32_t', value: name }]);
+        assert_false(sendSync('RemoteGraphicsContextGL_IsBuffer', [{ type: 'uint32_t', value: name }]).arguments[0].value, `IsBuffer of deleted buffer ${name}`);
+    }
+
     send('RemoteGraphicsContextGL_DeleteBuffer', [{ type: 'uint32_t', value: buffer }]);
     assert_false(sendSync('RemoteGraphicsContextGL_IsBuffer', [{ type: 'uint32_t', value: buffer }]).arguments[0].value, 'IsBuffer of a deleted buffer');
     assert_equals(sendSync('RemoteGraphicsContextGL_GetErrors', []).arguments[0].value, 0, 'GetErrors');
