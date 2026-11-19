@@ -537,6 +537,12 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module WKAppKitGestureControllerCxxSupport {
+        requires cplusplus20,objc,macos
+        header "../../UIProcess/mac/AppKitGestures/WKAppKitGestureControllerCxxSupport.h"
+        export *
+    }
+
     module WKClickHighlightController {
         requires cplusplus20,objc,macos
         header "../../UIProcess/Cocoa/WKClickHighlightController.h"

@@ -2977,6 +2977,8 @@
 		FAE61CEC2D0A5608000D238D /* UnifiedSource131.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAE61CE52D0A5607000D238D /* UnifiedSource131.cpp */; };
 		FAF27D302D2851EB00F1F0BB /* CoreIPCPKSecureElementPass.mm in Sources */ = {isa = PBXBuildFile; fileRef = FAF27D2F2D2850D400F1F0BB /* CoreIPCPKSecureElementPass.mm */; };
 		FC7104542E0ED23800CC0B24 /* WebInspectorBackendProxy.h in Headers */ = {isa = PBXBuildFile; fileRef = FC7104532E0ED23800CC0B24 /* WebInspectorBackendProxy.h */; };
+		FDD5F5A17E6E494DAEFF7AE1 /* WKAppKitGestureControllerCxxSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = FF395CD6FB7C47E5AE7C0E29 /* WKAppKitGestureControllerCxxSupport.h */; };
+		83CC78B9A71247B79D206B50 /* WKAppKitGestureControllerCxxSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = F6D6BC14EA0247C987651F65 /* WKAppKitGestureControllerCxxSupport.mm */; };
 		FEDBDCD71E68D20500A59F8F /* WebInspectorInterruptDispatcherMessages.h in Headers */ = {isa = PBXBuildFile; fileRef = FEDBDCD51E68D19C00A59F8F /* WebInspectorInterruptDispatcherMessages.h */; };
 		FEE43FD31E67B0180077D6D1 /* WebInspectorInterruptDispatcher.h in Headers */ = {isa = PBXBuildFile; fileRef = FEE43FD11E67AFC60077D6D1 /* WebInspectorInterruptDispatcher.h */; };
 		FF0F70902E8242DB00D52BE1 /* WasmDebuggerDebuggable.h in Headers */ = {isa = PBXBuildFile; fileRef = FF0F708D2E8242DB00D52BE1 /* WasmDebuggerDebuggable.h */; };
@@ -9644,6 +9646,8 @@
 		FEE43FD21E67AFC60077D6D1 /* WebInspectorInterruptDispatcher.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = WebInspectorInterruptDispatcher.messages.in; sourceTree = "<group>"; };
 		FF0F708D2E8242DB00D52BE1 /* WasmDebuggerDebuggable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmDebuggerDebuggable.h; sourceTree = "<group>"; };
 		FF0F708E2E8242DB00D52BE1 /* WasmDebuggerDebuggable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WasmDebuggerDebuggable.cpp; sourceTree = "<group>"; };
+		FF395CD6FB7C47E5AE7C0E29 /* WKAppKitGestureControllerCxxSupport.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WKAppKitGestureControllerCxxSupport.h; sourceTree = "<group>"; };
+		F6D6BC14EA0247C987651F65 /* WKAppKitGestureControllerCxxSupport.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = WKAppKitGestureControllerCxxSupport.mm; sourceTree = "<group>"; };
 		FFCC7DFB2E95876C00D4A715 /* WasmDebuggerDispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WasmDebuggerDispatcher.h; sourceTree = "<group>"; };
 		FFCC7DFC2E95876C00D4A715 /* WasmDebuggerDispatcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WasmDebuggerDispatcher.cpp; sourceTree = "<group>"; };
 		FFF3D089B182017C30B8FA78 /* WebExtensionContentRuleListBlockedLoadInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebExtensionContentRuleListBlockedLoadInfo.h; sourceTree = "<group>"; };
@@ -10009,6 +10013,8 @@
 				336E07462EBCC1C100B4D635 /* WKAppKitGestureController.h */,
 				336E07472EBCC1C100B4D635 /* WKAppKitGestureController.mm */,
 				073B19992FEFB66B00BD5D69 /* WKAppKitGestureController.swift */,
+				FF395CD6FB7C47E5AE7C0E29 /* WKAppKitGestureControllerCxxSupport.h */,
+				F6D6BC14EA0247C987651F65 /* WKAppKitGestureControllerCxxSupport.mm */,
 				07F0337D3B2E1A0044AABBCC /* WKDirectionalScrollLockTracker.swift */,
 				078074F83029A874005492F5 /* WKDOMDoubleClickGestureRecognizer.swift */,
 				07F0337B30107D3900B69551 /* WKFastScrollTracker.swift */,
@@ -19947,6 +19953,7 @@
 				2D12DAB520662C73006F00FB /* WKAnimationDelegate.h in Headers */,
 				BCDDB32D124EC2E10048D13C /* WKAPICast.h in Headers */,
 				336E07482EBCC1E400B4D635 /* WKAppKitGestureController.h in Headers */,
+				FDD5F5A17E6E494DAEFF7AE1 /* WKAppKitGestureControllerCxxSupport.h in Headers */,
 				A13DC682207AA6B20066EF72 /* WKApplicationStateTrackingView.h in Headers */,
 				BC4075F4124FF0270068F20A /* WKArray.h in Headers */,
 				577739952580388F0059348B /* WKASCAuthorizationPresenterDelegate.h in Headers */,
@@ -23304,6 +23311,7 @@
 				07F5FA2C3021E6CA00B40FEE /* WKAlternatePDFHUDView+Testing.swift in Sources */,
 				0739EAFA301563480066ED1B /* WKAlternatePDFHUDView.swift in Sources */,
 				073B199A2FEFB66B00BD5D69 /* WKAppKitGestureController.swift in Sources */,
+				83CC78B9A71247B79D206B50 /* WKAppKitGestureControllerCxxSupport.mm in Sources */,
 				A190E9422F3DB703009615AD /* WKAVContentSource.mm in Sources */,
 				C6A4CA0C2252899800169289 /* WKBundlePageMac.mm in Sources */,
 				2D931169212F61B200044BFE /* WKContentView.mm in Sources */,
