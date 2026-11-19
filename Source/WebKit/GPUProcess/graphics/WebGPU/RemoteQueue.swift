@@ -250,7 +250,10 @@ final class RemoteQueue {
         sharedFrame: borrowing IPCTypes.SharedVideoFrame?,
         destination: IPCTypes.ImageCopyTextureTagged,
         copySize: IPCTypes.Extent3D
-    ) {
+    ) throws(InvalidMessage) {
+        try messageCheck {
+            sourceSize.width >= 0 && sourceSize.height >= 0
+        }
         let objects = link.objects
         let texture = objects?.object(destination.texture, as: TextureReference.self)
         assert(texture != nil)
