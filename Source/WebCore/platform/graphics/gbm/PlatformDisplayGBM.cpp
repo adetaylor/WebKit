@@ -59,6 +59,8 @@ PlatformDisplayGBM::PlatformDisplayGBM(Ref<GLDisplay>&& glDisplay, struct gbm_de
 #if ENABLE(WEBGL)
     m_anglePlatform = EGL_PLATFORM_GBM_KHR;
     m_angleNativeDisplay = device;
+#else
+    UNUSED_PARAM(device);
 #endif
 }
 
