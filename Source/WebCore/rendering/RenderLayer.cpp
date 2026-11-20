@@ -3044,6 +3044,31 @@ uint64_t renderLayerAncestorWalkForTesting(std::span<const RenderLayer* const> l
     return digest;
 }
 
+// The enclosing-layer queries of the paint, hit-test and clip paths, over the layers given, for the tree benchmark. Each layer
+// contributes what its stacking context, enclosing stacking context, enclosing overflow clip layer and common ancestor with the
+// next layer are, described by the layer's own properties and its place relative to the layer itself and its parent.
+uint64_t renderLayerEnclosingWalkForTesting(std::span<RenderLayer* const> layers)
+{
+    uint64_t digest = fnvOffsetBasis;
+    auto describe = [](const RenderLayer* layer, const RenderLayer* result) -> uint64_t {
+        if (!result)
+            return 0;
+        uint64_t flags = 1 | (result->isStackingContext() ? 2 : 0) | (result->isNormalFlowOnly() ? 4 : 0) | (result == layer ? 8 : 0) | (result == layer->parent() ? 16 : 0);
+        return static_cast<uint64_t>(static_cast<uint32_t>(result->zIndex())) << 8 | flags;
+    };
+    for (size_t i = 0; i < layers.size(); ++i) {
+        auto* layer = layers[i];
+        auto* next = layers[(i + 1) % layers.size()];
+        uint64_t value = describe(layer, layer->stackingContext());
+        value = value * fnvPrime ^ describe(layer, layer->enclosingStackingContext());
+        value = value * fnvPrime ^ describe(layer, layer->enclosingOverflowClipLayer(IncludeSelf));
+        value = value * fnvPrime ^ describe(layer, layer->commonAncestorWithLayer(*next));
+        value = value * fnvPrime ^ (layer->isDescendantOf(*next) ? 1 : 0);
+        digest = (digest ^ value) * fnvPrime;
+    }
+    return digest;
+}
+
 // Weak references to layers held on behalf of a benchmark, which cannot name how a layer is weakly referenced.
 static Vector<InlineWeakPtr<RenderLayer>>& testingWeakReferences()
 {
@@ -3083,6 +3108,17 @@ void renderLayerWeakReferenceReleaseForTesting(size_t slot)
 {
     testingWeakReferences()[slot] = nullptr;
     testingFreeWeakReferenceSlots().append(slot);
+}
+
+bool renderLayerRecreateForTesting(const Element& element)
+{
+    auto* renderer = dynamicDowncast<RenderLayerModelObject>(element.renderer());
+    if (!renderer || !renderer->layer())
+        return false;
+    // As a style change that loses the layer does: its children's layers go to its parent, then the owner drops it.
+    renderer->layer()->removeOnlyThisLayer();
+    renderer->styleDidChange(Style::DifferenceResult::Equal, &renderer->style());
+    return renderer->layer();
 }
 
 bool RenderLayer::isDescendantOf(const RenderLayer& layer) const

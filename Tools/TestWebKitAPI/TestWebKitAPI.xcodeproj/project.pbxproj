@@ -1015,6 +1015,7 @@
 				WebCore/Quirks.cpp,
 				WebCore/RegionTests.cpp,
 				WebCore/RegistrableDomain.cpp,
+				WebCore/RenderLayerListBench.cpp,
 				WebCore/RenderStyleChange.cpp,
 				WebCore/ResourceResponsePersistence.cpp,
 				WebCore/SampleMap.cpp,

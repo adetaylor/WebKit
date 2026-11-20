@@ -1802,11 +1802,15 @@ NODELETE bool compositedWithOwnBackingStore(const RenderLayer&);
 // Walks of the layer links with the reads inlined, for the tree benchmark. Each returns a digest of what it visited.
 WEBCORE_EXPORT uint64_t renderLayerPreorderWalkForTesting(const RenderLayer& root);
 WEBCORE_EXPORT uint64_t renderLayerAncestorWalkForTesting(std::span<const RenderLayer* const>);
+// Queries for the layer's enclosing layers (stacking context, overflow clip layer, common ancestor), folded into a digest.
+WEBCORE_EXPORT uint64_t renderLayerEnclosingWalkForTesting(std::span<RenderLayer* const>);
 // Weak references to the layer of an element, kept in a table until released; notFound if the element has no layer.
 // The table is not synchronized, so Swift may call these only with unsafe.
 WEBCORE_EXPORT SWIFT_UNSAFE size_t renderLayerWeakReferenceAcquireForTesting(const Element&);
 WEBCORE_EXPORT SWIFT_UNSAFE bool renderLayerWeakReferenceIsNullForTesting(size_t);
 WEBCORE_EXPORT SWIFT_UNSAFE void renderLayerWeakReferenceReleaseForTesting(size_t);
+// Destroys the layer of the element's renderer and makes it again, as a style change does, without resolving style. False if the element has no layer.
+WEBCORE_EXPORT bool renderLayerRecreateForTesting(const Element&);
 
 WTF::TextStream& operator<<(WTF::TextStream&, ClipRectsType);
 WTF::TextStream& operator<<(WTF::TextStream&, const RenderLayer&);
