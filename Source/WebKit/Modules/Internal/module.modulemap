@@ -664,6 +664,12 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module WebAuthnPanel {
+        requires objc
+        header "../../UIProcess/WebAuthentication/Cocoa/WebAuthenticationPanelCredentials.h"
+        export *
+    }
+
     module WebAuthnVirtual {
         requires cplusplus20
         header "../../UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorManager.h"
