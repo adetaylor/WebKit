@@ -33,7 +33,9 @@
 // WebCoreSwift-Generated.h.
 #include <WebCore/RubberbandingState.h>
 #include <WebCore/ScrollPhysicsTypes.h>
+#if PLATFORM(MAC)
 #include <WebCore/ScrollerPairMac.h>
+#endif
 #include <WebCore/ScrollingCoordinatorTypes.h>
 #include <WebCore/ScrollingTree.h>
 #include <WebCore/ScrollingTreeFrameScrollingNode.h>

@@ -4270,6 +4270,26 @@ else ()
     set(_webcore_swift_modules "")
     set(_webcore_swift_core_submodules)
 
+    # The scrolling thread's scroll delegate (ThreadedScrollingTreeScrollingNodeDelegate), which is Swift: the
+    # coordinated graphics ports' scrolling thread (PlatformEnableGlib.h) and PlayStation's ENABLE_SCROLLING_THREAD.
+    if (ENABLE_SCROLLING_THREAD OR (ENABLE_ASYNC_SCROLLING AND USE_COORDINATED_GRAPHICS))
+        target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.swift
+        )
+        webkit_target_add_swift_options(WebCore "-D ENABLE_SCROLLING_THREAD")
+        if (USE_COORDINATED_GRAPHICS)
+            list(REMOVE_ITEM WebCore_SOURCES page/scrolling/coordinated/ScrollingTreeScrollingNodeDelegateCoordinated.cpp)
+            list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+                page/scrolling/coordinated/ScrollingTreeScrollingNodeDelegateCoordinated.cpp)
+        endif ()
+        string(APPEND _webcore_swift_modules
+            "    explicit module ScrollingTreeScrollPhysicsClient {\n"
+            "        header \"${WEBCORE_DIR}/page/scrolling/ScrollingTreeScrollPhysicsClient.h\"\n"
+            "        requires cplusplus\n"
+            "        export *\n"
+            "    }\n")
+    endif ()
+
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
     string(APPEND _webcore_swift_modules
         "    explicit module HTMLFastPathParserTypes {\n"

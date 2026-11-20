@@ -34,6 +34,7 @@
 #include "ScrollingTree.h"
 #include "ScrollingTreeFrameScrollingNode.h"
 #include "ScrollingTreeScrollingNode.h"
+#include <wtf/SystemTracing.h>
 #include <wtf/TZoneMallocInlines.h>
 
 #include "ScrollingTreeScrollPhysicsClient.h"
@@ -73,6 +74,21 @@ void ScrollingTreeScrollPhysicsClient::startScrollendTimer()
     // As ScrollingEffectsController::scheduleScrollendTimer().
     static constexpr Seconds discreteScrollDelay = 100_ms;
     delegate.m_discreteScrollendTimer->startOneShot(discreteScrollDelay);
+}
+
+void ScrollingTreeScrollPhysicsClient::emitRubberBandSignpost(bool isRubberBanding, IntSize stretch, bool isMainFrame)
+{
+#if PLATFORM(COCOA)
+#define RUBBER_BAND_SIGNPOST_STATE_FORMAT "%{public}s"
+#else
+#define RUBBER_BAND_SIGNPOST_STATE_FORMAT "%s"
+#endif
+    WTFEmitSignpostAlways(&delegate(), ScrollingPerformanceTestRubberBand, RUBBER_BAND_SIGNPOST_STATE_FORMAT "; top=%d right=%d bottom=%d left=%d; stretch=%d,%d; isMainFrame=%d",
+        isRubberBanding ? "started" : "ended",
+        stretch.height() < 0, stretch.width() > 0, stretch.height() > 0, stretch.width() < 0,
+        stretch.width(), stretch.height(),
+        isMainFrame);
+#undef RUBBER_BAND_SIGNPOST_STATE_FORMAT
 }
 
 ThreadedScrollingTreeScrollingNodeDelegate::ThreadedScrollingTreeScrollingNodeDelegate(ScrollingTreeScrollingNode& scrollingNode)

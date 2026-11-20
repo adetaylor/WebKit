@@ -64,15 +64,6 @@ ScrollingTreeScrollingNodeDelegateMac::ScrollingTreeScrollingNodeDelegateMac(Scr
 
 ScrollingTreeScrollingNodeDelegateMac::~ScrollingTreeScrollingNodeDelegateMac() = default;
 
-void ScrollingTreeScrollPhysicsClient::emitRubberBandSignpost(bool isRubberBanding, IntSize stretch, bool isMainFrame)
-{
-    WTFEmitSignpostAlways(&delegate(), ScrollingPerformanceTestRubberBand, "%{public}s; top=%d right=%d bottom=%d left=%d; stretch=%d,%d; isMainFrame=%d",
-        isRubberBanding ? "started" : "ended",
-        stretch.height() < 0, stretch.width() > 0, stretch.height() > 0, stretch.width() < 0,
-        stretch.width(), stretch.height(),
-        isMainFrame);
-}
-
 void ScrollingTreeScrollingNodeDelegateMac::nodeWillBeDestroyed()
 {
     // Hand the timers to destroyTimer() rather than stopping them here: they run on the scrolling thread, and the

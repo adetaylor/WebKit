@@ -30,20 +30,23 @@
 //
 // The delegate is used on one thread at a time, under the scrolling tree's lock.
 
-// ENABLE(SCROLLING_THREAD) and PLATFORM(MAC), as the C++ this replaces; the scrolling thread is the Mac's only.
-#if os(macOS)
+// ENABLE(SCROLLING_THREAD), as the C++ this replaces: the Mac's scrolling thread and the coordinated graphics ports'
+// (ScrollingTreeScrollingNodeDelegateCoordinated). ScrollingTreeScrollingNodeDelegateMac's members are the Mac's only.
+// FIXME: Move all but the Mac's members out of mac/, to ThreadedScrollingTreeScrollingNodeDelegate.swift.
+#if os(macOS) || ENABLE_SCROLLING_THREAD
 
 internal import WebCore_Private.Core.KeyboardScroll
 internal import WebCore_Private.Core.PlatformWheelEvent
 internal import WebCore_Private.Core.RubberbandingState
 internal import WebCore_Private.Core.ScrollExtents
-internal import WebCore_Private.Core.ScrollerPairMac
 internal import WebCore_Private.Core.ScrollingCoordinatorTypes
 internal import WebCore_Private.Core.ScrollingTree
 internal import WebCore_Private.Core.ScrollingTreeFrameScrollingNode
 internal import WebCore_Private.Core.ScrollingTreeScrollingNode
 internal import WebCore_Private.ScrollPhysicsTypes
 internal import WebCore_Private.ScrollingTreeScrollPhysicsClient
+#if os(macOS)
+internal import WebCore_Private.Core.ScrollerPairMac
 internal import AppKit
 internal import QuartzCore
 internal import WebCore_Private.Core.ColorCocoa
@@ -54,11 +57,14 @@ internal import WebCore_Private.ScrollerPairMacTypes
 // The scrollers handleWheelEvent() tells when momentum starts and ends: the Swift scrollers of the node's
 // ScrollerPairMac, or the ScrollerPairMac.
 typealias NodeScrollerPair = MacScrollerPair
+#endif
 
 @_expose(Cxx)
 final class ScrollingTreeScrollPhysicsDelegate {
     private let controller = ScrollPhysicsController()
+#if os(macOS)
     private var inMomentumPhase = false
+#endif
 
     @_expose(Cxx)
     init() {}
@@ -172,6 +178,51 @@ final class ScrollingTreeScrollPhysicsDelegate {
         controller.discreteSnapTransitionTimerFired(&c)
     }
 
+    /// `c` is made for this call on the calling C++ member's stack; nothing else reaches it.
+    @_expose(Cxx)
+    func contentsSizeChanged(client c: inout WebCore.ScrollingTreeScrollPhysicsClient) {
+        controller.contentsSizeChanged(&c)
+    }
+
+    /// `c` is made for this call on the calling C++ member's stack; nothing else reaches it.
+    ///
+    /// The wheel event is borrowed in place, so the stretching checks get its address rather than a copy; `timestamp`
+    /// is its timestamp, in seconds. ScrollingTreeScrollingNodeDelegateCoordinated::handleWheelEvent(), and the part
+    /// of the Mac's after its scrollers.
+    @_expose(Cxx)
+    func handleWheelEvent(
+        client c: inout WebCore.ScrollingTreeScrollPhysicsClient,
+        _ wheelEvent: borrowing @_addressable WebCore.PlatformWheelEvent,
+        _ timestamp: Double
+    ) -> Bool {
+        // ScrollingTreeWheelEventTestMonitorCompletionDeferrer: deferred for the whole event, whether or not the tree
+        // is monitoring wheel events, and removed once the result is known.
+        let node = c.node()
+        let tree = c.scrollingTree().get()
+        let nodeID = node.scrollingNodeID()
+        tree.deferWheelEventTestCompletionForReason(nodeID, .HandlingWheelEvent)
+        defer {
+            tree.removeWheelEventTestCompletionDeferralForReason(nodeID, .HandlingWheelEvent)
+        }
+
+        let wasInUserScroll = controller.isUserScrollInProgress()
+        controller.updateGestureInProgressState(&c, wheelEvent)
+        let isInUserScroll = controller.isUserScrollInProgress()
+        if isInUserScroll != wasInUserScroll {
+            node.setUserScrollInProgress(isInUserScroll)
+        }
+        controller.handleWheelEventDuringSpringAnimation(&c, wheelEvent)
+
+        // PlatformWheelEventPhase::MayBegin fires when two fingers touch the trackpad, and is used to flash overlay
+        // scrollbars. We know we're scrollable at this point, so handle the event.
+        if wheelEvent.phase() == .MayBegin {
+            return true
+        }
+
+        return controller.handleWheelEvent(&c, wheelEvent, timestamp)
+    }
+
+#if os(macOS)
     // MARK: ScrollingTreeScrollingNodeDelegateMac
 
     /// `c` is made for this call on the calling C++ member's stack; nothing else reaches it.
@@ -199,31 +250,7 @@ final class ScrollingTreeScrollPhysicsDelegate {
             scrollerPair.setUsePresentationValues(isInMomentumPhase)
         }
 
-        // ScrollingTreeWheelEventTestMonitorCompletionDeferrer: deferred for the whole event, whether or not the tree
-        // is monitoring wheel events, and removed once the result is known.
-        let node = c.node()
-        let tree = c.scrollingTree().get()
-        let nodeID = node.scrollingNodeID()
-        tree.deferWheelEventTestCompletionForReason(nodeID, .HandlingWheelEvent)
-        defer {
-            tree.removeWheelEventTestCompletionDeferralForReason(nodeID, .HandlingWheelEvent)
-        }
-
-        let wasInUserScroll = controller.isUserScrollInProgress()
-        controller.updateGestureInProgressState(&c, wheelEvent)
-        let isInUserScroll = controller.isUserScrollInProgress()
-        if isInUserScroll != wasInUserScroll {
-            node.setUserScrollInProgress(isInUserScroll)
-        }
-        controller.handleWheelEventDuringSpringAnimation(&c, wheelEvent)
-
-        // PlatformWheelEventPhase::MayBegin fires when two fingers touch the trackpad, and is used to flash overlay
-        // scrollbars. We know we're scrollable at this point, so handle the event.
-        if wheelEvent.phase() == .MayBegin {
-            return true
-        }
-
-        return controller.handleWheelEvent(&c, wheelEvent, timestamp)
+        return handleWheelEvent(client: &c, wheelEvent, timestamp)
     }
 
     /// `c` is made for this call on the calling C++ member's stack; nothing else reaches it.
@@ -439,9 +466,10 @@ final class ScrollingTreeScrollPhysicsDelegate {
             scrollers.updateScrollbarPainters(scrollerPair)
         }
     }
+#endif // os(macOS)
 }
 
-// The scroll physics client of the scrolling tree's nodes on macOS: ThreadedScrollingTreeScrollingNodeDelegate's and
+// The scroll physics client of the scrolling tree's nodes: ThreadedScrollingTreeScrollingNodeDelegate's and
 // ScrollingTreeScrollingNodeDelegateMac's ScrollingEffectsControllerClient members. The snap offsets and the timers
 // are C++ members of ScrollingTreeScrollPhysicsClient; everything else is here.
 extension WebCore.ScrollingTreeScrollPhysicsClient: ScrollPhysicsClientProtocol {
@@ -605,34 +633,46 @@ extension WebCore.ScrollingTreeScrollPhysicsClient: ScrollPhysicsClientProtocol 
         }
 
         scrollingTree().get().setRubberBandingInProgressForNode(node.scrollingNodeID(), isRubberBanding)
+#if HAVE_RUBBER_BANDING
         if !isRubberBanding {
             node.setRestoredRubberbandingInProgress(false)
         }
+#endif
     }
 
     mutating func rubberBandTargetOffset() -> WebCore.FloatSize {
         // NSRefreshController will only affect the rubberbanding of the main frame.
+#if HAVE_NSREFRESHCONTROLLER
         if node().nodeType() == .MainFrame {
             let topOffset = scrollingTree().get().topScrollStretchForRefreshController()
             if topOffset != 0 {
                 return WebCore.FloatSize(0, -topOffset)
             }
         }
+#endif
         return WebCore.FloatSize()
     }
 
     mutating func hasRefreshController() -> Bool {
+#if HAVE_NSREFRESHCONTROLLER
         if node().nodeType() != .MainFrame {
             return false
         }
         return scrollingTree().get().hasRefreshController()
+#else
+        return false
+#endif
     }
 
     mutating func refreshControllerSnappingThreshold() -> Float {
+#if HAVE_NSREFRESHCONTROLLER
         if node().nodeType() != .MainFrame {
             return 0
         }
         return scrollingTree().get().refreshControllerSnappingThreshold()
+#else
+        return 0
+#endif
     }
 
     // The scrolling node ID is the identifier: the deferral comes from this node's controller.
@@ -720,4 +760,4 @@ private func intSizeComponent(_ value: Float) -> Int32 {
     return Int32(value)
 }
 
-#endif // os(macOS)
+#endif // os(macOS) || ENABLE_SCROLLING_THREAD

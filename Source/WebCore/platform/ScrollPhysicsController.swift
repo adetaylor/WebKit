@@ -60,6 +60,17 @@ internal import WebCore_Private.Core.ScrollingEffectsClock
 internal import WebCore_Private.ScrollPhysicsTypes
 internal import WebCore_Private.ScrollAnimatorScrollPhysicsClient
 
+// The delta a wheel event moves a stretched (rubber-banding) scroll by. On Cocoa it is the event's unaccelerated
+// delta, as AppKit's is (PlatformWheelEvent's unacceleratedScrollingDelta() is PLATFORM(COCOA)); elsewhere the events
+// have no unaccelerated delta, and it is the event's delta.
+private func stretchedScrollingDelta(_ wheelEvent: borrowing @_addressable WebCore.PlatformWheelEvent) -> ScrollSize {
+#if canImport(Darwin)
+    ScrollSize(wheelEvent.unacceleratedScrollingDelta())
+#else
+    ScrollSize(wheelEvent.delta())
+#endif
+}
+
 // The client of the main thread's entry points.
 typealias MainThreadScrollPhysicsClient = WebCore.ScrollAnimatorScrollPhysicsClient
 
@@ -958,7 +969,7 @@ final class ScrollPhysicsController {
 
         // Much of this code, including this use of unaccelerated deltas when stretched, is based on AppKit behavior.
         let eventDelta =
-            (isVerticallyStretched || isHorizontallyStretched) ? -ScrollSize(wheelEvent.unacceleratedScrollingDelta()) : -rawDelta
+            (isVerticallyStretched || isHorizontallyStretched) ? -stretchedScrollingDelta(wheelEvent) : -rawDelta
 
         // Reset unapplied overscroll because we may decide to remove delta at various points and put it into this value.
         var delta = unappliedOverscrollDelta
@@ -1424,7 +1435,7 @@ final class ScrollPhysicsController {
         var delta = originalDelta
         var eventDelta =
             (isVerticallyStretched || isHorizontallyStretched)
-            ? -ScrollSize(wheelEvent.unacceleratedScrollingDelta()) : -ScrollSize(wheelEvent.delta())
+            ? -stretchedScrollingDelta(wheelEvent) : -ScrollSize(wheelEvent.delta())
 
         let horizontalSide = targetSideForScrollDelta(delta, .Horizontal)
         let verticalSide = targetSideForScrollDelta(delta, .Vertical)
