@@ -128,10 +128,16 @@ endfunction()
 
 function(_webkit_add_swift_compile_order_rule _order_source _predecessor)
     file(WRITE "${_order_source}.in" "// Auto-generated; orders this module's compile after ${_predecessor}'s.\n")
+    # A port that does not build the predecessor (WebGPU on the GTK and WPE ports) has nothing to wait for.
+    if (TARGET ${_predecessor})
+        set(_predecessor_swift_objects "$<FILTER:$<TARGET_OBJECTS:${_predecessor}>,INCLUDE,\\.swift\\.o>")
+    else ()
+        set(_predecessor_swift_objects "")
+    endif ()
     add_custom_command(
         OUTPUT "${_order_source}"
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${_order_source}.in" "${_order_source}"
-        DEPENDS "$<FILTER:$<TARGET_OBJECTS:${_predecessor}>,INCLUDE,\\.swift\\.o>"
+        DEPENDS ${_predecessor_swift_objects}
         VERBATIM
     )
     cmake_path(GET _order_source STEM _name)
