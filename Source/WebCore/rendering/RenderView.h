@@ -73,7 +73,7 @@ public:
     LayoutUnit clientLogicalHeightForFixedPosition() const;
 
 
-    NODELETE inline LocalFrameView& frameView() const; // Defined in LocalFrameViewInlines.h.
+    NODELETE inline LocalFrameView& frameView() const LIFETIME_BOUND_EXCEPT_IN_SWIFT; // Defined in LocalFrameViewInlines.h.
 
     Layout::InitialContainingBlock& initialContainingBlock() { return m_initialContainingBlock.get(); }
     const Layout::InitialContainingBlock& initialContainingBlock() const { return m_initialContainingBlock.get(); }
@@ -159,6 +159,8 @@ public:
     void setIsInWindow(bool);
 
     WEBCORE_EXPORT RenderLayerCompositor& compositor();
+    // compositor() with the existing-compositor case inlined, for RenderLayer::compositor().
+    RenderLayerCompositor& inlineCompositor() { return m_compositor ? *m_compositor : compositor(); }
     NODELETE WEBCORE_EXPORT bool usesCompositing() const;
 
     WEBCORE_EXPORT IntRect unscaledDocumentRect() const;

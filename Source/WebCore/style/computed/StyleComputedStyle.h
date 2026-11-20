@@ -85,7 +85,6 @@ public:
     LayoutUnit evaluatedMinHeightForSwift(LayoutUnit referenceLength) const SWIFT_NAME(evaluatedMinHeight(_:));
     inline bool borderHasVisibleBorderForSwift() const SWIFT_NAME(borderHasVisibleBorder());
     inline bool borderHasNonRoundCornerShapeForSwift() const SWIFT_NAME(borderHasNonRoundCornerShape());
-    inline bool borderHasCornerShapeOutsideRoundedRectForSwift() const SWIFT_NAME(borderHasCornerShapeOutsideRoundedRect());
     inline bool hasImageInAnyBackgroundLayerForSwift() const SWIFT_NAME(hasImageInAnyBackgroundLayer());
     inline unsigned backgroundLayersUsedLengthForSwift() const SWIFT_NAME(backgroundLayersUsedLength());
     inline FillBox backgroundFirstLayerClipForSwift() const SWIFT_NAME(backgroundFirstLayerClip());

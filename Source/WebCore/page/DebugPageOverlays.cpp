@@ -346,11 +346,11 @@ std::optional<std::pair<RenderLayer&, GraphicsLayer&>> InteractionRegionOverlay:
     if (!hitNode || !hitNode->renderer())
         return std::nullopt;
 
-    CheckedPtr rendererLayer = protect(hitNode->renderer())->enclosingLayer();
+    auto* rendererLayer = protect(hitNode->renderer())->enclosingLayer();
     if (!rendererLayer)
         return std::nullopt;
 
-    CheckedPtr layer = rendererLayer->enclosingCompositingLayerForRepaint().layer;
+    RenderLayer* layer = rendererLayer->enclosingCompositingLayerForRepaint().layer;
     if (!layer)
         return std::nullopt;
 

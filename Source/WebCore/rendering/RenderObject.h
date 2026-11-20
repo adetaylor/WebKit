@@ -751,7 +751,7 @@ public:
     // instead. Returns the capture state with this adjustment applied.
     bool effectiveCapturedInViewTransition() const;
 
-    NODELETE inline RenderView& view() const; // Defined in RenderObjectDocument.h
+    NODELETE inline RenderView& view() const LIFETIME_BOUND_EXCEPT_IN_SWIFT; // Defined in RenderObjectDocument.h
     inline LocalFrameViewLayoutContext& layoutContext() const;
 
     HostWindow* hostWindow() const;

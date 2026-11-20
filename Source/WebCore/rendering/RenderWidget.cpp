@@ -137,7 +137,7 @@ NODELETE static inline IntRect roundedIntRect(const LayoutRect& rect)
 
 bool RenderWidget::setWidgetGeometry(const LayoutRect& frame)
 {
-    IntRect clipRect = roundedIntRect(protect(enclosingLayer())->childrenClipRect());
+    IntRect clipRect = roundedIntRect(enclosingLayer()->childrenClipRect());
     IntRect newFrameRect = roundedIntRect(frame);
     IntRect oldFrameRect = protect(m_widget)->frameRect();
     bool clipChanged = m_clipRect != clipRect;
@@ -415,7 +415,7 @@ void RenderWidget::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
     if (hasLayer() && layer()->canResize()) {
         ASSERT(layer()->scrollableArea());
         auto controlsRects = layer()->scrollableArea()->overflowControlsRects();
-        layer()->scrollableArea()->paintResizer(paintInfo.context(), roundedIntPoint(adjustedPaintOffset), controlsRects.resizer, paintInfo.rect);
+        layer()->scrollableArea()->paintResizer(LentGraphicsContext { paintInfo.context() }, roundedIntPoint(adjustedPaintOffset), controlsRects.resizer, paintInfo.rect);
     }
 }
 

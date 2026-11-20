@@ -479,6 +479,11 @@ public:
     virtual void scrollDidEnd() { }
     virtual void scrollOriginDidChange() { }
 
+    // Protected for C++, which destroys a ScrollableArea only as one of its subclasses. Swift imports the class only
+    // with a public destructor and move constructor.
+#if !defined(__swift__)
+protected:
+#endif
     WEBCORE_EXPORT virtual ~ScrollableArea();
     // Declared so that Swift imports the class. Nothing moves a ScrollableArea: the definition stops if anything does.
     SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT ScrollableArea(ScrollableArea&&);

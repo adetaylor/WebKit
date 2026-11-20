@@ -39,9 +39,9 @@ template<typename Function>
 AncestorTraversal traverseAncestorLayers(const RenderLayer& layer, NOESCAPE const Function& function)
 {
     auto positioningBehavior = layer.renderer().style().position();
-    CheckedPtr nextPaintOrderParent = layer.paintOrderParent();
+    auto* nextPaintOrderParent = layer.paintOrderParent();
 
-    for (CheckedPtr<const RenderLayer> ancestorLayer = layer.parent(); ancestorLayer; ancestorLayer = ancestorLayer->parent()) {
+    for (RenderLayer* ancestorLayer = layer.parent(); ancestorLayer; ancestorLayer = ancestorLayer->parent()) {
         bool inContainingBlockChain = true;
 
         switch (positioningBehavior) {

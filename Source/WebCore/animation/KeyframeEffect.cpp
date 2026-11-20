@@ -2282,7 +2282,7 @@ void KeyframeEffect::animationDidFinish()
     if (animatablePropertiesContainTransformRelatedProperty(animatedProperties())) {
         if (CheckedPtr renderer = this->renderer()) {
             if (CheckedPtr scrollContainer = renderer->enclosingScrollableContainer()) {
-                CheckedPtr layer = scrollContainer->layer();
+                auto* layer = scrollContainer->layer();
                 CheckedPtr scrollableArea = layer ? layer->scrollableArea() : nullptr;
                 if (scrollableArea && !scrollableArea->scrollOffset().isZero())
                     renderer->setNeedsLayoutForOverflowChange();

@@ -500,7 +500,7 @@ LayoutRect ViewTransition::captureOverflowRect(RenderLayerModelObject& renderer)
     if (renderer.isDocumentElementRenderer())
         return containingBlockRect();
 
-    CheckedPtr layer = renderer.layer();
+    auto* layer = renderer.layer();
     auto bounds = layer->calculateLayerBounds(layer, LayoutSize(), { RenderLayer::IncludeFilterOutsets, RenderLayer::ExcludeHiddenDescendants, RenderLayer::IncludeCompositedDescendants, RenderLayer::PreserveAncestorFlags, RenderLayer::IncludeDescendantTransforms, RenderLayer::ExcludeViewTransitionCapturedDescendants });
     return LayoutRect(encloseRectToDevicePixels(bounds, renderer.document().deviceScaleFactor()));
 }
@@ -567,7 +567,7 @@ static void paintElementSnapshot(const ElementSnapshotParameters& parameters, Gr
     paintFlags.add(RenderLayer::PaintLayerFlag::TemporaryClipRects);
     paintFlags.add(RenderLayer::PaintLayerFlag::AppliedTransform);
     paintFlags.add(RenderLayer::PaintLayerFlag::PaintingSkipDescendantViewTransition);
-    protect(parameters.layerRenderer->layer())->paint(context, parameters.paintRect, subpixelOffset, frameView->paintBehavior(), nullptr, paintFlags);
+    parameters.layerRenderer->layer()->paint(context, parameters.paintRect, subpixelOffset, frameView->paintBehavior(), nullptr, paintFlags);
 
     frameView->setPaintBehavior(oldPaintBehavior);
 }
@@ -644,19 +644,19 @@ static ExceptionOr<void> forEachRendererInPaintOrder(NOESCAPE const std::functio
     LayerListMutationDetector mutationChecker(layer);
 #endif
 
-    for (CheckedPtr child : layer.negativeZOrderLayers()) {
+    for (auto* child : layer.negativeZOrderLayers()) {
         auto result = forEachRendererInPaintOrder(function, *child);
         if (result.hasException())
             return result.releaseException();
     }
 
-    for (CheckedPtr child : layer.normalFlowLayers()) {
+    for (auto* child : layer.normalFlowLayers()) {
         auto result = forEachRendererInPaintOrder(function, *child);
         if (result.hasException())
             return result.releaseException();
     }
 
-    for (CheckedPtr child : layer.positiveZOrderLayers()) {
+    for (auto* child : layer.positiveZOrderLayers()) {
         auto result = forEachRendererInPaintOrder(function, *child);
         if (result.hasException())
             return result.releaseException();
@@ -699,6 +699,7 @@ ExceptionOr<void> ViewTransition::captureOldState()
         m_initialLargeViewportSize = view->sizeForCSSLargeViewportUnits();
         m_initialPageZoom = frame->pageZoomFactor() * frame->frameScaleFactor();
 
+        LayerFreeForbiddenScope layerFreeForbiddenScope;
         auto result = forEachRendererInPaintOrder([&](RenderLayerModelObject& renderer) -> ExceptionOr<void> {
             auto styleable = Styleable::fromRenderer(renderer);
             if (!styleable)
@@ -715,7 +716,7 @@ ExceptionOr<void> ViewTransition::captureOldState()
                 captureRenderers.append(renderer);
             }
             return { };
-        }, *protect(view->layer()));
+        }, *view->layer());
         if (result.hasException()) {
             for (auto& renderer : captureRenderers)
                 renderer->setCapturedInViewTransition(false);
@@ -782,6 +783,7 @@ ExceptionOr<void> ViewTransition::captureNewState()
     CheckedRef styleScope = document->styleScope();
     OrderedHashSet<AtomString> usedTransitionNames;
     if (CheckedPtr view = document->renderView()) {
+        LayerFreeForbiddenScope layerFreeForbiddenScope;
         auto result = forEachRendererInPaintOrder([&](RenderLayerModelObject& renderer) -> ExceptionOr<void> {
             auto styleable = Styleable::fromRenderer(renderer);
             if (!styleable)
@@ -809,7 +811,7 @@ ExceptionOr<void> ViewTransition::captureNewState()
                     copyElementBaseProperties(*box, namedElement->newState);
             }
             return { };
-        }, *protect(view->layer()));
+        }, *view->layer());
         if (result.hasException())
             return result.releaseException();
     }

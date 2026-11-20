@@ -148,7 +148,7 @@ void RenderSelection::set(const RenderRange& selection, RepaintMode blockRepaint
 void RenderSelection::clear()
 {
     if (!m_selectionWasCaret)
-        protect(m_renderView->layer())->repaintBlockSelectionGaps();
+        m_renderView->layer()->repaintBlockSelectionGaps();
     set({ }, RenderSelection::RepaintMode::NewMinusOld);
 }
 

@@ -177,7 +177,7 @@ void ScrollAnchoringController::clearAnchor(bool includeAncestors)
         if (!scrollerBox)
             return;
 
-        for (CheckedPtr layer = scrollerBox->layer(); layer; layer = layer->parent()) {
+        for (auto* layer = scrollerBox->layer(); layer; layer = layer->parent()) {
             if (CheckedPtr scrollableArea = layer->scrollableArea()) {
                 if (CheckedPtr controller = scrollableArea->scrollAnchoringController())
                     controller->clearAnchor(false);

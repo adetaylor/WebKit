@@ -93,9 +93,6 @@ RenderLayerModelObject::RenderLayerModelObject(Type type, Document& document, Un
     ASSERT(isRenderLayerModelObject());
 }
 
-// Do not add any code in below destructor. Add it to willBeDestroyed() instead.
-RenderLayerModelObject::~RenderLayerModelObject() = default;
-
 void RenderLayerModelObject::willBeDestroyed()
 {
     if (isPositioned()) {
@@ -108,31 +105,6 @@ void RenderLayerModelObject::willBeDestroyed()
     RenderElement::willBeDestroyed();
 }
 
-void RenderLayerModelObject::destroyLayer()
-{
-    setHasLayer(false);
-    m_layer = nullptr;
-}
-
-void RenderLayerModelObject::createLayer()
-{
-    ASSERT(!m_layer);
-    m_layer = RenderLayer::create(*this);
-    setHasLayer(true);
-    setMayHaveLayerInSubtreeIncludingAncestors();
-    m_layer->insertOnlyThisLayer();
-}
-
-bool RenderLayerModelObject::createLayerIfAllowed()
-{
-    if (m_layer || !layerCreationAllowedForSubtree())
-        return false;
-    createLayer();
-    if (parent() && !needsLayout())
-        m_layer->setRepaintStatus(RepaintStatus::NeedsFullRepaint);
-    return true;
-}
-
 void RenderLayerModelObject::removeOnlyThisLayerWithRepaint()
 {
     ASSERT(m_layer && m_layer->parent());
@@ -140,11 +112,6 @@ void RenderLayerModelObject::removeOnlyThisLayerWithRepaint()
     if (m_layer->isSelfPaintingLayer() && m_layer->repaintStatus() == RepaintStatus::NeedsFullRepaint && m_layer->cachedClippedOverflowRect())
         repaintUsingContainer(containerForRepaint().renderer.get(), *m_layer->cachedClippedOverflowRect());
     m_layer->removeOnlyThisLayer();
-}
-
-bool RenderLayerModelObject::hasSelfPaintingLayer() const
-{
-    return m_layer && m_layer->isSelfPaintingLayer();
 }
 
 bool RenderLayerModelObject::requiresLayerForSVGIntrinsicReasons() const
@@ -252,7 +219,11 @@ void RenderLayerModelObject::styleDidChange(Style::Difference diff, const Style:
         InspectorInstrumentation::didAddOrRemoveScrollbars(*this);
 
     if (layer()) {
-        layer()->styleChanged(diff, oldStyle);
+        layer()->styleChanged(diff);
+#if ENABLE(IOS_TOUCH_EVENTS)
+        if (diff == Style::DifferenceResult::RecompositeLayer || diff >= Style::DifferenceResult::LayoutOutOfFlowMovementOnly)
+            document().invalidateRenderingDependentRegions();
+#endif
         if (s_hadLayer && layer()->isSelfPaintingLayer() != s_layerWasSelfPainting)
             setChildNeedsLayout();
     }
@@ -273,7 +244,7 @@ void RenderLayerModelObject::styleDidChange(Style::Difference diff, const Style:
         if (isDocumentElementRenderer()) {
             CheckedRef frameView = view().frameView();
             frameView->updateScrollbarSteps();
-        } else if (CheckedPtr renderLayer = layer())
+        } else if (auto* renderLayer = layer())
             renderLayer->updateScrollbarSteps();
     }
 
@@ -286,23 +257,6 @@ void RenderLayerModelObject::styleDidChange(Style::Difference diff, const Style:
 bool RenderLayerModelObject::applyCachedClipAndScrollPosition(RepaintRects&, const RenderLayerModelObject*, const VisibleRectContext&) const
 {
     return false;
-}
-
-bool RenderLayerModelObject::shouldPlaceVerticalScrollbarOnLeft() const
-{
-// RTL Scrollbars require some system support, and this system support does not exist on certain versions of macOS. iOS uses a separate mechanism.
-#if PLATFORM(IOS_FAMILY)
-    return false;
-#else
-    switch (settings().userInterfaceDirectionPolicy()) {
-    case UserInterfaceDirectionPolicy::Content:
-        return style().shouldPlaceVerticalScrollbarOnLeft();
-    case UserInterfaceDirectionPolicy::System:
-        return settings().systemLayoutDirection() == TextDirection::RTL;
-    }
-    ASSERT_NOT_REACHED();
-    return style().shouldPlaceVerticalScrollbarOnLeft();
-#endif
 }
 
 bool RenderLayerModelObject::startAnimation(double timeOffset, const GraphicsLayerAnimation& animation, const BlendingKeyframes& keyframes, const IntOutsets& filterAnimationOutsets)
@@ -324,13 +278,6 @@ void RenderLayerModelObject::animationFinished(const BlendingKeyframes& keyframe
     if (!layer() || !layer()->backing())
         return;
     layer()->backing()->animationFinished(keyframes.acceleratedAnimationName());
-}
-
-void RenderLayerModelObject::transformRelatedPropertyDidChange()
-{
-    if (!layer() || !layer()->backing())
-        return;
-    layer()->backing()->transformRelatedPropertyDidChange();
 }
 
 TransformationMatrix* RenderLayerModelObject::layerTransform() const
@@ -361,45 +308,6 @@ void RenderLayerModelObject::updateLayerTransform()
     // Transform-origin depends on box size, so we need to update the layer transform after layout.
     if (hasLayer())
         layer()->updateTransform();
-}
-
-bool RenderLayerModelObject::shouldPaintSVGLeafRenderer(const PaintInfo& paintInfo, const OptionSet<PaintPhase> relevantPaintPhases) const
-{
-    if (paintInfo.context().paintingDisabled())
-        return false;
-
-    if (!relevantPaintPhases.contains(paintInfo.phase))
-        return false;
-
-    if (!paintInfo.shouldPaintWithinRoot(*this))
-        return false;
-
-    if (usedStyle().visibility() == UsedVisibility::Hidden || style().display() == Style::DisplayType::None)
-        return false;
-
-    return true;
-}
-
-bool RenderLayerModelObject::shouldPaintSVGContainerRenderer(const PaintInfo& paintInfo, const OptionSet<PaintPhase> relevantPaintPhases) const
-{
-    if (paintInfo.phase != PaintPhase::EventRegion && paintInfo.context().paintingDisabled())
-        return false;
-
-    if (!relevantPaintPhases.contains(paintInfo.phase))
-        return false;
-
-    if (!paintInfo.shouldPaintWithinRoot(*this))
-        return false;
-
-    if (style().display() == Style::DisplayType::None)
-        return false;
-
-    // Children can override with "visibility: visible", per SVG spec.
-    static constexpr OptionSet<PaintPhase> phasesPaintedIfHidden { PaintPhase::Foreground, PaintPhase::ClippingMask, PaintPhase::Mask };
-    if (!phasesPaintedIfHidden.contains(paintInfo.phase) && usedStyle().visibility() == UsedVisibility::Hidden)
-        return false;
-
-    return true;
 }
 
 auto RenderLayerModelObject::computeVisibleRectsInSVGContainer(const RepaintRects& rects, const RenderLayerModelObject* container, const VisibleRectContext& context, VisibleRectState state) const -> std::optional<RepaintRects>
@@ -576,7 +484,7 @@ void RenderLayerModelObject::updateHasSVGTransformFlags()
         // dirtyChildrenInDOMOrderForSVG() asserts m_svgData, so only an SVG layer may receive it. A
         // non-SVG enclosing layer (reachable for an SVG renderer reparented under non-SVG content) has
         // no DOM-order cache to rebuild.
-        if (CheckedPtr layer = enclosingLayer(); layer && layer->isSVGLayer())
+        if (auto* layer = enclosingLayer(); layer && layer->isSVGLayer())
             layer->dirtyChildrenInDOMOrderForSVG();
     }
 }
@@ -811,19 +719,6 @@ bool RenderLayerModelObject::pointInSVGClippingArea(const FloatPoint& point) con
     );
 }
 
-bool RenderLayerModelObject::svgTransformAttributeChangeInducesLayerComposition()
-{
-    // True when a just-parsed SVG transform attribute flips whether this container needs a layer,
-    // so the change must create or destroy one. A 2D transform gates layer creation for any SVG
-    // container (requiresLayer() returns true for isTransformed() && isRenderSVGContainer()), which
-    // covers both <g> (RenderSVGTransformableContainer) and nested <svg> (RenderSVGViewportContainer).
-    if (!isRenderSVGContainer())
-        return false;
-    // requiresLayer() reads the cached hasSVGTransform() flag - so make sure it's not stale.
-    updateHasSVGTransformFlags();
-    return requiresLayer() != hasLayer();
-}
-
 void RenderLayerModelObject::updateTransformAndRepaintForSVGAfterAttributeChange(SVGAttributeChangeRepaintMode repaintMode)
 {
     ASSERT(document().settings().layerBasedSVGEngineEnabled());
@@ -937,20 +832,6 @@ std::optional<AffineTransform> RenderLayerModelObject::nominalTransformBeforeSty
     return nominalTransform();
 }
 
-void RenderLayerModelObject::invalidateCachedSVGBoundingBoxesOfAncestors() const
-{
-    for (CheckedPtr ancestor = parent(); ancestor; ancestor = ancestor->parent()) {
-        if (CheckedPtr svgAncestor = dynamicDowncast<RenderLayerModelObject>(ancestor.get())) {
-            svgAncestor->invalidateCachedSVGTransformDependentBoundingBoxes();
-            svgAncestor->invalidateCachedVisualOverflowRect();
-            if (svgAncestor->hasLayer())
-                svgAncestor->layer()->setNeedsPositionUpdate();
-        }
-        if (ancestor->isRenderSVGRoot())
-            break;
-    }
-}
-
 static void invalidateNonScalingStrokeCachesInSubtree(RenderElement& renderer)
 {
     if (CheckedPtr shape = dynamicDowncast<RenderSVGShape>(renderer)) {
@@ -1018,19 +899,6 @@ void RenderLayerModelObject::paintSVGMask(PaintInfo& paintInfo, const LayoutPoin
         referencedMaskerRenderer->applyMask(paintInfo, *this, adjustedPaintOffset);
 }
 
-void RenderLayerModelObject::paintSVGEventRegion(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
-{
-    ASSERT(paintInfo.phase == PaintPhase::EventRegion);
-    if (usedStyle().visibility() == UsedVisibility::Hidden || objectBoundingBox().isEmpty())
-        return;
-
-    auto adjustedPaintOffset = paintOffset + currentSVGLayoutLocation();
-    auto coordinateSystemOriginTranslation = adjustedPaintOffset - nominalSVGLayoutLocation();
-    auto eventRegionBounds = strokeBoundingBox();
-    eventRegionBounds.move(coordinateSystemOriginTranslation);
-    paintInfo.eventRegionContext()->unite(FloatRoundedRect(eventRegionBounds), *this, style(), false);
-}
-
 AffineTransform RenderLayerModelObject::computeNominalTransform() const
 {
     ASSERT(document().settings().layerBasedSVGEngineEnabled());
@@ -1048,29 +916,6 @@ AffineTransform RenderLayerModelObject::nominalTransform() const
         return { };
     }
     return cachedNominalTransform().value_or(AffineTransform());
-}
-
-AffineTransform RenderLayerModelObject::computeRendererTransform() const
-{
-    if (!isTransformed())
-        return { };
-    if (CheckedPtr renderLayer = layer())
-        return renderLayer->currentTransform(Style::TransformResolver::individualTransformOperations).toAffineTransform();
-    TransformationMatrix matrix;
-    auto referenceBoxRect = transformReferenceBoxRect(style());
-    applyTransform(matrix, style(), referenceBoxRect, Style::TransformResolver::individualTransformOperations);
-    return matrix.toAffineTransform();
-}
-
-void RenderLayerModelObject::contentChanged(ContentChangeType changeType, std::optional<FloatRect> dirtyRect)
-{
-    if (CheckedPtr layer = this->layer())
-        layer->contentChanged(changeType, dirtyRect);
-}
-
-bool RenderLayerModelObject::hasAcceleratedCompositing() const
-{
-    return view().compositor().hasAcceleratedCompositing();
 }
 
 #if ASSERT_ENABLED

@@ -900,7 +900,9 @@ GraphicsLayer* LocalFrameView::setWantsLayerForTopOverhangColorExtension(bool wa
     if (!renderView)
         return nullptr;
 
-    return protect(renderView->compositor())->updateLayerForTopOverhangColorExtension(wantsLayer);
+    CheckedRef compositor = renderView->compositor();
+    compositor->updateLayerForTopOverhangColorExtension(wantsLayer);
+    return compositor->layerForTopOverhangColorExtension();
 }
 
 GraphicsLayer* LocalFrameView::setWantsLayerForTopOverhangImage(bool wantsLayer) const
@@ -909,7 +911,9 @@ GraphicsLayer* LocalFrameView::setWantsLayerForTopOverhangImage(bool wantsLayer)
     if (!renderView)
         return nullptr;
 
-    return protect(renderView->compositor())->updateLayerForTopOverhangImage(wantsLayer);
+    CheckedRef compositor = renderView->compositor();
+    compositor->updateLayerForTopOverhangImage(wantsLayer);
+    return compositor->layerForTopOverhangImage();
 }
 
 GraphicsLayer* LocalFrameView::setWantsLayerForBottomOverHangArea(bool wantsLayer) const
@@ -918,7 +922,9 @@ GraphicsLayer* LocalFrameView::setWantsLayerForBottomOverHangArea(bool wantsLaye
     if (!renderView)
         return nullptr;
 
-    return protect(renderView->compositor())->updateLayerForBottomOverhangArea(wantsLayer);
+    CheckedRef compositor = renderView->compositor();
+    compositor->updateLayerForBottomOverhangArea(wantsLayer);
+    return compositor->layerForBottomOverhangArea();
 }
 
 #endif // HAVE(RUBBER_BANDING)
@@ -1018,7 +1024,7 @@ GraphicsLayer* LocalFrameView::graphicsLayerForPlatformWidget(PlatformWidget pla
     if (!renderWidget)
         return nullptr;
 
-    CheckedPtr widgetLayer = renderWidget->layer();
+    auto* widgetLayer = renderWidget->layer();
     if (!widgetLayer || !widgetLayer->isComposited())
         return nullptr;
 
@@ -1234,6 +1240,7 @@ bool LocalFrameView::flushCompositingStateIncludingSubframes()
 bool LocalFrameView::isSoftwareRenderable() const
 {
     CheckedPtr renderView = this->renderView();
+    LayerFreeForbiddenScope layerFreeForbiddenScope;
     return !renderView || !protect(renderView->compositor())->has3DContent();
 }
 
@@ -1746,7 +1753,7 @@ void LocalFrameView::addSlowRepaintObject(RenderElement& renderer)
 
     auto addResult = m_slowRepaintObjects->add(renderer);
     if (addResult.isNewEntry) {
-        if (CheckedPtr layer = renderer.enclosingLayer())
+        if (auto* layer = renderer.enclosingLayer())
             layer->setNeedsScrollingTreeUpdate();
     }
 
@@ -1763,7 +1770,7 @@ void LocalFrameView::removeSlowRepaintObject(RenderElement& renderer)
 
     bool removed = m_slowRepaintObjects->remove(renderer);
     if (removed) {
-        if (CheckedPtr layer = renderer.enclosingLayer())
+        if (auto* layer = renderer.enclosingLayer())
             layer->setNeedsScrollingTreeUpdate();
     }
 
@@ -2337,7 +2344,7 @@ LayoutPoint LocalFrameView::scrollPositionForFixedPosition(const LayoutRect& vis
 
 static bool isHiddenOrNearlyTransparent(const RenderBox& box)
 {
-    if (CheckedPtr layer = box.layer(); layer && layer->isVisibilityHiddenOrOpacityZero())
+    if (auto* layer = box.layer(); layer && layer->isVisibilityHiddenOrOpacityZero())
         return true;
 
     if (box.opacity() < PageColorSampler::nearlyTransparentAlphaThreshold)
@@ -3057,7 +3064,7 @@ bool LocalFrameView::scrollContentsFastPath(const IntSize& scrollDelta, const In
 
         // Fixed items should always have layers.
         ASSERT(renderer->hasLayer());
-        CheckedPtr layer = downcast<RenderBoxModelObject>(renderer).layer();
+        auto* layer = downcast<RenderBoxModelObject>(renderer).layer();
 
         if (layer->viewportConstrainedNotCompositedReason() == RenderLayer::NotCompositedForBoundsOutOfView
             || layer->viewportConstrainedNotCompositedReason() == RenderLayer::NotCompositedForNoVisibleContent) {
@@ -3091,7 +3098,7 @@ bool LocalFrameView::scrollContentsFastPath(const IntSize& scrollDelta, const In
         if (isCompositedContentLayer) {
             updateRect = rootViewToContents(updateRect);
             ASSERT(renderView());
-            protect(renderView()->layer())->setBackingNeedsRepaintInRect(updateRect);
+            renderView()->layer()->setBackingNeedsRepaintInRect(updateRect);
             continue;
         }
         updateRect.intersect(rectToScroll);
@@ -3392,8 +3399,8 @@ ScrollableArea* LocalFrameView::scrollableAreaForNode(ContainerNode& node)
         if (auto* renderListBox = dynamicDowncast<RenderListBox>(*renderer))
             return renderListBox;
 
-        if (CheckedPtr layer = renderer->enclosingLayer()) {
-            if (CheckedPtr scrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::IncludeSelf, CrossFrameBoundaries::No))
+        if (auto* layer = renderer->enclosingLayer()) {
+            if (auto* scrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::IncludeSelf, CrossFrameBoundaries::No))
                 return scrollableLayer->scrollableArea();
         }
     }
@@ -3630,7 +3637,7 @@ bool LocalFrameView::scrollRectToVisible(const LayoutRect& absoluteRect, const R
     if (renderer.isSkippedContent())
         return false;
 
-    CheckedPtr layer = renderer.enclosingLayer();
+    InlineWeakPtr<RenderLayer> layer = renderer.enclosingLayer();
     if (!layer)
         return false;
 
@@ -3652,6 +3659,8 @@ bool LocalFrameView::scrollRectToVisible(const LayoutRect& absoluteRect, const R
             if (options.container == ScrollIntoViewContainer::Nearest)
                 return true;
         }
+        if (!layer)
+            break;
         // FIXME: Make scroll adjustments work for more than just fixedpos elements.
         if (insideFixed)
             adjustForScrollByAnchor(layer->renderer(), isFixed);
@@ -3930,7 +3939,7 @@ void LocalFrameView::scrollPositionChanged(const ScrollPosition& oldPosition, co
     viewportContentsChanged();
 
     if (CheckedPtr renderView = this->renderView()) {
-        if (CheckedPtr layer = renderView->layer())
+        if (auto* layer = renderView->layer())
             protect(m_frame->editor())->renderLayerDidScroll(*layer);
     }
 
@@ -4024,7 +4033,8 @@ void LocalFrameView::updateLayerPositionsAfterScrolling()
         if (CheckedPtr renderView = this->renderView()) {
             updateWidgetPositions();
             protect(layoutContext())->flushUpdateLayerPositions();
-            protect(renderView->layer())->updateLayerPositionsAfterDocumentScroll();
+            LayerFreeForbiddenScope layerFreeForbiddenScope;
+            renderView->layer()->updateLayerPositionsAfterDocumentScroll();
         }
     }
 }
@@ -4032,7 +4042,10 @@ void LocalFrameView::updateLayerPositionsAfterScrolling()
 void LocalFrameView::updateLayerPositionsAfterOverflowScroll(RenderLayer& layer)
 {
     protect(layoutContext())->flushUpdateLayerPositions();
-    layer.updateLayerPositionsAfterOverflowScroll();
+    {
+        LayerFreeForbiddenScope layerFreeForbiddenScope;
+        layer.updateLayerPositionsAfterOverflowScroll();
+    }
     scheduleUpdateWidgetPositions();
 }
 
@@ -5481,7 +5494,7 @@ IntRect LocalFrameView::windowClipRectForFrameOwner(const HTMLFrameOwnerElement*
         return windowClipRect();
 
     // If we have no layer, just return our window clip rect.
-    CheckedPtr enclosingLayer = ownerElement->renderer()->enclosingLayer();
+    auto* enclosingLayer = ownerElement->renderer()->enclosingLayer();
     if (!enclosingLayer)
         return windowClipRect();
 
@@ -6087,7 +6100,7 @@ void LocalFrameView::paintContents(GraphicsContext& context, const IntRect& dirt
 
     // subtreePaintRoot is used to draw only one element (and its descendants).
     CheckedPtr<RenderObject> renderer = subtreePaintRoot ? subtreePaintRoot->renderer() : nullptr;
-    CheckedPtr rootLayer = renderView->layer();
+    auto* rootLayer = renderView->layer();
 
     RenderObject::SetLayoutNeededForbiddenScope forbidSetNeedsLayout(rootLayer->renderer());
 
@@ -6523,7 +6536,7 @@ void LocalFrameView::adjustPageHeightDeprecated(float *newBottom, float oldTop, 
     renderView->setTruncatedAt(static_cast<int>(floorf(oldBottom)));
     IntRect dirtyRect(0, static_cast<int>(floorf(oldTop)), renderView->layoutOverflowRect().maxX(), static_cast<int>(ceilf(oldBottom - oldTop)));
     renderView->setPrintRect(dirtyRect);
-    protect(renderView->layer())->paint(context, dirtyRect);
+    renderView->layer()->paint(context, dirtyRect);
     *newBottom = renderView->bestTruncatedAt();
     if (!*newBottom)
         *newBottom = oldBottom;

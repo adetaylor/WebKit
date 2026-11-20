@@ -1916,7 +1916,7 @@ void Page::setDelegatesScaling(bool delegatesScaling)
         if (CheckedPtr renderView = view->renderView()) {
             CheckedRef compositor = renderView->compositor();
             compositor->updateRootContentsLayerAppliesPageScale();
-            // RenderLayer is UniquelyOwned, so it isn't CheckedPtr-capable.
+            // RenderLayer's reference count is private, so it isn't CheckedPtr-capable.
             if (auto* layer = renderView->layer())
                 layer->setNeedsCompositingConfigurationUpdate();
             compositor->scheduleCompositingLayerUpdate();

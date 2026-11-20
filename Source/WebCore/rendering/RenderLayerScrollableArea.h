@@ -72,6 +72,10 @@ public:
     RenderLayer& layer() LIFETIME_BOUND { return m_layer; }
 
     void clear();
+    // The layer's renderer and description, for Swift, which would retain the layer to ask it: clear() and debugDescription()
+    // run while the layer is destroyed.
+    RenderLayerModelObject& layerRendererForSwift() const { return m_layer.renderer(); }
+    String layerDebugDescriptionForSwift() const { return m_layer.debugDescription(); }
 
     // The calls that pass this area as a ScrollableArea, for Swift, which cannot convert to the base class.
     bool addToFrameViewScrollableAreas();
@@ -91,9 +95,14 @@ public:
     void unregisterAsTouchEventListenerForScrolling();
 #endif
 
-    NODELETE void setPostLayoutScrollPosition(std::optional<ScrollPosition>);
+    using OptionalScrollPosition = std::optional<ScrollPosition>;
+    NODELETE void setPostLayoutScrollPosition(OptionalScrollPosition);
     void applyPostLayoutScrollPositionIfNeeded();
     bool hasPostLayoutScrollPosition() { return !!m_postLayoutScrollPosition; }
+
+    // ScrollableArea members, for Swift, which does not import the base class.
+    ScrollOffset scrollOffsetForSwift() const { return scrollOffset(); }
+    ScrollType currentScrollTypeForSwift() const { return currentScrollType(); }
 
     int scrollWidth() const;
     int scrollHeight() const;
@@ -105,11 +114,11 @@ public:
 
     // Attempt to scroll the given ScrollOffset, returning the real target offset after it has
     // been adjusted by scroll snapping.
-    WEBCORE_EXPORT ScrollOffset scrollToOffset(const ScrollOffset&, const ScrollPositionChangeOptions& = ScrollPositionChangeOptions::createProgrammatic());
+    WEBCORE_EXPORT ScrollOffset scrollToOffset(ScrollOffset, ScrollPositionChangeOptions = ScrollPositionChangeOptions::createProgrammatic());
 
-    void scrollToXPosition(int x, const ScrollPositionChangeOptions&);
-    void scrollToYPosition(int y, const ScrollPositionChangeOptions&);
-    void setScrollPosition(const ScrollPosition&, const ScrollPositionChangeOptions&);
+    void scrollToXPosition(int x, ScrollPositionChangeOptions);
+    void scrollToYPosition(int y, ScrollPositionChangeOptions);
+    void setScrollPosition(ScrollPosition, ScrollPositionChangeOptions);
 
     // These are only used by marquee.
     void scrollToXOffset(int x) { scrollToOffset(ScrollOffset(x, scrollOffset().y()), ScrollPositionChangeOptions::createProgrammaticUnclamped()); }
@@ -148,17 +157,26 @@ public:
     static bool themeUsesOverlayScrollbars() { return ScrollbarTheme::theme().usesOverlayScrollbars(); }
 
     NODELETE bool hasOverflowControls() const;
-    bool hitTestOverflowControls(HitTestResult&, const IntPoint& localPoint);
-    bool hitTestResizerInFragments(const LayerFragments&, const HitTestLocation&, LayoutPoint& pointInFragment) const;
+    bool hitTestOverflowControls(HitTestResultView, IntPoint localPoint);
 
-    void paintOverflowControls(GraphicsContext&, OptionSet<PaintBehavior>, const IntPoint&, const IntRect& damageRect, bool paintingOverlayControls = false);
-    void paintOverflowControls(NOESCAPE LentGraphicsContext context, OptionSet<PaintBehavior> paintBehavior, IntPoint paintOffset, IntRect damageRect, bool paintingOverlayControls) { paintOverflowControls(*context, paintBehavior, paintOffset, damageRect, paintingOverlayControls); }
-    void paintScrollCorner(GraphicsContext&, const IntPoint&, const IntRect& scrollCornerRect, const IntRect& damageRect);
-    void paintResizer(GraphicsContext&, const LayoutPoint&, const IntRect& resizerRect, const LayoutRect& damageRect);
+    void paintOverflowControls(GraphicsContext& context, OptionSet<PaintBehavior> paintBehavior, const IntPoint& paintOffset, const IntRect& damageRect, bool paintingOverlayControls = false) { paintOverflowControls(LentGraphicsContext { context }, paintBehavior, paintOffset, damageRect, paintingOverlayControls); }
+    void paintOverflowControls(NOESCAPE LentGraphicsContext, OptionSet<PaintBehavior>, IntPoint paintOffset, IntRect damageRect, bool paintingOverlayControls);
+    void paintScrollCorner(NOESCAPE LentGraphicsContext, IntPoint paintOffset, IntRect scrollCornerRect, IntRect damageRect);
+    void paintResizer(NOESCAPE LentGraphicsContext, LayoutPoint paintOffset, IntRect resizerRect, LayoutRect damageRect);
+    using ScrollbarPaintBehaviors = OptionSet<ScrollbarPaintBehavior>;
+    static void paintScrollbar(Scrollbar& scrollbar, NOESCAPE LentGraphicsContext context, IntRect damageRect, ScrollbarPaintBehaviors paintBehavior) { scrollbar.paint(*context, damageRect, paintBehavior); }
     void paintOverlayScrollbars(GraphicsContext&, const LayoutRect& damageRect, OptionSet<PaintBehavior>, RenderObject* subtreePaintRoot = nullptr);
 
     void updateScrollbarSteps();
     std::optional<ScrollbarUpdateScope> updateScrollInfoAfterLayout();
+    struct ScrollInfoAfterLayout {
+        ScrollPosition originalScrollPosition;
+        bool needsScrollbarUpdateScope { false };
+        bool horizontalAutoScrollbarChanged { false };
+        bool verticalAutoScrollbarChanged { false };
+        bool hasHorizontalOverflow { false };
+        bool hasVerticalOverflow { false };
+    };
 
     bool scroll(ScrollDirection, ScrollGranularity, unsigned stepCount = 1);
 
@@ -197,24 +215,26 @@ public:
     NODELETE GraphicsLayer* layerForVerticalScrollbar() const final;
     NODELETE GraphicsLayer* layerForScrollCorner() const final;
 
-    NODELETE bool usesCompositedScrolling() const final;
+    bool usesCompositedScrolling() const final;
     bool usesAsyncScrolling() const final;
 
     NODELETE bool shouldPlaceVerticalScrollbarOnLeft() const final;
 
     bool isRenderLayer() const final { return true; }
-    void invalidateScrollbarRect(Scrollbar&, const IntRect&) final;
-    void invalidateScrollCornerRect(const IntRect&) final;
+    void invalidateScrollbarRect(Scrollbar& scrollbar, const IntRect& rect) final { invalidateScrollbarRectInLayer(scrollbar, rect); }
+    void invalidateScrollCornerRect(const IntRect& rect) final { invalidateScrollCornerRectInLayer(rect); }
     NODELETE bool isActive() const final;
     bool isScrollCornerVisible() const final;
     IntRect scrollCornerRect() const final;
-    IntRect convertFromScrollbarToContainingView(const Scrollbar&, const IntRect&) const final;
-    IntRect convertFromContainingViewToScrollbar(const Scrollbar&, const IntRect&) const final;
-    IntPoint convertFromScrollbarToContainingView(const Scrollbar&, const IntPoint&) const final;
-    IntPoint convertFromContainingViewToScrollbar(const Scrollbar&, const IntPoint&) const final;
+    IntRect convertFromScrollbarToContainingView(const Scrollbar& scrollbar, const IntRect& rect) const final { return convertFromScrollbarToContainingViewInLayer(scrollbar, rect); }
+    IntRect convertFromContainingViewToScrollbar(const Scrollbar& scrollbar, const IntRect& rect) const final { return convertFromContainingViewToScrollbarInLayer(scrollbar, rect); }
+    IntPoint convertFromScrollbarToContainingView(const Scrollbar& scrollbar, const IntPoint& point) const final { return convertFromScrollbarToContainingViewInLayer(scrollbar, point); }
+    IntPoint convertFromContainingViewToScrollbar(const Scrollbar& scrollbar, const IntPoint& point) const final { return convertFromContainingViewToScrollbarInLayer(scrollbar, point); }
     void setScrollOffset(const ScrollOffset&) final;
     WEBCORE_EXPORT std::optional<ScrollingNodeID> scrollingNodeID() const final;
 
+    using VisibleContentRectIncludesScrollbars = ScrollableArea::VisibleContentRectIncludesScrollbars;
+    using VisibleContentRectBehavior = ScrollableArea::VisibleContentRectBehavior;
     IntRect visibleContentRectInternal(VisibleContentRectIncludesScrollbars, VisibleContentRectBehavior) const final;
     IntSize overhangAmount() const final;
     IntPoint lastKnownMousePositionInView() const final;
@@ -249,21 +269,25 @@ public:
     // The old style by reference, or none, for Swift, which takes no pointer argument.
     void updateScrollbarsAfterStyleChange(const Style::ComputedStyle& oldStyle) { updateScrollbarsAfterStyleChange(&oldStyle); }
     void updateScrollbarsAfterStyleChangeWithoutOldStyle() { updateScrollbarsAfterStyleChange(nullptr); }
+    void updateScrollbarsAfterStyleChange(bool hasOldStyle, bool oldStyleShouldPlaceVerticalScrollbarOnLeft);
 
-    bool positionOverflowControls(const IntSize&);
+    bool positionOverflowControls(IntSize);
 
     void updateAllScrollbarRelatedStyle();
 
     RenderLayer::OverflowControlRects overflowControlsRects() const;
 
-    bool overflowControlsIntersectRect(const IntRect& localRect) const;
+    using OptionalBool = std::optional<bool>;
+    bool hasOverlayScrollbarsForSwift() const { return hasOverlayScrollbars(); }
+
+    bool overflowControlsIntersectRect(IntRect localRect) const;
 
     bool scrollingMayRevealBackground() const;
 
     void computeHasCompositedScrollableOverflow(LayoutUpToDate);
 
     // NOTE: This should only be called by the overridden setScrollOffset from ScrollableArea.
-    void scrollTo(const ScrollPosition&);
+    void scrollTo(ScrollPosition);
     void updateCompositingLayersAfterScroll();
 
     IntSize scrollbarOffset(const Scrollbar&) const;
@@ -271,8 +295,7 @@ public:
     std::optional<LayoutRect> updateScrollPosition(const ScrollPositionChangeOptions&, const LayoutRect& revealRect, const LayoutRect& localExposeRect);
     bool isVisibleToHitTesting() const final;
     void animatedScrollDidEnd() final;
-    LayoutRect scrollRectToVisible(const LayoutRect& absoluteRect, const ScrollRectToVisibleOptions&);
-    std::optional<LayoutRect> updateScrollPositionForScrollIntoView(const ScrollPositionChangeOptions&, const LayoutSize& revealOffset, const LayoutRect& localExposeRect);
+    LayoutRect scrollRectToVisible(LayoutRect absoluteRect, ScrollRectToVisibleOptions);
 
     ScrollAnchoringController* scrollAnchoringController() const final { return m_scrollAnchoringController.get(); }
 
@@ -294,7 +317,19 @@ private:
 
     NODELETE bool showsOverflowControls() const;
 
-    ScrollOffset clampScrollOffset(const ScrollOffset&) const;
+    ScrollOffset clampScrollOffset(ScrollOffset) const;
+
+    void invalidateScrollbarRectInLayer(Scrollbar&, IntRect);
+    void invalidateScrollCornerRectInLayer(IntRect);
+    static bool isSameScrollbar(const Scrollbar* a, const Scrollbar* b) { return a == b; }
+    // ScrollableArea's non-const members, which Swift sees as mutating.
+    void invalidateScrollCornerForSwift(IntRect rect) { invalidateScrollCorner(rect); }
+    void setIsAwaitingScrollendForSwift(bool isAwaitingScrollend) { setIsAwaitingScrollend(isAwaitingScrollend); }
+    // ScrollAnimator is not imported into Swift.
+    void setScrollAnimatorCurrentPosition(ScrollPosition);
+    bool existingScrollAnimatorIsUserScrollInProgress() const;
+    bool existingScrollAnimatorIsRubberBandInProgress() const;
+    bool existingScrollAnimatorIsScrollSnapInProgress() const;
 
     void computeScrollDimensions();
     void computeScrollOrigin();
@@ -305,6 +340,23 @@ private:
     void updateResizerStyle();
 
     Ref<Scrollbar> createScrollbar(ScrollbarOrientation);
+
+    // Swift does not see ScrollableArea's members or the scrollbar parts' type.
+    void setScrollOriginForSwift(IntPoint origin) { setScrollOrigin(origin); }
+    ScrollOffset scrollOffsetFromPositionForSwift(ScrollPosition position) const { return scrollOffsetFromPosition(position); }
+    ScrollPosition scrollPositionFromOffsetForSwift(ScrollOffset offset) const { return scrollPositionFromOffset(offset); }
+    void setCurrentScrollTypeForSwift(ScrollType scrollType) { setCurrentScrollType(scrollType); }
+    void setCurrentScrollRelativityForSwift(ScrollRelativity scrollRelativity) { setCurrentScrollRelativity(scrollRelativity); }
+    void scrollToPositionWithAnimationForSwift(FloatPoint position, ScrollPositionChangeOptions options) { scrollToPositionWithAnimation(position, options); }
+    bool scrollToPositionWithoutAnimationForSwift(FloatPoint position, ScrollClamping clamping) { return scrollToPositionWithoutAnimation(position, clamping); }
+    FloatPoint scrollOffsetAdjustedForSnappingForSwift(FloatPoint, ScrollSnapPointSelectionMethod) const;
+    bool retargetRunningAnimationForSwift(FloatPoint, ScrollAnimationCurve);
+    void cancelAnimationsForSwift();
+    void willRemoveScrollbarForSwift(Scrollbar& scrollbar, ScrollbarOrientation orientation) { willRemoveScrollbar(scrollbar, orientation); }
+    void setHorizontalScrollElasticityForSwift(ScrollElasticity elasticity) { setHorizontalScrollElasticity(elasticity); }
+    void setVerticalScrollElasticityForSwift(ScrollElasticity elasticity) { setVerticalScrollElasticity(elasticity); }
+    RenderBox* scrollCornerForSwift() const;
+    RenderBox* resizerForSwift() const;
     void destroyScrollbar(ScrollbarOrientation);
 
     void clearScrollCorner();
@@ -312,6 +364,18 @@ private:
 
     void updateScrollbarPresenceAndState(std::optional<bool> hasHorizontalOverflow = std::nullopt, std::optional<bool> hasVerticalOverflow = std::nullopt);
     void registerScrollableAreaForAnimatedScroll();
+
+    ScrollInfoAfterLayout updateScrollInfoAfterLayoutForScope();
+    IntRect convertFromScrollbarToContainingViewInLayer(const Scrollbar&, IntRect) const;
+    IntRect convertFromContainingViewToScrollbarInLayer(const Scrollbar&, IntRect) const;
+    IntPoint convertFromScrollbarToContainingViewInLayer(const Scrollbar&, IntPoint) const;
+    IntPoint convertFromContainingViewToScrollbarInLayer(const Scrollbar&, IntPoint) const;
+    void updateTouchEventListenerForScrolling(bool needsToBeRegistered);
+    // Swift does not see the scrollbar parts' type or reach a GraphicsContext.
+    void paintScrollCornerPart(NOESCAPE LentGraphicsContext, LayoutPoint paintOffset, LayoutRect);
+    void paintResizerPart(NOESCAPE LentGraphicsContext, LayoutPoint paintOffset, LayoutRect);
+    void paintPlatformResizer(NOESCAPE LentGraphicsContext, LayoutRect);
+    void paintPlatformResizerFrame(NOESCAPE LentGraphicsContext, LayoutRect);
 
     float deviceScaleFactor() const final;
     void scrollDidEnd() final;

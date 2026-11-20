@@ -1008,16 +1008,16 @@ RenderObject::RepaintContainerStatus RenderObject::containerForRepaint() const
     auto usesCompositing = view().usesCompositing();
     auto hasRenderersWithPixelMovingFilter = view().hasRenderersWithPixelMovingFilter();
     if (usesCompositing || hasRenderersWithPixelMovingFilter) {
-        if (CheckedPtr enclosingLayer = this->enclosingLayer()) {
+        if (auto* enclosingLayer = this->enclosingLayer()) {
             if (usesCompositing) {
                 auto compLayerStatus = enclosingLayer->enclosingCompositingLayerForRepaint();
                 if (compLayerStatus.layer) {
-                    repaintContainer = &compLayerStatus.layer->renderer();
+                    repaintContainer = &static_cast<RenderLayer*>(compLayerStatus.layer)->renderer();
                     fullRepaintAlreadyScheduled = compLayerStatus.fullRepaintAlreadyScheduled;
                 }
             }
             if (hasRenderersWithPixelMovingFilter) {
-                if (CheckedPtr pixelMovingFilterLayer = enclosingLayer->enclosingPixelMovingFilterLayer()) {
+                if (auto* pixelMovingFilterLayer = enclosingLayer->enclosingPixelMovingFilterLayer()) {
                     fullRepaintAlreadyScheduled = enclosingLayer->scheduledFullRepaintCoversContentPaintedBy(*enclosingLayer);
                     return { fullRepaintAlreadyScheduled, &pixelMovingFilterLayer->renderer() };
                 }
@@ -1117,7 +1117,7 @@ void RenderObject::repaintUsingContainer(SingleThreadWeakPtr<const RenderLayerMo
         auto useFilterOutsets = RenderLayer::UseFilterOutsets::Add;
         if (rectIsPartial == RepaintRectIsPartial::No && repaintContainer.get() == this && is<RenderBox>(*this))
             useFilterOutsets = RenderLayer::UseFilterOutsets::AlreadyIncluded;
-        protect(repaintContainer->layer())->setFilterBackendNeedsRepaintingInRect(r, useFilterOutsets);
+        repaintContainer->layer()->setFilterBackendNeedsRepaintingInRect(r, useFilterOutsets);
         return;
     }
 
@@ -1136,7 +1136,7 @@ void RenderObject::repaintUsingContainer(SingleThreadWeakPtr<const RenderLayerMo
 
     if (view().usesCompositing()) {
         ASSERT(repaintContainer->isComposited());
-        if (CheckedPtr layer = repaintContainer->layer())
+        if (auto* layer = repaintContainer->layer())
             layer->setBackingNeedsRepaintInRect(r, clipRepaintToLayer == ClipRepaintToLayer::Yes ? GraphicsLayer::ShouldClipToLayer::Clip : GraphicsLayer::ShouldClipToLayer::DoNotClip);
     }
 }
@@ -1814,7 +1814,7 @@ void RenderObject::getTransformFromContainer(const LayoutSize& offsetInContainer
 {
     transform.makeIdentity();
     transform.translate(offsetInContainer.width(), offsetInContainer.height());
-    CheckedPtr<RenderLayer> layer;
+    RenderLayer* layer = nullptr;
     if (hasLayer() && (layer = downcast<RenderLayerModelObject>(*this).layer()) && layer->transform())
         transform.multiply(layer->currentTransform());
     else if (document().settings().layerBasedSVGEngineEnabled() && isSVGLayerAwareRenderer()) {
@@ -2021,7 +2021,7 @@ bool RenderObject::setCapturedInViewTransition(bool captured)
 
     m_stateBitfields.setFlag(StateFlag::CapturedInViewTransition, captured);
 
-    CheckedPtr<RenderLayer> layerToInvalidate;
+    RenderLayer* layerToInvalidate = nullptr;
     if (isDocumentElementRenderer()) {
         layerToInvalidate = view().layer();
         view().compositor().setRootElementCapturedInViewTransition(captured);
@@ -2636,7 +2636,7 @@ ScrollAnchoringController* RenderObject::searchParentChainForScrollAnchoringCont
                 return controller;
         }
     }
-    for (CheckedPtr enclosingLayer = renderer.enclosingLayer(); enclosingLayer; enclosingLayer = enclosingLayer->parent()) {
+    for (auto* enclosingLayer = renderer.enclosingLayer(); enclosingLayer; enclosingLayer = enclosingLayer->parent()) {
         if (RenderLayerScrollableArea* scrollableArea = enclosingLayer->scrollableArea()) {
             auto* controller = scrollableArea->scrollAnchoringController();
             if (controller && controller->hasAnchorElement())
@@ -2934,7 +2934,7 @@ static std::optional<PlatformLayerIdentifier> primaryLayerID(const RenderObject&
     if (!layerRenderer)
         return { };
 
-    CheckedPtr layer = layerRenderer->layer();
+    auto* layer = layerRenderer->layer();
     if (!layer)
         return { };
 

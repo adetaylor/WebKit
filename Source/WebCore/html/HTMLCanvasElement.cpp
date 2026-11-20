@@ -702,7 +702,7 @@ bool HTMLCanvasElement::usesContentsAsLayerContents() const
     CheckedPtr renderBox = this->renderBox();
     if (!renderBox)
         return false;
-    CheckedPtr layer = renderBox->layer();
+    auto* layer = renderBox->layer();
     if (!layer)
         return false;
     auto* backing = layer->backing();

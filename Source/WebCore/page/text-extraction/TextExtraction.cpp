@@ -1069,7 +1069,7 @@ static inline Variant<SkipExtraction, ItemData, URL, Editable> extractItemData(N
 #endif
 
     if (CheckedPtr box = dynamicDowncast<RenderBox>(node.renderer()); box && box->canBeScrolledAndHasScrollableArea()) {
-        if (CheckedPtr layer = box->layer()) {
+        if (auto* layer = box->layer()) {
             if (CheckedPtr scrollableArea = layer->scrollableArea()) {
                 return { ScrollableItemData {
                     .contentSize = scrollableArea->totalContentsSize(),
@@ -3389,7 +3389,7 @@ static ScrollableContainer findLargeScrollableContainer(LocalFrame& frame)
         if (!element || is<HTMLIFrameElement>(*element))
             continue;
 
-        CheckedPtr layer = descendant->layer();
+        auto* layer = descendant->layer();
         if (!layer)
             continue;
 

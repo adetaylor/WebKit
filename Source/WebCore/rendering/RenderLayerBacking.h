@@ -42,15 +42,23 @@
 
 namespace WebCore {
 
-class BlendingKeyframes;
+class BitmapImage;
+class BlendingKeyframesView;
 class GraphicsLayer;
 class GraphicsLayerAnimation;
-class PaintedContentsInfo;
+class Image;
+class NativeImage;
+class Path;
 class RegionContext;
+class RenderImage;
 class RenderLayerCompositor;
+class RenderReplaced;
+class RenderVideo;
 class SpatialPortalController;
 class TiledBacking;
 class TransformationMatrix;
+
+enum class WindRule : bool;
 
 #if ENABLE(THREADED_ANIMATIONS)
 class AcceleratedEffectStack;
@@ -90,18 +98,38 @@ public:
     RenderLayer& owningLayer() const { return m_owningLayer; }
 
     // Included layers are non-z-order descendant layers that are painted into this backing.
-    const InlineWeakKeyListHashSet<RenderLayer>& backingSharingLayers() const LIFETIME_BOUND { return m_backingSharingLayers; }
     void setBackingSharingLayers(InlineWeakKeyListHashSet<RenderLayer>&&);
+    // The sharing layers in paint order, as Swift's compositing update collects them.
+    void setBackingSharingLayersForSwift(const RenderLayerWeakList& list)
+    {
+        InlineWeakKeyListHashSet<RenderLayer> layers;
+        for (auto& layer : list.m_layers) {
+            if (auto* sharingLayer = layer.get())
+                layers.add(*sharingLayer);
+        }
+        setBackingSharingLayers(WTF::move(layers));
+    }
 
     bool hasBackingSharingLayers() const { return !m_backingSharingLayers.computeIsEmpty(); }
+    RenderLayerWeakList backingSharingLayersForSwift() const
+    {
+        RenderLayerWeakList list;
+        for (auto& layer : m_backingSharingLayers | dereferenceView)
+            list.append(layer);
+        return list;
+    }
 
     void removeBackingSharingLayer(RenderLayer&, OptionSet<UpdateBackingSharingFlags>);
     void clearBackingSharingLayers(OptionSet<UpdateBackingSharingFlags>);
 
     void updateConfigurationAfterStyleChange();
+    // The body of updateConfigurationAfterStyleChange(), called inside its LayerFreeForbiddenScope.
+    SWIFT_UNSAFE void updateConfigurationAfterStyleChangeInScope();
 
     // Returns true if layer configuration changed.
     bool updateConfiguration(const RenderLayer* compositingAncestor);
+    // The body of updateConfiguration(), called inside its LayerFreeForbiddenScope.
+    SWIFT_UNSAFE bool updateConfigurationInScope(const RenderLayer* compositingAncestor);
 
     // Update graphics layer position and bounds.
     void updateGeometry(const RenderLayer* compositingAncestor);
@@ -109,9 +137,13 @@ public:
 
     // Update state the requires that descendant layers have been updated.
     void updateAfterDescendants();
+    // The body of updateAfterDescendants(), called inside its LayerFreeForbiddenScope.
+    SWIFT_UNSAFE void updateAfterDescendantsInScope();
 
     // Update contents and clipping structure.
     void updateDrawsContent();
+    // The body of updateDrawsContent(), called inside its LayerFreeForbiddenScope.
+    SWIFT_UNSAFE void updateDrawsContentInScope();
     
     void updateAfterLayout(bool needsClippingUpdate, bool needsFullRepaint);
     
@@ -122,12 +154,40 @@ public:
     bool hasClippingLayer() const { return (m_childContainmentLayer && !m_isFrameLayerWithTiledBacking); }
     GraphicsLayer* clippingLayer() const { return !m_isFrameLayerWithTiledBacking ? m_childContainmentLayer.get() : nullptr; }
 
+    // The two ancestor clipping stacks, by name.
+    enum class ClippingStackName : uint8_t { Ancestor, OverflowControlsHost };
     bool hasAncestorClippingLayers() const { return !!m_ancestorClippingStack; }
     LayerAncestorClippingStack* ancestorClippingStack() const LIFETIME_BOUND { return m_ancestorClippingStack.get(); }
     bool updateAncestorClippingStack(Vector<CompositedClipData>&&);
 
     void ensureOverflowControlsHostLayerAncestorClippingStack(const RenderLayer* compositedAncestor);
     LayerAncestorClippingStack* overflowControlsHostLayerAncestorClippingStack() const LIFETIME_BOUND { return m_overflowControlsHostLayerAncestorClippingStack.get(); }
+
+    // The ancestor clipping stacks for Swift, which does not import LayerAncestorClippingStack.
+    bool hasAncestorClippingLayersWithScrollingForSwift() const { return m_ancestorClippingStack && m_ancestorClippingStack->hasAnyScrollingLayers(); }
+    size_t ancestorClippingStackSizeForSwift() const { return m_ancestorClippingStack ? m_ancestorClippingStack->stack().size() : 0; }
+    RenderLayer* overflowScrollClippingLayerForSwift(size_t index) const
+    {
+        if (!m_ancestorClippingStack)
+            return nullptr;
+        auto& clipData = m_ancestorClippingStack->stack()[index].clipData;
+        return clipData.isOverflowScroll ? clipData.clippingLayer.get() : nullptr;
+    }
+    bool ancestorClippingStackEntryIsOverflowScrollForSwift(size_t index) const { return m_ancestorClippingStack && m_ancestorClippingStack->stack()[index].clipData.isOverflowScroll; }
+    std::optional<ScrollingNodeID> ancestorClippingStackProxyNodeIDForSwift(size_t index) const
+    {
+        if (!m_ancestorClippingStack)
+            return std::nullopt;
+        return m_ancestorClippingStack->stack()[index].overflowScrollProxyNodeID;
+    }
+    void setAncestorClippingStackProxyNodeIDForSwift(size_t index, ScrollingNodeID nodeID)
+    {
+        if (m_ancestorClippingStack)
+            m_ancestorClippingStack->stack()[index].overflowScrollProxyNodeID = nodeID;
+    }
+    GraphicsLayer* ancestorClippingStackScrollingLayerForSwift(size_t index) const { return m_ancestorClippingStack ? m_ancestorClippingStack->stack()[index].scrollingLayer.get() : nullptr; }
+    GraphicsLayer* overflowControlsHostClippingFirstLayerForSwift() const { return m_overflowControlsHostLayerAncestorClippingStack ? m_overflowControlsHostLayerAncestorClippingStack->firstLayer() : nullptr; }
+    GraphicsLayer* overflowControlsHostClippingLastLayerForSwift() const { return m_overflowControlsHostLayerAncestorClippingStack ? m_overflowControlsHostLayerAncestorClippingStack->lastLayer() : nullptr; }
 
     GraphicsLayer* contentsContainmentLayer() const { return m_contentsContainmentLayer.get(); }
     GraphicsLayer* viewportAnchorLayer() const { return m_viewportAnchorLayer.get(); }
@@ -138,7 +198,13 @@ public:
     bool backgroundLayerPaintsFixedRootBackground() const { return m_backgroundLayerPaintsFixedRootBackground; }
 
     bool hasSVGPaintOrderSegments() const { return !m_svgPaintOrderSegments.isEmpty(); }
-    NODELETE GraphicsLayer* svgSegmentLayerAfterCompositedChild(const RenderLayer&) const;
+    size_t svgSegmentCountForSwift() const { return m_svgPaintOrderSegments.size(); }
+    GraphicsLayer* svgSegmentLayerForSwift(size_t index) const { return m_svgPaintOrderSegments[index].graphicsLayer.get(); }
+    RenderLayer* svgSegmentPrecedingCompositedChildForSwift(size_t index) const { return m_svgPaintOrderSegments[index].precedingCompositedChild.get(); }
+    FloatRect svgSegmentBoundsInLayerSpaceForSwift(size_t index) const { return m_svgPaintOrderSegments[index].segmentBoundsInLayerSpace; }
+    void setSVGSegmentBoundsInLayerSpaceForSwift(size_t index, FloatRect bounds) { m_svgPaintOrderSegments[index].segmentBoundsInLayerSpace = bounds; }
+    FloatRect computeSVGSegmentBoundsForSwift(size_t index) { return computeSVGSegmentBounds(m_svgPaintOrderSegments[index]); }
+    bool svgSegmentHasInlineContentForSwift(size_t index) { return svgSegmentHasInlineContent(m_svgPaintOrderSegments[index]); }
     NODELETE std::optional<WTF::Range<unsigned>> svgSegmentRangeForGraphicsLayer(const GraphicsLayer&) const;
 
 #if USE(SYSTEM_PREVIEW) && ENABLE(MODEL_PROCESS)
@@ -185,16 +251,13 @@ public:
 
     void setScrollingNodeIDForRole(ScrollingNodeID, ScrollCoordinationRole);
 
-    // Called only by the constructor and the destructor; public so that their Swift definitions are kept.
-    void createPrimaryGraphicsLayer();
-    void destroyGraphicsLayers();
-
     // The features a build can override that the backing's Swift tests.
 #if ENABLE(VIDEO)
     static constexpr bool videoEnabledForSwift() { return true; }
 #else
     static constexpr bool videoEnabledForSwift() { return false; }
 #endif
+    static bool shouldForceInvertBitmapImageForSwift(RenderImage&);
 #if ENABLE(MODEL_ELEMENT)
     static constexpr bool modelElementEnabledForSwift() { return true; }
 #else
@@ -242,23 +305,28 @@ public:
 
     // Notification from the renderer that its content changed.
     void contentChanged(ContentChangeType, const std::optional<FloatRect>&);
+    // The body of contentChanged(), called inside its LayerFreeForbiddenScope.
+    SWIFT_UNSAFE void contentChangedInScope(ContentChangeType, std::optional<FloatRect>);
 
     // Interface to start and finish animations.
-    bool startAnimation(double timeOffset, const GraphicsLayerAnimation&, const BlendingKeyframes&, const IntOutsets& filterAnimationOutsets);
-    void animationPaused(double timeOffset, const String& name);
-    void animationFinished(const String& name);
+    bool startAnimation(double timeOffset, const GraphicsLayerAnimation&, NOESCAPE BlendingKeyframesView, IntOutsets filterAnimationOutsets);
+    void animationPaused(double timeOffset, String name);
+    void animationFinished(String name);
     void transformRelatedPropertyDidChange();
 
     const IntOutsets& filterAnimationOutsets() const { return m_filterAnimationOutsets; }
+    IntOutsets filterAnimationOutsetsForSwift() const { return m_filterAnimationOutsets; }
+    // max() of two outsets, which Swift cannot call.
+    static IntOutsets maxOutsetsForSwift(const IntOutsets& a, const IntOutsets& b) { return max(a, b); }
 
 #if ENABLE(THREADED_ANIMATIONS)
     NODELETE const AcceleratedEffectStack* acceleratedEffectStack() const;
     void updateAcceleratedEffectsAndBaseValues(HashSet<Ref<AcceleratedTimeline>>&);
 #endif
 
-    NODELETE WEBCORE_EXPORT LayoutRect compositedBounds() const;
+    WEBCORE_EXPORT LayoutRect compositedBounds() const;
     // Returns true if changed.
-    NODELETE bool setCompositedBounds(LayoutRect);
+    bool setCompositedBounds(LayoutRect);
     // Returns true if changed.
     bool updateCompositedBounds();
     
@@ -267,6 +335,8 @@ public:
 #if ENABLE(ASYNC_SCROLLING)
     bool maintainsEventRegion() const;
     void updateEventRegion();
+    // The document and page conditions of maintainsEventRegion() that depend on the platform's features.
+    bool documentOrPageRequiresEventRegion() const;
     
     bool needsEventRegionUpdate() const { return m_needsEventRegionUpdate; }
     NODELETE void setNeedsEventRegionUpdate(bool needsUpdate = true);
@@ -388,7 +458,13 @@ public:
     void purgeBackBufferForTesting();
     void markFrontBufferVolatileForTesting();
 private:
-    friend class PaintedContentsInfo;
+    // Called only by the constructor and the destructor.
+    SWIFT_UNSAFE void createPrimaryGraphicsLayer();
+    SWIFT_UNSAFE void destroyGraphicsLayers();
+    SWIFT_UNSAFE void clearAncestorClippingStack();
+
+    OptionSet<RenderLayer::PaintLayerFlag> paintFlagsForLayer(const GraphicsLayer&) const;
+    LayoutRect compositedBoundsIncludingMargin() const;
 
     FloatRect backgroundBoxForSimpleContainerPainting() const;
 
@@ -397,9 +473,95 @@ private:
     
     void willDestroyLayer(const GraphicsLayer*);
 
-    LayoutRect compositedBoundsIncludingMargin() const;
-    
     SWIFT_UNAVAILABLE_IN_SWIFT Ref<GraphicsLayer> createGraphicsLayer(const String&, GraphicsLayerType = GraphicsLayerType::Normal);
+
+    // GraphicsLayer creation for Swift, which cannot pass the backing as the layer's client or compose the layer's name.
+    enum class GraphicsLayerName : uint8_t {
+        Primary, PageTiledBackingContainment, Foreground, Background, ContentsContainment, ViewportAnchor, ViewportClipping,
+        ChildClipping, Mask, TransformFlattening, HorizontalScrollbar, VerticalScrollbar, ScrollCorner, OverflowControlsContainer,
+        ScrollContainer, ScrolledContents,
+    };
+    // Each name has its own field. A field's layer has the backing as its client, so the backing clears it before dropping it.
+    void createGraphicsLayer(GraphicsLayerName, GraphicsLayerType);
+    void unparentAndClearGraphicsLayer(GraphicsLayerName);
+    // Drops the layer of the name if there is one, after willDestroyLayer(), and returns whether there was one.
+    bool destroyGraphicsLayer(GraphicsLayerName);
+    void clearGraphicsLayer(GraphicsLayerName);
+    GraphicsLayer* graphicsLayerForSwift(GraphicsLayerName name) { return graphicsLayerField(name).get(); }
+    SWIFT_UNAVAILABLE_IN_SWIFT RefPtr<GraphicsLayer>& graphicsLayerField(GraphicsLayerName);
+    static bool isSameGraphicsLayer(const GraphicsLayer* a, const GraphicsLayer* b) { return a == b; }
+    // The entries of the ancestor clipping stacks for Swift, by stack and index. An entry's layers have the backing as
+    // their client, like the backing's own, so C++ creates and drops them.
+    enum class ClippingStackLayerName : uint8_t { Clipping, Scrolling, ShapeMask };
+    bool hasClippingStack(ClippingStackName name) const { return clippingStack(name); }
+    size_t clippingStackSize(ClippingStackName) const;
+    bool clippingStackEntryIsOverflowScroll(ClippingStackName, size_t) const;
+    bool clippingStackEntryNeedsShapeMask(ClippingStackName, size_t) const;
+    LayoutRect clippingStackEntryClipRect(ClippingStackName, size_t) const;
+    RenderLayer* clippingStackEntryClippingLayer(ClippingStackName, size_t) const;
+    // Sets the entry's clipping rect, and its shape mask when the clip is not a rounded rect.
+    void updateClippingStackEntryContentsClipping(ClippingStackName, size_t, FloatSize snappedClippingLayerSize);
+    GraphicsLayer* clippingStackEntryLayer(ClippingStackName, size_t, ClippingStackLayerName) const;
+    void createClippingStackEntryLayer(ClippingStackName, size_t, ClippingStackLayerName);
+    void unparentAndClearClippingStackEntryLayer(ClippingStackName, size_t, ClippingStackLayerName);
+    // Drops the stack, after removing its scrolling nodes and layers.
+    void clearClippingStack(ClippingStackName);
+    // Drops the stack as it is.
+    void destroyClippingStack(ClippingStackName name) { clippingStackField(name) = nullptr; }
+    void detachAncestorClippingStackFromScrollingCoordinator()
+    {
+        RELEASE_ASSERT(m_ancestorClippingStack);
+        m_ancestorClippingStack->detachFromScrollingCoordinator(compositor());
+    }
+    SWIFT_UNAVAILABLE_IN_SWIFT LayerAncestorClippingStack* clippingStack(ClippingStackName) const;
+    SWIFT_UNAVAILABLE_IN_SWIFT std::unique_ptr<LayerAncestorClippingStack>& clippingStackField(ClippingStackName);
+    SWIFT_UNAVAILABLE_IN_SWIFT RefPtr<GraphicsLayer>& clippingStackEntryLayerField(ClippingStackName, size_t, ClippingStackLayerName) const;
+
+    // The canvas, the style, the scrolling coordinator and chrome client calls, and another platform's layers, which
+    // Swift cannot reach.
+    bool canvasShouldAccelerate() const;
+    void clearCanvasContentsFromLayer();
+    bool clipPathIsReferencePath() const;
+    bool viewHasTransparentBackgroundForSwift() const { return compositor().viewHasTransparentBackground(); }
+    bool viewHasTransparentBackgroundForSwift(Color& backgroundColor) const { return compositor().viewHasTransparentBackground(&backgroundColor); }
+    bool canDirectlyCompositeBackgroundImage() const;
+    bool boxPaintsOwnBackground() const;
+    bool updateSystemPreviewBadgeLayerForSwift();
+    bool scrollContainerClipHasNonZeroRadii() const;
+    bool updateContentsLayerForReplacedRenderer();
+    LayoutRect clippingLayerBoxForSwift() const;
+    bool rendererHasNonZeroTransformOrigin() const;
+    RenderLayer::OptionalLayoutRect viewTransitionCaptureOverflowRect() const;
+    FloatRoundedRect innerBorderShapeContentsClippingRect(FloatSize offsetFromRenderer) const;
+    // The replaced content's clipping rect for its border shape (and a video's box), setting the primary layer's clip shape path.
+    FloatRoundedRect replacedContentsClippingRect(const RenderReplaced&, bool clipToVideoBox);
+    // Sets the contents clipping of a separated layer's box (and of a spatial portal's) to its border shape.
+    bool updateContentsClippingForSeparatedLayer(bool includeSpatialPortal);
+    // The backdrop filters' rect for a box's rounded border shape, setting the primary layer's backdrop shape path.
+    FloatRoundedRect backdropFiltersRoundedRect(const RenderBox&);
+    // Sets the clip shape path of the layer that clips children (m_childContainmentLayer) to a box's border shape.
+    void setClippingLayerContentsClipShapePath(GraphicsLayer&) const;
+    bool rendererIsRunningOrAboutToRunAcceleratedTransformRelatedAnimation() const;
+    void rendererSizeMayHaveChanged();
+    // The spatial portal calls of updateAfterDescendants(), updateGeometry() and createPrimaryGraphicsLayer(), and whether
+    // the layer is a promoted child of a spatial portal or in one, which do nothing or are false without ENABLE(SPATIAL_PORTAL).
+    void updatePortalPromotedChildrenForSwift();
+    void updateIsHostedInSpatialPortalSceneForSwift();
+    bool isInPromotedSpatialPortalChildForSwift() const;
+    void updateSystemPreviewBadgeLayerGeometryForSwift();
+    void setNeedsTextBackdropUpdateForCustomColorMode();
+    unsigned frameTreeDepthForSwift() const;
+    void scrollableAreaScrollbarLayerDidChange(ScrollbarOrientation);
+    void setNeedsFixedContainerEdgesUpdateViaChromeClient();
+    bool updateContentsContainmentLayerForSwift();
+#if USE(SYSTEM_PREVIEW) && ENABLE(MODEL_PROCESS)
+    GraphicsLayer* systemPreviewWrapperLayerForSwift() const { return m_systemPreviewWrapperLayer.get(); }
+    GraphicsLayer* systemPreviewBadgeLayerForSwift() const { return m_systemPreviewBadgeLayer.get(); }
+#else
+    GraphicsLayer* systemPreviewWrapperLayerForSwift() const { return nullptr; }
+    GraphicsLayer* systemPreviewBadgeLayerForSwift() const { return nullptr; }
+#endif
+    void unparentAndClearSystemPreviewLayers();
 
     GraphicsLayer* maskLayer() const { return m_maskLayer.get(); }
     GraphicsLayer* transformFlatteningLayer() const { return m_transformFlatteningLayer.get(); }
@@ -414,7 +576,6 @@ private:
     bool updateAncestorClipping(bool needsAncestorClip, const RenderLayer* compositingAncestor);
     bool updateDescendantClippingLayer(bool needsDescendantClip);
     bool updateOverflowControlsLayers(bool needsHorizontalScrollbarLayer, bool needsVerticalScrollbarLayer, bool needsScrollCornerLayer);
-    void clearAncestorClippingStack();
     void clearOverflowControlsLayers();
     bool updateForegroundLayer(bool needsForegroundLayer);
     bool updateBackgroundLayer(bool needsBackgroundLayer);
@@ -431,10 +592,7 @@ private:
         }
     }
     FloatRect computeSVGSegmentBounds(const SVGPaintOrderSegment&);
-    void updateSVGSegmentLayerGeometry(FloatSize foregroundLikeSize, FloatSize foregroundLikeOffset, GraphicsLayer::ShouldSetNeedsDisplay);
     bool svgSegmentHasInlineContent(const SVGPaintOrderSegment&);
-    void updateSVGSegmentLayersDrawsContent(bool hasPaintedContent);
-    void setSVGSegmentLayersNeedDisplayInRect(const FloatRect& pixelSnappedRectForPainting, GraphicsLayer::ShouldClipToLayer);
 
 #if ENABLE(MODEL_PROCESS)
     bool updateContentsContainmentLayer();
@@ -455,26 +613,23 @@ private:
     bool requiresScrollCornerLayer() const;
     bool updateScrollingLayers(bool scrollingLayers);
     
-    void updateScrollOffset(ScrollOffset);
-    void setLocationOfScrolledContents(ScrollOffset, ScrollingLayerPositionAction);
-
-    void updateMaskingLayerGeometry();
-    void updateRootLayerConfiguration();
-    void updatePaintingPhases();
+    // The mask layer's shape for a clip-path, in the renderer's coordinates.
+    Path clipPathForMaskLayer(LayoutRect referenceBoxForClippedInline, LayoutSize offset, WindRule&) const;
 
     void setBackgroundLayerPaintsFixedRootBackground(bool);
 
-    NODELETE LayoutSize contentOffsetInCompositingLayer() const;
+    // The offset from the top-left of this compositing layer at which the renderer's contents are painted.
+    LayoutSize contentOffsetInCompositingLayer() const;
     LayoutSize offsetRelativeToRendererOriginForDescendantLayers() const;
     
-    void ensureClippingStackLayers(LayerAncestorClippingStack&);
-    void removeClippingStackLayers(LayerAncestorClippingStack&);
+    void ensureClippingStackLayers(ClippingStackName);
+    void removeClippingStackLayers(ClippingStackName);
 
-    void updateClippingStackLayerGeometry(LayerAncestorClippingStack&, const RenderLayer* compositedAncestor, LayoutRect& parentGraphicsLayerRect);
+    // Returns the parent graphics layer rect for the layers inside the stack.
+    LayoutRect updateClippingStackLayerGeometry(ClippingStackName, const RenderLayer* compositedAncestor, LayoutRect parentGraphicsLayerRect);
 
-    void connectClippingStackLayers(LayerAncestorClippingStack&);
+    void connectClippingStackLayers(ClippingStackName);
 
-    void updateOpacity(const Style::ComputedStyle&);
 #if ENABLE(SPATIAL_PORTAL)
     void configureSpatialPortalLayer(SpatialPortalController&);
     void updatePortalPromotedChildren(SpatialPortalController&);
@@ -482,17 +637,11 @@ private:
     SpatialPortalController* promotedChildPortalController() const;
 #endif
     void updateTransform(const Style::ComputedStyle&);
-    void updateChildrenTransformAndAnchorPoint(const LayoutRect& primaryGraphicsLayerRect, LayoutSize offsetFromParentGraphicsLayer);
+    void updateChildrenTransformAndAnchorPoint(LayoutRect primaryGraphicsLayerRect, LayoutSize offsetFromParentGraphicsLayer);
     void updateFilters(const Style::ComputedStyle&);
     void updateBackdropFilters(const Style::ComputedStyle&);
-    void updateBackdropFiltersGeometry();
     bool updateBackdropRoot();
     void updateScreenCaptureProtection();
-    void updateBlendMode(const Style::ComputedStyle&);
-#if ENABLE(VIDEO)
-    void updateVideoGravity(const Style::ComputedStyle&);
-#endif
-    void updateContentsScalingFilters(const Style::ComputedStyle&);
 #if HAVE(CORE_MATERIAL)
     void updateAppleVisualEffect(const Style::ComputedStyle&);
 #endif
@@ -503,53 +652,53 @@ private:
 
     bool isMainFrameRenderViewLayer() const;
     
-    bool paintsBoxDecorations() const;
-    void determinePaintsContent(RenderLayer::PaintedContentRequest&) const;
-
-    void updateDrawsContent(PaintedContentsInfo&);
-
-    // Returns true if this compositing layer has no visible content.
-    bool isSimpleContainerCompositingLayer(PaintedContentsInfo&) const;
-    // Returns true if this layer has content that needs to be rendered by painting into the backing store.
-    bool containsPaintedContent(PaintedContentsInfo&) const;
-    // Returns true if the RenderLayer just contains an image that we can composite directly.
-    bool isDirectlyCompositedImage() const;
-    void updateImageContents(PaintedContentsInfo&);
-    bool isUnscaledBitmapOnly() const;
-    bool isBitmapOnly() const;
 #if HAVE(SUPPORT_HDR_DISPLAY)
-    bool rendererHasHDRContent() const;
+    void updateDrawsHDRContent(bool);
 #endif
 
-    void updateDirectlyCompositedBoxDecorations(PaintedContentsInfo&, bool& didUpdateContentsRect);
-    void updateDirectlyCompositedBackgroundColor(PaintedContentsInfo&, bool& didUpdateContentsRect);
-    void updateDirectlyCompositedBackgroundImage(PaintedContentsInfo&, bool& didUpdateContentsRect);
+    // Swift has no downcast of a renderer or an image. Each is null when it is not of the type.
+    const RenderReplaced* rendererAsRenderReplaced() const;
+    const RenderVideo* rendererAsRenderVideo() const;
+    // The canvas and view transition capture facts, for a renderer of that type, which Swift cannot name.
+    bool canvasHasDrawableContent() const;
+    IntSize canvasElementSize() const;
+    bool viewTransitionCaptureHasDisplayOnlyImage() const;
+    bool viewTransitionCaptureImageIsDirectlyComposited() const;
+    void setViewTransitionCaptureImageAsContents();
+    LayoutRect viewTransitionCaptureLocalOverflowRect() const;
+    static BitmapImage* asBitmapImage(Image*);
+    bool rendererMayHaveNonZeroOpacity() const;
+    bool rendererIsSpatialPortal() const;
+    bool rendererHostsRemoteFrame() const;
+    static RefPtr<NativeImage> nativeImageForDirectlyCompositedImage(Image&);
+    bool isBitmapOnly() const;
 
-    void resetContentsRect();
+    bool updateDirectlyCompositedBackgroundImage(bool isSimpleContainer);
+
     void updateContentsRects();
 
-    void determineNonCompositedLayerDescendantsPaintedContent(RenderLayer::PaintedContentRequest&) const;
-    bool hasVisibleNonCompositedDescendants() const;
-
     bool shouldClipCompositedBounds() const;
-    static IntOutsets intersectClipsSampledByFilters(const RenderLayer&, const RenderLayer& rootLayer, LayoutRect& clipRect);
+    static IntOutsets filterSamplingOutsets(const RenderLayer&);
+    static IntOutsets accumulatedFilterSamplingOutsets(const IntOutsets& accumulatedOutsets, const IntOutsets&);
+    static bool ancestorLayerMayClipForSwift(const RenderLayer&, const RenderLayer& ancestorLayer, bool isContainingBlockChain);
     void updateFilterAnimationOutsets();
+    // Records the filter outsets of the keyframes' animation when hasFilterAnimationOutsets, and forgets them otherwise.
+    void updateFilterAnimationOutsetsForSwift(NOESCAPE BlendingKeyframesView, bool hasFilterAnimationOutsets, IntOutsets filterAnimationOutsets);
+    void removeFilterAnimationOutsetsForSwift(const String& animationName);
+    // Adds the animation of one property to the primary layer, with the values of the keyframes that animate it, which
+    // Swift cannot convert from their styles.
+    bool addAnimationForSwift(AnimatedProperty, NOESCAPE BlendingKeyframesView, FloatSize referenceBoxSize, const GraphicsLayerAnimation&, double timeOffset);
 
     bool hasTiledBackingFlatteningLayer() const { return (m_childContainmentLayer && m_isFrameLayerWithTiledBacking); }
     GraphicsLayer* tileCacheFlatteningLayer() const { return m_isFrameLayerWithTiledBacking ? m_childContainmentLayer.get() : nullptr; }
 
     void paintIntoLayer(const GraphicsLayer*, GraphicsContext&, const IntRect& paintDirtyRect, OptionSet<PaintBehavior>, RegionContext* = nullptr);
-    OptionSet<RenderLayer::PaintLayerFlag> paintFlagsForLayer(const GraphicsLayer&) const;
-    
     void paintDebugOverlays(const GraphicsLayer*, GraphicsContext&);
 
-    NODELETE static CSSPropertyID graphicsLayerToCSSProperty(AnimatedProperty);
-    NODELETE static AnimatedProperty cssToGraphicsLayerProperty(CSSPropertyID);
 
     bool canIssueSetNeedsDisplay() const { return !paintsIntoWindow() && !paintsIntoCompositedAncestor(); }
     NODELETE float pixelSnappingScaleFactor() const;
     LayoutRect computeParentGraphicsLayerRect(const RenderLayer* compositedAncestor) const;
-    LayoutRect computePrimaryGraphicsLayerRect(const RenderLayer* compositedAncestor, const LayoutRect& parentGraphicsLayerRect) const;
 
     bool shouldSetContentsDisplayDelegate() const;
 

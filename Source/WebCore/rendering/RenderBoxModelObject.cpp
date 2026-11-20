@@ -602,7 +602,7 @@ void RenderBoxModelObject::computeStickyPositionConstraints(StickyPositionViewpo
 
     auto enclosingClipping = enclosingClippingBoxForStickyPosition();
     CheckedRef enclosingClippingBox = enclosingClipping.first;
-    CheckedPtr enclosingClippingLayer = enclosingClipping.second;
+    auto* enclosingClippingLayer = enclosingClipping.second;
 
     LayoutRect containerContentRect;
     if (!enclosingClippingLayer || (containingBlock != enclosingClippingBox.ptr())) {
@@ -720,7 +720,7 @@ void RenderBoxModelObject::computeStickyPositionConstraints(StickyPositionViewpo
 
 FloatRect RenderBoxModelObject::constrainingRectForStickyPosition() const
 {
-    CheckedPtr enclosingClippingLayer = hasLayer() ? layer()->enclosingOverflowClipLayer(ExcludeSelf) : nullptr;
+    auto* enclosingClippingLayer = hasLayer() ? layer()->enclosingOverflowClipLayer(ExcludeSelf) : nullptr;
 
     if (enclosingClippingLayer) {
         RenderBox& enclosingClippingBox = downcast<RenderBox>(enclosingClippingLayer->renderer());
@@ -1624,7 +1624,7 @@ auto RenderBoxModelObject::computeVisibleRectsInContainer(const RepaintRects& re
         // in the parent's coordinate space that encloses us.
         if (hasLayer() && layer()->isTransformed()) {
             state.hasPositionFixedDescendant = styleToUse.position() == PositionType::Fixed;
-            adjustedRects.transform(protect(layer())->currentTransform(), document().deviceScaleFactor());
+            adjustedRects.transform(layer()->currentTransform(), document().deviceScaleFactor());
         } else if (styleToUse.position() == PositionType::Fixed)
             state.hasPositionFixedDescendant = true;
     }

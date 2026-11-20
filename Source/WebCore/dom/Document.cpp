@@ -6787,7 +6787,7 @@ void Document::invalidateEventRegionsForFrame(HTMLFrameOwnerElement& element)
     CheckedPtr renderer = element.renderer();
     if (!renderer)
         return;
-    if (CheckedPtr layer = renderer->enclosingLayer()) {
+    if (auto* layer = renderer->enclosingLayer()) {
         if (layer->invalidateEventRegion(RenderLayer::EventRegionInvalidationReason::NonCompositedFrame))
             return;
     }
@@ -12176,7 +12176,7 @@ bool Document::hitTest(const HitTestRequest& request, const HitTestLocation& loc
     SetForScope hitTestRestorer { m_inHitTesting, true };
 #endif
 
-    bool resultLayer = protect(renderView()->layer())->hitTest(request, location, result);
+    bool resultLayer = renderView()->layer()->hitTest(request, location, result);
 
     // ScrollView scrollbars are not the same as RenderLayer scrollbars tested by RenderLayer::hitTestOverflowControls,
     // so we need to test ScrollView scrollbars separately here. In case of using overlay scrollbars, the layer hit test

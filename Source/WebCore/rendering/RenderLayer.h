@@ -61,10 +61,11 @@
 #include <WebCore/ScrollBehavior.h>
 #include <WebCore/ScrollIntoViewContainer.h>
 #include <WebCore/TransformationMatrix.h>
+#include <bit>
 #include <wtf/InlineWeakPtr.h>
 #include <wtf/Markable.h>
 #include <wtf/Range.h>
-#include <wtf/UniquelyOwned.h>
+#include <wtf/RefCountedWithInlineWeakPtr.h>
 
 #if defined(__swift__)
 // WebCore's headers only forward declare these reference-counted JavaScriptCore types. Swift's importer rejects a
@@ -84,9 +85,6 @@ class TextStream;
 
 void outputLayerPositionTreeRecursive(TextStream&, const WebCore::RenderLayer&, unsigned, const WebCore::RenderLayer*);
 
-namespace WebCore { class RenderLayer; }
-inline void refRenderLayer(WebCore::RenderLayer*) SWIFT_UNSAFE;
-inline void derefRenderLayer(WebCore::RenderLayer*) SWIFT_UNSAFE;
 namespace WebCore {
 
 namespace Style {
@@ -100,7 +98,9 @@ class ClipRectsCache;
 class Element;
 class HitTestRequest;
 class HitTestResult;
-class HitTestingTransformState;
+class LentGraphicsContext;
+class HitTestResultView;
+class LayerFragmentsView;
 class Region;
 namespace Paint {
 class ClipPathScope;
@@ -149,6 +149,16 @@ enum ShouldApplyRootOffsetToFragments {
     IgnoreRootOffsetForFragments
 };
 
+enum TransparencyClipBoxBehavior {
+    PaintingTransparencyClipBox,
+    HitTestingTransparencyClipBox
+};
+
+enum TransparencyClipBoxMode {
+    DescendantsOfTransparencyClipBox,
+    RootOfTransparencyClipBox
+};
+
 enum class RequestState {
     Unknown,
     DontCare,
@@ -188,15 +198,92 @@ struct ScrollRectToVisibleOptions {
 enum class UpdateBackingSharingFlags {
     DuringCompositingUpdate = 1 << 0,
 };
+using UpdateBackingSharingFlagSet = OptionSet<UpdateBackingSharingFlags>;
 
 using ScrollingScope = uint64_t;
 
-class RenderLayer final : public UniquelyOwned<RenderLayer> {
+// A layer pointer that the link members, which Swift defines, return by value. It holds the address as an integer:
+// Swift counts a RenderLayer pointer as a strong reference, and would release the layer when it destroys the value.
+class LayerRef {
+public:
+    LayerRef() = default;
+    explicit LayerRef(RenderLayer* layer)
+        : m_address(std::bit_cast<uintptr_t>(layer))
+    {
+    }
+    operator RenderLayer*() const { return std::bit_cast<RenderLayer*>(m_address); }
+    friend bool operator==(const LayerRef& a, const LayerRef& b) { return a.m_address == b.m_address; }
+private:
+    uintptr_t m_address { 0 };
+};
+
+// A layer's tree links, written only by RenderLayerLinks (RenderLayerOwners.swift), through RenderLayerFactory. The drop
+// of a layer unlinks it before it frees the layer.
+class RenderLayerTreeLinks {
+    WTF_MAKE_NONCOPYABLE(RenderLayerTreeLinks);
+    WTF_MAKE_NONMOVABLE(RenderLayerTreeLinks);
+public:
+    RenderLayerTreeLinks() = default;
+
+    RenderLayer* parent() const { return m_parent; }
+    RenderLayer* previousSibling() const { return m_previous; }
+    // Null for a layer whose drop has begun, as the weak pointers of these links would read. No link names such a layer:
+    // a drop clears the links that name a layer before it marks it dropping.
+    inline RenderLayer* nextSibling() const;
+    inline RenderLayer* firstChild() const;
+    RenderLayer* lastChild() const { return m_last; }
+
+private:
+    friend class RenderLayerFactory;
+    RenderLayer* m_parent { nullptr };
+    RenderLayer* m_previous { nullptr };
+    RenderLayer* m_next { nullptr };
+    RenderLayer* m_first { nullptr };
+    RenderLayer* m_last { nullptr };
+};
+
+// A layer that RenderLayerOwners made for a renderer, and the store's handle for the layer's owner.
+struct CreatedRenderLayer {
+    uint64_t owner;
+    LayerRef layer;
+};
+
+enum class PaintOrderList : uint8_t { Positive, Negative, NormalFlow };
+
+// A layer's one strong reference is its owner's, in RenderLayerOwners (RenderLayerOwners.swift). The count is private, so no
+// C++ pointer can hold a layer (CheckedPtr, protect(), Ref), and the destructor is private, so only the release of that
+// reference ends a layer.
+class RenderLayer final : private RefCountedWithInlineWeakPtr<RenderLayer> {
 #if ENABLE(COMPACT_ALLOCATION_FOR_PREFERABLY_COMPACT_TYPES)
     WTF_ALLOW_COMPACT_POINTERS;
 #endif
-public:
     friend class WTF::RefCountedWithInlineWeakPtr<RenderLayer>;
+    friend class WTF::RefCountHeader; // The release of the last reference: the only caller of ~RenderLayer.
+    friend class RenderLayerFactory;
+    friend class RenderLayerAncestorWalker;
+    friend class RenderLayerPaintOrderListWriter;
+    friend class RenderLayerTreeLinks;
+    friend class RenderLayerModelObject; // willBeDropped().
+    WEBCORE_EXPORT ~RenderLayer();
+
+    // Swift's retain and release of a layer (SWIFT_SHARED_REFERENCE).
+    SWIFT_UNSAFE void retainForSwift() const { ref(); }
+    SWIFT_UNSAFE void releaseForSwift() const
+    {
+        // A reference released while the layer is destroyed was taken in its destructor. Not a RELEASE_ASSERT: the flag it
+        // reads is kept only where CHECK_REF_COUNTED_LIFECYCLE is set, and keeping it in release builds would add a branch
+        // to every release of a layer from Swift.
+        ASSERT_WITH_SECURITY_IMPLICATION(!refCountDebugger().deletionHasBegun());
+        deref();
+    }
+
+    // The owner calls this just before it drops the layer: a layer in resize mode makes the event handler forget it, then
+    // removing the reflection runs Swift on this layer, which must not take a reference to it once its destruction has begun.
+    SWIFT_UNSAFE void willBeDropped();
+
+public:
+    using RefCountedWithInlineWeakPtr<RenderLayer>::RefCountedType; // For InlineWeakPtr.
+
     friend class RenderReplica;
     friend class RenderLayerFilters;
     friend class RenderLayerBacking;
@@ -204,13 +291,6 @@ public:
     friend class RenderLayerScrollableArea;
     friend class LayerListMutationDetector;
     friend void ::outputLayerPositionTreeRecursive(TextStream&, const WebCore::RenderLayer&, unsigned, const WebCore::RenderLayer*);
-
-    SWIFT_UNSAFE static UniquelyOwnedPtr<RenderLayer> create(RenderLayerModelObject& modelObject)
-    {
-        return makeUniquelyOwned<RenderLayer>(modelObject);
-    }
-
-    WEBCORE_EXPORT ~RenderLayer();
 
     NODELETE WEBCORE_EXPORT RenderLayerScrollableArea* scrollableArea() const;
     WEBCORE_EXPORT RenderLayerScrollableArea* ensureLayerScrollableArea();
@@ -221,13 +301,13 @@ public:
     RenderLayerModelObject& renderer() const { return m_renderer; }
     RenderBox* renderBox() const { return dynamicDowncast<RenderBox>(renderer()); }
 
-    RenderLayer* parent() const { return m_parent.get(); }
-    RenderLayer* previousSibling() const { return m_previous.get(); }
-    RenderLayer* nextSibling() const { return m_next.get(); }
-    RenderLayer* firstChild() const { return m_first.get(); }
-    RenderLayer* lastChild() const { return m_last.get(); }
+    RenderLayer* parent() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return m_links.parent(); }
+    RenderLayer* previousSibling() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return m_links.previousSibling(); }
+    RenderLayer* nextSibling() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return m_links.nextSibling(); }
+    RenderLayer* firstChild() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return m_links.firstChild(); }
+    RenderLayer* lastChild() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return m_links.lastChild(); }
     NODELETE bool isDescendantOf(const RenderLayer&) const;
-    WEBCORE_EXPORT RenderLayer* commonAncestorWithLayer(const RenderLayer&) const;
+    RenderLayer* commonAncestorWithLayer(const RenderLayer& layer) const { return linkCommonAncestorWithLayer(layer); }
 
     // Out-of-line so that a client built once can read the layer tree in any build of WebCore.
     WEBCORE_EXPORT RenderLayer* parentForTesting() const;
@@ -284,7 +364,7 @@ public:
     bool isCSSStackingContext() const { return m_isCSSStackingContext || m_forcedStackingContext; }
 
     // Gets the enclosing stacking context for this layer, excluding this layer itself.
-    NODELETE RenderLayer* stackingContext() const;
+    RenderLayer* stackingContext() const { return linkStackingContext(); }
 
     // Gets the enclosing stacking container for this layer, possibly the layer
     // itself, if it is a stacking container.
@@ -304,12 +384,10 @@ public:
     bool normalFlowListDirty() const { return m_normalFlowListDirty; }
     bool zOrderListsDirty() const { return m_zOrderListsDirty; }
 
-#if ASSERT_ENABLED || ENABLE(SECURITY_ASSERTIONS)
     bool layerListMutationAllowed() const { return m_layerListMutationAllowed; }
 private:
     void setLayerListMutationAllowed(bool flag) { m_layerListMutationAllowed = flag; }
 public:
-#endif
 
     bool willCompositeClipPath() const;
 
@@ -318,7 +396,7 @@ public:
 
     NODELETE void setNeedsPositionUpdate();
     void setSelfAndChildrenNeedPositionUpdate();
-    NODELETE void setSelfAndDescendantsNeedPositionUpdate();
+    void setSelfAndDescendantsNeedPositionUpdate();
 
 private:
     enum class LayerPositionUpdates : uint8_t {
@@ -328,6 +406,15 @@ private:
         AllDescendantsNeedPositionUpdate = 1 << 3,
     };
 
+    // Adds the bit, and returns whether the bits lacked it.
+    bool addLayerPositionDirtyBit(LayerPositionUpdates bit)
+    {
+        if (m_layerPositionDirtyBits.contains(bit))
+            return false;
+        m_layerPositionDirtyBits.add(bit);
+        return true;
+    }
+
     bool needsPositionUpdate() const;
     void clearLayerPositionDirtyBits() { m_layerPositionDirtyBits = { }; }
 
@@ -335,19 +422,6 @@ private:
 
 private:
     explicit RenderLayer(RenderLayerModelObject&);
-    // A new layer for Swift's layer store, which adopts the returned reference as the layer's owner and then claims the layer.
-    static RenderLayer& createForOwner(RenderLayerModelObject& renderer) SWIFT_RETURNS_RETAINED
-    {
-        return *WTF::RefCountedWithInlineWeakPtr<RenderLayer>::create<RenderLayer>(renderer);
-    }
-    // True the first time it is called on a layer, false every later time.
-    bool claimSwiftOwner()
-    {
-        if (m_hasSwiftOwner)
-            return false;
-        m_hasSwiftOwner = true;
-        return true;
-    }
     void destroy();
 
     bool hasVisibleContentForPainting() const
@@ -362,6 +436,7 @@ private:
     // Defined in RenderLayerSVGAdditions.cpp.
     bool hasVisibleContentForPaintingForSVG() const;
 
+public:
     // These flags propagate in paint order (z-order tree).
     enum class Compositing : uint16_t {
         HasDescendantNeedingRequirementsTraversal           = 1 << 0, // Need to do the overlap-testing tree walk because hierarchy or geometry changed.
@@ -381,6 +456,8 @@ private:
         ChildrenNeedGeometryUpdate                          = 1 << 10, // This layer's composited children need a geometry update.
         DescendantsNeedBackingAndHierarchyTraversal         = 1 << 11, // Something changed that forces us to traverse all descendant layers in updateBackingAndHierarchy.
     };
+    using CompositingBits = OptionSet<Compositing>;
+private:
 
     static constexpr OptionSet<Compositing> computeCompositingRequirementsFlags()
     {
@@ -513,11 +590,6 @@ public:
         return LayerList(m_posZOrderList.get());
     }
 
-    bool hasNegativeZOrderLayers() const
-    {
-        return m_negZOrderList && m_negZOrderList->size();
-    }
-
     LayerList negativeZOrderLayers() const
     {
         ASSERT(!m_zOrderListsDirty);
@@ -549,7 +621,6 @@ public:
     std::optional<TransformationMatrix> computeContainerTransformForRepaintForSVG() const;
     void setNeedsFullRepaintIfSVGContainerTransformChanged(const RenderLayerModelObject* repaintContainer);
     bool hasFailedFilterForSVG() const;
-    NODELETE bool shouldSkipHitTestForSVG() const;
     void updateAncestorDependentStateForSVG();
     NODELETE bool isCompositedSVGPaintOrderChild() const;
     NODELETE bool paintsInlineInSVGContainer() const;
@@ -562,10 +633,10 @@ public:
     void setBackingNeedsRepaint(GraphicsLayerShouldClipToLayer = GraphicsLayerShouldClipToLayer::Clip);
 
     // The rect is in the coordinate space of the layer's render object.
-    void setBackingNeedsRepaintInRect(const LayoutRect&, GraphicsLayerShouldClipToLayer = GraphicsLayerShouldClipToLayer::Clip);
+    void setBackingNeedsRepaintInRect(LayoutRect, GraphicsLayerShouldClipToLayer = GraphicsLayerShouldClipToLayer::Clip);
     void repaintIncludingNonCompositingDescendants(const RenderLayerModelObject* repaintContainer);
 
-    void styleChanged(Style::Difference, const Style::ComputedStyle* oldStyle);
+    void styleChanged(Style::Difference);
 
     bool isSelfPaintingLayer() const { return m_isSelfPaintingLayer; }
 
@@ -604,13 +675,13 @@ public:
     bool hasOverlayScrollbars() const;
 
     WEBCORE_EXPORT bool isPointInResizeControl(IntPoint localPoint) const;
-    IntSize offsetFromResizeCorner(const IntPoint& localPoint) const;
+    IntSize offsetFromResizeCorner(IntPoint localPoint) const;
 
     std::optional<ScrollbarUpdateScope> updateScrollInfoAfterLayout();
     void updateScrollbarSteps();
 
     // Returns true if this RenderLayer is a candidate for scrolling during scrollIntoView operations.
-    bool shouldTryToScrollForScrollIntoView(const ScrollRectToVisibleOptions&) const;
+    bool shouldTryToScrollForScrollIntoView(ScrollRectToVisibleOptions) const;
     void autoscroll(const IntPoint&);
 
     NODELETE bool canResize() const;
@@ -623,7 +694,7 @@ public:
     bool isForcedStackingContext() const { return m_forcedStackingContext; }
     bool isOpportunisticStackingContext() const { return m_isOpportunisticStackingContext; }
 
-    RenderLayerCompositor& compositor() const { SUPPRESS_UNCOUNTED_ARG return renderer().view().compositor(); }
+    [[clang::always_inline]] RenderLayerCompositor& compositor() const { SUPPRESS_UNCOUNTED_ARG return renderer().view().inlineCompositor(); }
 
     // Notification from the renderer that its content changed (e.g. current frame of image changed).
     // Allows updates of layer content without repainting.
@@ -639,11 +710,11 @@ public:
 
     bool hasCompositedLayerInEnclosingPaginationChain() const;
     enum PaginationInclusionMode { ExcludeCompositedPaginatedLayers, IncludeCompositedPaginatedLayers };
-    RenderLayer* enclosingPaginationLayer(PaginationInclusionMode mode) const
+    RenderLayer* enclosingPaginationLayer(PaginationInclusionMode mode) const LIFETIME_BOUND_EXCEPT_IN_SWIFT
     {
         if (mode == ExcludeCompositedPaginatedLayers && hasCompositedLayerInEnclosingPaginationChain())
             return nullptr;
-        return m_enclosingPaginationLayer.get();
+        return enclosingPaginationLayerInStore();
     }
 
     void updateTransform();
@@ -730,38 +801,38 @@ public:
 
     // Gets the nearest enclosing positioned ancestor layer (also includes
     // the <html> layer and the root layer).
-    RenderLayer* enclosingAncestorForPosition(PositionType) const;
+    RenderLayer* enclosingAncestorForPosition(PositionType position) const { return linkEnclosingAncestorForPosition(position); }
     
-    RenderLayer* enclosingLayerInContainingBlockOrder() const;
-    WEBCORE_EXPORT RenderLayer* enclosingContainingBlockLayer(CrossFrameBoundaries) const;
-    NODELETE RenderLayer* enclosingFrameRenderLayer() const;
+    RenderLayer* enclosingLayerInContainingBlockOrder() const { return linkEnclosingLayerInContainingBlockOrder(); }
+    RenderLayer* enclosingContainingBlockLayer(CrossFrameBoundaries crossFrameBoundaries) const { return linkEnclosingContainingBlockLayer(crossFrameBoundaries); }
+    RenderLayer* enclosingFrameRenderLayer() const { return linkEnclosingFrameRenderLayer(); }
 
     // The layer relative to which clipping rects for this layer are computed.
-    RenderLayer* clippingRootForPainting() const;
+    RenderLayer* clippingRootForPainting() const { return linkClippingRootForPainting(); }
 
-    NODELETE RenderLayer* enclosingOverflowClipLayer(IncludeSelfOrNot) const;
+    RenderLayer* enclosingOverflowClipLayer(IncludeSelfOrNot includeSelf) const { return linkEnclosingOverflowClipLayer(includeSelf); }
 
     // Enclosing compositing layer; if includeSelf is true, may return this.
-    NODELETE RenderLayer* enclosingCompositingLayer(IncludeSelfOrNot = IncludeSelf) const;
+    RenderLayer* enclosingCompositingLayer(IncludeSelfOrNot includeSelf = IncludeSelf) const { return linkEnclosingCompositingLayer(includeSelf); }
     struct EnclosingCompositingLayerStatus {
         EnclosingCompositingLayerStatus() = default;
-        EnclosingCompositingLayerStatus(bool fullRepaintAlreadyScheduled, RenderLayer* layer)
+        EnclosingCompositingLayerStatus(bool fullRepaintAlreadyScheduled, LayerRef layer)
             : fullRepaintAlreadyScheduled(fullRepaintAlreadyScheduled)
             , layer(layer)
         {
         }
 
         bool fullRepaintAlreadyScheduled { false };
-        RenderLayer* layer { nullptr };
+        LayerRef layer;
     };
     EnclosingCompositingLayerStatus enclosingCompositingLayerForRepaint(IncludeSelfOrNot = IncludeSelf) const;
     // Same layer as enclosingCompositingLayerForRepaint().layer, without computing fullRepaintAlreadyScheduled.
-    RenderLayer* enclosingRepaintTargetLayer(IncludeSelfOrNot = IncludeSelf) const;
+    RenderLayer* enclosingRepaintTargetLayer(IncludeSelfOrNot includeSelf = IncludeSelf) const { return linkEnclosingRepaintTargetLayer(includeSelf); }
     // Ancestor compositing layer, excluding this.
     RenderLayer* ancestorCompositingLayer() const { return enclosingCompositingLayer(ExcludeSelf); }
 
-    RenderLayer* enclosingPixelMovingFilterLayer(IncludeSelfOrNot = IncludeSelf) const;
-    RenderLayer* enclosingFilterRepaintLayer() const;
+    RenderLayer* enclosingPixelMovingFilterLayer(IncludeSelfOrNot includeSelf = IncludeSelf) const { return linkEnclosingPixelMovingFilterLayer(includeSelf); }
+    RenderLayer* enclosingFilterRepaintLayer() const { return linkEnclosingFilterRepaintLayer(); }
     enum class UseFilterOutsets : bool { Add, AlreadyIncluded };
     void setFilterBackendNeedsRepaintingInRect(LayoutRect, UseFilterOutsets = UseFilterOutsets::Add);
 
@@ -771,7 +842,7 @@ public:
     // FIXME: adjustForColumns allows us to position compositing layers in columns correctly, but eventually they need to be split across columns too.
     enum ColumnOffsetAdjustment { DontAdjustForColumns, AdjustForColumns };
     void convertToPixelSnappedLayerCoords(const RenderLayer* ancestorLayer, IntPoint& location, ColumnOffsetAdjustment adjustForColumns = DontAdjustForColumns) const;
-    LayoutPoint convertToLayerCoords(const RenderLayer* ancestorLayer, const LayoutPoint&, ColumnOffsetAdjustment adjustForColumns = DontAdjustForColumns) const;
+    LayoutPoint convertToLayerCoords(const RenderLayer* ancestorLayer, LayoutPoint, ColumnOffsetAdjustment adjustForColumns = DontAdjustForColumns) const;
     LayoutSize offsetFromAncestor(const RenderLayer*, ColumnOffsetAdjustment = DontAdjustForColumns) const;
 
     inline int zIndex() const;
@@ -798,6 +869,12 @@ public:
     };
     using PaintLayerFlags = OptionSet<PaintLayerFlag>;
     using PaintBehaviors = OptionSet<PaintBehavior>;
+    using OptionalLayoutRect = std::optional<LayoutRect>;
+    using OptionalFloatRect = std::optional<FloatRect>;
+    using OptionalIntRect = std::optional<IntRect>;
+    using OptionalFloat = std::optional<float>;
+    using OptionalPaintOrderItemRange = std::optional<WTF::Range<unsigned>>;
+    using OptionalLayoutSize = std::optional<LayoutSize>;
     static constexpr OptionSet<PaintLayerFlag> paintLayerPaintingCompositingAllPhasesFlags() { return { PaintLayerFlag::PaintingCompositingBackgroundPhase, PaintLayerFlag::PaintingCompositingForegroundPhase }; }
 
     enum class SecurityOriginPaintPolicy { AnyOrigin, AccessibleOriginOnly };
@@ -810,6 +887,7 @@ public:
         RenderObject* subtreePaintRoot = nullptr, OptionSet<PaintLayerFlag> = { }, SecurityOriginPaintPolicy = SecurityOriginPaintPolicy::AnyOrigin, RegionContext* = nullptr);
     WEBCORE_EXPORT bool hitTest(const HitTestRequest&, HitTestResult&);
     bool hitTest(const HitTestRequest&, const HitTestLocation&, HitTestResult&);
+    bool hitTestForSwift(HitTestRequest, HitTestLocation, HitTestResultView);
 
     enum class ClipRectsOption : uint8_t {
         RespectOverflowClip         = 1 << 0,
@@ -819,7 +897,6 @@ public:
     };
     using ClipRectsOptions = OptionSet<ClipRectsOption>;
 
-    static constexpr OptionSet<ClipRectsOption> clipRectOptionsForPaintingOverflowContents = { };
     static constexpr OptionSet<ClipRectsOption> clipRectDefaultOptions = { ClipRectsOption::RespectOverflowClip };
     static constexpr OptionSet<ClipRectsOption> clipRectTemporaryOptions = { ClipRectsOption::RespectOverflowClip, ClipRectsOption::Temporary };
     static constexpr ClipRectsOptions clipRectDefaultOptionsForSwift() { return clipRectDefaultOptions; }
@@ -846,12 +923,17 @@ public:
     // |rootLayer|. It also computes our background and foreground clip rects
     // for painting/event handling.
     // Pass offsetFromRoot if known.
-    LayerFragment::Rects calculateRects(const ClipRectsContext&, const LayoutSize& offsetFromRoot, const LayoutRect& paintDirtyRect = LayoutRect::infiniteRect()) const;
+    LayerFragment::Rects calculateRects(const ClipRectsContext& context, const LayoutSize& offsetFromRoot, const LayoutRect& paintDirtyRect = LayoutRect::infiniteRect()) const { return calculateRects(context.rootLayer, context.clipRectsType, context.options, offsetFromRoot, paintDirtyRect); }
+    LayerFragment::Rects calculateRects(const RenderLayer* rootLayer, ClipRectsType, ClipRectsOptions, LayoutSize offsetFromRoot, LayoutRect paintDirtyRect) const;
 
     // Public just for RenderTreeAsText.
     void collectFragments(LayerFragments&, const RenderLayer* rootLayer, const LayoutRect& dirtyRect,
         PaginationInclusionMode, ClipRectsType, OptionSet<ClipRectsOption>, const LayoutSize& offsetFromRoot,
-        const LayoutRect* layerBoundingBox = nullptr, ShouldApplyRootOffsetToFragments = IgnoreRootOffsetForFragments);
+        std::optional<LayoutRect> layerBoundingBox = std::nullopt, ShouldApplyRootOffsetToFragments = IgnoreRootOffsetForFragments);
+    void collectFragmentsForSwift(LayerFragmentsView, const RenderLayer* rootLayer, LayoutRect dirtyRect, PaginationInclusionMode, ClipRectsType, ClipRectsOptions,
+        LayoutSize offsetFromRoot, std::optional<LayoutRect> layerBoundingBox, ShouldApplyRootOffsetToFragments);
+
+    LayoutRect transparencyClipBox(const RenderLayer* rootLayer, TransparencyClipBoxBehavior, TransparencyClipBoxMode, PaintBehaviors, std::optional<LayoutRect> paintDirtyRect) const;
         
     LayoutRect childrenClipRect() const; // Returns the foreground clip rect of the layer in the document's coordinate space.
     LayoutRect selfClipRect() const; // Returns the background clip rect of the layer in the document's coordinate space.
@@ -1011,24 +1093,25 @@ public:
     void clearHasDescendantNeedingEventRegionUpdate() { m_hasDescendantNeedingEventRegionUpdate = false; }
 
     // If non-null, a non-ancestor composited layer that this layer paints into (it is sharing its backing store with this layer).
-    RenderLayer* backingProviderLayer() const { return m_backingProviderLayer.get(); }
+    RenderLayer* backingProviderLayer() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return weakField(LayerWeakField::BackingProvider); }
     void setBackingProviderLayer(RenderLayer*, OptionSet<UpdateBackingSharingFlags>);
+    bool backingProviderLayerIs(const RenderLayer* layer) const { return backingProviderLayer() == layer; }
     void disconnectFromBackingProviderLayer(OptionSet<UpdateBackingSharingFlags>);
 
-    bool paintsIntoProvidedBacking() const { return !!m_backingProviderLayer; }
+    bool paintsIntoProvidedBacking() const { return !!backingProviderLayer(); }
 
-    RenderLayer* backingProviderLayerAtEndOfCompositingUpdate() const { return m_backingProviderLayerAtEndOfCompositingUpdate.get(); }
-    void setBackingProviderLayerAtEndOfCompositingUpdate(RenderLayer* provider) { m_backingProviderLayerAtEndOfCompositingUpdate = provider; }
+    RenderLayer* backingProviderLayerAtEndOfCompositingUpdate() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return weakField(LayerWeakField::BackingProviderAtEndOfCompositingUpdate); }
+    void setBackingProviderLayerAtEndOfCompositingUpdate(RenderLayer* provider) { setWeakField(LayerWeakField::BackingProviderAtEndOfCompositingUpdate, provider); }
     RenderLayerModelObject* repaintContainer() const { return m_repaintContainer.get(); }
 
-    RenderLayerBacking* backing() const { return m_backing.get(); }
+    RenderLayerBacking* backing() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return m_backing.get(); }
     RenderLayerBacking* ensureBacking() LIFETIME_BOUND;
     void clearBacking(OptionSet<UpdateBackingSharingFlags>, bool layerBeingDestroyed = false);
 
     bool hasCompositedScrollingAncestor() const { return m_hasCompositedScrollingAncestor; }
     void setHasCompositedScrollingAncestor(bool hasCompositedScrollingAncestor) { m_hasCompositedScrollingAncestor = hasCompositedScrollingAncestor; }
 
-    NODELETE bool usesCompositedScrolling() const;
+    bool usesCompositedScrolling() const;
 
     // Layers with the same ScrollingScope are scrolled by some common ancestor scroller. Used for async scrolling.
     std::optional<ScrollingScope> boxScrollingScope() const { return m_boxScrollingScope; }
@@ -1091,8 +1174,6 @@ public:
     bool isRenderFragmentedFlow() const { return renderer().isRenderFragmentedFlow(); }
     bool isInsideFragmentedFlow() const { return renderer().fragmentedFlowState() != RenderObject::FragmentedFlowState::NotInsideFlow; }
 
-    NODELETE RenderLayer* enclosingFragmentedFlowAncestor() const;
-
     WEBCORE_EXPORT void simulateFrequentPaint();
     bool paintingFrequently() const { return m_paintFrequencyTracker.paintingFrequently(); }
     WEBCORE_EXPORT void purgeFrontBufferForTesting();
@@ -1149,66 +1230,82 @@ public:
     private:
         // A view of the painting call's root layer, subtree paint root, region context and overlap test requests, held
         // as integers so that the struct is trivially copyable. It must not outlive the painting call that made it, and
-        // Swift reaches the objects only through the accessors above, any of which may return null. setRootLayer() and
-        // setRegionContext() store what they are given, which the caller keeps alive.
+        // Swift reaches the objects only through the accessors above, any of which may return null. It has no operator*.
+        // setRootLayer() and setRegionContext() store what they are given, which the caller keeps alive.
         uintptr_t m_rootLayer { 0 };
         uintptr_t m_subtreePaintRoot { 0 };
         uintptr_t m_regionContext { 0 };
         uintptr_t m_overlapTestRequests { 0 };
     } SWIFT_VIEW;
 
-private:
-    enum class RepaintRectsUpdate : bool { Recompute, Discard };
-    void updateRepaintRectsIncludingDescendants(RepaintRectsUpdate);
-
-    bool shouldPaintWithFilters(const Style::Filter&, OptionSet<PaintBehavior> = { }) const;
-    bool requiresFullLayerImageForFilters(const Style::Filter&) const;
-
 public:
-    SWIFT_UNSAFE void setNextSibling(RenderLayer* next) { m_next = next; }
-    SWIFT_UNSAFE void setPreviousSibling(RenderLayer* prev) { m_previous = prev; }
-    SWIFT_UNSAFE void setFirstChild(RenderLayer* first) { m_first = first; }
-    SWIFT_UNSAFE void setLastChild(RenderLayer* last) { m_last = last; }
+    enum class RepaintRectsUpdate : bool { Recompute, Discard };
 private:
+    void updateRepaintRectsIncludingDescendants(RepaintRectsUpdate);
 
     void updateAncestorDependentState();
 
     // SVG-specific methods -- defined in RenderLayerSVGAdditions.cpp.
     NODELETE bool setupClipPathIfNeededForSVG(OptionSet<PaintLayerFlag>&);
-    void paintResourceCorrectedChildLayerForSVG(GraphicsContext&, RenderLayer& childLayer, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>, LayoutSize correction) const;
-    bool paintForegroundForFragmentsForSVG(const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, RenderObject*);
-    void paintNegativeZOrderChildrenForSVG(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>);
-    void paintForegroundChildrenForSVG(GraphicsContext&, const LayerPaintingInfo&, const LayerPaintingInfo& localPaintingInfo, OptionSet<PaintLayerFlag>, const LayerFragments&, OptionSet<PaintBehavior>, RenderObject* subtreePaintRoot, std::optional<WTF::Range<unsigned>> svgPaintOrderItemRange, LayoutSize svgFilterChildLayerCorrection);
-    struct SWIFT_UNAVAILABLE_IN_SWIFT HitLayer {
-        RenderLayer* layer { nullptr };
-        double zOffset = 0;
-    };
-    HitLayer hitTestChildrenForSVG(RenderLayer* rootLayer, const HitTestRequest&, HitTestResult&, const LayoutRect& hitTestRect, const HitTestLocation&, const HitTestingTransformState*, double* zOffsetForDescendants);
+    void paintResourceCorrectedChildLayerForSVG(LentGraphicsContext, RenderLayer& childLayer, LayerPaintingInfo, OptionSet<PaintLayerFlag>, LayoutSize correction) const;
+    bool viewBoxDisablesPaintingForSVG() const;
+
+    // Each WithClippingAndMasking member applies a non-layer renderer's clip-path and mask, then paints through the member after it.
+    void paintNonLayerRendererWithClippingAndMaskingForSVG(NOESCAPE LentGraphicsContext, RenderElement&, LayoutPoint selfPaintOffset, NOESCAPE LayerPaintingInfo, PaintLayerFlags, PaintBehaviors, RenderObject* subtreePaintRoot, StateSavedByCaller);
+    void paintNonLayerRendererInTransformScopeForSVG(LentGraphicsContext, RenderElement&, LayoutPoint selfPaintOffset, LayerPaintingInfo, PaintLayerFlags, PaintBehaviors, RenderObject* subtreePaintRoot, StateSavedByCaller, bool paintsIntoMaskLayer);
+    void paintNonLayerChildWithClippingAndMaskingForSVG(NOESCAPE LentGraphicsContext, RenderElement&, LayoutPoint paintOffset, LayoutPoint adjustedPaintOffset, NOESCAPE LayerPaintingInfo, PaintLayerFlags, PaintBehaviors, RenderObject* subtreePaintRoot);
+    void paintNonLayerChildInTransformScopeForSVG(LentGraphicsContext, RenderElement&, LayoutPoint paintOffset, LayoutPoint adjustedPaintOffset, LayerPaintingInfo, PaintLayerFlags, PaintBehaviors, RenderObject* subtreePaintRoot);
+    void paintNonLayerChildInDOMOrderWithClippingAndMaskingForSVG(NOESCAPE LentGraphicsContext, RenderElement&, unsigned itemIndex, OptionalLayoutSize offsetFromRoot, LayoutSize accumulatedAncestorOffset, const LayerFragments&, NOESCAPE LayerPaintingInfo, PaintLayerFlags, PaintBehaviors, RenderObject* subtreePaintRootForRenderer, LayoutPoint containerBaseOffset, bool isSVGRoot, bool sharedClipApplied);
+    void paintNonLayerChildInDOMOrderForSVG(LentGraphicsContext, RenderElement&, unsigned itemIndex, LayoutSize accumulatedAncestorOffset, LayerFragments, LayerPaintingInfo, PaintLayerFlags, PaintBehaviors, RenderObject* subtreePaintRootForRenderer, LayoutPoint containerBaseOffset, bool isSVGRoot, bool sharedClipApplied);
+    static bool isOverflowHiddenForSVG(const RenderElement&);
+    static FloatRect viewportForSVG(const RenderElement& viewportContainer);
+    const RenderObject* enclosingHiddenOrResourceContainerRendererForSVG() const;
+    bool svgViewportClipExcludesForSVG(const HitTestLocation&) const;
+    unsigned childrenInDOMOrderCountForSVG();
+    RenderLayer* childLayerInDOMOrderForSVG(unsigned index);
+    RenderElement* childRendererInDOMOrderForSVG(unsigned index);
+    OptionSet<PaintPhase> childPhasesToPaintInDOMOrderForSVG(unsigned index);
+    LayoutSize childAccumulatedAncestorOffsetInDOMOrderForSVG(unsigned index);
 
     void collectChildrenInDOMOrderForSVG();
-    // Returns true if this subtree contains any child that must be painted as
-    // an independent list entry (layered children or transformed non-layer
-    // children), signaling that the parent needs a "split" entry.
-    bool appendChildrenInDOMOrderForSVG(RenderElement& parent, LayoutSize ancestorOffset, bool& anyNonZeroZIndex);
+    void clearChildrenInDOMOrderForSVG();
+    void appendLayeredChildInDOMOrderForSVG(RenderElement&, RenderLayer&, int zIndex);
+    void appendAtomicChildInDOMOrderForSVG(RenderElement&, LayoutSize ancestorOffset);
+    void appendOutlineOnlyChildInDOMOrderForSVG(RenderElement&, LayoutSize ancestorOffset);
+    static bool clipsSubtreeForSVG(const RenderElement&);
+    bool isPaintingSVGResourceLayer() const;
     const Vector<SVGPaintOrderLayerItem>& childrenInDOMOrderForSVG();
-    void paintChildrenInDOMOrderForSVG(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>, const LayerFragments&, OptionSet<PaintBehavior>, RenderObject*, std::optional<WTF::Range<unsigned>> svgPaintOrderItemRange, LayoutSize svgFilterChildLayerCorrection);
-    void paintNonLayerChildForFragmentsForSVG(RenderElement&, const LayoutSize& accumulatedAncestorOffset, PaintPhase, const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, RenderObject*, const LayoutPoint& containerBaseOffset, bool isSVGRoot, bool sharedClipApplied);
-    void paintRendererByApplyingTransformForSVG(GraphicsContext&, CheckedRef<RenderElement>, const LayoutSize& positionOffset, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>, OptionSet<PaintBehavior>, RenderObject*, const LayoutSize& nominalPreTranslation = { });
-    void paintSubtreeWithinTransformScopeForSVG(GraphicsContext&, RenderElement& container, const LayoutPoint& paintOffset, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>, OptionSet<PaintBehavior>, RenderObject*);
-    HitLayer hitTestChildrenInDOMOrderForSVG(RenderLayer* rootLayer, const HitTestRequest&, HitTestResult&, const LayoutRect& hitTestRect, const HitTestLocation&, const HitTestingTransformState*, double* zOffsetForDescendants);
-    HitLayer hitTestRendererByInversingTransformForSVG(RenderElement&, const LayoutSize& positionOffset, const HitTestRequest&, HitTestResult&, const LayoutRect& hitTestRect, const HitTestLocation&);
-    HitLayer hitTestSubtreeWithinTransformScopeForSVG(RenderElement& container, const LayoutPoint& accumulatedOffset, const HitTestRequest&, HitTestResult&, const LayoutRect& hitTestRect, const HitTestLocation&);
 
-    struct SVGLocalToContainerTransform {
-        TransformationMatrix transform;
-        LayoutSize containerOffset;
-    };
-    std::optional<SVGLocalToContainerTransform> computeLocalToContainerTransformForSVG(CheckedRef<RenderElement>, const LayoutSize& positionOffset) const;
     void dirtyPaintOrderListsOnChildChange(RenderLayer&);
+    void didAddChild(RenderLayer&);
+    void willRemoveChild(RenderLayer&);
+    void didRemoveChild(RenderLayer&);
+
+    // RenderLayerOwners' LayerWeakField references (RenderLayerOwnership.cpp).
+    void setBackingProviderLayerInStore(RenderLayer* provider) { setWeakField(LayerWeakField::BackingProvider, provider); }
+    RenderLayer* enclosingPaginationLayerInStore() const { return weakField(LayerWeakField::EnclosingPagination); }
+    void setEnclosingPaginationLayerInStore(RenderLayer* layer) { setWeakField(LayerWeakField::EnclosingPagination, layer); }
+    LayerRef LEGACY_NODELETE linkStackingContext() const;
+    LayerRef linkEnclosingLayerInContainingBlockOrder() const;
+    LayerRef LEGACY_NODELETE linkEnclosingOverflowClipLayer(IncludeSelfOrNot) const;
+    LayerRef LEGACY_NODELETE linkEnclosingCompositingLayer(IncludeSelfOrNot) const;
+    LayerRef linkEnclosingRepaintTargetLayer(IncludeSelfOrNot) const;
+    LayerRef linkEnclosingPixelMovingFilterLayer(IncludeSelfOrNot) const;
+    LayerRef linkEnclosingFilterRepaintLayer() const;
+    LayerRef linkEnclosingPaginationLayerInSubtree(const RenderLayer* rootLayer, PaginationInclusionMode) const;
+    LayerRef linkEnclosingAncestorForPosition(PositionType) const;
+    LayerRef LEGACY_NODELETE linkEnclosingFrameRenderLayer() const;
+    LayerRef linkClippingRootForPainting() const;
+    LayerRef linkCommonAncestorWithLayer(const RenderLayer&) const;
+    LayerRef linkEnclosingContainingBlockLayer(CrossFrameBoundaries) const;
+    void adjustLocationForColumns(const RenderLayer* ancestorLayer, LayoutPoint&) const;
+    LayerRef LEGACY_NODELETE linkEnclosingTransformedAncestor() const;
 
     bool shouldBeNormalFlowOnly() const;
     bool shouldBeCSSStackingContext() const;
     bool shouldBeCSSStackingContextIgnoringZIndex() const;
+    // The z-index part of computeEstablishesBlendingIsolationGroup() for the outermost <svg>, which reads Style::Adjuster.
+    bool zIndexMakesOutermostSVGAStackingContext() const;
     bool computeCanBeBackdropRoot() const;
 
     // Return true if changed.
@@ -1221,15 +1318,26 @@ private:
 
     bool isDirtyStackingContext() const { return m_zOrderListsDirty && isStackingContext(); }
 
-    void updateZOrderLists();
+    // The paint-order lists' entries are not counted references, so the lists are built in a LayerFreeForbiddenScope.
+    inline void updateZOrderLists();
+    SWIFT_UNSAFE void updateDirtyZOrderLists();
 public:
-    SWIFT_UNSAFE void rebuildZOrderLists();
+    // True in a LayerFreeForbiddenScope.
+    static bool layerFreeForbidden() { return s_layerFreeForbiddenCount; }
 private:
-    void rebuildZOrderLists(std::unique_ptr<Vector<RenderLayer*>>&, std::unique_ptr<Vector<RenderLayer*>>&, OptionSet<Compositing>&);
-    void collectLayers(std::unique_ptr<Vector<RenderLayer*>>&, std::unique_ptr<Vector<RenderLayer*>>&, OptionSet<Compositing>&);
+    friend class LayerFreeForbiddenScope;
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT static void enterLayerFreeForbiddenScope();
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT static void leaveLayerFreeForbiddenScope();
+    static unsigned s_layerFreeForbiddenCount;
     void clearZOrderLists();
+    void appendViewLayersToPositiveList();
+    void detachKeepingChildren();
+    size_t paintOrderListSize(PaintOrderList) const;
+    RenderLayer& paintOrderListLayerAt(PaintOrderList, size_t) const;
+    void didAddChildEventRegion(RenderLayer&);
 
-    void updateNormalFlowList();
+    inline void updateNormalFlowList();
+    SWIFT_UNSAFE void rebuildNormalFlowList();
 
     LayoutPoint paintOffsetForRenderer(const LayerFragment& fragment, const LayerPaintingInfo& paintingInfo) const
     {
@@ -1241,12 +1349,13 @@ private:
         return paintOffset;
     }
 
-    // Compute, cache and return clip rects computed with the given layer as the root.
-    Ref<ClipRects> updateClipRects(const ClipRectsContext&);
     // Compute and return the clip rects. If useCached is true, will used previously computed clip rects on ancestors
     // (rather than computing them all from scratch up the parent chain).
-    void calculateClipRects(const ClipRectsContext&, ClipRects&) const;
-    NODELETE ClipRects* clipRects(const ClipRectsContext&) const;
+    void calculateClipRects(const RenderLayer* rootLayer, ClipRectsType, ClipRectsOptions, ClipRects&) const;
+    ClipRects* cachedClipRects(ClipRectsType, bool respectOverflowClip, const RenderLayer* rootLayer) const;
+    void ensureClipRectsCache(ClipRectsType, const RenderLayer* rootLayer);
+    void setCachedClipRects(ClipRectsType, bool respectOverflowClip, ClipRects&);
+    bool rendererShouldUsePositionedClipping() const;
 
     void setAncestorChainHasSelfPaintingLayerDescendant();
     NODELETE void dirtyAncestorChainHasSelfPaintingLayerDescendantStatus();
@@ -1264,12 +1373,21 @@ private:
     void compositingStatusChanged(LayoutUpToDate);
 
     NODELETE void setRepaintRects(const RenderObject::RepaintRects&);
+    void updateContainerTransformForRepaintRectsForSVG();
+    void setRepaintContainer(const RenderLayerModelObject* repaintContainer) { m_repaintContainer = repaintContainer; }
     NODELETE void clearRepaintRects();
 
-    LayoutRect clipRectRelativeToAncestor(const RenderLayer* ancestor, LayoutSize offsetFromAncestor, const LayoutRect& constrainingRect, bool temporaryClipRects = false) const;
-
-    void clipToRect(GraphicsContext&, GraphicsContextStateSaver&, RegionContextStateSaver&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, const ClipRect&, BorderRadiusClippingRule = IncludeSelfForBorderRadius);
-    void applyAncestorClippingForBorderRadius(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, BorderRadiusClippingRule = IncludeSelfForBorderRadius);
+    void clipToRect(GraphicsContext& context, GraphicsContextStateSaver& stateSaver, RegionContextStateSaver& regionContextStateSaver, const LayerPaintingInfo& paintingInfo, OptionSet<PaintBehavior> paintBehavior, const ClipRect& clipRect, BorderRadiusClippingRule rule = IncludeSelfForBorderRadius)
+    {
+        if (clipToRectNeedsSave(paintingInfo, clipRect))
+            stateSaver.save();
+        if (auto regionClip = clipToRectAfterSave(LentGraphicsContext { context }, paintingInfo, paintBehavior, clipRect, rule))
+            regionContextStateSaver.pushClip(*regionClip);
+    }
+    bool clipToRectNeedsSave(LayerPaintingInfo, ClipRect) const;
+    OptionalIntRect clipToRectAfterSave(LentGraphicsContext, LayerPaintingInfo, PaintBehaviors, ClipRect, BorderRadiusClippingRule);
+    void applyAncestorClippingForBorderRadius(LentGraphicsContext, LayerPaintingInfo, PaintBehaviors, BorderRadiusClippingRule);
+    static void clipToInnerBorderShape(NOESCAPE LentGraphicsContext, const RenderLayer&, LayoutRect clipRect, LayoutRect paintDirtyRect, float deviceScaleFactor);
 
     bool shouldRepaintAfterLayout() const;
 
@@ -1304,20 +1422,24 @@ private:
         };
     }
 
-public:
-    // Public, so that Swift can name the mode in its definitions of the private members.
-    enum UpdateLayerPositionsMode {
-        Write,
-        Verify,
-    };
-private:
 
-    // Returns true if the position changed.
-    bool updateLayerPosition(OptionSet<UpdateLayerPositionsFlag>* = nullptr, UpdateLayerPositionsMode = Write);
-
-    template<UpdateLayerPositionsMode = Write>
-    void recursiveUpdateLayerPositions(OptionSet<UpdateLayerPositionsFlag>);
+    void repaintAfterLayoutIfNecessary(bool checkForRepaint);
+    void verifyRepaintAfterLayout();
+    // Whether the layer-position verification runs: LAYER_POSITIONS_ASSERT_ENABLED in RenderLayer.cpp, whose
+    // assertLayerPosition() checks that the two agree.
+#if ASSERT_ENABLED || ENABLE(CONJECTURE_ASSERT)
+    static constexpr bool layerPositionsAssertEnabled() { return true; }
+#else
+    static constexpr bool layerPositionsAssertEnabled() { return false; }
+#endif
+    void assertLayerPosition(bool);
+    void layoutReflectionAfterPositionUpdate(bool verifyOnly);
+    RenderBox* reflectionForSwift() const;
+    void updateBackingAfterLayout(bool needsClippingUpdate, bool needsFullRepaint);
     NODELETE bool ancestorLayerPositionStateChanged(OptionSet<UpdateLayerPositionsFlag>);
+    NODELETE static ScrollingScope nextScrollingScope();
+    // offsetFromContainer() reports its offset through a bool*, which Swift can only pass as an unsafe pointer.
+    LayoutPoint locationInInlineBoxContainingBlock(const RenderLayerModelObject& container) const;
 
     enum UpdateLayerPositionsAfterScrollFlag {
         IsOverflowScroll                        = 1 << 0,
@@ -1331,12 +1453,8 @@ public:
     using UpdateLayerPositionsFlags = OptionSet<UpdateLayerPositionsFlag>;
     using UpdateLayerPositionsAfterScrollFlags = OptionSet<UpdateLayerPositionsAfterScrollFlag>;
 private:
-    void recursiveUpdateLayerPositionsAfterScroll(OptionSet<UpdateLayerPositionsAfterScrollFlag> = { });
-#if ASSERT_ENABLED || ENABLE(CONJECTURE_ASSERT)
-    void verifySkippedLayerPositionsAfterDocumentScroll();
-#endif
 
-    RenderLayer* enclosingPaginationLayerInSubtree(const RenderLayer* rootLayer, PaginationInclusionMode) const;
+    RenderLayer* enclosingPaginationLayerInSubtree(const RenderLayer* rootLayer, PaginationInclusionMode mode) const { return linkEnclosingPaginationLayerInSubtree(rootLayer, mode); }
 
     LayoutPoint rendererLocation() const
     {
@@ -1392,9 +1510,8 @@ private:
         return false;
     }
 
-    bool setupFontSubpixelQuantization(GraphicsContext&, bool& didQuantizeFonts);
+    bool setupFontSubpixelQuantization(NOESCAPE LentGraphicsContext, bool& didQuantizeFonts);
 
-    void setupClipPath(std::optional<Paint::ClipPathScope>&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>&, const LayoutSize& offsetFromRoot);
     void clearLayerClipPath();
 
     RenderLayerFilters& ensureLayerFilters();
@@ -1403,75 +1520,71 @@ private:
     void updateLayerScrollableArea();
     void clearLayerScrollableArea();
 
-    bool shouldHaveFiltersForPainting(GraphicsContext&, OptionSet<PaintLayerFlag>, OptionSet<PaintBehavior>) const;
-    RenderLayerFilters* filtersForPainting(GraphicsContext&, OptionSet<PaintLayerFlag>, OptionSet<PaintBehavior>);
-    GraphicsContext* setupFilters(GraphicsContext& destinationContext, LayerPaintingInfo&, OptionSet<PaintLayerFlag>&, const LayoutSize& offsetFromRoot, const ClipRect& backgroundRect);
-    void applyFilters(GraphicsContext& originalContext, const LayerPaintingInfo&, OptionSet<PaintBehavior>, const ClipRect& backgroundRect);
+    bool shouldHaveFiltersForPainting(NOESCAPE LentGraphicsContext, OptionSet<PaintLayerFlag>, OptionSet<PaintBehavior>) const;
+    RenderLayerFilters* filtersForPainting(NOESCAPE LentGraphicsContext, OptionSet<PaintLayerFlag>, OptionSet<PaintBehavior>);
 
-    void paintLayer(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>);
-    void paintLayerWithEffects(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>);
+    class FilterPaintScope;
+    SWIFT_UNAVAILABLE_IN_SWIFT FilterPaintScope setupFilters(LentGraphicsContext destinationContext, LayerPaintingInfo&, OptionSet<PaintLayerFlag>&, LayoutSize offsetFromRoot, ClipRect backgroundRect);
+    SWIFT_UNAVAILABLE_IN_SWIFT void applyFilters(LentGraphicsContext, const FilterPaintScope&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, ClipRect backgroundRect);
 
-    void paintLayerContentsAndReflection(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>);
-    void paintLayerByApplyingTransform(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>, const LayoutSize& translationOffset = LayoutSize());
-    void paintLayerContents(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>, std::optional<WTF::Range<unsigned>> svgPaintOrderItemRange = std::nullopt);
-    void paintList(LayerList, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>);
+    void paintLayer(LentGraphicsContext, LayerPaintingInfo, PaintLayerFlags);
+    bool paintLayerIntoCanvasDrawableRecorder(NOESCAPE LentGraphicsContext, const LayerPaintingInfo&, PaintLayerFlags);
+    void paintLayerWithEffects(LentGraphicsContext, LayerPaintingInfo, PaintLayerFlags);
 
-    void updatePaintingInfoForFragments(LayerFragments&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>, bool shouldPaintContent, const LayoutSize& offsetFromRoot);
+    void paintLayerContentsAndReflection(LentGraphicsContext, LayerPaintingInfo, PaintLayerFlags);
+    void paintLayerContents(LentGraphicsContext, LayerPaintingInfo, PaintLayerFlags, OptionalPaintOrderItemRange svgPaintOrderItemRange);
+    // Applies the clip-path, then paints through paintLayerContentsWithinClipPath.
+    void paintLayerContentsWithClipPath(NOESCAPE LentGraphicsContext, NOESCAPE LayerPaintingInfo, PaintLayerFlags paintFlags, PaintLayerFlags localPaintFlags, OptionalPaintOrderItemRange svgPaintOrderItemRange, LayoutSize offsetFromRoot,
+        LayoutSize columnAwareOffsetFromRoot, bool shouldPaintContent, bool needToAdjustSubpixelQuantization, bool didQuantizeFonts);
+    void paintLayerContentsWithinClipPath(LentGraphicsContext, LayerPaintingInfo, PaintLayerFlags paintFlags, PaintLayerFlags localPaintFlags, OptionalPaintOrderItemRange svgPaintOrderItemRange, LayerFragmentsView,
+        LayoutSize offsetFromRoot, LayoutSize columnAwareOffsetFromRoot, bool needsMaskClipping, bool shouldPaintContent, bool needToAdjustSubpixelQuantization, bool didQuantizeFonts);
+    // Sets up the filters, paints into their context through paintLayerContentsWithinFilters, and applies them. Returns whether the contents paint.
+    // Adds PaintBehavior::DontShowVisitedLinks to the paint behavior when the contents paint into the filters.
+    bool paintLayerContentsWithFilters(NOESCAPE LentGraphicsContext, NOESCAPE LayerPaintingInfo, PaintLayerFlags localPaintFlags, OptionalPaintOrderItemRange svgPaintOrderItemRange, NOESCAPE LayerFragmentsView,
+        PaintBehaviors&, LayoutSize offsetFromRoot, LayoutSize columnAwareOffsetFromRoot, LayoutSize svgFilterOffset, LayoutSize svgFilterCompensation, ClipRect backgroundRect, bool shouldPaintContent, RenderObject* subtreePaintRootForRenderer);
+    bool paintLayerContentsWithinFilters(LentGraphicsContext, LentGraphicsContext filterContext, bool hasFilterContext, LayerPaintingInfo, LayerPaintingInfo localPaintingInfo, PaintLayerFlags localPaintFlags, OptionalPaintOrderItemRange svgPaintOrderItemRange,
+        LayerFragmentsView, PaintBehaviors, LayoutSize offsetFromRoot, LayoutSize columnAwareOffsetFromRoot, LayoutSize svgFilterOffset, bool shouldPaintContent, RenderObject* subtreePaintRootForRenderer);
+    void paintList(PaintOrderList, LentGraphicsContext, LayerPaintingInfo, PaintLayerFlags);
+    static unsigned paintOrderItemRangeBegin(OptionalPaintOrderItemRange range) { return range ? range->begin() : 0; }
+    static unsigned paintOrderItemRangeEnd(OptionalPaintOrderItemRange range) { return range ? range->end() : 0; }
+
+    void performOverlapTests(const LayerPaintingInfo&) const;
     void paintContentForRenderer(NOESCAPE PaintInfo&, const LayoutPoint& paintOffset);
     bool hitTestContentForRenderer(const HitTestRequest&, HitTestResult&, const HitTestLocation&, const LayoutPoint& accumulatedOffset, HitTestFilter) const;
-    void paintBackgroundForFragments(const LayerFragments&, GraphicsContext&, GraphicsContext& transparencyLayerContext,
-        const LayoutRect& transparencyPaintDirtyRect, bool haveTransparency, const LayerPaintingInfo&, OptionSet<PaintBehavior>, RenderObject* paintingRootForRenderer);
-    void paintForegroundForFragments(const LayerFragments&, GraphicsContext&, GraphicsContext& transparencyLayerContext,
-        const LayoutRect& transparencyPaintDirtyRect, bool haveTransparency, const LayerPaintingInfo&, OptionSet<PaintBehavior>, RenderObject* paintingRootForRenderer);
-    void paintForegroundForFragmentsWithPhase(PaintPhase, const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, RenderObject* paintingRootForRenderer);
-    void paintOutlineForFragments(const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, RenderObject* paintingRootForRenderer);
-    void paintOverflowControlsForFragments(const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&);
-    void paintMaskForFragments(const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, RenderObject* paintingRootForRenderer);
-    void paintChildClippingMaskForFragments(const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>, RenderObject* paintingRootForRenderer);
-    void paintTransformedLayerIntoFragments(GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintLayerFlag>);
-    void collectEventRegionForFragments(const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>);
-    void collectAccessibilityRegionsForFragments(const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>);
-#if ENABLE(AX_CUSTOM_COLOR_MODE)
-    void collectAXCustomColorBackdropsForFragments(PaintPhase, const LayerFragments&, GraphicsContext&, const LayerPaintingInfo&, OptionSet<PaintBehavior>);
-#endif
-
-    RenderLayer* transparentPaintingAncestor(const LayerPaintingInfo&);
-    void beginTransparencyLayers(GraphicsContext&, const LayerPaintingInfo&, const LayoutRect& dirtyRect);
-    NODELETE bool blendModeAppliesToSVGRootContentsOnly() const;
-
-    HitLayer hitTestLayer(RenderLayer* rootLayer, RenderLayer* containerLayer, const HitTestRequest&, HitTestResult&,
-        const LayoutRect& hitTestRect, const HitTestLocation&, bool appliedTransform,
-        const HitTestingTransformState* = nullptr, double* zOffset = nullptr);
-    HitLayer hitTestLayerByApplyingTransform(RenderLayer* rootLayer, RenderLayer* containerLayer, const HitTestRequest&, HitTestResult&,
-        const LayoutRect& hitTestRect, const HitTestLocation&, const HitTestingTransformState* = nullptr, double* zOffset = nullptr,
-        const LayoutSize& translationOffset = LayoutSize());
-    HitLayer hitTestList(LayerList, RenderLayer* rootLayer, const HitTestRequest&, HitTestResult&,
-        const LayoutRect& hitTestRect, const HitTestLocation&,
-        const HitTestingTransformState*, double* zOffsetForDescendants, bool depthSortDescendants);
-    HitLayer hitTestPositiveAndNormalFlowLists(RenderLayer* rootLayer, const HitTestRequest&, HitTestResult&,
-        const LayoutRect& hitTestRect, const HitTestLocation&,
-        const HitTestingTransformState*, double* zOffsetForDescendants, bool depthSortDescendants, HitLayer& candidateLayer);
-    HitLayer hitTestLayerListAndMergeWithCandidate(LayerList, RenderLayer* rootLayer, const HitTestRequest&, HitTestResult&,
-        const LayoutRect& hitTestRect, const HitTestLocation&,
-        const HitTestingTransformState*, double* zOffsetForDescendants, bool depthSortDescendants, HitLayer& candidateLayer);
-
-    Ref<HitTestingTransformState> createLocalTransformState(RenderLayer* rootLayer, RenderLayer* containerLayer,
-        const LayoutRect& hitTestRect, const HitTestLocation&,
-        const HitTestingTransformState* containerTransformState,
-        const LayoutSize& translationOffset = LayoutSize()) const;
+    // The spatial portal state of the backing, which Swift's hit testing reads. Without ENABLE(SPATIAL_PORTAL), no layer is hosted.
 #if ENABLE(SPATIAL_PORTAL)
     bool isHostedInSpatialPortalScene() const;
     std::optional<TransformationMatrix> hostedPortalContentProjection(const RenderLayer& space) const;
-    HitLayer hitTestFrontmostHostedChild(RenderLayer* rootLayer, const HitTestRequest&, HitTestResult&,
-        const LayoutRect& hitTestRect, const HitTestLocation&, const HitTestingTransformState*);
+#else
+    bool isHostedInSpatialPortalScene() const { return false; }
+    std::optional<TransformationMatrix> hostedPortalContentProjection(const RenderLayer&) const { return std::nullopt; }
 #endif
-    
-    bool hitTestContents(const HitTestRequest&, HitTestResult&, const LayoutRect& layerBounds, const HitTestLocation&, HitTestFilter) const;
-    bool hitTestContentsForFragments(const LayerFragments&, const HitTestRequest&, HitTestResult&, const HitTestLocation&, HitTestFilter, bool& insideClipRect) const;
-    HitLayer hitTestTransformedLayerInFragments(RenderLayer* rootLayer, RenderLayer* containerLayer, const HitTestRequest&, HitTestResult&,
-        const LayoutRect& hitTestRect, const HitTestLocation&, const HitTestingTransformState* = nullptr, double* zOffset = nullptr);
+    bool isCollectingAXCustomColorBackdrops(const LayerPaintingInfo&) const;
+    void collectAXCustomColorBackdropsForFragments(const LayerFragments&, NOESCAPE LentGraphicsContext, const LayerPaintingInfo&, OptionSet<PaintBehavior>);
+    NODELETE bool blendModeAppliesToSVGRootContentsOnly() const;
 
-    bool listBackgroundIsKnownToBeOpaqueInRect(const LayerList&, LayoutRect) const;
+    // The transform and clip rects storage, which Swift cannot allocate or free.
+    void makeTransform() { m_transform = makeUnique<TransformationMatrix>(); }
+    void resetTransform() { m_transform = nullptr; }
+    void setTransformMatrix(const TransformationMatrix& transform) { RELEASE_ASSERT(m_transform); *m_transform = transform; }
+    TransformationMatrix animatedStyleTransform(TransformResolverOptions) const;
+    bool hasClipRectsCache() const { return !!m_clipRectsCache; }
+    void resetClipRectsCache();
+    void clearCachedClipRects(ClipRectsType);
+    // The filters, a type Swift does not import.
+    bool hasLayerFilters() const { return !!m_filters; }
+    void makeLayerFilters() { ensureLayerFilters(); }
+    IntOutsets layerFiltersOutsets() const;
+    void expandLayerFiltersDirtySourceRect(LayoutRect);
+    void updateLayerFiltersReferenceClients();
+    void removeLayerFiltersReferenceClients();
+    // The filter of a style, a type Swift does not import.
+    bool filterIsIdentity(const Style::ComputedStyle&) const;
+    static bool filterIsReferenceFilter(const Style::ComputedStyle&);
+    bool filterDiffersFromOldStyle(const Style::ComputedStyle& oldStyle) const;
+    bool currentColorChangeRequiresFilterRepaint(const Style::ComputedStyle& oldStyle) const;
+    // The inspector, which Swift does not import.
+    void didAddOrRemoveScrollbars();
 
     bool shouldBeSelfPaintingLayer() const;
 
@@ -1498,16 +1611,14 @@ private:
     bool isInsideSVGForeignObject() const { return m_insideSVGForeignObject; }
     bool isInsideDrawableCanvas() const { return m_insideDrawableCanvas; }
 
-    void createReflection();
-    void removeReflection();
+    SWIFT_UNSAFE void createReflection();
+    void updateReflectionAfterStyleChange();
+    SWIFT_UNSAFE void removeReflection();
 
     UniqueRef<Style::ComputedStyle> createReflectionStyle();
     bool paintingInsideReflection() const { return m_paintingInsideReflection; }
     void setPaintingInsideReflection(bool b) { m_paintingInsideReflection = b; }
 
-    void updateFiltersAfterStyleChange(Style::Difference, const Style::ComputedStyle* oldStyle);
-    void updateFiltersAfterStyleChange(Style::Difference diff, const Style::ComputedStyle& oldStyle) { updateFiltersAfterStyleChange(diff, &oldStyle); }
-    void updateFiltersAfterStyleChangeWithoutOldStyle(Style::Difference diff) { updateFiltersAfterStyleChange(diff, nullptr); }
     void updateFilterPaintingStrategy();
 
     void updateAncestorChainHasBlendingDescendants();
@@ -1518,29 +1629,21 @@ private:
     NODELETE void updateAncestorChainHasAlwaysIncludedInZOrderListsDescendants();
     NODELETE void dirtyAncestorChainHasAlwaysIncludedInZOrderListsDescendants();
 
-    bool alwaysIncludedInZOrderLists() const { return m_alwaysIncludedInZOrderLists; }
     bool hasAlwaysIncludedInZOrderListsDescendants() const { return m_hasAlwaysIncludedInZOrderListsDescendants; }
     void setIntrinsicallyComposited(bool);
     void updateAlwaysIncludedInZOrderLists();
 
-    RefPtr<ClipRects> parentClipRects(const ClipRectsContext&) const;
-    ClipRect backgroundClipRect(const ClipRectsContext&) const;
-    ClipRect calculateBackgroundClipRect(const ClipRectsContext&, const LayoutSize& offsetFromRoot) const;
-    ClipRect calculateBackgroundRect(const ClipRectsContext&, const LayoutSize& offsetFromRoot) const;
-    ClipRect calculateForegroundRect(const ClipRectsContext&, const LayoutSize& offsetFromRoot) const;
-    ClipRect calculateBackgroundRect(const ClipRectsContext&, const LayoutSize& offsetFromRoot, ClipRect backgroundClipRect) const;
-    ClipRect calculateForegroundRect(const ClipRectsContext&, const LayoutSize& offsetFromRoot, ClipRect backgroundClipRect) const;
+    ClipRect backgroundClipRect(const ClipRectsContext& context) const { return backgroundClipRect(context.rootLayer, context.clipRectsType, context.options); }
+    ClipRect backgroundClipRect(const RenderLayer* rootLayer, ClipRectsType, ClipRectsOptions) const;
 
-    NODELETE RenderLayer* enclosingTransformedAncestor() const;
+    RenderLayer* enclosingTransformedAncestor() const { return linkEnclosingTransformedAncestor(); }
 
     bool hasNonOpacityTransparency() const;
 
     void updatePagination();
 
-public:
     void setWasOmittedFromZOrderTree();
     void setWasIncludedInZOrderTree();
-private:
     void removeSelfFromCompositor();
     void removeDescendantsFromCompositor();
 
@@ -1647,9 +1750,7 @@ private:
     unsigned m_indirectCompositingReason : 4; // IndirectCompositingReason
     unsigned m_viewportConstrainedNotCompositedReason : 2; // ViewportConstrainedNotCompositedReason
 
-#if ASSERT_ENABLED || ENABLE(SECURITY_ASSERTIONS)
     bool m_layerListMutationAllowed : 1;
-#endif
 
     unsigned m_blendMode : 5; // BlendMode
     bool m_hasNotIsolatedCompositedBlendingDescendants : 1;
@@ -1665,18 +1766,35 @@ private:
 
     bool m_wasOmittedFromZOrderTree : 1 { false };
     bool m_suppressAncestorClippingInsideFilter : 1 { false };
-    bool m_hasSwiftOwner : 1 { false };
+    // 0 before RenderLayerOwners claims the layer, 1 while it owns it, 2 once its drop has begun. Written only by
+    // RenderLayerFactory.
+    SWIFT_UNAVAILABLE_IN_SWIFT unsigned m_swiftOwnerState : 2 { 0 };
 
     const CheckedRef<RenderLayerModelObject> m_renderer;
 
-    InlineWeakPtr<RenderLayer> m_parent;
-    InlineWeakPtr<RenderLayer> m_previous;
-    InlineWeakPtr<RenderLayer> m_next;
-    InlineWeakPtr<RenderLayer> m_first;
-    InlineWeakPtr<RenderLayer> m_last;
+    // Written only by RenderLayerLinks and RenderLayerOwners, through RenderLayerFactory.
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderLayerTreeLinks m_links;
+    SWIFT_UNAVAILABLE_IN_SWIFT uint64_t m_ownerHandle { 0 };
+    // The weak references the store keeps for a layer. Each value is also the reference's bit in m_weakFieldsMayBeSet.
+    enum class LayerWeakField : uint8_t { BackingProvider = 1 << 0, BackingProviderAtEndOfCompositingUpdate = 1 << 1, EnclosingPagination = 1 << 2 };
+    // A clear bit means null, without asking the store.
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderLayer* weakField(LayerWeakField field) const
+    {
+        if (!(m_weakFieldsMayBeSet & std::to_underlying(field))) {
+            ASSERT(!weakFieldInStore(field));
+            return nullptr;
+        }
+        return weakFieldInStore(field);
+    }
+    SWIFT_UNAVAILABLE_IN_SWIFT void setWeakField(LayerWeakField, RenderLayer*);
+    // The store's read of a LayerWeakField reference, whatever the bit. weakField() returns null on a clear bit without it;
+    // Debug builds call it anyway, and check that the store agrees.
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderLayer* weakFieldInStore(LayerWeakField) const;
+    // One bit per LayerWeakField reference the store keeps for the layer, written only by setWeakField(): a clear bit
+    // means the reference is null, and a set bit means only that the store must be asked.
+    SWIFT_UNAVAILABLE_IN_SWIFT uint8_t m_weakFieldsMayBeSet { 0 };
+    SWIFT_UNAVAILABLE_IN_SWIFT static uint64_t s_destructionCount;
 
-    InlineWeakPtr<RenderLayer> m_backingProviderLayer;
-    InlineWeakPtr<RenderLayer> m_backingProviderLayerAtEndOfCompositingUpdate;
     SingleThreadWeakPtr<RenderLayerModelObject> m_repaintContainer;
 
     // For layers that establish stacking contexts, m_posZOrderList holds a sorted list of all the
@@ -1687,7 +1805,7 @@ private:
     std::unique_ptr<Vector<RenderLayer*>> m_negZOrderList;
 
     // This list contains child layers that cannot create stacking contexts and appear in normal flow order.
-    const std::unique_ptr<Vector<RenderLayer*>> m_normalFlowList;
+    std::unique_ptr<Vector<RenderLayer*>> m_normalFlowList;
 
     // Only valid if m_repaintRectsValid is set (std::optional<> not used to avoid padding).
     RenderObject::RepaintRects m_repaintRects;
@@ -1716,8 +1834,9 @@ private:
     // May ultimately be extended to many replicas (with their own paint order).
     RenderPtr<RenderReplica> m_reflection;
 
-    // Pointer to the enclosing RenderLayer that caused us to be paginated. It is 0 if we are not paginated.
-    InlineWeakPtr<RenderLayer> m_enclosingPaginationLayer;
+    // Pads the layer so that, with its reference count, it is allocated from the 320-byte size class rather than the
+    // 304-byte one. Walks and edits over many layers, such as moving subtrees, measure faster with layers spaced this way.
+    [[maybe_unused]] uint64_t m_allocationSizeClassPadding { 0 };
 
     IntRect m_blockSelectionGapsBounds;
 
@@ -1736,34 +1855,164 @@ private:
     const std::unique_ptr<SVGData> m_svgData;
 
     Paint::FrequencyTracker m_paintFrequencyTracker;
-} SWIFT_SHARED_REFERENCE(refRenderLayer, derefRenderLayer) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
-inline void RenderLayer::clearZOrderLists()
-{
-    ASSERT(!isStackingContext());
-    ASSERT_WITH_SECURITY_IMPLICATION(layerListMutationAllowed());
+    // Swift retains and releases a layer through its strong count (retainForSwift() and releaseForSwift(), which are
+    // private). The layer's owner in RenderLayerOwners holds one of these references, and only its drop ends the layer:
+    // if any other Swift reference is still held then, the drop traps, so C++ never frees a layer that Swift holds.
+    // A function that returns a layer leaves it with its owner, and Swift retains it.
+} SWIFT_SHARED_REFERENCE(.retainForSwift, .releaseForSwift) SWIFT_PRIVATE_FILEID("WebCore/RenderLayerTree.swift") SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
-    m_posZOrderList = nullptr;
-    m_negZOrderList = nullptr;
-}
+// A list of layers that Swift reads or builds: a backing's sharing layers, the compositor's layers with unresolved relations.
+class RenderLayerWeakList {
+public:
+    void append(RenderLayer& layer) { m_layers.append(layer); }
+    size_t size() const { return m_layers.size(); }
+    RenderLayer* layerAt(size_t index) const { return m_layers[index].get(); }
+
+private:
+    friend class RenderLayerBacking;
+    Vector<InlineWeakPtr<RenderLayer>> m_layers;
+};
+
+// Makes and claims the layers of RenderLayerOwners and reads and writes their links, for RenderLayerOwners and
+// RenderLayerLinks, the only code that can call it (RenderLayerOwners.swift).
+class RenderLayerFactory {
+    RenderLayerFactory() = delete;
+
+    // A new layer, whose one reference the store adopts as the layer's owner.
+    static RenderLayer& create(RenderLayerModelObject& renderer) SWIFT_RETURNS_RETAINED { return *WTF::RefCountedWithInlineWeakPtr<RenderLayer>::create<RenderLayer>(renderer); }
+
+    // True the first time it is called on a layer, false every later time.
+    static bool claim(RenderLayer& layer)
+    {
+        if (layer.m_swiftOwnerState)
+            return false;
+        layer.m_swiftOwnerState = 1;
+        return true;
+    }
+
+    // The layer's owner state (m_swiftOwnerState); 2 from the start of its drop.
+    [[clang::always_inline]] static unsigned ownerState(LayerRef layer) { return static_cast<RenderLayer*>(layer)->m_swiftOwnerState; }
+    [[clang::always_inline]] static void setDropping(LayerRef layer) { static_cast<RenderLayer*>(layer)->m_swiftOwnerState = 2; }
+
+    // The store's handle for the layer's owner, written once, when the store makes the layer.
+    static void setOwnerHandle(RenderLayer& layer, uint64_t handle) { layer.m_ownerHandle = handle; }
+
+    // One link of a layer, read or written. Each is one load or one store and calls nothing: the layer named stays alive
+    // only because the caller holds a reference to it, or read it as a link with nothing called between.
+    [[clang::always_inline]] static LayerRef parent(LayerRef layer) { return LayerRef(static_cast<RenderLayer*>(layer)->m_links.m_parent); }
+    [[clang::always_inline]] static LayerRef previousSibling(LayerRef layer) { return LayerRef(static_cast<RenderLayer*>(layer)->m_links.m_previous); }
+    [[clang::always_inline]] static LayerRef nextSibling(LayerRef layer) { return LayerRef(static_cast<RenderLayer*>(layer)->m_links.m_next); }
+    [[clang::always_inline]] static LayerRef firstChild(LayerRef layer) { return LayerRef(static_cast<RenderLayer*>(layer)->m_links.m_first); }
+    [[clang::always_inline]] static LayerRef lastChild(LayerRef layer) { return LayerRef(static_cast<RenderLayer*>(layer)->m_links.m_last); }
+    [[clang::always_inline]] static void setParent(LayerRef layer, LayerRef link) { static_cast<RenderLayer*>(layer)->m_links.m_parent = link; }
+    [[clang::always_inline]] static void setPreviousSibling(LayerRef layer, LayerRef link) { static_cast<RenderLayer*>(layer)->m_links.m_previous = link; }
+    [[clang::always_inline]] static void setNextSibling(LayerRef layer, LayerRef link) { static_cast<RenderLayer*>(layer)->m_links.m_next = link; }
+    [[clang::always_inline]] static void setFirstChild(LayerRef layer, LayerRef link) { static_cast<RenderLayer*>(layer)->m_links.m_first = link; }
+    [[clang::always_inline]] static void setLastChild(LayerRef layer, LayerRef link) { static_cast<RenderLayer*>(layer)->m_links.m_last = link; }
+
+    // The number of layers whose destruction has begun.
+    static uint64_t destructionCount() { return RenderLayer::s_destructionCount; }
+} SWIFT_PRIVATE_FILEID("WebCore/RenderLayerOwners.swift");
+
+// The steps of the walks over layers named by LayerRef, so that a walk takes no count per step: only
+// RenderLayerAncestorWalks.swift can call them. Each reads or writes only the named layer's own members and calls nothing.
+// A LayerRef passed in names a layer reached through its links from a layer the caller holds a reference to, with nothing
+// called between: every non-null link names a live layer (the drop of a layer unlinks it before it frees it), and only a
+// drop frees one. A test returns false for the null LayerRef, which ends the walk.
+class RenderLayerAncestorWalker {
+    RenderLayerAncestorWalker() = delete;
+
+    static LayerRef parent(LayerRef layer) { return LayerRef(static_cast<RenderLayer*>(layer)->parent()); }
+    // Adds the bit, and returns whether the layer lacked it.
+    static bool addDescendantNeedsPositionUpdate(LayerRef layer) { return layer && static_cast<RenderLayer*>(layer)->addLayerPositionDirtyBit(RenderLayer::LayerPositionUpdates::DescendantNeedsPositionUpdate); }
+    static void addNeedsPositionUpdate(LayerRef layer) { static_cast<RenderLayer*>(layer)->addLayerPositionDirtyBit(RenderLayer::LayerPositionUpdates::NeedsPositionUpdate); }
+    // Sets the dirty bit, and returns whether the layer lacked it.
+    static bool dirtyHasSelfPaintingLayerDescendantStatus(LayerRef layer) { auto* current = static_cast<RenderLayer*>(layer); return current && !current->m_hasSelfPaintingLayerDescendantDirty && (current->m_hasSelfPaintingLayerDescendantDirty = true); }
+    static bool dirtyVisibleDescendantStatus(LayerRef layer) { auto* current = static_cast<RenderLayer*>(layer); return current && !current->m_visibleDescendantStatusDirty && (current->m_visibleDescendantStatusDirty = true); }
+    static bool isNonStackingContext(LayerRef layer) { return layer && !static_cast<RenderLayer*>(layer)->isStackingContext(); }
+    static bool hasChildren(LayerRef layer) { return layer && static_cast<RenderLayer*>(layer)->lastChild(); }
+    static bool isNormalFlowOnly(LayerRef layer) { return layer && static_cast<RenderLayer*>(layer)->isNormalFlowOnly(); }
+    // The layer a LayerRef names, which Swift retains.
+    static RenderLayer* layer(LayerRef layer) { return layer; }
+} SWIFT_PRIVATE_FILEID("WebCore/RenderLayerAncestorWalks.swift");
+
+// The writers of the paint-order lists, which only RenderLayerPaintOrderLists.swift can call. reset() checks that the list
+// may be changed and, for a non-zero capacity, that no layer can be freed; append() writes only within that capacity.
+class RenderLayerPaintOrderListWriter {
+    RenderLayerPaintOrderListWriter() = delete;
+
+    // Empties the list and reserves the capacity. A list without a buffer gets one only for a non-zero capacity.
+    [[clang::always_inline]] static void reset(RenderLayer& layer, PaintOrderList which, size_t capacity, bool shrinkToFit)
+    {
+        auto& list = listToWrite(layer, which);
+        RELEASE_ASSERT(!capacity || RenderLayer::layerFreeForbidden());
+        if (!list && capacity)
+            list = makeUnique<Vector<RenderLayer*>>();
+        if (!list)
+            return;
+        list->clear();
+        if (shrinkToFit)
+            list->shrinkToFit();
+        list->reserveCapacity(capacity);
+    }
+    // Appends to a list within the capacity that reset() reserved, which checked the list mutation and the scope.
+    [[clang::always_inline]] static void append(RenderLayer& layer, PaintOrderList which, LayerRef entry)
+    {
+        ASSERT(RenderLayer::layerFreeForbidden() && layer.layerListMutationAllowed());
+        auto* list = (which == PaintOrderList::Positive ? layer.m_posZOrderList : which == PaintOrderList::Negative ? layer.m_negZOrderList : layer.m_normalFlowList).get();
+        RELEASE_ASSERT(list && list->size() < list->capacity());
+        list->append(static_cast<RenderLayer*>(entry));
+    }
+    static void release(RenderLayer& layer, PaintOrderList which) { listToWrite(layer, which) = nullptr; }
+    static LayerRef firstChild(LayerRef layer) { return LayerRef(static_cast<RenderLayer*>(layer)->firstChild()); }
+    static LayerRef nextSibling(LayerRef layer) { return LayerRef(static_cast<RenderLayer*>(layer)->nextSibling()); }
+    static bool isNormalFlowOnly(LayerRef layer) { return static_cast<RenderLayer*>(layer)->isNormalFlowOnly(); }
+
+    // What only the paint-order list rebuilds read and set.
+    static bool isAlwaysIncludedInZOrderLists(const RenderLayer& layer) { return layer.m_alwaysIncludedInZOrderLists || layer.m_hasAlwaysIncludedInZOrderListsDescendants; }
+    static uint16_t compositingDirtyBits(const RenderLayer& layer) { return layer.m_compositingDirtyBits.toRaw(); }
+    static bool wasOmittedFromZOrderTree(LayerRef layer) { return static_cast<RenderLayer*>(layer)->m_wasOmittedFromZOrderTree; }
+    static void setWasIncludedInZOrderTree(LayerRef layer) { static_cast<RenderLayer*>(layer)->setWasIncludedInZOrderTree(); }
+    static void setWasOmittedFromZOrderTree(RenderLayer& layer) { layer.setWasOmittedFromZOrderTree(); }
+
+    SWIFT_UNAVAILABLE_IN_SWIFT static std::unique_ptr<Vector<RenderLayer*>>& listToWrite(RenderLayer& layer, PaintOrderList which)
+    {
+        RELEASE_ASSERT(layer.layerListMutationAllowed());
+        return which == PaintOrderList::Positive ? layer.m_posZOrderList : which == PaintOrderList::Negative ? layer.m_negZOrderList : layer.m_normalFlowList;
+    }
+} SWIFT_PRIVATE_FILEID("WebCore/RenderLayerPaintOrderLists.swift");
+
+// No layer may end while one is alive: the code in its scope holds layers by plain pointers and references.
+class LayerFreeForbiddenScope {
+    WTF_MAKE_NONCOPYABLE(LayerFreeForbiddenScope);
+public:
+    LayerFreeForbiddenScope() { RenderLayer::enterLayerFreeForbiddenScope(); }
+    ~LayerFreeForbiddenScope() { RenderLayer::leaveLayerFreeForbiddenScope(); }
+};
+
+inline RenderLayer* RenderLayerTreeLinks::nextSibling() const { return m_next && m_next->m_swiftOwnerState != 2 ? m_next : nullptr; }
+inline RenderLayer* RenderLayerTreeLinks::firstChild() const { return m_first && m_first->m_swiftOwnerState != 2 ? m_first : nullptr; }
 
 inline void RenderLayer::updateZOrderLists()
 {
     if (!m_zOrderListsDirty)
         return;
+    LayerFreeForbiddenScope layerFreeForbiddenScope;
+    updateDirtyZOrderLists();
+}
 
-    if (!isStackingContext()) {
-        clearZOrderLists();
-        m_zOrderListsDirty = false;
+inline void RenderLayer::updateNormalFlowList()
+{
+    if (!m_normalFlowListDirty)
         return;
-    }
-
-    rebuildZOrderLists();
+    LayerFreeForbiddenScope layerFreeForbiddenScope;
+    rebuildNormalFlowList();
 }
 
 inline RenderLayer* RenderLayer::paintOrderParent() const
 {
-    return m_isNormalFlowOnly ? m_parent.get() : stackingContext();
+    return m_isNormalFlowOnly ? parent() : stackingContext();
 }
 
 inline void RenderLayer::setIsHiddenByOverflowTruncation(bool isHidden)
@@ -1774,7 +2023,6 @@ inline void RenderLayer::setIsHiddenByOverflowTruncation(bool isHidden)
     dirtyVisibleContentStatus();
 }
 
-#if ASSERT_ENABLED || ENABLE(SECURITY_ASSERTIONS)
 class SWIFT_UNSAFE LayerListMutationDetector {
 public:
     LayerListMutationDetector(RenderLayer& layer)
@@ -1793,7 +2041,6 @@ private:
     RenderLayer& m_layer;
     bool m_previousMutationAllowedState;
 };
-#endif // ASSERT_ENABLED || ENABLE(SECURITY_ASSERTIONS)
 
 NODELETE void makeMatrixRenderable(TransformationMatrix&, bool has3DRendering);
 
@@ -1810,7 +2057,8 @@ WEBCORE_EXPORT SWIFT_UNSAFE size_t renderLayerWeakReferenceAcquireForTesting(con
 WEBCORE_EXPORT SWIFT_UNSAFE bool renderLayerWeakReferenceIsNullForTesting(size_t);
 WEBCORE_EXPORT SWIFT_UNSAFE void renderLayerWeakReferenceReleaseForTesting(size_t);
 // Destroys the layer of the element's renderer and makes it again, as a style change does, without resolving style. False if the element has no layer.
-WEBCORE_EXPORT bool renderLayerRecreateForTesting(const Element&);
+// It ends a layer, so Swift may call it only with unsafe.
+WEBCORE_EXPORT SWIFT_UNSAFE bool renderLayerRecreateForTesting(const Element&);
 
 WTF::TextStream& operator<<(WTF::TextStream&, ClipRectsType);
 WTF::TextStream& operator<<(WTF::TextStream&, const RenderLayer&);
@@ -1821,9 +2069,6 @@ WTF::TextStream& operator<<(WTF::TextStream&, PaintBehavior);
 WTF::TextStream& operator<<(WTF::TextStream&, RenderLayer::PaintLayerFlag);
 
 } // namespace WebCore
-
-inline void refRenderLayer(WebCore::RenderLayer* l) { l->incrementCheckedPtrCount(); }
-inline void derefRenderLayer(WebCore::RenderLayer* l) { l->decrementCheckedPtrCount(); }
 
 #if ENABLE(TREE_DEBUGGING)
 // Outside the WebCore namespace for ease of invocation from lldb.

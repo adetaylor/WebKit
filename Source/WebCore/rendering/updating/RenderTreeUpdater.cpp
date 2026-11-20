@@ -838,7 +838,7 @@ static std::optional<DidRepaintAndMarkContainingBlock> repaintAndMarkContainingB
             CheckedPtr container = destroyRoot.container();
             if (!container || !container->isInFlowPositioned() || !container->isInlineBox())
                 return false;
-            CheckedPtr layer = downcast<RenderLayerModelObject>(destroyRoot).layer();
+            auto* layer = downcast<RenderLayerModelObject>(destroyRoot).layer();
             auto cachedRepaintRect = layer->cachedClippedOverflowRect();
             if (!cachedRepaintRect)
                 return false;

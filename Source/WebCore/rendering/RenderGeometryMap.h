@@ -142,7 +142,7 @@ public:
     {
     }
 
-    void pushMappingsToAncestor(const RenderLayer* layer, const RenderLayer* ancestorLayer, bool respectTransforms) const { map().pushMappingsToAncestor(layer, ancestorLayer, respectTransforms); }
+    void pushMappingsToAncestor(const RenderLayer& layer, const RenderLayer* ancestorLayer, bool respectTransforms) const { map().pushMappingsToAncestor(&layer, ancestorLayer, respectTransforms); }
     void popMappingsToAncestor(const RenderLayer* ancestorLayer) const { map().popMappingsToAncestor(ancestorLayer); }
     FloatRect absoluteRect(FloatRect rect) const { return map().absoluteRect(rect); }
 

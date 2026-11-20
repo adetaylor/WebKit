@@ -106,7 +106,7 @@ void RenderLayoutState::computeOffsets(const RenderLayoutState& ancestor, Render
     // of its own repaint coordinate space, so a delta accumulated in the ancestor space must not leak
     // into the subtree; reset it here and let in-container repositions accumulate onto the fresh value.
     auto isRepaintContainer = [&] {
-        if (CheckedPtr layer = renderer.layer())
+        if (auto* layer = renderer.layer())
             return compositedWithOwnBackingStore(*layer) || layer->requiresFullLayerImageForFilters();
         return renderer.isRenderFragmentedFlow();
     }();

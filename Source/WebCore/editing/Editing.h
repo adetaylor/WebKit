@@ -30,6 +30,7 @@
 #include <WebCore/TextIteratorBehavior.h>
 #include <wtf/Forward.h>
 #include <wtf/HashSet.h>
+#include <wtf/InlineWeakPtr.h>
 #include <wtf/unicode/CharacterNames.h>
 
 namespace WebCore {
@@ -123,9 +124,9 @@ WEBCORE_EXPORT HashSet<Ref<HTMLImageElement>> visibleImageElementsInRangeWithNon
 WEBCORE_EXPORT SimpleRange adjustToVisuallyContiguousRange(const SimpleRange&);
 
 struct EnclosingLayerInfomation {
-    CheckedPtr<RenderLayer> startLayer;
-    CheckedPtr<RenderLayer> endLayer;
-    CheckedPtr<RenderLayer> enclosingLayer;
+    InlineWeakPtr<RenderLayer> startLayer;
+    InlineWeakPtr<RenderLayer> endLayer;
+    InlineWeakPtr<RenderLayer> enclosingLayer;
     RefPtr<GraphicsLayer> enclosingGraphicsLayer;
     std::optional<PlatformLayerIdentifier> enclosingGraphicsLayerID;
 };

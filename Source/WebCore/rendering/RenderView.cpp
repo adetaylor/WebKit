@@ -400,7 +400,7 @@ void RenderView::repaintRootContents()
         if (CheckedPtr rootRenderer = dynamicDowncast<RenderLayerModelObject>(rootElement->renderer())) {
             // Only repaint if its has its own backing. Otherwise, it paints into its
             // ancestor layer (this RenderView), which we're repainting anyway.
-            if (CheckedPtr rootLayer = rootRenderer->layer(); rootLayer && compositedWithOwnBackingStore(*rootLayer))
+            if (auto* rootLayer = rootRenderer->layer(); rootLayer && compositedWithOwnBackingStore(*rootLayer))
                 rootLayer->setBackingNeedsRepaint(GraphicsLayerShouldClipToLayer::DoNotClip);
         }
     }
@@ -531,8 +531,10 @@ void RenderView::repaintViewAndCompositedLayers()
     repaintRootContents();
 
     RenderLayerCompositor& compositor = this->compositor();
-    if (compositor.usesCompositing())
+    if (compositor.usesCompositing()) {
+        LayerFreeForbiddenScope layerFreeForbiddenScope;
         compositor.repaintCompositedLayers();
+    }
 }
 
 auto RenderView::computeVisibleRectsInContainer(const RepaintRects& rects, const RenderLayerModelObject* container, const VisibleRectContext&, VisibleRectState state) const -> std::optional<RepaintRects>

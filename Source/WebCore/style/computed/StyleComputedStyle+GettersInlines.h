@@ -542,11 +542,6 @@ inline bool ComputedStyle::borderHasNonRoundCornerShapeForSwift() const
     return border().hasNonRoundCornerShape();
 }
 
-inline bool ComputedStyle::borderHasCornerShapeOutsideRoundedRectForSwift() const
-{
-    return border().hasCornerShapeOutsideRoundedRect();
-}
-
 inline bool ComputedStyle::hasImageInAnyBackgroundLayerForSwift() const
 {
     return Style::hasImageInAnyLayer(backgroundLayers());

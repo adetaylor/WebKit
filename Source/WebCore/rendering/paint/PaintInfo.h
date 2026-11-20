@@ -166,7 +166,8 @@ struct PaintInfo {
 private:
     // A view of the painting call's context and objects, held as integers so that the struct is trivially copyable. It
     // must not outlive the call that made it, and Swift reaches the objects only through the accessors above: the
-    // context is never null; the others may be.
+    // context is never null; the others may be. It has no operator*. setContext(), setRegionContext(), setOutlineObjects()
+    // and setOverlapTestRequests() store what they are given, which the caller keeps alive.
     uintptr_t m_subtreePaintRoot; // used to draw just one element and its visual children
     uintptr_t m_paintContainer; // the layer object that originates the current painting
     uintptr_t m_enclosingSelfPaintingLayer { 0 };

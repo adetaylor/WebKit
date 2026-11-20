@@ -1121,7 +1121,7 @@ void RenderBlock::paintSelection(PaintInfo& paintInfo, const LayoutPoint& paintO
 
         LayoutRect gapRectsBounds = selectionGaps(*this, paintOffset, LayoutSize(), lastTop, lastLeft, lastRight, cache, &paintInfo);
         if (!gapRectsBounds.isEmpty()) {
-            if (CheckedPtr layer = enclosingLayer()) {
+            if (auto* layer = enclosingLayer()) {
                 gapRectsBounds.moveBy(-paintOffset);
                 if (!hasLayer()) {
                     gapRectsBounds = localToContainerQuad(FloatRect(gapRectsBounds), &layer->renderer()).enclosingBoundingBox();
@@ -1571,7 +1571,7 @@ bool RenderBlock::isPointInOverflowControl(HitTestResult& result, const LayoutPo
     if (!scrollsOverflow())
         return false;
     if (CheckedPtr scrollableArea = layer() ? layer()->scrollableArea() : nullptr)
-        return scrollableArea->hitTestOverflowControls(result, roundedIntPoint(locationInContainer - toLayoutSize(accumulatedOffset)));
+        return scrollableArea->hitTestOverflowControls(HitTestResultView { result }, roundedIntPoint(locationInContainer - toLayoutSize(accumulatedOffset)));
     return false;
 }
 

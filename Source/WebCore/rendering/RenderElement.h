@@ -36,6 +36,7 @@
 namespace WebCore {
 
 class ContainerNode;
+class LayerRef;
 class BlendingKeyframes;
 class GraphicsLayerAnimation;
 class ImageAnimationTimeline;
@@ -183,9 +184,8 @@ public:
     // properly added and removed. Since containership can be implemented by any subclass, and since a hierarchy
     // can contain a mixture of boxes and other object types, these functions need to be in the base class.
     NODELETE RenderLayer* layerParent() const;
-    RenderLayer* layerNextSibling(RenderLayer& parentLayer) const;
     SWIFT_UNSAFE void removeLayers();
-    SWIFT_UNSAFE void moveLayers(RenderLayer& newParent);
+    SWIFT_UNSAFE void addLayers(const RenderElement& insertedRenderer, RenderLayer& parentLayer);
 
     // Conservative hint used to skip layer-less subtrees in findNextLayer.
     // True means "this or some descendant may have a RenderLayer". May be a false
@@ -469,6 +469,7 @@ protected:
     inline bool shouldApplySizeOrStyleContainment(bool) const;
 
 private:
+    LayerRef linkLayerParent() const;
     RenderElement(Type, ContainerNode&, UniqueRef<Style::ComputedStyle>&&, OptionSet<TypeFlag>, TypeSpecificFlags);
     void node() const = delete;
     void nonPseudoNode() const = delete;

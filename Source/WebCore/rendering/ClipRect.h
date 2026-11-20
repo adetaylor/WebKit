@@ -124,8 +124,10 @@ public:
         return adoptRef(*new ClipRects(other));
     }
 
-    // A new object for Swift, which takes the reference that create() would return.
+#if defined(__swift__)
+    // A new object for Swift, which takes the reference that create() would return. C++ cannot call it.
     static ClipRects& createForSwift() SWIFT_RETURNS_RETAINED { return create().leakRef(); }
+#endif
 
     NODELETE void reset()
     {

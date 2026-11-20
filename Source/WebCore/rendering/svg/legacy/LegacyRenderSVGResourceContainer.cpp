@@ -157,16 +157,16 @@ void LegacyRenderSVGResourceContainer::markAllClientLayersForInvalidation()
         return;
 
     auto inLayout = document->view()->layoutContext().isInLayout();
-    for (CheckedRef clientLayer : m_clientLayers | dereferenceView) {
+    for (auto& clientLayer : m_clientLayers | dereferenceView) {
         // FIXME: We should not get here while in layout. See webkit.org/b/208903.
         // Repaint should also be triggered through some other means.
         if (inLayout) {
-            clientLayer->renderer().repaint();
+            clientLayer.renderer().repaint();
             continue;
         }
-        if (RefPtr enclosingElement = clientLayer->enclosingElement())
+        if (RefPtr enclosingElement = clientLayer.enclosingElement())
             enclosingElement->invalidateStyleAndLayerComposition();
-        clientLayer->renderer().repaint();
+        clientLayer.renderer().repaint();
     }
 }
 

@@ -259,13 +259,13 @@ void BoxDecorationPainter::paintViewBackground(RenderView& view)
     Ref document = view.document();
     Ref frameView = view.frameView();
     for (RefPtr element = document->ownerElement(); element && element->renderer(); element = element->document().ownerElement()) {
-        CheckedPtr layer = element->renderer()->enclosingLayer();
+        auto* layer = element->renderer()->enclosingLayer();
         if (layer->cannotBlitToWindow()) {
             frameView->setCannotBlitToWindow();
             break;
         }
 
-        if (CheckedPtr compositingLayer = layer->enclosingCompositingLayerForRepaint().layer) {
+        if (RenderLayer* compositingLayer = layer->enclosingCompositingLayerForRepaint().layer) {
             if (!compositingLayer->backing()->paintsIntoWindow()) {
                 frameView->setCannotBlitToWindow();
                 break;

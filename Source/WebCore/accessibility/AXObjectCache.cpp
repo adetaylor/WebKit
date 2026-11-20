@@ -673,7 +673,7 @@ static bool isNodeAccessible(const Node* node)
     if (style->effectiveInert())
         return false;
 
-    CheckedPtr renderLayer = renderer->enclosingLayer();
+    auto* renderLayer = renderer->enclosingLayer();
     if (isVisibilityHidden(*renderer) && renderLayer && !renderLayer->hasVisibleContent())
         return false;
 

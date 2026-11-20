@@ -489,6 +489,8 @@ public:
     void translate(FloatSize size) const { (**this).translate(size); }
     void concatCTM(const AffineTransform& transform) const { (**this).concatCTM(transform); }
     void setCTM(const AffineTransform& transform) const { (**this).setCTM(transform); }
+    void saveTransform() const { (**this).saveTransform(); }
+    bool restoreTransform() const { return (**this).restoreTransform(); }
     AffineTransform getCTM() const { return (**this).getCTM(); }
     void beginTransparencyLayer(float opacity) const { (**this).beginTransparencyLayer(opacity); }
     void endTransparencyLayer() const { (**this).endTransparencyLayer(); }

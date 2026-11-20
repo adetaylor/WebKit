@@ -175,7 +175,7 @@ void RenderGeometryMap::pushMappingsToAncestor(const RenderLayer* layerArg, cons
         pushMappingsToAncestor(&layerArg->renderer().view(), nullptr);
 
         SetForScope positionChange(m_insertionPosition, m_mapping.size());
-        CheckedPtr layer = layerArg;
+        auto* layer = layerArg;
         while (layer->parent()) {
             pushMappingsToAncestor(layer, layer->parent(), respectTransforms);
             layer = layer->parent();

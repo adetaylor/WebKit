@@ -1102,11 +1102,11 @@ bool RenderListBox::forceUpdateScrollbarsOnMainThreadForPerformanceTesting() con
 
 ScrollableArea* RenderListBox::enclosingScrollableArea() const
 {
-    CheckedPtr layer = enclosingLayer();
+    auto* layer = enclosingLayer();
     if (!layer)
         return nullptr;
 
-    CheckedPtr enclosingScrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::ExcludeSelf, CrossFrameBoundaries::No);
+    auto* enclosingScrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::ExcludeSelf, CrossFrameBoundaries::No);
     if (!enclosingScrollableLayer)
         return nullptr;
 

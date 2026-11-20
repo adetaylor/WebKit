@@ -4005,6 +4005,18 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/network/ResourceResponseBase.swift
         ${WEBCORE_DIR}/platform/network/TimingAllowOrigin.swift
     )
+    # The RenderLayer subsystem, as in WebCore.xcodeproj.
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/rendering/RenderLayerTree.swift
+        ${WEBCORE_DIR}/rendering/RenderElementLayers.swift
+        ${WEBCORE_DIR}/rendering/RenderLayerModelObjectLayer.swift
+        ${WEBCORE_DIR}/rendering/RenderLayerCompositor.swift
+        ${WEBCORE_DIR}/rendering/RenderLayerBacking.swift
+        ${WEBCORE_DIR}/rendering/RenderLayerOwners.swift
+        ${WEBCORE_DIR}/rendering/RenderLayerAncestorWalks.swift
+        ${WEBCORE_DIR}/rendering/RenderLayerPaintOrderLists.swift
+        ${WEBCORE_DIR}/rendering/UniqueOwner.swift
+    )
 
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
@@ -4154,6 +4166,7 @@ if (APPLE)
         )
         list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_webauthn_swift_interop_sources})
     endif ()
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES rendering/RenderLayerOwnership.cpp)
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"

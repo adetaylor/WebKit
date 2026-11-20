@@ -301,7 +301,7 @@ std::tuple<RefPtr<ImageBuffer>, FloatRect> SVGFEImageElement::imageBufferForEffe
 
     auto& context = imageBuffer->context();
     if (layerRenderer)
-        protect(layerRenderer->layer())->paintResourceLayerForSVG(context, { });
+        layerRenderer->layer()->paintResourceLayerForSVG(context, { });
     else
         SVGRenderingContext::renderSubtreeToContext(context, *renderer, AffineTransform());
 

@@ -3007,10 +3007,8 @@ rendering/GridTrackSizingAlgorithm.cpp @header:RenderStyleGetters @cost:6
 rendering/HitTestLocation.cpp
 rendering/HitTestRequest.cpp @header:RenderStyleGetters @cost:4
 rendering/HitTestResult.cpp @header:RenderStyleGetters @cost:7
-rendering/HitTestingTransformState.cpp
 rendering/ImageQualityController.cpp @header:RenderStyleGetters @cost:5
 rendering/LayerAncestorClippingStack.cpp
-rendering/LayerOverlapMap.cpp
 rendering/LayoutScope.cpp
 rendering/RelayoutScopeForScrollbarChange.cpp @header:RenderStyleGetters @cost:5
 rendering/ScrollbarUpdateScope.cpp @header:RenderStyleGetters

@@ -437,7 +437,7 @@ static void updateSpatialPortalController(Element& element)
         notifyEnvironmentMapStyleDidChange(element);
 #endif
 
-        if (CheckedPtr layer = box->layer()) {
+        if (auto* layer = box->layer()) {
             layer->setNeedsCompositingConfigurationUpdate();
             layer->setDescendantsNeedCompositingRequirementsTraversal();
         }
@@ -2029,7 +2029,7 @@ static bool isCandidateForOpaquenessTest(const RenderBox& childBox)
         return false;
     if (!childBox.borderBoxWidth() || !childBox.borderBoxHeight())
         return false;
-    if (CheckedPtr childLayer = childBox.layer()) {
+    if (auto* childLayer = childBox.layer()) {
         if (childLayer->isComposited())
             return false;
         // FIXME: Deal with z-index.
@@ -2218,7 +2218,7 @@ bool RenderBox::repaintLayerRectsForImage(WrappedImagePtr image, const Layers& l
                     // (since root backgrounds cover the canvas, not just the element). If the root element
                     // is composited though, we need to issue the repaint to that root element.
                     auto documentElementRenderer = downcast<RenderBox>(document().documentElement()->renderer());
-                    CheckedPtr rendererLayer = documentElementRenderer->layer();
+                    auto* rendererLayer = documentElementRenderer->layer();
                     if (rendererLayer && rendererLayer->isComposited())
                         layerRenderer = documentElementRenderer;
                 } else {

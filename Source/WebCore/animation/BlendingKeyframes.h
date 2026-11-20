@@ -210,8 +210,8 @@ private:
     bool m_animatesOffsetDistanceToPercentOrCalculated : 1 { false };
 };
 
-// A keyframe list that Swift reads during a call. Swift does not import BlendingKeyframes, which it can neither copy
-// nor move. Made from a reference, so it is never null; operator* is the keyframe list.
+// A keyframe list that a C++ caller lends to Swift for the duration of one call. Swift does not import BlendingKeyframes,
+// which it can neither copy nor move. Made from a reference, so it is never null; operator* is the keyframe list.
 class BlendingKeyframesView {
 public:
     BlendingKeyframesView(const BlendingKeyframes& keyframes LIFETIME_BOUND)

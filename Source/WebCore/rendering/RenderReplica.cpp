@@ -78,10 +78,11 @@ void RenderReplica::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
     if (paintInfo.phase == PaintPhase::Foreground) {
         // Turn around and paint the parent layer. Use temporary clipRects, so that the layer doesn't end up caching clip rects
         // computing using the wrong rootLayer
-        CheckedPtr rootPaintingLayer = layer()->transform() ? layer()->parent() : layer()->enclosingTransformedAncestor();
-        RenderLayer::LayerPaintingInfo paintingInfo(rootPaintingLayer.get(), paintInfo.rect, PaintBehavior::Normal, LayoutSize(), 0);
+        auto* rootPaintingLayer = layer()->transform() ? layer()->parent() : layer()->enclosingTransformedAncestor();
+        LayerFreeForbiddenScope layerFreeForbiddenScope;
+        RenderLayer::LayerPaintingInfo paintingInfo(rootPaintingLayer, paintInfo.rect, PaintBehavior::Normal, LayoutSize(), 0);
         OptionSet<RenderLayer::PaintLayerFlag> flags { RenderLayer::PaintLayerFlag::HaveTransparency, RenderLayer::PaintLayerFlag::AppliedTransform, RenderLayer::PaintLayerFlag::TemporaryClipRects, RenderLayer::PaintLayerFlag::PaintingReflection };
-        layer()->parent()->paintLayer(paintInfo.context(), paintingInfo, flags);
+        layer()->parent()->paintLayer(LentGraphicsContext { paintInfo.context() }, paintingInfo, flags);
     } else if (paintInfo.phase == PaintPhase::Mask)
         Paint::MaskPainter { *this, paintInfo, adjustedPaintOffset }.paintMask();
 }

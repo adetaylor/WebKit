@@ -860,11 +860,11 @@ ScrollableArea* PDFPluginBase::enclosingScrollableArea() const
     if (!renderer)
         return nullptr;
 
-    CheckedPtr layer = renderer->enclosingLayer();
+    auto* layer = renderer->enclosingLayer();
     if (!layer)
         return nullptr;
 
-    CheckedPtr enclosingScrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::ExcludeSelf, CrossFrameBoundaries::No);
+    auto* enclosingScrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::ExcludeSelf, CrossFrameBoundaries::No);
     if (!enclosingScrollableLayer)
         return nullptr;
 

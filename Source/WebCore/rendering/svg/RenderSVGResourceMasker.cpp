@@ -220,7 +220,7 @@ bool RenderSVGResourceMasker::drawContentIntoContext(GraphicsContext& context, c
     }
 
     // Draw the content into the ImageBuffer.
-    protect(layer())->paintResourceLayerForSVG(context, maskContentTransform);
+    layer()->paintResourceLayerForSVG(context, maskContentTransform);
     return true;
 }
 

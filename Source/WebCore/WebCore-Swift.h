@@ -187,4 +187,11 @@
 #include "WebAuthnSwiftTypes.h"
 
 #include "BiquadFilterType.h"
+#include "RenderLayer.h"
+#include "RenderLayerModelObject.h"
+
+// The generated thunks name parameters of empty C++ types that they do not pass.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
 #include "WebCoreSwift-Generated.h"
+#pragma clang diagnostic pop

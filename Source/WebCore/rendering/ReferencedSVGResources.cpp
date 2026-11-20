@@ -85,7 +85,7 @@ void CSSSVGResourceElementClient::resourceChanged(SVGElement& element)
 
     if (is<SVGFilterElement>(element)) {
         if (auto* layerModelObject = dynamicDowncast<RenderLayerModelObject>(m_clientRenderer)) {
-            if (CheckedPtr layer = layerModelObject->layer())
+            if (auto* layer = layerModelObject->layer())
                 layer->clearFilters();
         }
     }
@@ -139,7 +139,7 @@ void CSSSVGResourceElementClient::resourceChanged(SVGElement& element)
         clientLayerModelObject->invalidateCachedVisualOverflowRect();
         // Ensure the post-layout recursiveUpdateLayerPositions() processes this client layer
         // and generates repaint rects, even if the client's own geometry didn't change.
-        if (CheckedPtr layer = clientLayerModelObject->layer()) {
+        if (auto* layer = clientLayerModelObject->layer()) {
             layer->setSelfAndDescendantsNeedPositionUpdate();
             layer->setRepaintStatus(RepaintStatus::NeedsFullRepaint);
         }

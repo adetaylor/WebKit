@@ -351,8 +351,8 @@ Style::Difference RenderElement::adjustStyleDifference(Style::Difference diff) c
     }
     
     if ((diff.contextSensitiveProperties & Style::DifferenceContextSensitiveProperty::Filter) && hasLayer()) {
-        CheckedRef layer = *downcast<RenderLayerModelObject>(*this).layer();
-        if (!layer->isComposited() || layer->shouldPaintWithFilters())
+        auto& layer = *downcast<RenderLayerModelObject>(*this).layer();
+        if (!layer.isComposited() || layer.shouldPaintWithFilters())
             diff.result = std::max(diff.result, Style::DifferenceResult::RepaintLayer);
         else
             diff.result = std::max(diff.result, Style::DifferenceResult::RecompositeLayer);
@@ -581,7 +581,7 @@ bool RenderElement::repaintBeforeStyleChange(Style::Difference diff, const Style
 
     if (shouldRepaintBeforeStyleChange == RequiredRepaint::RendererAndDescendantsRenderersWithLayers) {
         ASSERT(hasLayer());
-        protect(downcast<RenderLayerModelObject>(*this).layer())->repaintIncludingDescendants();
+        downcast<RenderLayerModelObject>(*this).layer()->repaintIncludingDescendants();
         return true;
     }
 
@@ -722,7 +722,7 @@ void RenderElement::didAttachChild(RenderObject& child, RenderObject*)
     // To avoid the problem alltogether, detect early if we're inside a hidden SVG subtree
     // and stop creating layers at all for these cases - they're not used anyways.
     if (child.hasLayer() && !layerCreationAllowedForSubtree())
-        protect(downcast<RenderLayerModelObject>(child).layer())->removeOnlyThisLayer();
+        downcast<RenderLayerModelObject>(child).layer()->removeOnlyThisLayer();
 }
 
 RenderObject* RenderElement::attachRendererInternal(RenderPtr<RenderObject> child, RenderObject* beforeChild)
@@ -781,171 +781,9 @@ RenderPtr<RenderObject> RenderElement::detachRendererInternal(RenderObject& rend
     return RenderPtr<RenderObject>(&renderer);
 }
 
-void RenderElement::setMayHaveLayerInSubtreeIncludingAncestors()
-{
-    m_mayHaveLayerInSubtree = true;
-    for (auto* renderer = parent(); renderer && !renderer->m_mayHaveLayerInSubtree; renderer = renderer->parent())
-        renderer->m_mayHaveLayerInSubtree = true;
-}
-
-void RenderElement::setMayHaveNonScalingStrokeInSubtreeIncludingAncestors()
-{
-    m_mayHaveNonScalingStrokeInSubtree = true;
-
-    for (auto* renderer = parent(); renderer && !renderer->isRenderSVGRoot() && !renderer->m_mayHaveNonScalingStrokeInSubtree; renderer = renderer->parent())
-        renderer->m_mayHaveNonScalingStrokeInSubtree = true;
-}
-
-NODELETE static RenderLayer* findNextLayer(const RenderElement& currRenderer, const RenderLayer& parentLayer, const RenderObject* siblingToTraverseFrom, bool checkParent = true)
-{
-    // Step 1: If our layer is a child of the desired parent, then return our layer.
-    SUPPRESS_UNCOUNTED_LOCAL auto* ourLayer = currRenderer.hasLayer() ? downcast<RenderLayerModelObject>(currRenderer).layer() : nullptr;
-    if (ourLayer && ourLayer->parent() == &parentLayer)
-        return ourLayer;
-
-    // Step 2: If we don't have a layer, or our layer is the desired parent, then descend
-    // into our siblings trying to find the next layer whose parent is the desired parent.
-    if (!ourLayer || ourLayer == &parentLayer) {
-        for (auto* child = siblingToTraverseFrom ? siblingToTraverseFrom->nextSibling() : currRenderer.firstChild(); child; child = child->nextSibling()) {
-            auto* element = dynamicDowncast<RenderElement>(*child);
-            if (!element || !element->mayHaveLayerInSubtree())
-                continue;
-            if (auto* nextLayer = findNextLayer(*element, parentLayer, nullptr, false))
-                return nextLayer;
-        }
-    }
-
-    // Step 3: If our layer is the desired parent layer, then we're finished. We didn't
-    // find anything.
-    if (ourLayer == &parentLayer)
-        return nullptr;
-
-    // Step 4: If |checkParent| is set, climb up to our parent and check its siblings that
-    // follow us to see if we can locate a layer.
-    if (checkParent && currRenderer.parent())
-        SUPPRESS_UNCOUNTED_ARG return findNextLayer(*currRenderer.parent(), parentLayer, &currRenderer, true);
-
-    return nullptr;
-}
-
-static RenderLayer* layerNextSiblingRespectingTopLayer(const RenderElement& renderer, const RenderLayer& parentLayer)
-{
-    ASSERT_IMPLIES(isInTopLayerOrBackdrop(renderer.style(), renderer.element()), renderer.hasLayer());
-
-    if (auto* layerModelObject = dynamicDowncast<RenderLayerModelObject>(renderer); layerModelObject && isInTopLayerOrBackdrop(renderer.style(), renderer.element())) {
-        ASSERT(layerModelObject->hasLayer());
-        auto topLayerLayers = RenderLayer::topLayerRenderLayers(renderer.view());
-        auto layerIndex = topLayerLayers.find(layerModelObject->layer());
-        if (layerIndex != notFound && layerIndex < topLayerLayers.size() - 1)
-            return topLayerLayers[layerIndex + 1];
-
-        return nullptr;
-    }
-
-    return findNextLayer(*renderer.parent(), parentLayer, &renderer);
-}
-
-static void addLayers(const RenderElement& insertedRenderer, RenderElement& currentRenderer, RenderLayer& parentLayer)
-{
-    if (currentRenderer.hasLayer()) {
-        CheckedPtr layerToUse = &parentLayer;
-        if (isInTopLayerOrBackdrop(currentRenderer.style(), currentRenderer.element())) {
-            // The special handling of a toplayer/backdrop content may result in trying to insert the associated
-            // layer twice as we connect subtrees.
-            if (auto* parentLayer = downcast<RenderLayerModelObject>(currentRenderer).layer()->parent()) {
-                ASSERT_UNUSED(parentLayer, parentLayer == currentRenderer.view().layer());
-                return;
-            }
-            layerToUse = insertedRenderer.view().layer();
-        }
-        CheckedPtr beforeChild = layerNextSiblingRespectingTopLayer(insertedRenderer, *layerToUse);
-        layerToUse->addChild(*protect(downcast<RenderLayerModelObject>(currentRenderer).layer()), beforeChild.get());
-        return;
-    }
-
-    for (CheckedRef child : childrenOfType<RenderElement>(currentRenderer)) {
-        if (!child->mayHaveLayerInSubtree())
-            continue;
-        addLayers(insertedRenderer, child, parentLayer);
-    }
-}
-
-void RenderElement::removeLayers()
-{
-    CheckedPtr parentLayer = layerParent();
-    if (!parentLayer)
-        return;
-
-    if (hasLayer()) {
-        parentLayer->removeChild(*protect(downcast<RenderLayerModelObject>(*this).layer()));
-        return;
-    }
-
-    for (CheckedRef child : childrenOfType<RenderElement>(*this)) {
-        if (!child->mayHaveLayerInSubtree())
-            continue;
-        child->removeLayers();
-    }
-}
-
-void RenderElement::moveLayers(RenderLayer& newParent)
-{
-    if (hasLayer()) {
-        if (isInTopLayerOrBackdrop(style(), element()))
-            return;
-        CheckedPtr layer = downcast<RenderLayerModelObject>(*this).layer();
-        if (CheckedPtr layerParent = layer->parent())
-            layerParent->removeChild(*layer);
-        newParent.addChild(*layer);
-        return;
-    }
-
-    for (CheckedRef child : childrenOfType<RenderElement>(*this)) {
-        if (!child->mayHaveLayerInSubtree())
-            continue;
-        child->moveLayers(newParent);
-    }
-}
-
 RenderLayer* RenderElement::layerParent() const
 {
-    ASSERT_IMPLIES(isInTopLayerOrBackdrop(style(), element()), hasLayer());
-
-    if (hasLayer() && isInTopLayerOrBackdrop(style(), element()))
-        return view().layer();
-
-    return parent()->enclosingLayer();
-}
-
-// This answers the question "if this renderer had a layer, what would its next sibling layer be".
-RenderLayer* RenderElement::layerNextSibling(RenderLayer& parentLayer) const
-{
-    return WebCore::layerNextSiblingRespectingTopLayer(*this, parentLayer);
-}
-
-bool RenderElement::layerCreationAllowedForSubtree() const
-{
-    // In LBSE layers are always created regardless of there position in the render tree.
-    // Consider the SVG document fragment: "<defs><mask><rect transform="scale(2)".../>"
-    // To paint the <rect> into the mask image, the rect needs to be transformed -
-    // which is handled via RenderLayer in LBSE, unlike as in the legacy engine where no
-    // layers are involved for any SVG painting features. In the legacy engine we could
-    // simply omit the layer creation for any children of a <defs> element (or in general
-    // any "hidden container"). For LBSE layers are needed for painting, even if a
-    // RenderSVGHiddenContainer is in the render tree ancestor chain -- however they are
-    // never painted directly, only indirectly through the "LegacyRenderSVGResourceContainer
-    // elements (such as LegacyRenderSVGResourceClipper, RenderSVGResourceMasker, etc.)
-    if (document().settings().layerBasedSVGEngineEnabled())
-        return true;
-
-    RenderElement* parentRenderer = parent();
-    while (parentRenderer) {
-        if (parentRenderer->isLegacyRenderSVGHiddenContainer())
-            return false;
-        parentRenderer = parentRenderer->parent();
-    }
-
-    return true;
+    return linkLayerParent();
 }
 
 void RenderElement::propagateStyleToAnonymousChildren(StylePropagationType propagationType)
@@ -1067,7 +905,7 @@ void RenderElement::styleWillChange(Style::Difference diff, const Style::Compute
 
         if (needsInvalidateEventRegion()) {
             // Usually the event region gets updated as a result of paint invalidation. Here we need to request an update explicitly.
-            if (CheckedPtr layer = enclosingLayer())
+            if (auto* layer = enclosingLayer())
                 layer->invalidateEventRegion(RenderLayer::EventRegionInvalidationReason::Style);
         }
 
@@ -1305,7 +1143,7 @@ void RenderElement::dirtyEnclosingLayerSVGChildrenIfNeeded()
 {
     ASSERT(isSVGLayerAwareRenderer());
     if (!hasLayer() && document().settings().layerBasedSVGEngineEnabled()) {
-        if (CheckedPtr layer = enclosingLayer(); layer && layer->isSVGLayer())
+        if (auto* layer = enclosingLayer(); layer && layer->isSVGLayer())
             layer->dirtyChildrenInDOMOrderForSVG();
     }
 }
@@ -1321,8 +1159,8 @@ void RenderElement::insertedIntoTree()
     // Keep our layer hierarchy updated. Optimize for the common case where we don't have any children
     // and don't have a layer attached to ourselves.
     if (firstChild() || hasLayer()) {
-        if (CheckedPtr parentLayer = layerParent())
-            addLayers(*this, *this, *parentLayer);
+        if (auto* parentLayer = layerParent())
+            addLayers(*this, *parentLayer);
     }
 
     // If |this| is visible but this object was not, tell the layer it has some visible content
@@ -1990,7 +1828,7 @@ void RenderElement::imageContentChanged(CachedImage& cachedImage)
                 element->invalidateStyleAndLayerComposition();
         }
 
-        if (CheckedPtr layer = enclosingLayer()) {
+        if (auto* layer = enclosingLayer()) {
             auto changeType = cachedImage.hasHDRContent() ? ContentChangeType::HDRImage : ContentChangeType::Image;
             layer->contentChanged(changeType);
         }
@@ -2385,14 +2223,6 @@ bool RenderElement::hasOutlineAnnotation() const
     return element() && element()->isLink() && (document().printing() || (view().frameView().paintBehavior() & PaintBehavior::AnnotateLinks));
 }
 
-bool RenderElement::hasSelfPaintingLayer() const
-{
-    if (!hasLayer())
-        return false;
-    auto& layerModelObject = downcast<RenderLayerModelObject>(*this);
-    return layerModelObject.hasSelfPaintingLayer();
-}
-
 void RenderElement::pushOntoGeometryMap(RenderGeometryMap& geometryMap, const RenderLayerModelObject* repaintContainer, RenderElement* container, bool containerSkipped) const
 {
     bool isFixedPos = isFixedPositioned();
@@ -2687,7 +2517,7 @@ void RenderElement::repaintClientsOfReferencedSVGResources() const
 
 void RenderElement::repaintOldAndNewPositionsForSVGRenderer() const
 {
-    auto useUpdateLayerPositionsLogic = [&]() -> std::optional<CheckedPtr<RenderLayer>> {
+    auto useUpdateLayerPositionsLogic = [&] -> std::optional<RenderLayer*> {
         if (!document().settings().layerBasedSVGEngineEnabled())
             return std::nullopt;
 
@@ -2703,7 +2533,7 @@ void RenderElement::repaintOldAndNewPositionsForSVGRenderer() const
         if (!isSVGLayerAwareRenderer() || needsLayout())
             return std::nullopt;
 
-        return std::make_optional(protect(downcast<RenderLayerModelObject>(*this).layer()));
+        return std::make_optional(downcast<RenderLayerModelObject>(*this).layer());
     };
 
     // LBSE: Instead of repainting the current boundaries, utilize RenderLayer::updateLayerPositionsAfterStyleChange() to repaint
@@ -2911,50 +2741,6 @@ FloatRect RenderElement::referenceBoxRect(CSSBoxType boxType) const
 
     ASSERT_NOT_REACHED();
     return { };
-}
-
-void RenderElement::establishesTopLayerWillChange()
-{
-    if (CheckedPtr renderer = dynamicDowncast<RenderLayerModelObject>(this); renderer && renderer->layer())
-        protect(renderer->layer())->establishesTopLayerWillChange();
-
-    CheckedPtr renderBox = dynamicDowncast<RenderBox>(this);
-    if (!renderBox || !renderBox->isOutOfFlowPositioned())
-        return;
-
-    // Remove from the current containing block's out-of-flow list. The renderer will be
-    // re-inserted into the correct containing block's list during the next layout.
-    RenderBoxModelObject::removeOutOfFlowBox(*renderBox);
-    if (CheckedPtr parent = RenderObject::containingBlockForPositionType(PositionType::Static, *renderBox))
-        parent->setChildNeedsLayout();
-    renderBox->setNeedsLayout();
-}
-
-void RenderElement::establishesTopLayerDidChange()
-{
-    if (CheckedPtr renderer = dynamicDowncast<RenderLayerModelObject>(this); renderer && renderer->layer())
-        protect(renderer->layer())->establishesTopLayerDidChange();
-}
-
-void RenderElement::markRendererDirtyAfterTopLayerChange(RenderElement* renderer, RenderBoxModelObject* containingBlockBeforeStyleResolution)
-{
-    auto* renderBox = dynamicDowncast<RenderBox>(renderer);
-    if (!renderBox || !renderBox->parent() || !containingBlockBeforeStyleResolution)
-        return;
-    auto* newContainingBlock = renderBox->containingBlock();
-    ASSERT(newContainingBlock);
-    if (containingBlockBeforeStyleResolution == newContainingBlock)
-        return;
-
-    // Let's carry out the same set of tasks we would normally do when containing block changes for out-of-flow content in RenderBox::styleWillChange.
-    if (!renderBox->isOutOfFlowPositioned())
-        return;
-
-    RenderBoxModelObject::removeOutOfFlowBox(*renderBox);
-    // This is to make sure we insert the box to the correct containing block list during static position computation.
-    renderBox->parent()->setChildNeedsLayout();
-    newContainingBlock->setChildNeedsLayout();
-    renderBox->setNeedsLayout();
 }
 
 bool RenderElement::hasEligibleContainmentForSizeQuery() const
