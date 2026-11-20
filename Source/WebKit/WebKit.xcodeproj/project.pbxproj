@@ -1633,6 +1633,7 @@
 		57C6244B234679A400383FE7 /* WebAuthenticationFlags.h in Headers */ = {isa = PBXBuildFile; fileRef = 57C6244A234679A400383FE7 /* WebAuthenticationFlags.h */; };
 		57DCED712142EE6C0016B847 /* WebAuthenticatorCoordinatorProxyMessages.h in Headers */ = {isa = PBXBuildFile; fileRef = 57DCED6D2142EAFA0016B847 /* WebAuthenticatorCoordinatorProxyMessages.h */; };
 		57DCEDAC214C60270016B847 /* LocalAuthenticator.h in Headers */ = {isa = PBXBuildFile; fileRef = 57DCEDA12149C1E20016B847 /* LocalAuthenticator.h */; };
+		08783ED6FC48467988F89E95 /* WebAuthnKeychainShims.h in Headers */ = {isa = PBXBuildFile; fileRef = 1EC49B43B1534FF4844C0537 /* WebAuthnKeychainShims.h */; };
 		57DCEDAD214C602C0016B847 /* LocalConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = 57DCEDA7214A568B0016B847 /* LocalConnection.h */; };
 		57DCEDAE214C60330016B847 /* LocalService.h in Headers */ = {isa = PBXBuildFile; fileRef = 57DCED9A2148B0830016B847 /* LocalService.h */; };
 		57DCEDAF214C603B0016B847 /* AuthenticatorManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 57DCED842147363A0016B847 /* AuthenticatorManager.h */; };
@@ -6854,6 +6855,7 @@
 		57DCEDA02148FA0F0016B847 /* LocalService.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LocalService.mm; sourceTree = "<group>"; };
 		57DCEDA12149C1E20016B847 /* LocalAuthenticator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalAuthenticator.h; sourceTree = "<group>"; };
 		57DCEDA32149DFF50016B847 /* LocalAuthenticator.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LocalAuthenticator.mm; sourceTree = "<group>"; };
+		1EC49B43B1534FF4844C0537 /* WebAuthnKeychainShims.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthnKeychainShims.h; sourceTree = "<group>"; };
 		57DCEDA42149E64A0016B847 /* Authenticator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Authenticator.cpp; sourceTree = "<group>"; };
 		57DCEDA62149F9DA0016B847 /* WebAuthenticationRequestData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticationRequestData.h; sourceTree = "<group>"; };
 		57DCEDA7214A568B0016B847 /* LocalConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalConnection.h; sourceTree = "<group>"; };
@@ -15353,6 +15355,7 @@
 				577FF7832346ECAA004EDFB9 /* WebAuthenticationPanelClient.h */,
 				577FF7842346ECAA004EDFB9 /* WebAuthenticationPanelClient.mm */,
 				0DCBF4D926E2ED3200EA0E07 /* WebAuthenticatorCoordinatorProxy.mm */,
+				1EC49B43B1534FF4844C0537 /* WebAuthnKeychainShims.h */,
 				577739932580388F0059348B /* WKASCAuthorizationPresenterDelegate.h */,
 				577739942580388F0059348B /* WKASCAuthorizationPresenterDelegate.mm */,
 				570DAAC423037F7E00E8FC04 /* WKNFReaderSessionDelegate.h */,
@@ -19607,6 +19610,7 @@
 				57DCEDB2214C604C0016B847 /* WebAuthenticationRequestData.h in Headers */,
 				57DCEDB3214C60530016B847 /* WebAuthenticatorCoordinatorProxy.h in Headers */,
 				57DCED712142EE6C0016B847 /* WebAuthenticatorCoordinatorProxyMessages.h in Headers */,
+				08783ED6FC48467988F89E95 /* WebAuthnKeychainShims.h in Headers */,
 				F42D634122A0EFDF00D2FB3A /* WebAutocorrectionData.h in Headers */,
 				990D39F5243BE64800199388 /* WebAutomationDOMWindowObserver.h in Headers */,
 				9955A6EC1C7980C200EB6A93 /* WebAutomationSession.h in Headers */,

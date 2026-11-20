@@ -660,6 +660,7 @@ module WebKit_Internal [system] {
     module WebAuthnLocal {
         requires cplusplus20
         header "../../UIProcess/WebAuthentication/Cocoa/LocalAuthenticator.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/WebAuthnKeychainShims.h"
         export *
     }
 
