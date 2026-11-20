@@ -599,19 +599,27 @@ void AudioVideoRendererAVFObjC::setTimeObserver(Seconds interval, Function<void(
 {
     if (m_isShutdown)
         return;
+    ++m_timeObserverGeneration;
     m_timeObserverCallback = WTF::move(callback);
     m_core->swift.setTimeObserver(PAL::toCMTime(MediaTime::createWithSeconds(interval)), !!m_timeObserverCallback);
 }
 
 void AudioVideoRendererAVFObjC::timeObserverFired(CMTime time)
 {
-    if (m_timeObserverCallback)
-        m_timeObserverCallback(PAL::toMediaTime(time));
+    // The callback may reinstall or cancel the observer, which would destroy it while it runs: it runs out of the member.
+    auto callback = std::exchange(m_timeObserverCallback, nullptr);
+    if (!callback)
+        return;
+    auto generation = m_timeObserverGeneration;
+    callback(PAL::toMediaTime(time));
+    if (generation == m_timeObserverGeneration)
+        m_timeObserverCallback = WTF::move(callback);
 }
 
 void AudioVideoRendererAVFObjC::cancelTimeObserver()
 {
     m_core->swift.cancelTimeObserver();
+    ++m_timeObserverGeneration;
     m_timeObserverCallback = nullptr;
 }
 

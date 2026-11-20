@@ -285,6 +285,7 @@ private:
     Function<void(double)> m_effectiveRateChangedCallback;
     Function<void(const MediaTime&)> m_performTask;
     Function<void(const MediaTime&)> m_timeObserverCallback;
+    uint64_t m_timeObserverGeneration { 0 };
     HashMap<uint64_t, Function<void(TrackIdentifier, const MediaTime&)>> m_reenqueueCallbacks;
 
     std::optional<MediaTimePromise::Producer> m_stallProducer;
