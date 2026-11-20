@@ -87,13 +87,14 @@ class AppKitGestureMomentumEventGenerator;
 
 namespace WebKit {
 
-class AppKitGestureMomentumEventGenerator final : public RefCounted<AppKitGestureMomentumEventGenerator>, public MomentumEventDispatcher::Client {
+class AppKitGestureMomentumEventGenerator final : public MomentumEventDispatcher::Client {
     WTF_MAKE_TZONE_ALLOCATED_INLINE(AppKitGestureMomentumEventGenerator);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(AppKitGestureMomentumEventGenerator);
 public:
-    static Ref<AppKitGestureMomentumEventGenerator> create(WKAppKitGestureController *controller)
+    explicit AppKitGestureMomentumEventGenerator(WKAppKitGestureController *controller)
+        : m_controller(controller)
+        , m_dispatcher(makeUnique<MomentumEventDispatcher>(*this))
     {
-        return adoptRef(*new AppKitGestureMomentumEventGenerator(controller));
     }
 
     bool isActive() const { return m_isActive; }
@@ -101,7 +102,6 @@ public:
     void start(WebPageProxy& page, const NativeWebWheelEvent& event)
     {
         ASSERT(event.momentumPhase() == WebWheelEvent::Phase::Began);
-        Ref protectedThis { *this };
 
         interrupt();
 
@@ -124,7 +124,6 @@ public:
         if (!m_isActive)
             return;
 
-        Ref protectedThis { *this };
         auto timestamp = MonotonicTime::now();
         Ref event = WebWheelEvent::create({ WebEventType::Wheel, { }, timestamp }, {
             .granularity = WebWheelEvent::Granularity::ScrollByPixelWheelEvent,
@@ -144,17 +143,10 @@ public:
 
     void displayDidRefresh()
     {
-        Ref protectedThis { *this };
         m_dispatcher->displayDidRefresh(m_displayID);
     }
 
 private:
-    explicit AppKitGestureMomentumEventGenerator(WKAppKitGestureController *controller)
-        : m_controller(controller)
-        , m_dispatcher(makeUnique<MomentumEventDispatcher>(*this))
-    {
-    }
-
     void handleSyntheticWheelEvent(WebCore::PageIdentifier, const WebWheelEvent& event, WebCore::RectEdges<WebCore::RubberBandingBehavior>) final
     {
         // The controller sends the momentum Began event itself, since the scrolling thread needs its
@@ -231,7 +223,7 @@ private:
 
 - (void)displayLinkFired:(CADisplayLink *)displayLink
 {
-    if (RefPtr generator = _generator)
+    if (CheckedPtr generator = _generator)
         generator->displayDidRefresh();
 }
 
@@ -244,7 +236,7 @@ private:
     // Made by -setUpPositionInformation, which the controller sends before any other position-information message.
     std::unique_ptr<WebKit::PositionInformationManager> _positionInformationManager;
 #if ENABLE(MOMENTUM_EVENT_DISPATCHER)
-    RefPtr<WebKit::AppKitGestureMomentumEventGenerator> _momentumEventGenerator;
+    std::unique_ptr<WebKit::AppKitGestureMomentumEventGenerator> _momentumEventGenerator;
 #endif
 }
 
@@ -270,6 +262,8 @@ private:
 
 - (void)doAfterPositionInformationUpdate:(WebKit::InteractionInformationRequest)request completion:(void (^)(WebKit::OptionalInteractionInformationAtPosition info))completion
 {
+    // The completion can run before this method returns and re-enter into client code, which may release the
+    // WKWebView and tear `self` down.
     RetainPtr protectedSelf = self;
     RELEASE_ASSERT(_positionInformationManager);
     _positionInformationManager->doAfterUpdate(request, [completion = makeBlockPtr(completion)](const auto& optionalInfo) {
@@ -285,6 +279,8 @@ private:
 
 - (void)resetPositionInformation
 {
+    // Resolving queued callbacks can re-enter into client code, which may release the WKWebView and tear `self` down
+    // before this method returns.
     RetainPtr protectedSelf = self;
     RELEASE_ASSERT(_positionInformationManager);
     _positionInformationManager->reset();
@@ -292,6 +288,8 @@ private:
 
 - (void)abandonPositionInformationRequest
 {
+    // Resolving queued callbacks can re-enter into client code, which may release the WKWebView and tear `self` down
+    // before this method returns.
     RetainPtr protectedSelf = self;
     RELEASE_ASSERT(_positionInformationManager);
     _positionInformationManager->abandonOutstandingRequest();
@@ -339,6 +337,8 @@ private:
 
 - (void)preflightImageAnalysis:(WebKit::InteractionInformationRequest)request completion:(void (^)(BOOL foundText, WebCore::ElementContext element))completion
 {
+    // The completion can run before this method returns and re-enter into client code, which may release the
+    // WKWebView and tear `self` down.
     RetainPtr protectedSelf = self;
     RELEASE_ASSERT(_positionInformationManager);
     _positionInformationManager->doAfterUpdate(request, [weakSelf = WeakObjCPtr<WKAppKitGestureControllerCxxSupport>(self), completion = makeBlockPtr(completion)](const auto& optionalInfo) mutable {
@@ -453,7 +453,6 @@ private:
 
 - (void)startMomentumAtPosition:(NSPoint)positionValue globalPosition:(NSPoint)globalPositionValue timestamp:(double)rawTimestamp velocity:(NSSize)velocityValue fastScrollMultiplier:(double)fastScrollMultiplier
 {
-    RetainPtr protectedSelf = self;
     RetainPtr webView = [_controller.get() webView];
     if (!webView)
         return;
@@ -500,24 +499,22 @@ private:
 #if ENABLE(MOMENTUM_EVENT_DISPATCHER)
     // Started first, so that any momentum it ends is ended before this momentum begins.
     if (!_momentumEventGenerator)
-        _momentumEventGenerator = WebKit::AppKitGestureMomentumEventGenerator::create(_controller.get());
-    Ref { *_momentumEventGenerator }->start(*page, nativeMomentumEvent);
+        _momentumEventGenerator = makeUnique<WebKit::AppKitGestureMomentumEventGenerator>(_controller.get());
+    CheckedRef { *_momentumEventGenerator }->start(*page, nativeMomentumEvent);
 #endif
     page->handleNativeWheelEvent(WTF::move(nativeMomentumEvent));
 }
 
 - (void)interruptMomentum
 {
-    RetainPtr protectedSelf = self;
 #if ENABLE(MOMENTUM_EVENT_DISPATCHER)
-    if (RefPtr generator = _momentumEventGenerator)
+    if (CheckedPtr generator = _momentumEventGenerator)
         generator->interrupt();
 #endif
 }
 
 - (void)resetMomentum
 {
-    RetainPtr protectedSelf = self;
 #if ENABLE(MOMENTUM_EVENT_DISPATCHER)
     _momentumEventGenerator = nullptr;
 #endif
