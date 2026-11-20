@@ -114,6 +114,7 @@ public:
     void detachRootLayer();
 
     RetainPtr<CALayer> layerWithIDForTesting(WebCore::PlatformLayerIdentifier) const;
+    Vector<WebCore::PlatformLayerIdentifier> layerIDsForTesting() const;
 
     NODELETE bool replayDynamicContentScalingDisplayListsIntoBackingStore() const;
     bool threadedAnimationsEnabled() const;
