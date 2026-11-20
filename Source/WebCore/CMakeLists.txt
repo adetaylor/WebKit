@@ -3376,6 +3376,11 @@ set(_webcore_webauthn_swift_interop_sources
     Modules/webauthn/cbor/CBORWriter.cpp
     Modules/webauthn/fido/AuthenticatorGetInfoResponse.cpp
     Modules/webauthn/fido/Pin.cpp)
+# MediaConstraintsEvaluation.cpp calls MediaConstraintsEngine.swift, so it compiles in WebCore_SwiftInterop (the Apple
+# ports list it with their own Swift interop sources, below).
+if (ENABLE_MEDIA_STREAM AND NOT APPLE)
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)MediaConstraintsEvaluation\\.cpp( |$)")
+endif ()
 if (ENABLE_WEB_AUTHN)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
         "(^|/)CBORReader\\.cpp( |$)"
@@ -4288,6 +4293,25 @@ else ()
             "        requires cplusplus\n"
             "        export *\n"
             "    }\n")
+    endif ()
+
+    # The media constraints' fitness distance and settings selection (MediaConstraintsEngine.swift), which
+    # MediaConstraintsEvaluation.cpp calls, the capture sources' size and frame rate decisions
+    # (CaptureSourceDecisions.swift, the @implementation of CaptureSourceDecisions.h), which RealtimeMediaSource.cpp
+    # and the mock sources call, and the mock camera's settings and capabilities (MockVideoSettings.swift, the
+    # @implementation of MockVideoSettings.h), which MockRealtimeVideoSource.cpp calls: there is no C++ for them.
+    if (ENABLE_MEDIA_STREAM)
+        target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/platform/mediastream/CaptureSourceDecisions.swift
+            ${WEBCORE_DIR}/platform/mediastream/MediaConstraintsEngine.swift
+            ${WEBCORE_DIR}/platform/mock/MockVideoSettings.swift
+        )
+        webkit_target_add_swift_options(WebCore "-D ENABLE_MEDIA_STREAM")
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/mediastream/MediaConstraintsEvaluation.cpp)
+        list(APPEND _webcore_swift_core_submodules
+            platform/mediastream/CaptureSourceDecisions.h
+            platform/mediastream/MediaConstraintsSwiftBridge.h
+            platform/mock/MockVideoSettings.h)
     endif ()
 
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
