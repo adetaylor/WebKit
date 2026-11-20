@@ -420,9 +420,11 @@ def constant_accessor(declaration, pointee, swift_type=None):
     elif swift_type:
         raise GeneratorError(f'{name}: "as {swift_type}" applies only to NSString constants')
     lines = [f'extension {declaration.framework}SoftLink {{']
+    # A CF constant is an Unmanaged reference, which isn't Sendable; the address it loads from never changes.
+    storage = 'nonisolated(unsafe) static let' if value_type.startswith('Unmanaged<') else 'static let'
     if declaration.may_fail:
         lines += [
-            f'    static let {name}: {value_type}? = {{',
+            f'    {storage} {name}: {value_type}? = {{',
             f'        guard let address = unsafe softLinkSymbol(auditedName_{name}) else {{',
             '            return nil',
             '        }',
@@ -431,7 +433,7 @@ def constant_accessor(declaration, pointee, swift_type=None):
         ]
     else:
         lines += [
-            f'    static let {name}: {value_type} = {{',
+            f'    {storage} {name}: {value_type} = {{',
             f'        let address = unsafe softLinkRequiredSymbol(auditedName_{name})',
             f'        return {load}',
             '    }()',
