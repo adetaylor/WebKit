@@ -2049,6 +2049,8 @@ WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebKit WebKitShared
     DIRS DerivedSources)
 
 WEBKIT_FRAMEWORK(WebKit)
+# WebCore's and PAL's Swift are linked into WebKit's image off the Apple ports.
+WEBKIT_LINK_SWIFT_RUNTIME(WebKit TARGETS WebKit WebCore PAL)
 if (USE_APPLE_INTERNAL_SDK)
     WEBKIT_TARGET_USE_PGO(WebKit PROFILE WebKit)
 endif ()

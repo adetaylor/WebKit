@@ -866,6 +866,8 @@ endif ()
 # TestWebCore target
 if (ENABLE_WEBCORE AND NOT TESTWEBKITAPI_MERGED_BINARY)
     WEBKIT_TEST(TestWebCore)
+    # Off the Apple ports, WebCore's and PAL's Swift objects link into TestWebCore.
+    WEBKIT_LINK_SWIFT_RUNTIME(TestWebCore TARGETS WebCore PAL)
 endif ()
 
 # TestWebKitLegacy target

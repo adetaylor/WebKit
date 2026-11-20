@@ -2188,6 +2188,7 @@ WEBKIT_FRAMEWORK(JavaScriptCore)
 if (NOT WIN32)
     target_link_directories(JavaScriptCore PRIVATE "${_jsc_swift_library_path}")
 endif ()
+WEBKIT_LINK_SWIFT_RUNTIME(JavaScriptCore OBJECTS "${_jsc_swift_obj}" "${_jsc_json_swift_obj}")
 
 if (USE_APPLE_INTERNAL_SDK)
     WEBKIT_TARGET_USE_PGO(JavaScriptCore PROFILE JavaScriptCore)
