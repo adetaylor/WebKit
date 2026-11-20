@@ -95,6 +95,15 @@ if (DEFINED PAL_SWIFT_INTEROP_SOURCES)
     list(APPEND PAL_INTERFACE_LIBRARIES "$<TARGET_OBJECTS:PAL_SwiftInterop>")
 endif ()
 
+if (NOT APPLE)
+    # PAL's Swift imports its underlying module, pal, and TextCodecUTF8.swift imports
+    # pal.Core.text.TextCodecUTF8DecoderTypes; PlatformCocoa.cmake installs module.modulemap for the Apple ports.
+    list(APPEND PAL_PUBLIC_HEADERS module.modulemap)
+    # module.modulemap has `umbrella "spi"`, which Clang requires to be a non-empty directory.
+    file(MAKE_DIRECTORY "${PAL_HEADERS_DIR}/spi")
+    file(WRITE "${PAL_HEADERS_DIR}/spi/pal_spi_stub.h" "")
+endif ()
+
 WEBKIT_COPY_FILES(PAL_CopyHeaders
     DESTINATION ${PAL_HEADERS_DIR}
     FILES ${PAL_PUBLIC_HEADERS}
