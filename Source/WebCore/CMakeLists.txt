@@ -3911,11 +3911,14 @@ if (APPLE)
 
         ${WEBCORE_DIR}/Modules/encryptedmedia/InitDataRegistry.swift
         ${WEBCORE_DIR}/platform/encryptedmedia/CDMSupportedConfiguration.swift
+        ${WEBCORE_DIR}/platform/SwiftDelegateBox.swift
         ${WEBCORE_DIR}/platform/encryptedmedia/clearkey/CDMClearKeyBridge.swift
         ${WEBCORE_DIR}/platform/graphics/AV1Utilities.swift
         ${WEBCORE_DIR}/platform/graphics/H264Utilities.swift
         ${WEBCORE_DIR}/platform/graphics/HEVCBitstreamParser.swift
         ${WEBCORE_DIR}/platform/graphics/HEVCCodecStrings.swift
+        ${WEBCORE_DIR}/platform/graphics/SwiftMediaPlayerClientAdapter.swift
+        ${WEBCORE_DIR}/platform/graphics/TrackPrivateClientSwiftAdapters.swift
         ${WEBCORE_DIR}/platform/graphics/VP9Utilities.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/AudioVideoRendererAVFObjC.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMFairPlayStreamingParsing.swift
