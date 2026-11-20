@@ -4676,10 +4676,7 @@ else ()
         webkit_target_add_swift_options(WebCore "-D ENABLE_SMOOTH_SCROLLING")
     endif ()
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
-        # HAVE_SSSE3 chooses PSHUFB in SIMDTableLookup.swift, as WebCore.xcconfig sets it for x86_64. The code
-        # generator must be allowed SSSE3 too, or the (LTO) backend cannot select it. nehalem is x86-64-v2
-        # (SSSE3, SSE4.2).
-        webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3" "-target-cpu nehalem")
+        webkit_target_add_swift_options(WebCore ${WEBKIT_SWIFT_X86_64_SIMD_FLAGS})
     endif ()
     # No -Xcc -I for WebCore's include directories: swiftc gives its -I paths, which CMake sets from
     # them, to the clang importer too, and repeating them overflows Windows' 32K command line.

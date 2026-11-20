@@ -205,6 +205,22 @@ set(WEBKIT_SWIFT_CXX_INTEROP_FLAGS
 # release clang-cl and lld-link: its llvm.coro.id.retcon.once is variadic, theirs is not).
 option(WEBKIT_SWIFT_LTO "Compile Swift to LTO bitcode when LTO_MODE is set" ON)
 
+# For a target whose Swift has SSSE3 paths (HAVE_SSSE3 chooses PSHUFB in SIMDTableLookup.swift, as the xcconfigs
+# set it for x86_64): the code generator must be allowed SSSE3 too, or the (LTO) backend cannot select it. nehalem
+# is x86-64-v2 (SSSE3, SSE4.2).
+set(WEBKIT_SWIFT_X86_64_SIMD_FLAGS "-D HAVE_SSSE3" "-target-cpu nehalem")
+if (CXX_STDLIB_VARIANT STREQUAL "GLIBCXX")
+    # FIXME: With __SSE3__ defined, the importer cannot build libstdc++'s std module: <random> includes <pmmintrin.h>,
+    # whose Clang module (_Builtin_intrinsics) includes <stdlib.h>, which is libstdc++'s and includes <cstdlib>, a
+    # submodule of std ("cyclic dependency in module 'std'"). Undefine the macros nehalem adds to x86-64's for the
+    # importer only, so the headers it reads see one baseline: __SSE3__ alone is not enough, since a header that tests
+    # __SSE4_2__ (simde's, in the wtf module) then uses intrinsics whose submodule the importer has not made visible
+    # ("missing '#include <crc32intrin.h>'"). The code generator keeps nehalem's features.
+    # KIT docs/interop-limitations.md, "SSE3 and libstdc++'s std module".
+    list(APPEND WEBKIT_SWIFT_X86_64_SIMD_FLAGS
+        "-Xcc -U__SSE3__" "-Xcc -U__SSSE3__" "-Xcc -U__SSE4_1__" "-Xcc -U__SSE4_2__")
+endif ()
+
 # Whole-module Swift for every build that is neither Debug nor DEVELOPER_MODE, as Xcode builds
 # WebCore. CMake's default is incremental, which never specializes a call to a generic function in
 # another file. DEVELOPER_MODE keeps incremental rebuilds, as it keeps clang-cl builds from LTO (see

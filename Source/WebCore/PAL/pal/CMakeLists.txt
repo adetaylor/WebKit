@@ -149,10 +149,7 @@ if (PAL_SWIFT_SOURCES)
     # SIMDTableLookup.swift's table lookup (PSHUFB with SSSE3) needs the Builtin module, as in PAL.xcconfig.
     webkit_target_add_swift_options(PAL "-enable-experimental-feature BuiltinModule")
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
-        webkit_target_add_swift_options(PAL "-D HAVE_SSSE3")
-        # HAVE_SSSE3 only chooses PSHUFB; the code generator must be allowed SSSE3 too, or the (LTO)
-        # backend cannot select it. nehalem is x86-64-v2 (SSSE3, SSE4.2).
-        webkit_target_add_swift_options(PAL "-target-cpu nehalem")
+        webkit_target_add_swift_options(PAL ${WEBKIT_SWIFT_X86_64_SIMD_FLAGS})
     endif ()
     if (LTO_MODE AND NOT APPLE AND WEBKIT_SWIFT_LTO)
         # Otherwise an LTO build is C++-only: the Swift decoder would be machine code that the LTO
