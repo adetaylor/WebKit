@@ -233,7 +233,7 @@ extension WKAppKitGestureController {
 
         let radius = positionInformationToleranceRadius(for: secondaryClickGestureRecognizer)
 
-        let information = support.positionInformation
+        let information = positionInformation.currentInformation
 
         let requestIsValid = isPositionInformationValid(at: locationInView, radius: radius)
         let isSecondaryClickable = information.representsSecondaryClickableElement
@@ -248,7 +248,7 @@ extension WKAppKitGestureController {
             """
             [pageProxyID=\(self.pageLogIdentifier)] \(#function): \
             Secondary click shouldBegin → \(shouldBegin) \
-            (hasInfo=\(self.support.hasValidPositionInformation) \
+            (hasInfo=\(self.positionInformation.hasValidCurrentInformation) \
             requestIsValid=\(requestIsValid) \
             secondaryClickable=\(isSecondaryClickable) \
             overSelectableText=\(isOverSelectableText) selectability=\(information.selectability.rawValue) \
@@ -259,7 +259,7 @@ extension WKAppKitGestureController {
         )
 
         if !requestIsValid {
-            support.invalidatePositionInformation()
+            positionInformation.invalidate()
         }
 
         return shouldBegin
@@ -450,7 +450,7 @@ extension WKAppKitGestureController {
         let hadHoverActivatedByClick = mayHaveHoverActivatedByClick
         mayHaveHoverActivatedByClick = hasHoverActivatedByClick
         if hadHoverActivatedByClick || hasHoverActivatedByClick {
-            support.invalidatePositionInformation()
+            positionInformation.invalidate()
         }
     }
 
@@ -462,7 +462,7 @@ extension WKAppKitGestureController {
         Logger.viewGestures.log("[pageProxyID=\(self.pageLogIdentifier)] \(#function): Tap was handled as hover")
 
         mayHaveHoverActivatedByClick = true
-        support.invalidatePositionInformation()
+        positionInformation.invalidate()
     }
 
     @objc(didNotHandleTapAsClickAtPoint:)

@@ -144,7 +144,7 @@ extension WKAppKitGestureController {
 
         let radius = positionInformationToleranceRadius(for: dragPressGestureRecognizer)
 
-        let information = support.positionInformation
+        let information = positionInformation.currentInformation
 
         // FIXME: Migrate to requestDragStart: IPC for an authoritative decision.
         // The heuristic below approximates DragController::draggableElement() by consulting the same element-type and style signals.
@@ -156,7 +156,7 @@ extension WKAppKitGestureController {
             """
             [pageProxyID=\(self.pageLogIdentifier)] \(#function): \
             Drag-press shouldBegin → \(shouldDrag) \
-            (hasInfo=\(self.support.hasValidPositionInformation) \
+            (hasInfo=\(self.positionInformation.hasValidCurrentInformation) \
             link=\(information.isLink) image=\(information.isImage) \
             attachment=\(information.isAttachment) \
             dhtml=\(information.isDHTMLDraggable) color=\(information.isColorInput) \
@@ -166,7 +166,7 @@ extension WKAppKitGestureController {
         )
 
         if !requestIsValid {
-            support.invalidatePositionInformation()
+            positionInformation.invalidate()
         }
 
         return shouldDrag

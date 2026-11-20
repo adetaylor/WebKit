@@ -314,7 +314,9 @@ extension WKAppKitGestureController {
     private static let maximumInteractionAdjustmentDistance: CGFloat = 48
 
     func adjustedMouseDownLocation(inWindow locationInWindow: NSPoint) -> NSPoint {
-        guard let webView = view, let adjustedLocationInView = support.nearbySliderInteractionLocation.value.map({ CGPoint($0) }) else {
+        guard let webView = view,
+            let adjustedLocationInView = positionInformation.currentInformation.nearbySliderInteractionLocation.value.map({ CGPoint($0) })
+        else {
             return locationInWindow
         }
 

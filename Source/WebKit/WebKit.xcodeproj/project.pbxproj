@@ -282,6 +282,7 @@
 		9AAB63FDC60C4AE4AEDD17C9 /* WKAppKitGestureController+Tracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 744BDE229EFB4633873CC8A8 /* WKAppKitGestureController+Tracking.swift */; };
 		520AF53BFA8F4E1C867DBEED /* WKAppKitGestureController+Transform.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD57E6851BC14F60932B4AF3 /* WKAppKitGestureController+Transform.swift */; };
 		F226953F6D684CC595F7BAB5 /* WKAppKitGestureControllerSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AC50156C71D4246B0DC6B94 /* WKAppKitGestureControllerSupport.swift */; };
+		ED3A3B98B95C4C62B26B894D /* PositionInformationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E9471F502E0405084EABF9B /* PositionInformationManager.swift */; };
 		07438C722D4C645600BD1E68 /* _WebKit_SwiftUI.framework in Product Dependencies */ = {isa = PBXBuildFile; fileRef = 07275C4F2D00C934002315A5 /* _WebKit_SwiftUI.framework */; };
 		074A6FC72D5F1FAF0027F958 /* KeyEventInterpretationContext.h in Headers */ = {isa = PBXBuildFile; fileRef = 074A6FC52D5F1DEA0027F958 /* KeyEventInterpretationContext.h */; };
 		074D6A652F385435006089F6 /* IntRectCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 074D6A642F38542D006089F6 /* IntRectCG.swift */; };
@@ -3797,6 +3798,7 @@
 		744BDE229EFB4633873CC8A8 /* WKAppKitGestureController+Tracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WKAppKitGestureController+Tracking.swift"; sourceTree = "<group>"; };
 		FD57E6851BC14F60932B4AF3 /* WKAppKitGestureController+Transform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WKAppKitGestureController+Transform.swift"; sourceTree = "<group>"; };
 		4AC50156C71D4246B0DC6B94 /* WKAppKitGestureControllerSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WKAppKitGestureControllerSupport.swift; sourceTree = "<group>"; };
+		7E9471F502E0405084EABF9B /* PositionInformationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionInformationManager.swift; sourceTree = "<group>"; };
 		073EFBB72D0F448500FAE7CF /* Foundation+Extras.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Foundation+Extras.swift"; sourceTree = "<group>"; };
 		074021602DDA651600BAEC91 /* GroupActivities_SPI.swiftinterface */ = {isa = PBXFileReference; lastKnownFileType = text; path = GroupActivities_SPI.swiftinterface; sourceTree = "<group>"; };
 		0744720525E5BD020054B231 /* MediaOverridesForTesting.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaOverridesForTesting.h; sourceTree = "<group>"; };
@@ -5732,8 +5734,6 @@
 		33E5A6B32C6F8F8D00F2CD04 /* ImageOptions.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = ImageOptions.serialization.in; sourceTree = "<group>"; };
 		33EBE2852C98366200549FB9 /* PDFAnnotationTypeHelpers.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; name = PDFAnnotationTypeHelpers.h; path = PDF/PDFAnnotationTypeHelpers.h; sourceTree = "<group>"; tabWidth = 8; };
 		33EBE2872C9838F900549FB9 /* PDFAnnotationTypeHelpers.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = PDFAnnotationTypeHelpers.mm; path = PDF/PDFAnnotationTypeHelpers.mm; sourceTree = "<group>"; };
-		33F1A0102FEFB66B00BD5D70 /* PositionInformationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PositionInformationManager.h; sourceTree = "<group>"; };
-		33F1A0112FEFB66B00BD5D70 /* PositionInformationManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PositionInformationManager.cpp; sourceTree = "<group>"; };
 		33F68335293FF6F5005C63C0 /* JSWebExtensionAPIWebNavigationEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSWebExtensionAPIWebNavigationEvent.h; sourceTree = "<group>"; };
 		33F68336293FF6F5005C63C0 /* JSWebExtensionAPIWebNavigationEvent.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = JSWebExtensionAPIWebNavigationEvent.mm; sourceTree = "<group>"; };
 		33F6833D293FFA4B005C63C0 /* WebExtensionAPIWebNavigationEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebExtensionAPIWebNavigationEvent.h; sourceTree = "<group>"; };
@@ -10031,6 +10031,7 @@
 		078074F53029A77E005492F5 /* AppKitGestures */ = {
 			isa = PBXGroup;
 			children = (
+				7E9471F502E0405084EABF9B /* PositionInformationManager.swift */,
 				336E07462EBCC1C100B4D635 /* WKAppKitGestureController.h */,
 				C2AF5045C5214A10AD83C0AF /* WKAppKitGestureController+Arbitration.swift */,
 				A614530B059C483A8FF8B5FD /* WKAppKitGestureController+Clicks.swift */,
@@ -17656,8 +17657,6 @@
 				7AFA6F682A9F57C50055322A /* DisplayLinkMac.cpp */,
 				0FCB4E5818BBE3D9000FCFC9 /* PageClientImplMac.h */,
 				0FCB4E5918BBE3D9000FCFC9 /* PageClientImplMac.mm */,
-				33F1A0112FEFB66B00BD5D70 /* PositionInformationManager.cpp */,
-				33F1A0102FEFB66B00BD5D70 /* PositionInformationManager.h */,
 				514D9F5519119D35000063A7 /* ServicesController.h */,
 				514D9F5619119D35000063A7 /* ServicesController.mm */,
 				0773A93A3023B0FB002C57FE /* SpatialShim.swift */,
@@ -22853,6 +22852,7 @@
 				A1B849382F3D9F02004256A1 /* PlaybackSessionInterfaceAVKit.mm in Sources */,
 				A1D4D2092B7DE6D00008C40E /* PlaybackSessionInterfaceLMK.mm in Sources */,
 				07AE8FCA2F3BCFB400A4C0CA /* PositionInformationForWebPage.mm in Sources */,
+				ED3A3B98B95C4C62B26B894D /* PositionInformationManager.swift in Sources */,
 				C15CBB3723F37ECB00300CC7 /* PreferenceObserver.mm in Sources */,
 				2D54C31B212F4DA60049C174 /* ProcessLauncher.cpp in Sources */,
 				517B5F7B275E97A9002DC22D /* PushClientConnection.mm in Sources */,

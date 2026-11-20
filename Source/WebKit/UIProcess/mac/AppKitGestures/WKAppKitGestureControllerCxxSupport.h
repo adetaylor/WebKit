@@ -31,7 +31,6 @@
 
 #import "AppKitSPI.h"
 #import "InteractionInformationAtPosition.h"
-#import "InteractionInformationRequest.h"
 #import "TransactionID.h"
 #import "WKAppKitGestureController.h"
 #import "WKClickHighlightController.h"
@@ -39,13 +38,10 @@
 #import "WKPointerTrackingGestureRecognizer.h"
 #import "WKPressGestureRecognizer.h"
 #import <WebCore/ElementContext.h>
-#import <WebCore/IntPoint.h>
 #import <optional>
 
 namespace WebKit {
 
-using OptionalInteractionInformationAtPosition = std::optional<InteractionInformationAtPosition>;
-using OptionalIntPoint = std::optional<WebCore::IntPoint>;
 using OptionalTransactionID = std::optional<TransactionID>;
 
 namespace CxxInteropSupport {
@@ -67,33 +63,23 @@ inline bool isInteractiveModel(const InteractionInformationAtPosition& info)
 
 NS_HEADER_AUDIT_BEGIN(nullability, sendability)
 
-// The C++ that WKAppKitGestureController uses and Swift cannot call: its PositionInformationManager, the momentum
-// event generator, Live Text's image analysis, and the page's drawing area.
+// The C++ that WKAppKitGestureController uses and Swift cannot call: the momentum event generator, Live Text's image
+// analysis and the page's drawing area. It also hands the page's position information to the controller.
 NS_SWIFT_UI_ACTOR
 @interface WKAppKitGestureControllerCxxSupport : NSObject
 
 @property (nonatomic, weak, nullable) WKAppKitGestureController *controller;
 
-// Position information, after -setUpPositionInformation. A completion runs exactly once: before the call returns when
-// the current information answers the request, when the page's answer arrives, or with no information when the request
-// is reset or abandoned or the manager goes away.
-- (void)setUpPositionInformation;
-- (void)doAfterPositionInformationUpdate:(WebKit::InteractionInformationRequest)request completion:(NS_SWIFT_UI_ACTOR void (^)(WebKit::OptionalInteractionInformationAtPosition info))completion NS_SWIFT_NAME(doAfterPositionInformationUpdate(_:completion:));
-- (void)invalidatePositionInformation;
-- (void)resetPositionInformation;
-- (void)abandonPositionInformationRequest;
-- (BOOL)positionInformationIsApproximatelyValid:(WebKit::InteractionInformationRequest)request radius:(int)radius;
-@property (nonatomic, readonly) BOOL hasValidPositionInformation;
-@property (nonatomic, readonly) WebKit::InteractionInformationAtPosition positionInformation;
-@property (nonatomic, readonly) BOOL positionInformationIsHoverActivatedByClick;
-@property (nonatomic, readonly) WebKit::OptionalIntPoint nearbySliderInteractionLocation;
+// Position information from the page, which -positionInformationDidChange: hands to the handler: an Objective-C method
+// that Swift implements cannot take the C++ struct.
+- (void)setPositionInformationDidChangeHandler:(NS_SWIFT_UI_ACTOR void (^)(WebKit::InteractionInformationAtPosition info))handler;
 #if !__has_feature(modules)
 - (void)positionInformationDidChange:(const WebKit::InteractionInformationAtPosition&)info;
 #endif
 
-// Live Text. The completion is not called when the press is not over an image Live Text can analyze, or when the
-// controller or its web view goes away first.
-- (void)preflightImageAnalysis:(WebKit::InteractionInformationRequest)request completion:(NS_SWIFT_UI_ACTOR void (^)(BOOL foundText, WebCore::ElementContext element))completion;
+// Live Text, for the position information of a press. The completion is not called when the press is not over an image
+// Live Text can analyze, or when the controller or its web view goes away first.
+- (void)preflightImageAnalysis:(WebKit::InteractionInformationAtPosition)info completion:(NS_SWIFT_UI_ACTOR void (^)(BOOL foundText, WebCore::ElementContext element))completion;
 
 // Momentum.
 - (void)startMomentumAtPosition:(NSPoint)position globalPosition:(NSPoint)globalPosition timestamp:(double)timestamp velocity:(NSSize)velocity fastScrollMultiplier:(double)fastScrollMultiplier;

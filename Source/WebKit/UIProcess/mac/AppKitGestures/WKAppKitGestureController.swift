@@ -43,6 +43,8 @@ extension WKAppKitGestureController {
     @nonobjc
     final let support = WKAppKitGestureControllerCxxSupport()
     var cxxSupport: WKAppKitGestureControllerCxxSupport { support }
+    @nonobjc
+    final let positionInformation: PositionInformationManager
 
     @nonobjc
     private(set) final var panGestureRecognizer: WKPanGestureRecognizer?
@@ -150,8 +152,12 @@ extension WKAppKitGestureController {
 
     init(view: WKWebView) {
         self.view = view
+        positionInformation = PositionInformationManager(view: view)
         super.init()
         support.controller = self
+        support.setPositionInformationDidChangeHandler { [weak self] information in
+            self?.positionInformation.didChange(information)
+        }
         clickHighlight = WKClickHighlightController(delegate: self)
     }
 
@@ -159,8 +165,6 @@ extension WKAppKitGestureController {
         guard view != nil else {
             return
         }
-
-        support.setUpPositionInformation()
 
         setUpGestureRecognizers()
         addGesturesToWebView()
@@ -175,7 +179,7 @@ extension WKAppKitGestureController {
     }
 
     func didCommitLoadForMainFrame() {
-        support.invalidatePositionInformation()
+        positionInformation.invalidate()
         resetDOMDoubleClickGestureRecognizer()
         layerTreeTransactionIDAtLastInteractionStart = nil
         lastCompletedImageAnalysis = nil
@@ -202,7 +206,7 @@ extension WKAppKitGestureController {
 
         resetDOMDoubleClickGestureRecognizer()
         lastCompletedImageAnalysis = nil
-        support.resetPositionInformation()
+        positionInformation.reset()
     }
 }
 

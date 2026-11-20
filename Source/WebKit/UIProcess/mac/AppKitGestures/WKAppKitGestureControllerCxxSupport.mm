@@ -34,7 +34,6 @@
 #import "InteractionInformationRequest.h"
 #import "MomentumEventDispatcher.h"
 #import "NativeWebWheelEvent.h"
-#import "PositionInformationManager.h"
 #import "RemoteLayerTreeDrawingAreaProxy.h"
 #import "RemoteScrollingTreeCocoa.h"
 #import "ScrollingAccelerationCurve.h"
@@ -233,8 +232,7 @@ private:
 
 @implementation WKAppKitGestureControllerCxxSupport {
     WeakObjCPtr<WKAppKitGestureController> _controller;
-    // Made by -setUpPositionInformation, which the controller sends before any other position-information message.
-    std::unique_ptr<WebKit::PositionInformationManager> _positionInformationManager;
+    BlockPtr<void(WebKit::InteractionInformationAtPosition)> _positionInformationDidChangeHandler;
 #if ENABLE(MOMENTUM_EVENT_DISPATCHER)
     std::unique_ptr<WebKit::AppKitGestureMomentumEventGenerator> _momentumEventGenerator;
 #endif
@@ -250,103 +248,54 @@ private:
     _controller = controller;
 }
 
-- (void)setUpPositionInformation
+- (void)setPositionInformationDidChangeHandler:(void (^)(WebKit::InteractionInformationAtPosition))handler
 {
-    RetainPtr webView = [_controller.get() webView];
-    if (!webView)
-        return;
-    if (_positionInformationManager)
-        return;
-    _positionInformationManager = makeUnique<WebKit::PositionInformationManager>(*[webView _protectedPage]);
-}
-
-- (void)doAfterPositionInformationUpdate:(WebKit::InteractionInformationRequest)request completion:(void (^)(WebKit::OptionalInteractionInformationAtPosition info))completion
-{
-    // The completion can run before this method returns and re-enter into client code, which may release the
-    // WKWebView and tear `self` down.
-    RetainPtr protectedSelf = self;
-    RELEASE_ASSERT(_positionInformationManager);
-    _positionInformationManager->doAfterUpdate(request, [completion = makeBlockPtr(completion)](const auto& optionalInfo) {
-        completion(optionalInfo);
-    });
-}
-
-- (void)invalidatePositionInformation
-{
-    RELEASE_ASSERT(_positionInformationManager);
-    _positionInformationManager->invalidate();
-}
-
-- (void)resetPositionInformation
-{
-    // Resolving queued callbacks can re-enter into client code, which may release the WKWebView and tear `self` down
-    // before this method returns.
-    RetainPtr protectedSelf = self;
-    RELEASE_ASSERT(_positionInformationManager);
-    _positionInformationManager->reset();
-}
-
-- (void)abandonPositionInformationRequest
-{
-    // Resolving queued callbacks can re-enter into client code, which may release the WKWebView and tear `self` down
-    // before this method returns.
-    RetainPtr protectedSelf = self;
-    RELEASE_ASSERT(_positionInformationManager);
-    _positionInformationManager->abandonOutstandingRequest();
-}
-
-- (BOOL)positionInformationIsApproximatelyValid:(WebKit::InteractionInformationRequest)request radius:(int)radius
-{
-    RELEASE_ASSERT(_positionInformationManager);
-    return _positionInformationManager->currentIsApproximatelyValid(request, radius);
-}
-
-- (BOOL)hasValidPositionInformation
-{
-    RELEASE_ASSERT(_positionInformationManager);
-    return _positionInformationManager->hasValidCurrentInformation();
-}
-
-- (WebKit::InteractionInformationAtPosition)positionInformation
-{
-    RELEASE_ASSERT(_positionInformationManager);
-    return _positionInformationManager->currentInformation();
-}
-
-- (BOOL)positionInformationIsHoverActivatedByClick
-{
-    RELEASE_ASSERT(_positionInformationManager);
-    return _positionInformationManager->currentInformation().isHoverActivatedByClick;
-}
-
-- (WebKit::OptionalIntPoint)nearbySliderInteractionLocation
-{
-    RELEASE_ASSERT(_positionInformationManager);
-    return _positionInformationManager->currentInformation().nearbySliderInteractionLocation;
+    _positionInformationDidChangeHandler = makeBlockPtr(handler);
 }
 
 - (void)positionInformationDidChange:(const WebKit::InteractionInformationAtPosition&)info
 {
     // Resolving queued callbacks can re-enter into client code (e.g. UI delegate callbacks), which
-    // may release the WKWebView and tear `self` and the controller down before this method returns.
-    RetainPtr protectedSelf = self;
+    // may release the WKWebView and tear the controller down before the handler returns.
     RetainPtr protectedController = _controller.get();
-    RELEASE_ASSERT(_positionInformationManager);
-    _positionInformationManager->didChange(info);
+    // The handler stays alive until it returns, even if it is replaced while it runs.
+    auto handler = _positionInformationDidChangeHandler;
+    RELEASE_ASSERT(handler);
+    handler(info);
 }
 
-- (void)preflightImageAnalysis:(WebKit::InteractionInformationRequest)request completion:(void (^)(BOOL foundText, WebCore::ElementContext element))completion
+- (void)preflightImageAnalysis:(WebKit::InteractionInformationAtPosition)info completion:(void (^)(BOOL foundText, WebCore::ElementContext element))completion
 {
-    // The completion can run before this method returns and re-enter into client code, which may release the
-    // WKWebView and tear `self` down.
-    RetainPtr protectedSelf = self;
-    RELEASE_ASSERT(_positionInformationManager);
-    _positionInformationManager->doAfterUpdate(request, [weakSelf = WeakObjCPtr<WKAppKitGestureControllerCxxSupport>(self), completion = makeBlockPtr(completion)](const auto& optionalInfo) mutable {
-        if (!optionalInfo)
-            return;
+    RetainPtr webView = [_controller.get() webView];
+    if (!webView)
+        return;
 
-        const auto& info = *optionalInfo;
+    if (!isAnalyzableImageForLiveText(info)) {
+        // Not an analyzable image: leave both image-analysis deferrals with the default
+        // NotApplicable outcome, so text selection and the drag / context-menu fallback each
+        // resolve on their own (non-image) merits.
+        return;
+    }
 
+    // This dereference is guaranteed to be non-nil due to the `isAnalyzableImageForLiveText` check above.
+    const auto elementContext = *info.hostImageOrVideoElementContext;
+
+    // This dereference is guaranteed to be non-nil due to the `isAnalyzableImageForLiveText` check above.
+    RetainPtr cgImage = info.image->createPlatformImage();
+    if (!cgImage) {
+        // An image we can't rasterize: treat it as an image without text so the press falls
+        // through to drag / context menu.
+        completion(NO, elementContext);
+        return;
+    }
+
+    RELEASE_LOG(ImageAnalysis, "Image analysis preflight gesture initiated.");
+
+    const auto requestLocation = info.request.point;
+
+    RetainPtr analyzerRequest = WebKit::createImageAnalyzerRequest(cgImage.get(), VKAnalysisTypeText);
+    const auto startTime = MonotonicTime::now();
+    protect([webView _impl])->processImageAnalyzerRequest(analyzerRequest.get(), [weakSelf = WeakObjCPtr<WKAppKitGestureControllerCxxSupport>(self), elementContext, requestLocation, completion = makeBlockPtr(completion), startTime](RetainPtr<VKCImageAnalysis>&& result, NSError *) mutable {
         RetainPtr strongSelf = weakSelf.get();
         if (!strongSelf)
             return;
@@ -355,48 +304,13 @@ private:
         if (!webView)
             return;
 
-        if (!isAnalyzableImageForLiveText(info)) {
-            // Not an analyzable image: leave both image-analysis deferrals with the default
-            // NotApplicable outcome, so text selection and the drag / context-menu fallback each
-            // resolve on their own (non-image) merits.
-            return;
-        }
+        auto hasTextResults = [result hasResultsForAnalysisTypes:VKAnalysisTypeText];
+        RELEASE_LOG(ImageAnalysis, "Image analysis completed in %.0f ms (found text? %d)", (MonotonicTime::now() - startTime).milliseconds(), hasTextResults);
 
-        // This dereference is guaranteed to be non-nil due to the `isAnalyzableImageForLiveText` check above.
-        const auto elementContext = *info.hostImageOrVideoElementContext;
-
-        // This dereference is guaranteed to be non-nil due to the `isAnalyzableImageForLiveText` check above.
-        RetainPtr cgImage = info.image->createPlatformImage();
-        if (!cgImage) {
-            // An image we can't rasterize: treat it as an image without text so the press falls
-            // through to drag / context menu.
-            completion(NO, elementContext);
-            return;
-        }
-
-        RELEASE_LOG(ImageAnalysis, "Image analysis preflight gesture initiated.");
-
-        const auto requestLocation = info.request.point;
-
-        RetainPtr analyzerRequest = WebKit::createImageAnalyzerRequest(cgImage.get(), VKAnalysisTypeText);
-        const auto startTime = MonotonicTime::now();
-        protect([webView _impl])->processImageAnalyzerRequest(analyzerRequest.get(), [weakSelf, elementContext, requestLocation, completion = WTF::move(completion), startTime](RetainPtr<VKCImageAnalysis>&& result, NSError *) mutable {
-            RetainPtr strongSelf = weakSelf.get();
-            if (!strongSelf)
-                return;
-
-            RetainPtr webView = [strongSelf->_controller.get() webView];
-            if (!webView)
-                return;
-
-            auto hasTextResults = [result hasResultsForAnalysisTypes:VKAnalysisTypeText];
-            RELEASE_LOG(ImageAnalysis, "Image analysis completed in %.0f ms (found text? %d)", (MonotonicTime::now() - startTime).milliseconds(), hasTextResults);
-
-            [webView _protectedPage]->updateWithTextRecognitionResult(WebKit::makeTextRecognitionResult(result.get()), elementContext, requestLocation, [elementContext, completion = WTF::move(completion)](const auto& updateResult) mutable {
-                // Text found and injected as an image overlay -> allow the deferred text selection and
-                // prevent the drag / context-menu fallback (Live Text wins). Otherwise -> the reverse.
-                completion(updateResult == WebKit::TextRecognitionUpdateResult::Text, elementContext);
-            });
+        [webView _protectedPage]->updateWithTextRecognitionResult(WebKit::makeTextRecognitionResult(result.get()), elementContext, requestLocation, [elementContext, completion = WTF::move(completion)](const auto& updateResult) mutable {
+            // Text found and injected as an image overlay -> allow the deferred text selection and
+            // prevent the drag / context-menu fallback (Live Text wins). Otherwise -> the reverse.
+            completion(updateResult == WebKit::TextRecognitionUpdateResult::Text, elementContext);
         });
     });
 }
