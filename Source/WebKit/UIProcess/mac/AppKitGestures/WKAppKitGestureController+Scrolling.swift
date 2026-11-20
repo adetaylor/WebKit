@@ -180,7 +180,7 @@ extension WKAppKitGestureController {
             radius: Self.panPositionInformationToleranceRadius
         )
 
-        let information = support.positionInformation
+        let information = positionInformation.currentInformation
 
         // FIXME: (rdar://181964604) Because of this logic, vertically scrolling over these elements likely will not work.
         let prefersInteraction = information.prefersDirectManipulation
@@ -192,7 +192,7 @@ extension WKAppKitGestureController {
             """
             [pageProxyID=\(self.pageLogIdentifier)] \(#function): \
             Pan shouldBegin → \(!yieldToContent) \
-            (hasInfo=\(self.support.hasValidPositionInformation) \
+            (hasInfo=\(self.positionInformation.hasValidCurrentInformation) \
             valid=\(requestIsValid) prefersInteraction=\(prefersInteraction) \
             hoverActivatedByClick=\(information.isHoverActivatedByClick) \
             fallback=\(usesHoverActivatedByClickBounds))
@@ -415,7 +415,7 @@ extension WKAppKitGestureController {
 
         scrollState.catchMomentum()
 
-        support.invalidatePositionInformation()
+        positionInformation.invalidate()
 
         support.interruptMomentum()
 

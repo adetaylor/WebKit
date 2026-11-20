@@ -684,12 +684,12 @@ extension WKAppKitGestureController {
         )
 
         let request = WebKit.InteractionInformationRequest(touchAt: locationInView)
-        support.doAfterPositionInformationUpdate(request) { [weak self, weak deferringGestureRecognizer] info in
+        positionInformation.doAfterUpdate(request) { [weak self, weak deferringGestureRecognizer] info in
             guard let self, let deferringGestureRecognizer else {
                 return
             }
 
-            guard let info = info.value else {
+            guard let info else {
                 if deferringGestureRecognizer === enclosingScrollViewPanDeferringGestureRecognizer
                     && deferringGestureRecognizer.state == .possible
                 {
@@ -754,7 +754,7 @@ extension WKAppKitGestureController {
         )
 
         if deferringGestureRecognizer !== pointerDownDeferringGestureRecognizer {
-            support.abandonPositionInformationRequest()
+            positionInformation.abandonOutstandingRequest()
         }
 
         deferringGestureRecognizer.endDeferralShouldPreventGestures(false)

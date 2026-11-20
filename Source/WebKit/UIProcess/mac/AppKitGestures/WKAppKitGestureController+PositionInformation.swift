@@ -84,7 +84,7 @@ extension WKAppKitGestureController {
 
     func isPositionInformationValid(at locationInView: NSPoint, radius: Int32) -> Bool {
         let request = WebKit.InteractionInformationRequest(touchAt: locationInView)
-        return support.positionInformationIsApproximatelyValid(request, radius: radius)
+        return positionInformation.currentIsApproximatelyValid(request, radius: radius)
     }
 
     func isPointInScrollbar(at locationInView: NSPoint) -> Bool {
@@ -103,7 +103,7 @@ extension WKAppKitGestureController {
             return isInsideHoverActivatedByClickBounds(at: locationInView)
         }
 
-        return support.positionInformationIsHoverActivatedByClick
+        return positionInformation.currentInformation.isHoverActivatedByClick
     }
 }
 

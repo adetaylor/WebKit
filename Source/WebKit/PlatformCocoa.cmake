@@ -607,6 +607,7 @@ list(APPEND WebKit_SOURCES
 
     ${WEBKIT_DIR}/UIProcess/mac/_WKCaptionStyleMenuControllerAVKitMac.mm
     ${WEBKIT_DIR}/UIProcess/mac/_WKCaptionStyleMenuControllerMac.mm
+    ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/PositionInformationManager.swift
     ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Arbitration.swift
     ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Clicks.swift
     ${WEBKIT_DIR}/UIProcess/mac/AppKitGestures/WKAppKitGestureController+Drag.swift

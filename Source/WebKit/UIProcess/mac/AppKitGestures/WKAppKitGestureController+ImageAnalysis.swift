@@ -187,15 +187,20 @@ extension WKAppKitGestureController {
         request.includeImageData = true
 
         // The token keeps the image-analysis deferral open until the async analysis chain finishes (or is
-        // abandoned). Capturing it through each stage of preflightImageAnalysis(_:completion:) means the deferral
-        // resolves exactly when the last stage completes; dropping it early (e.g. not an image) resolves it as
-        // "allow text selection".
+        // abandoned). Capturing it through each stage means the deferral resolves exactly when the last stage
+        // completes; dropping it early (e.g. not an image) resolves it as "allow text selection".
         let gestureDeferralToken = ImageAnalysisGestureDeferralToken(controller: self)
-        support.preflightImageAnalysis(request) { [weak self] foundText, element in
-            let outcome = ImageAnalysisDeferralOutcome(foundText: foundText)
+        positionInformation.doAfterUpdate(request) { [weak self] info in
+            guard let info, let self else {
+                return
+            }
 
-            gestureDeferralToken.outcome = outcome
-            self?.lastCompletedImageAnalysis = CompletedImageAnalysis(element: element, outcome: outcome)
+            support.preflightImageAnalysis(info) { [weak self] foundText, element in
+                let outcome = ImageAnalysisDeferralOutcome(foundText: foundText)
+
+                gestureDeferralToken.outcome = outcome
+                self?.lastCompletedImageAnalysis = CompletedImageAnalysis(element: element, outcome: outcome)
+            }
         }
     }
 
