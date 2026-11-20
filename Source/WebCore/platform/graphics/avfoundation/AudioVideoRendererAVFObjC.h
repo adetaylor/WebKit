@@ -75,7 +75,7 @@ enum class AudioVideoRendererObject : uint8_t;
 // rate and time, seeking, readiness and the video sample renderer are AudioVideoRendererAVFObjC.swift's; this keeps the
 // clients' callbacks and promises, the shared timebase, the synchronizer and the renderers it makes and configures,
 // the layer manager, content keys, and the video renderer's decompression session and purge timer.
-class AudioVideoRendererAVFObjC
+class SWIFT_PRIVATE_FILEID("WebCore/AudioVideoRendererAVFObjC.swift") AudioVideoRendererAVFObjC
     : public AudioVideoRenderer
     , public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<AudioVideoRendererAVFObjC, WTF::DestructionThread::Main>
     , private PeriodicSharedTimer::Client
@@ -85,6 +85,13 @@ public:
     WEBCORE_EXPORT static Ref<AudioVideoRendererAVFObjC> create(const Logger&, uint64_t logIdentifier);
     WEBCORE_EXPORT static Ref<AudioVideoRendererAVFObjC> create(const Logger&, uint64_t logIdentifier, UniqueRef<SharedTimebase>&&);
     ~AudioVideoRendererAVFObjC();
+
+    // Swift cannot spell an unspecialised template: the specialisations the Swift implementations of the overrides use.
+    using OptionalMonotonicTime = std::optional<MonotonicTime>;
+    using VideoRendererPreferenceSet = OptionSet<VideoRendererPreference>;
+    using OptionalPitchCorrectionAlgorithm = std::optional<PitchCorrectionAlgorithm>;
+    using OptionalVideoPlaybackQualityMetrics = std::optional<VideoPlaybackQualityMetrics>;
+    using VideoFrameRef = RefPtr<VideoFrame>;
 
     WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
 
@@ -273,6 +280,7 @@ private:
 
     struct Core;
     std::unique_ptr<Core> m_core;
+    const uint64_t m_swiftToken;
 
     bool m_isShutdown { false };
 

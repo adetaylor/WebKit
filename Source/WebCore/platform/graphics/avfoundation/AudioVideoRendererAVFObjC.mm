@@ -219,6 +219,8 @@ AudioVideoRendererAVFObjC::AudioVideoRendererAVFObjC(const Logger& originalLogge
     , m_videoLayerManager(makeUniqueRef<VideoLayerManagerObjC>(originalLogger, logSiteIdentifier))
     , m_synchronizer(adoptNS([PAL::allocAVSampleBufferRenderSynchronizerInstance() init]))
     , m_sharedTimebase(WTF::move(sharedTimebase))
+    , m_core(makeUnique<Core>(AudioVideoRendererCore::init(AudioVideoRendererHost::create(*this).ptr(), m_synchronizer.get(), { PAL::toCMTime(VideoDecodeWindow::lowWaterMark), PAL::toCMTime(VideoDecodeWindow::highWaterMark), VideoDecodeWindow::sampleQueueHighWaterMark, VideoDecodeWindow::sampleQueueLowWaterMark, !!m_sharedTimebase })))
+    , m_swiftToken(m_core->swift.token())
     , m_frameRateMonitor(makeUnique<FrameRateMonitor>([](auto info) {
         RELEASE_LOG_ERROR(MediaPerformance, "VideoMediaSampleRenderer Frame decoding allowance exceeded:%f expected:%f", Seconds { info.lastFrameTime - info.frameTime }.value(), 1 / info.observedFrameRate);
     }))
@@ -229,14 +231,6 @@ AudioVideoRendererAVFObjC::AudioVideoRendererAVFObjC(const Logger& originalLogge
     }))
 #endif
 {
-    AudioVideoRendererConfiguration configuration {
-        PAL::toCMTime(VideoDecodeWindow::lowWaterMark),
-        PAL::toCMTime(VideoDecodeWindow::highWaterMark),
-        VideoDecodeWindow::sampleQueueHighWaterMark,
-        VideoDecodeWindow::sampleQueueLowWaterMark,
-        !!m_sharedTimebase
-    };
-    m_core = makeUnique<Core>(AudioVideoRendererCore::init(AudioVideoRendererHost::create(*this).ptr(), m_synchronizer.get(), configuration));
     stall();
 }
 
@@ -467,7 +461,7 @@ void AudioVideoRendererAVFObjC::reportError(PlatformMediaError error)
 
 uint64_t AudioVideoRendererAVFObjC::swiftToken() const
 {
-    return m_core->swift.token();
+    return m_swiftToken;
 }
 
 // Synchronizer interface
