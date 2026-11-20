@@ -1706,7 +1706,7 @@ extension TemporalISO8601 {
                 var name = temporalLatin1Vector(string, parseResult.timeZoneNameStart..<parseResult.timeZoneNameEnd)
                 JSC.temporalMove(&tz.m_nameOrOffset, &name)
             } else if parseResult.hasTimeZoneOffset {
-                tz.m_nameOrOffset = .fromAlternative(parseResult.timeZoneOffset)
+                tz.m_nameOrOffset = .fromAlternative(TemplateArgumentInt64(parseResult.timeZoneOffset))
             } else {
                 tz.m_nameOrOffset = .fromAlternative(JSC.TemporalLatin1Vector())
             }
@@ -1714,7 +1714,7 @@ extension TemporalISO8601 {
             tz.m_z = parseResult.hasUTCDesignator
             // Step 27. Set [[OffsetString]].
             if parseResult.hasUTCOffset {
-                tz.m_offset.value = parseResult.utcOffset
+                tz.m_offset.value = TemplateArgumentInt64(parseResult.utcOffset)
             }
             tz.m_offsetHasSubMinutePrecision = parseResult.offsetHasSubMinutePrecision
             JSC.temporalMove(&parsed.timeZone, &tz)
@@ -1900,7 +1900,7 @@ private func temporalTimeZoneIdentifierRecord<Unit: TemporalCodeUnit>(
         JSC.temporalMove(&record, &value)
     case .offsetMinutes(let offsetMinutes):
         var value = JSC.ISO8601.TimeZoneIdentifierParseRecord()
-        value.offsetMinutes.value = offsetMinutes
+        value.offsetMinutes.value = TemplateArgumentInt64(offsetMinutes)
         record.value = value
     case nil:
         break

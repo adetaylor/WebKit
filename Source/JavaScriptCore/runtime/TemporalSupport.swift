@@ -37,6 +37,14 @@ internal import JavaScriptCore_Private.Cxx
 typealias Int128 = Swift.Int128
 typealias UInt128 = Swift.UInt128
 
+/// Temporal's 64-bit integers are Swift's `Int64`. The C++'s `int64_t` imports as `Int64` where it names a parameter, a
+/// field or a return, but inside a template argument (`std::optional<int64_t>`, `Variant<..., int64_t>`) as its
+/// underlying type: `Int64` where that is `long long` (Darwin, Windows), `Int` where it is `long` (LP64 Linux). A value
+/// that crosses into or out of such a template converts to or from this type, the identity where the two are one.
+// FIXME: Use Int64 directly once the importer maps int64_t to Int64 inside template arguments too (KIT
+// docs/interop-limitations.md, "uint64_t in a template argument").
+typealias TemplateArgumentInt64 = JSC.TemporalOptionalInt64.Wrapped
+
 extension Swift.Int128 {
     /// A WTF `Int128` that crosses into Swift.
     @inline(__always)

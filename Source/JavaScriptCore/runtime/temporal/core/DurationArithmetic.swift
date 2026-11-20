@@ -1253,7 +1253,7 @@ extension JSC.TemporalCore {
     @implementation
     public static func splitTimeDuration(_ timeDuration: WTF.Int128) -> JSC.TemporalTimeDurationSplit {
         let (overflowDays, subdayNs) = TemporalOperations.splitTimeDuration(Int128(wtf: timeDuration))
-        return JSC.TemporalTimeDurationSplit(first: overflowDays, second: WTF.Int128(swift: subdayNs))
+        return JSC.TemporalTimeDurationSplit(first: TemplateArgumentInt64(overflowDays), second: WTF.Int128(swift: subdayNs))
     }
 
     /// `TemporalCore::plainTimeFromSubdayNs`.
@@ -1372,7 +1372,7 @@ func temporalAdjustDateDurationRecord(
     _ adjusted: inout JSC.ISO8601.Duration,
     _ kind: inout JSC.TemporalErrorKind
 ) -> WTF.String {
-    TemporalOperations.adjustDateDurationRecord(dateDuration, days, weeks.value, months.value).store(&adjusted, &kind)
+    TemporalOperations.adjustDateDurationRecord(dateDuration, days, weeks.value.map(Int64.init), months.value.map(Int64.init)).store(&adjusted, &kind)
 }
 
 /// `TemporalCore::nudgeToCalendarUnit`.
