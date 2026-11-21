@@ -330,6 +330,8 @@ def strip_optional(type_name):
 
 
 def adapt_argument(expression, declared_type, pointer_type):
+    # CM_SWIFT_SENDING_RETAINED_PARAMETER marks a CF out-parameter `sending` in the pointer type.
+    pointer_type = pointer_type.removeprefix('sending ')
     if declared_type == pointer_type:
         return expression, False
     if declared_type == 'Bool' and pointer_type == 'DarwinBoolean':
@@ -372,7 +374,8 @@ def function_accessor(declaration, typedef, imported, with_pointer=False):
         if local == '_':
             local = f'arg{i}'
             head = f'_ {local}'
-        signature.append(f'{head}: {parameter_type}')
+        # The pointer type's `sending` parameter needs a `sending` argument, so the accessor's is too.
+        signature.append(f'{head}: {"sending " if pointer_parameter.startswith("sending ") else ""}{parameter_type}')
         expression, adapted_unsafely = adapt_argument(local, parameter_type, pointer_parameter)
         if expression is None:
             raise GeneratorError(f'{name}: parameter {i} is {parameter_type}, {pointer_parameter} in the pointer type: no adaptation rule')
