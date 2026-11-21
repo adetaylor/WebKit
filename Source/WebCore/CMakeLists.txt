@@ -4622,7 +4622,8 @@ else ()
         platform/network/StoredCredentialsPolicy.h)
     if (USE_CURL)
         list(APPEND _webcore_swift_core_submodules platform/network/curl/ResourceResponse.h)
-    elseif (USE_SOUP)
+    elseif (PORT STREQUAL "GTK" OR PORT STREQUAL "WPE")
+        # USE(SOUP) (PlatformUse.h); their PlatformGTK.cmake and PlatformWPE.cmake include platform/Soup.cmake.
         list(APPEND _webcore_swift_core_submodules platform/network/soup/ResourceResponse.h)
     endif ()
     string(APPEND _webcore_swift_modules
@@ -4752,6 +4753,16 @@ else ()
         html/parser/HTMLTreeBuilderSwiftSupport.h html/HTMLUnknownElement.h bindings/js/JSCustomElementInterface.h
         dom/ProcessingInstruction.h ${WebCore_DERIVED_SOURCES_DIR}/Settings.h dom/ShadowRoot.h
         style/values/primitives/StylePrimitiveNumericTypes+Blending.h)
+    if (ENABLE_WEB_AUDIO)
+        # The audio DSP's Swift (WebCore_AUDIO_DSP_SWIFT_SOURCES): its boundary types, and BiquadKernel.swift takes
+        # the filter's type.
+        list(APPEND _webcore_swift_core_submodules Modules/webaudio/BiquadFilterType.h)
+        string(APPEND _webcore_swift_modules
+            "    explicit module AudioDSPBoundaryTypes {\n"
+            "        header \"${WEBCORE_DIR}/platform/audio/AudioDSPBoundaryTypes.h\"\n"
+            "        export *\n"
+            "    }\n")
+    endif ()
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
     if (_webcore_swift_core_submodules)
