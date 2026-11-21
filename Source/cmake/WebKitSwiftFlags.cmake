@@ -240,6 +240,32 @@ if (GLib_INCLUDE_DIR AND NOT APPLE AND NOT WIN32)
     set(WEBKIT_SWIFT_SYSTEM_MODULE_MAP_FLAGS "-Xcc -ivfsoverlay" "-Xcc ${_linux_mm_dir}/vfs-overlay.yaml")
 endif ()
 
+# Skia's PUBLIC definitions (SK_R32_SHIFT, SK_ASSUME_GL_ES, ...) change what its headers declare and what their inline
+# code does, so every C++ file that includes them gets them, and Swift's importer, which reads the same headers through
+# WebCore's and WebKit's, needs them too. Per-target definitions don't reach the importer (the shared -Xcc set of
+# _WEBKIT_COMPUTE_SWIFT_SHARED_CLANG_FLAGS keeps every Swift target on one module cache hash), and Skia is added after
+# JavaScriptCore, whose importer flags are computed first. So they go to every importer in a response file written once
+# the whole tree is configured, from Skia's own INTERFACE_COMPILE_DEFINITIONS; it is empty on the ports without Skia.
+set(WEBKIT_SWIFT_THIRD_PARTY_DEFINES_RESP "${CMAKE_BINARY_DIR}/swift-third-party-defines.resp")
+function(_webkit_write_swift_third_party_defines)
+    set(_content "")
+    if (TARGET Skia)
+        get_target_property(_defs Skia INTERFACE_COMPILE_DEFINITIONS)
+        foreach (_d IN LISTS _defs)
+            # webkit_scope_target_interface_definitions keeps the definitions with a value from swiftc's -D, behind
+            # $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:...>; this file is the importer's C-family view, so take the inside.
+            if (_d MATCHES "^\\$<\\$<NOT:\\$<COMPILE_LANGUAGE:Swift>>:(.+)>$")
+                set(_d "${CMAKE_MATCH_1}")
+            endif ()
+            if (_d)
+                string(APPEND _content "-Xcc\n\"-D${_d}\"\n")
+            endif ()
+        endforeach ()
+    endif ()
+    file(GENERATE OUTPUT "${WEBKIT_SWIFT_THIRD_PARTY_DEFINES_RESP}" CONTENT "${_content}")
+endfunction()
+cmake_language(DEFER DIRECTORY "${CMAKE_SOURCE_DIR}" CALL _webkit_write_swift_third_party_defines)
+
 # Whole-module Swift for every build that is neither Debug nor DEVELOPER_MODE, as Xcode builds
 # WebCore. CMake's default is incremental, which never specializes a call to a generic function in
 # another file. DEVELOPER_MODE keeps incremental rebuilds, as it keeps clang-cl builds from LTO (see
