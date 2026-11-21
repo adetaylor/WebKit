@@ -1563,6 +1563,7 @@ function(_WEBKIT_SWIFT_SHARED_IMPORTER_OPTIONS _outvar _resp_path _cxx_interop)
     foreach (_f IN LISTS _shared_cc_flags)
         list(APPEND _opts "-Xcc ${_f}")
     endforeach ()
+    list(APPEND _opts ${WEBKIT_SWIFT_SYSTEM_MODULE_MAP_FLAGS})
     set(${_outvar} ${_opts} PARENT_SCOPE)
 endfunction()
 

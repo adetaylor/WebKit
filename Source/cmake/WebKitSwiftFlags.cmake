@@ -221,6 +221,25 @@ if (CXX_STDLIB_VARIANT STREQUAL "GLIBCXX")
         "-Xcc -U__SSE3__" "-Xcc -U__SSSE3__" "-Xcc -U__SSE4_1__" "-Xcc -U__SSE4_2__")
 endif ()
 
+# GLib's, GIO's and libsoup's headers have no module map. Swift's importer reads WebKit's headers as modules (wtf,
+# pal, WebCore_Private, WebKit's), and a header with no module of its own is part of every module that includes it:
+# wtf/glib's and WebCore's soup headers put GLib in two, whose declarations and include guards then conflict ("typedef
+# redefinition with different types ('enum GTlsDatabaseLookupFlags' vs 'enum GTlsDatabaseLookupFlags')"). The module
+# maps in Source/cmake/linux-modulemaps give each library a module, placed beside its headers by a VFS overlay; every
+# Swift importer gets the overlay, so each library is one module for all of them.
+set(WEBKIT_SWIFT_SYSTEM_MODULE_MAP_FLAGS "")
+if (GLib_INCLUDE_DIR AND NOT APPLE AND NOT WIN32)
+    set(_linux_mm_src "${CMAKE_SOURCE_DIR}/Source/cmake/linux-modulemaps")
+    set(_linux_mm_dir "${CMAKE_BINARY_DIR}/linux-modulemaps")
+    file(MAKE_DIRECTORY "${_linux_mm_dir}")
+    configure_file("${_linux_mm_src}/glib.modulemap" "${_linux_mm_dir}/glib.modulemap" COPYONLY)
+    configure_file("${_linux_mm_src}/libsoup.modulemap" "${_linux_mm_dir}/libsoup.modulemap" COPYONLY)
+    set(_vfs_glib_modulemap "${_linux_mm_dir}/glib.modulemap")
+    set(_vfs_libsoup_modulemap "${_linux_mm_dir}/libsoup.modulemap")
+    configure_file("${_linux_mm_src}/vfs-overlay.yaml.in" "${_linux_mm_dir}/vfs-overlay.yaml" @ONLY)
+    set(WEBKIT_SWIFT_SYSTEM_MODULE_MAP_FLAGS "-Xcc -ivfsoverlay" "-Xcc ${_linux_mm_dir}/vfs-overlay.yaml")
+endif ()
+
 # Whole-module Swift for every build that is neither Debug nor DEVELOPER_MODE, as Xcode builds
 # WebCore. CMake's default is incremental, which never specializes a call to a generic function in
 # another file. DEVELOPER_MODE keeps incremental rebuilds, as it keeps clang-cl builds from LTO (see
