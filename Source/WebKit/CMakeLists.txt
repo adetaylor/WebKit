@@ -905,8 +905,9 @@ set(WebKit_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY TRUE)
 # the framework layout. Synthesize a plain module map exposing only what
 # WebBackForwardList.swift names directly (the rest of the WebCore:: types it uses
 # are reachable transitively via WebKit_Internal headers), and the headers of the C++
-# enums the generated serializers name (swift_types.py's CXX_ENUM_TYPES), and put it on
-# the importer's search path below.
+# enums the generated serializers name (swift_types.py's CXX_ENUM_TYPES) and of the WebCore types SwiftCoding.swift
+# codes (ImageBufferFormat, ImageBufferResourceLimits, CaptureConstraints), which both import, and put it on the
+# importer's search path below. With the GPU process off nothing in WebKit_Internal brings them in.
 if (NOT USE_FRAMEWORK_BUNDLES)
     set(WebCore_Private_SWIFT_MODULEMAP_DIR "${CMAKE_BINARY_DIR}/WebKit/SwiftModules/WebCorePrivate")
     file(MAKE_DIRECTORY "${WebCore_Private_SWIFT_MODULEMAP_DIR}")
@@ -925,6 +926,9 @@ if (NOT USE_FRAMEWORK_BUNDLES)
     header \"${WebCore_PRIVATE_HEADERS_DIR}/FEDisplacementMapParameters.h\"
     header \"${WebCore_PRIVATE_HEADERS_DIR}/FEMorphologyParameters.h\"
     header \"${WebCore_PRIVATE_HEADERS_DIR}/FETurbulenceParameters.h\"
+    header \"${WebCore_PRIVATE_HEADERS_DIR}/ImageBufferFormat.h\"
+    header \"${WebCore_PRIVATE_HEADERS_DIR}/ImageBufferResourceLimits.h\"
+    header \"${WebCore_PRIVATE_HEADERS_DIR}/MediaConstraintsEvaluation.h\"
     export *
 }
 ")

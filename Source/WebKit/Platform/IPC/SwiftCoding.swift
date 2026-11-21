@@ -23,6 +23,7 @@
 
 #if ENABLE_SWIFT_IPC_RECEIVERS
 
+import WebCore_Private
 import WebKit_Internal
 import wtf
 #if canImport(Darwin)
