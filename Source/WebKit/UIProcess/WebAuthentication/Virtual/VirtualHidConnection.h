@@ -53,7 +53,19 @@ private:
     void parseRequest();
 
     void receiveHidMessage(fido::FidoHidMessage&&);
+    // For parseRequest: sends a response message.
+    void receiveResponse(Vector<uint8_t>);
     void recieveResponseCode(fido::CtapDeviceResponseCode);
+
+    // The assembled request's channel, command and payload, for parseRequest.
+    fido::HidMessageState requestMessageState() const
+    {
+        if (!m_requestMessage)
+            return { };
+        return { .valid = true, .channelId = m_requestMessage->channelId(), .cmd = m_requestMessage->cmd(), .payload = m_requestMessage->getMessagePayload() };
+    }
+    // For parseRequest: forgets the request once it is answered.
+    void clearRequestMessage() { m_requestMessage = std::nullopt; }
 
     WeakPtr<VirtualAuthenticatorManager> m_manager;
     VirtualAuthenticatorConfiguration m_configuration;

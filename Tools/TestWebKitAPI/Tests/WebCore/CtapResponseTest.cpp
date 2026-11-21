@@ -31,15 +31,14 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#include "CBORTestUtilities.h"
 #include "FidoTestData.h"
 #include <JavaScriptCore/ArrayBuffer.h>
 #include <WebCore/AuthenticationExtensionsClientOutputs.h>
 #include <WebCore/AuthenticatorAttachment.h>
 #include <WebCore/AuthenticatorTransport.h>
 #include <WebCore/BufferSource.h>
-#include <WebCore/CBORReader.h>
-#include <WebCore/CBORValue.h>
-#include <WebCore/CBORWriter.h>
+#include <WebCore/CBORBytes.h>
 #include <WebCore/CredentialPropertiesOutput.h>
 #include <WebCore/DeviceResponseConverter.h>
 #include <WebCore/FidoConstants.h>
@@ -356,44 +355,30 @@ TEST(CTAPResponseTest, TestReadMakeCredentialResponse)
 {
     auto makeCredentialResponse = readCTAPMakeCredentialResponse(std::span { TestData::kTestMakeCredentialResponse }, AuthenticatorAttachment::CrossPlatform, { });
     ASSERT_TRUE(makeCredentialResponse);
-    auto cborAttestationObject = cbor::CBORReader::read(makeCredentialResponse->attestationObject().toVector());
-    ASSERT_TRUE(cborAttestationObject);
-    ASSERT_TRUE(cborAttestationObject->isMap());
+    auto attestationObjectBytes = makeCredentialResponse->attestationObject().toVector();
+    auto attestationObject = cbor::readCanonical(attestationObjectBytes.span());
+    ASSERT_TRUE(attestationObject.error == cbor::DecoderError::CBORNoError);
+    ASSERT_TRUE(isCBORMap(attestationObject.canonical.span()));
 
-    const auto& attestationObjectMap = cborAttestationObject->getMap();
-    auto it = attestationObjectMap.find(cbor::CBORValue(kFormatKey));
-    ASSERT_TRUE(it != attestationObjectMap.end());
-    ASSERT_TRUE(it->second.isString());
-    EXPECT_EQ(it->second.getString(), "packed"_s);
+    auto expectBytesEqual = [](std::optional<std::span<const uint8_t>> actual, const CBORItem& expected) {
+        ASSERT_TRUE(actual.has_value());
+        EXPECT_TRUE(std::ranges::equal(*actual, expected.span()));
+    };
 
-    it = attestationObjectMap.find(cbor::CBORValue(kAuthDataKey));
-    ASSERT_TRUE(it != attestationObjectMap.end());
-    ASSERT_TRUE(it->second.isByteString());
-    EXPECT_EQ(it->second.getByteString(), Vector<uint8_t> { TestData::kCtap2MakeCredentialAuthData });
+    auto key = [](const String& name) {
+        return cborText(name);
+    };
 
-    it = attestationObjectMap.find(cbor::CBORValue(kAttestationStatementKey));
-    ASSERT_TRUE(it != attestationObjectMap.end());
-    ASSERT_TRUE(it->second.isMap());
+    expectBytesEqual(cborMapLookup(attestationObject.canonical.span(), key(kFormatKey).span()), cborText("packed"_s));
+    expectBytesEqual(cborMapLookup(attestationObject.canonical.span(), key(kAuthDataKey).span()), cborBytes(std::span { TestData::kCtap2MakeCredentialAuthData }));
 
-    const auto& attestationStatementMap = it->second.getMap();
-    auto attStmtIt = attestationStatementMap.find(cbor::CBORValue("alg"));
+    auto attestationStatement = cborMapLookup(attestationObject.canonical.span(), key(kAttestationStatementKey).span());
+    ASSERT_TRUE(attestationStatement.has_value());
+    ASSERT_TRUE(isCBORMap(*attestationStatement));
 
-    ASSERT_TRUE(attStmtIt != attestationStatementMap.end());
-    ASSERT_TRUE(attStmtIt->second.isInteger());
-    EXPECT_EQ(attStmtIt->second.getInteger(), -7);
-
-    attStmtIt = attestationStatementMap.find(cbor::CBORValue("sig"));
-    ASSERT_TRUE(attStmtIt != attestationStatementMap.end());
-    ASSERT_TRUE(attStmtIt->second.isByteString());
-    EXPECT_EQ(attStmtIt->second.getByteString(), Vector<uint8_t> { TestData::kCtap2MakeCredentialSignature });
-
-    attStmtIt = attestationStatementMap.find(cbor::CBORValue("x5c"));
-    ASSERT_TRUE(attStmtIt != attestationStatementMap.end());
-    const auto& certificate = attStmtIt->second;
-    ASSERT_TRUE(certificate.isArray());
-    ASSERT_EQ(certificate.getArray().size(), 1u);
-    ASSERT_TRUE(certificate.getArray()[0].isByteString());
-    EXPECT_EQ(certificate.getArray()[0].getByteString(), Vector<uint8_t> { TestData::kCtap2MakeCredentialCertificate });
+    expectBytesEqual(cborMapLookup(*attestationStatement, key("alg"_s).span()), cborInteger(-7));
+    expectBytesEqual(cborMapLookup(*attestationStatement, key("sig"_s).span()), cborBytes(std::span { TestData::kCtap2MakeCredentialSignature }));
+    expectBytesEqual(cborMapLookup(*attestationStatement, key("x5c"_s).span()), cborArray({ cborBytes(std::span { TestData::kCtap2MakeCredentialCertificate }) }));
     EXPECT_EQ(makeCredentialResponse->rawId().byteLength(), sizeof(TestData::kCtap2MakeCredentialCredentialId));
     EXPECT_TRUE(equalSpans(makeCredentialResponse->rawId().span(), std::span { TestData::kCtap2MakeCredentialCredentialId }));
 }
@@ -668,34 +653,170 @@ TEST(CTAPResponseTest, TestReadMakeCredentialResponseWithHmacSecret)
     EXPECT_TRUE(*extensions.prf->enabled);
 }
 
-static Vector<uint8_t> encodeExtensionOutputs(cbor::CBORValue::MapValue&& map)
+static Vector<uint8_t> encodeCredPropsExtensionOutputs(const CBORItem& credPropsMap)
 {
-    auto encoded = cbor::CBORWriter::write(cbor::CBORValue(WTF::move(map)));
-    return encoded.value();
-}
-
-static Vector<uint8_t> encodeCredPropsExtensionOutputs(cbor::CBORValue::MapValue&& credPropsMap)
-{
-    cbor::CBORValue::MapValue root;
-    root[cbor::CBORValue("credProps")] = cbor::CBORValue(WTF::move(credPropsMap));
-    return encodeExtensionOutputs(WTF::move(root));
+    return cborMap({ { cborText("credProps"_s), credPropsMap } });
 }
 
 TEST(CTAPResponseTest, TestExtensionOutputsCredPropsWithoutRk)
 {
     {
-        auto outputs = AuthenticationExtensionsClientOutputs::fromCBOR(encodeCredPropsExtensionOutputs({ }));
+        auto outputs = AuthenticationExtensionsClientOutputs::fromCBOR(encodeCredPropsExtensionOutputs(cborMap({ })));
         ASSERT_TRUE(outputs);
         EXPECT_TRUE(outputs->credProps.has_value());
     }
 
     {
-        cbor::CBORValue::MapValue credProps;
-        credProps[cbor::CBORValue("unknownKey")] = cbor::CBORValue(true);
-        auto outputs = AuthenticationExtensionsClientOutputs::fromCBOR(encodeCredPropsExtensionOutputs(WTF::move(credProps)));
+        auto credProps = cborMap({ { cborText("unknownKey"_s), cborBool(true) } });
+        auto outputs = AuthenticationExtensionsClientOutputs::fromCBOR(encodeCredPropsExtensionOutputs(credProps));
         ASSERT_TRUE(outputs);
         EXPECT_TRUE(outputs->credProps.has_value());
     }
+}
+
+static Vector<uint8_t> testAuthenticatorData(uint8_t flags, std::optional<std::span<const uint8_t>> attestedCredentialID)
+{
+    Vector<uint8_t> authenticatorData(FillWith { }, 32, 0x11);
+    authenticatorData.append(flags);
+    authenticatorData.appendList({ 0x00, 0x00, 0x00, 0x01 });
+    if (attestedCredentialID) {
+        authenticatorData.append(std::span { kTestDeviceAaguid });
+        authenticatorData.append(static_cast<uint8_t>(attestedCredentialID->size() >> 8));
+        authenticatorData.append(static_cast<uint8_t>(attestedCredentialID->size()));
+        authenticatorData.append(*attestedCredentialID);
+        authenticatorData.append(std::span { TestData::kTestECPublicKeyCOSE });
+    }
+    return authenticatorData;
+}
+
+static Vector<uint8_t> testMakeCredentialResponse(std::span<const uint8_t> credentialID, const CBORItem& attestationStatement)
+{
+    Vector<uint8_t> response { 0x00 };
+    response.appendVector(cborMap({
+        { cborInteger(1), cborText("packed"_s) },
+        { cborInteger(2), cborBytes(testAuthenticatorData(0x41, credentialID).span()) },
+        { cborInteger(3), attestationStatement },
+    }));
+    return response;
+}
+
+static Vector<uint8_t> testGetAssertionResponse(std::span<const uint8_t> credentialID, std::span<const uint8_t> authenticatorData)
+{
+    Vector<uint8_t> response { 0x00 };
+    response.appendVector(cborMap({
+        { cborInteger(1), cborMap({ { cborText("id"_s), cborBytes(credentialID) }, { cborText("type"_s), cborText("public-key"_s) } }) },
+        { cborInteger(2), cborBytes(authenticatorData) },
+        { cborInteger(3), cborBytes(std::span { TestData::kCtap2GetAssertionSignature }) },
+    }));
+    return response;
+}
+
+// A map of one key per level, levels deep, with an empty map innermost.
+static CBORItem nestedCBORMap(size_t levels)
+{
+    auto map = cborMap({ });
+    for (size_t level = 1; level < levels; ++level)
+        map = cborMap({ { cborText("x"_s), map } });
+    return map;
+}
+
+TEST(CTAPResponseTest, TestReadMakeCredentialResponseStatementNesting)
+{
+    // The reader allows 17 levels, the response map's included, and rejects the response past that. This pins the
+    // reader's side: a statement the attestation object's writer cannot write is not reached from here.
+    Vector<uint8_t> credentialID(FillWith { }, 16, 0x70);
+    auto statement = nestedCBORMap(16);
+    auto response = readCTAPMakeCredentialResponse(testMakeCredentialResponse(credentialID.span(), statement), AuthenticatorAttachment::CrossPlatform, { });
+    ASSERT_TRUE(response);
+    auto attestationObject = response->attestationObject().toVector();
+    auto writtenStatement = cborMapLookup(attestationObject.span(), cborText(kAttestationStatementKey).span());
+    ASSERT_TRUE(writtenStatement);
+    EXPECT_TRUE(std::ranges::equal(*writtenStatement, statement.span()));
+
+    EXPECT_FALSE(readCTAPMakeCredentialResponse(testMakeCredentialResponse(credentialID.span(), nestedCBORMap(17)), AuthenticatorAttachment::CrossPlatform, { }));
+}
+
+TEST(CTAPResponseTest, TestReadMakeCredentialResponseCredentialIDLengths)
+{
+    auto statement = cborMap({ { cborText("alg"_s), cborInteger(-7) } });
+    EXPECT_FALSE(readCTAPMakeCredentialResponse(testMakeCredentialResponse({ }, statement), AuthenticatorAttachment::CrossPlatform, { }));
+
+    // The attested credential data holds the length in two bytes.
+    Vector<uint8_t> credentialID(FillWith { }, 65535, 0x5c);
+    auto response = readCTAPMakeCredentialResponse(testMakeCredentialResponse(credentialID.span(), statement), AuthenticatorAttachment::CrossPlatform, { });
+    ASSERT_TRUE(response);
+    EXPECT_TRUE(equalSpans(response->rawId().span(), credentialID.span()));
+}
+
+TEST(CTAPResponseTest, TestReadMakeCredentialResponsePublicKey)
+{
+    Vector<uint8_t> credentialID(FillWith { }, 16, 0x70);
+    auto response = readCTAPMakeCredentialResponse(testMakeCredentialResponse(credentialID.span(), cborMap({ })), AuthenticatorAttachment::CrossPlatform, { });
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->getPublicKeyAlgorithm(), -7);
+    auto publicKey = response->getPublicKey();
+    ASSERT_TRUE(publicKey);
+    // The P-256 key as SubjectPublicKeyInfo ends with the uncompressed point.
+    EXPECT_EQ(publicKey->byteLength(), 91u);
+    EXPECT_TRUE(equalSpans(publicKey->span().last(64).first(32), std::span { TestData::kTestECPublicKeyCOSE }.subspan(10, 32)));
+}
+
+TEST(CTAPResponseTest, TestReadGetAssertionResponseCredentialIDLengths)
+{
+    auto authenticatorData = testAuthenticatorData(0x01, std::nullopt);
+    // An empty credential ID is read as it is.
+    auto response = readCTAPGetAssertionResponse(testGetAssertionResponse({ }, authenticatorData.span()), AuthenticatorAttachment::CrossPlatform);
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->rawId().byteLength(), 0u);
+
+    Vector<uint8_t> credentialID(FillWith { }, 65536, 0x6d);
+    response = readCTAPGetAssertionResponse(testGetAssertionResponse(credentialID.span(), authenticatorData.span()), AuthenticatorAttachment::CrossPlatform);
+    ASSERT_TRUE(response);
+    EXPECT_TRUE(equalSpans(response->rawId().span(), credentialID.span()));
+}
+
+static Vector<uint8_t> testGetInfoResponse(std::initializer_list<CBORMapEntry> moreEntries)
+{
+    Vector<CBORMapEntry> entries {
+        { cborInteger(1), cborArray({ cborText("FIDO_2_0"_s) }) },
+        { cborInteger(3), cborBytes(std::span { kTestDeviceAaguid }) },
+    };
+    entries.appendRange(moreEntries.begin(), moreEntries.end());
+    std::ranges::sort(entries, [](auto& a, auto& b) {
+        return a.first[0] < b.first[0];
+    });
+    Vector<uint8_t> response { 0x00 };
+    appendCBORHead(response, 5, entries.size());
+    for (auto& entry : entries) {
+        response.appendVector(entry.first);
+        response.appendVector(entry.second);
+    }
+    return response;
+}
+
+TEST(CTAPResponseTest, TestReadGetInfoResponseIntegerWidths)
+{
+    auto response = readCTAPGetInfoResponse(testGetInfoResponse({ { cborInteger(5), cborInteger(0xffffffff) } }));
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->maxMsgSize(), 0xffffffffu);
+
+    // A wider value keeps its low 32 bits, as the C++ reader narrowed it.
+    response = readCTAPGetInfoResponse(testGetInfoResponse({ { cborInteger(5), cborInteger(0x100000001) } }));
+    ASSERT_TRUE(response);
+    EXPECT_EQ(response->maxMsgSize(), 1u);
+
+    EXPECT_FALSE(readCTAPGetInfoResponse(testGetInfoResponse({ { cborInteger(5), cborInteger(-1) } })));
+}
+
+TEST(CTAPResponseTest, TestReadGetInfoResponseExtensions)
+{
+    EXPECT_FALSE(readCTAPGetInfoResponse(testGetInfoResponse({ { cborInteger(2), cborArray({ cborText("hmac-secret"_s), cborInteger(1) }) } })));
+
+    auto response = readCTAPGetInfoResponse(testGetInfoResponse({ { cborInteger(2), cborArray({ cborText(emptyString()) }) } }));
+    ASSERT_TRUE(response);
+    ASSERT_TRUE(response->extensions());
+    ASSERT_EQ(response->extensions()->size(), 1u);
+    EXPECT_EQ(response->extensions()->first(), emptyString());
 }
 
 } // namespace TestWebKitAPI

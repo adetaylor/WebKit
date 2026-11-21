@@ -103,7 +103,6 @@ UIProcess/WebAuthentication/Cocoa/HidService.mm @nonARC
 UIProcess/WebAuthentication/Cocoa/WebAuthenticatorCoordinatorProxy.mm @nonARC
 
 UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorManager.cpp
-UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorUtils.mm @nonARC
 UIProcess/WebAuthentication/Virtual/VirtualHidConnection.cpp
 UIProcess/WebAuthentication/Virtual/VirtualLocalConnection.mm @nonARC
 UIProcess/WebAuthentication/Virtual/VirtualService.mm @nonARC

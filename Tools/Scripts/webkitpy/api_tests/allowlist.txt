@@ -1080,7 +1080,6 @@ TestWebKitAPI.AutomationSendInspectorMessageTests/windowNotFoundForUnknownHandle
 TestWebKitAPI.BifurcatedGraphicsContextTests
 TestWebKitAPI.CARingBufferTest
 TestWebKitAPI.CBORReaderTest
-TestWebKitAPI.CBORValueTest
 TestWebKitAPI.CBORWriterTest
 TestWebKitAPI.CSSParser
 TestWebKitAPI.CSSParserFastPaths

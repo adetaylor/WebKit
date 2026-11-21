@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,21 +23,22 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "config.h"
+#include "CBORBytes.h"
 
 #if ENABLE(WEB_AUTHN)
 
-#include "VirtualAuthenticatorConfiguration.h"
+#include "WebCore-Swift.h"
 
-namespace WebKit {
+namespace cbor {
 
-NODELETE uint8_t flagsForConfig(const VirtualAuthenticatorConfiguration&);
-RetainPtr<SecKeyRef> createPrivateKey();
-std::pair<Vector<uint8_t>, Vector<uint8_t>> credentialIdAndCosePubKeyForPrivateKey(RetainPtr<SecKeyRef> privateKey);
-String base64PrivateKey(RetainPtr<SecKeyRef> privateKey);
-RetainPtr<SecKeyRef> privateKeyFromBase64(const String& base64PrivateKey);
-Vector<uint8_t> signatureForPrivateKey(RetainPtr<SecKeyRef> privateKey, const Vector<uint8_t>& authData, const Vector<uint8_t>& clientDataHash);
+CanonicalReadResult readCanonical(std::span<const uint8_t> input, int maxNestingLevel, bool allowTrailingData)
+{
+    CanonicalReadResult result;
+    WebCore::readCanonicalCBOR(input, maxNestingLevel, allowTrailingData, result);
+    return result;
+}
 
-} // namespace WebKit
+} // namespace cbor
 
 #endif // ENABLE(WEB_AUTHN)

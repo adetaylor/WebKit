@@ -32,7 +32,7 @@ import wtf
 
 extension WebKit.CtapCcidDriver {
     @cxx @implementation
-    func encodeCtap2Command(_ data: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    func encodeCtap2Command(_ data: cbor.Bytes) -> cbor.Bytes {
         if !isValidSize(data.size()) {
             WebKit.LogChannel.WebAuthn().releaseLog.log(
                 "CtapCcidDriver::transact Sending data larger than maxSize. msgSize=\(data.size())"
@@ -44,19 +44,19 @@ extension WebKit.CtapCcidDriver {
     }
 
     @cxx @implementation
-    func ctap2Response(_ apduResponse: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    func ctap2Response(_ apduResponse: cbor.Bytes) -> cbor.Bytes {
         guard let response = Optional(fromCxx: apdu.ApduResponse.createFromMessage(apduResponse)) else {
-            return cbor.CBORValue.BinaryValue()
+            return cbor.Bytes()
         }
         if response.status() == .SW_INS_NOT_SUPPORTED {
             // Return kCtap1ErrInvalidCommand instead of an empty response to signal FidoService to create a U2F
             // authenticator for the getInfo stage.
-            var invalidCommand = cbor.CBORValue.BinaryValue()
+            var invalidCommand = cbor.Bytes()
             invalidCommand.append(consuming: fido.CtapDeviceResponseCode.ctap1ErrInvalidCommand.rawValue)
             return invalidCommand
         }
         if response.status() != .SW_NO_ERROR {
-            return cbor.CBORValue.BinaryValue()
+            return cbor.Bytes()
         }
         return fido.apduResponseData(response)
     }

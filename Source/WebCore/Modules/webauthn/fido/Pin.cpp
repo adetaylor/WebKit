@@ -32,7 +32,6 @@
 
 #if ENABLE(WEB_AUTHN)
 
-#include "CBORWriter.h"
 #include "CryptoAlgorithmAESCBC.h"
 #include "CryptoAlgorithmAesCbcCfbParams.h"
 #include "CryptoAlgorithmECDH.h"
@@ -168,9 +167,9 @@ std::optional<KeyAgreementResponse> KeyAgreementResponse::parse(Vector<uint8_t> 
     return KeyAgreementResponse(result.releaseNonNull());
 }
 
-std::optional<KeyAgreementResponse> KeyAgreementResponse::parseFromCOSE(const cbor::CBORValue::MapValue& coseKey)
+std::optional<KeyAgreementResponse> KeyAgreementResponse::parseFromCOSE(Vector<uint8_t> coseKey)
 {
-    auto result = WebCore::parseKeyAgreementFromCOSE(coseKey);
+    auto result = WebCore::parseKeyAgreementFromCOSE(WTF::move(coseKey));
     if (!result)
         return std::nullopt;
     return KeyAgreementResponse(result.releaseNonNull());
@@ -199,7 +198,7 @@ const Vector<uint8_t>& TokenResponse::token() const
     return m_token->key();
 }
 
-TokenRequest::TokenRequest(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& pinHash, PINUVAuthProtocol protocol)
+TokenRequest::TokenRequest(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& pinHash, PINUVAuthProtocol protocol)
     : m_sharedKey(sharedKey)
     , m_coseKey(WTF::move(coseKey))
     , m_pinHash(WTF::move(pinHash))
@@ -207,7 +206,7 @@ TokenRequest::TokenRequest(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::Ma
 {
 }
 
-SetPinRequest::SetPinRequest(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& newPinEnc, Vector<uint8_t>&& pinUvAuthParam, PINUVAuthProtocol protocol)
+SetPinRequest::SetPinRequest(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& newPinEnc, Vector<uint8_t>&& pinUvAuthParam, PINUVAuthProtocol protocol)
     : m_sharedKey(sharedKey)
     , m_coseKey(WTF::move(coseKey))
     , m_newPinEnc(WTF::move(newPinEnc))
@@ -224,8 +223,8 @@ const Vector<uint8_t>& SetPinRequest::pinAuth() const
 Vector<uint8_t> encodeAsCBOR(const TokenRequest& request)
 {
     auto result = WebCore::encodeTokenRequestAsCBOR(request);
-    // The encoding moves the COSE key out of the request, so a second encoding sends an empty one.
-    request.m_coseKey.clear();
+    // The first encoding consumes the COSE key, so a second encoding sends an empty COSE key map.
+    request.m_coseKey = { 0xa0 };
     return result;
 }
 
@@ -234,7 +233,7 @@ Vector<uint8_t> encodeAsCBOR(SetPinRequest request)
     return WebCore::encodeSetPinRequestAsCBOR(request);
 }
 
-HmacSecretRequest::HmacSecretRequest(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& saltEnc, Vector<uint8_t>&& saltAuth, PINUVAuthProtocol protocol)
+HmacSecretRequest::HmacSecretRequest(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& saltEnc, Vector<uint8_t>&& saltAuth, PINUVAuthProtocol protocol)
     : m_sharedKey(sharedKey)
     , m_coseKey(WTF::move(coseKey))
     , m_saltEnc(WTF::move(saltEnc))

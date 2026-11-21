@@ -24,6 +24,7 @@
 #if ENABLE_WEB_AUTHN
 
 import CryptoKit
+internal import WebCore
 import WebCore_Private
 import WebKit_Internal
 import wtf
@@ -139,35 +140,16 @@ private func isTerminalPinError(_ error: fido.CtapDeviceResponseCode) -> Bool {
 }
 
 // The PRF input as the spec hashes it: SHA-256("WebAuthn PRF" || 0x00 || input).
-private func hashPRFInput(_ input: WebCore.BufferSource) -> cbor.CBORValue.BinaryValue {
+private func hashPRFInput(_ input: WebCore.BufferSource) -> cbor.Bytes {
     var hasher = SHA256()
     hasher.update(data: Array("WebAuthn PRF".utf8))
     hasher.update(data: [UInt8(0)])
     hasher.update(data: bufferSourceBytes(input))
-    var hash = cbor.CBORValue.BinaryValue()
-    for byte in hasher.finalize() {
-        hash.append(consuming: byte)
-    }
-    return hash
+    return makeByteVector(Array(hasher.finalize()))
 }
 
 private func errorCodeMessage(_ error: fido.CtapDeviceResponseCode) -> WTF.String {
-    webAuthnString("Unknown internal error. Error code: \(error.rawValue)")
-}
-
-// WTF::String equality compares code units; Swift's == compares canonical equivalence.
-private func sameCodeUnits(_ a: Swift.String, _ b: Swift.String) -> Bool {
-    let aUTF8 = a.utf8
-    let bUTF8 = b.utf8
-    let aBytes: Span<UInt8> = aUTF8.span
-    let bBytes: Span<UInt8> = bUTF8.span
-    if aBytes.count != bBytes.count {
-        return false
-    }
-    for index in aBytes.indices where aBytes[index] != bBytes[index] {
-        return false
-    }
-    return true
+    makeWTFString("Unknown internal error. Error code: \(error.rawValue)")
 }
 
 private func contains(_ strings: fido.StringVector, _ literal: Swift.String) -> Bool {
@@ -187,11 +169,11 @@ extension WebKit.CtapAuthenticator {
 
     // Sends a command; the answer goes to `step` if the authenticator is still there.
     private func transact(
-        _ command: cbor.CBORValue.BinaryValue,
-        _ step: @escaping (WebKit.CtapAuthenticator, cbor.CBORValue.BinaryValue) -> Void
+        _ command: cbor.Bytes,
+        _ step: @escaping (WebKit.CtapAuthenticator, cbor.Bytes) -> Void
     ) {
         let weakThis = WebKit.WeakPtrCtapAuthenticator(self, .Yes)
-        let callback = WebKit.CtapDriver.ResponseCallback { (data: cbor.CBORValue.BinaryValue) in
+        let callback = WebKit.CtapDriver.ResponseCallback { (data: cbor.Bytes) in
             precondition(WTF.RunLoop.isMain())
             if let this = weakThis.get() {
                 step(this, data)
@@ -256,7 +238,7 @@ extension WebKit.CtapAuthenticator {
         }
     }
 
-    private func continueSilentlyCheckCredentials(_ data: cbor.CBORValue.BinaryValue, _ completion: SilentCheckCompletion) {
+    private func continueSilentlyCheckCredentials(_ data: cbor.Bytes, _ completion: SilentCheckCompletion) {
         let error = fido.getResponseCode(data)
         log("continueSilentlyCheckCredentials: Got error code: \(error.rawValue) from authenticator.")
 
@@ -295,7 +277,7 @@ extension WebKit.CtapAuthenticator {
         // The answer is parsed and the result dropped.
         _ = readGetAssertionResponse(data)
         let pinParameters = pinParametersIfAuthorized()
-        let command: cbor.CBORValue.BinaryValue
+        let command: cbor.Bytes
         if isCreationRequest() {
             command = fido.encodeSilentGetAssertion(
                 creationOptions().rp.id, requestHash(), m_batches[m_currentBatch], pinParameters
@@ -376,7 +358,7 @@ extension WebKit.CtapAuthenticator {
         let effectiveUVRequirement: WebCore.UserVerificationRequirement =
             needsPRF && supportsHmacSecret ? .Required : (selection?.userVerification ?? .Discouraged)
 
-        let command: cbor.CBORValue.BinaryValue
+        let command: cbor.Bytes
         if internalUVAvailability == .supportedAndConfigured && effectiveUVRequirement != .Discouraged
             && m_pinAuth.isEmpty()
         {
@@ -409,7 +391,7 @@ extension WebKit.CtapAuthenticator {
         }
     }
 
-    private func continueMakeCredentialAfterResponseReceived(_ data: cbor.CBORValue.BinaryValue) {
+    private func continueMakeCredentialAfterResponseReceived(_ data: cbor.Bytes) {
         let error = fido.getResponseCode(data)
         log("continueMakeCredentialAfterResponseReceived: Got error code: \(error.rawValue) from authenticator.")
         let parsed = fido.readCTAPMakeCredentialResponse(
@@ -427,7 +409,7 @@ extension WebKit.CtapAuthenticator {
             if error == .ctap2ErrCredentialExcluded {
                 respondWithError(
                     .InvalidStateError,
-                    webAuthnString(
+                    makeWTFString(
                         "At least one credential matches an entry of the excludeCredentials list in the authenticator."
                     )
                 )
@@ -514,11 +496,11 @@ extension WebKit.CtapAuthenticator {
         if let prf, supportsHmacSecret {
             log("continueGetAssertionAfterCheckAllowCredentials: PRF extension found, preparing hmac-secret")
             // The credential whose evalByCredential entry applies.
-            var credentialId: cbor.CBORValue.BinaryValue? = nil
+            var credentialId: cbor.Bytes? = nil
             if let overrideBatch, !overrideBatch.isEmpty() {
-                credentialId = makeBinaryValue(bufferSourceBytes(overrideBatch[0].id))
+                credentialId = makeByteVector(bufferSourceBytes(overrideBatch[0].id))
             } else if !options.allowCredentials.isEmpty() {
-                credentialId = makeBinaryValue(bufferSourceBytes(options.allowCredentials[0].id))
+                credentialId = makeByteVector(bufferSourceBytes(options.allowCredentials[0].id))
             }
             if let parameters = prepareHmacSecretParameters(prf, credentialId) {
                 hmacSecretParameters = fido.OptionalHmacSecretParameters(parameters)
@@ -537,7 +519,7 @@ extension WebKit.CtapAuthenticator {
         let effectiveUVRequirement: WebCore.UserVerificationRequirement =
             needsPRF && supportsHmacSecret ? .Required : options.userVerification
 
-        let command: cbor.CBORValue.BinaryValue
+        let command: cbor.Bytes
         if internalUVAvailability == .supportedAndConfigured && effectiveUVRequirement != .Discouraged
             && m_pinAuth.isEmpty()
         {
@@ -570,7 +552,7 @@ extension WebKit.CtapAuthenticator {
         }
     }
 
-    private func continueGetAssertionAfterResponseReceived(_ data: cbor.CBORValue.BinaryValue) {
+    private func continueGetAssertionAfterResponseReceived(_ data: cbor.Bytes) {
         let parsed = readGetAssertionResponse(data)
         let error = fido.getResponseCode(data)
         log("continueGetAssertionAfterResponseReceived: errorcode: \(error.rawValue)")
@@ -628,7 +610,7 @@ extension WebKit.CtapAuthenticator {
         }
     }
 
-    private func continueGetNextAssertionAfterResponseReceived(_ data: cbor.CBORValue.BinaryValue) {
+    private func continueGetNextAssertionAfterResponseReceived(_ data: cbor.Bytes) {
         let error = fido.getResponseCode(data)
         log("continueGetNextAssertionAfterResponseReceived: errorcode: \(error.rawValue)")
         guard let response = readGetAssertionResponse(data).get() else {
@@ -663,7 +645,7 @@ extension WebKit.CtapAuthenticator {
         }
     }
 
-    private func continueGetKeyAgreementAfterGetRetries(_ data: cbor.CBORValue.BinaryValue) {
+    private func continueGetKeyAgreementAfterGetRetries(_ data: cbor.Bytes) {
         log("continueGetKeyAgreementAfterGetRetries")
         let retries = fido.pin.parseRetriesResponse(data)
         if !retries.valid {
@@ -682,7 +664,7 @@ extension WebKit.CtapAuthenticator {
         }
     }
 
-    private func continueRequestPinAfterGetKeyAgreement(_ data: cbor.CBORValue.BinaryValue, _ retries: UInt64) {
+    private func continueRequestPinAfterGetKeyAgreement(_ data: cbor.Bytes, _ retries: UInt64) {
         log("continueRequestPinAfterGetKeyAgreement")
         let keyAgreement = fido.pin.parseKeyAgreementResponse(data)
         guard let peerKey = keyAgreement.get() else {
@@ -710,7 +692,7 @@ extension WebKit.CtapAuthenticator {
     private func continueGetPinTokenAfterRequestPin(_ pin: WTF.String, _ peerKey: WebCore.CryptoKeyEC) {
         log("continueGetNextAssertionAfterResponseReceived")
         if pin.isNull() {
-            respondWithError(.UnknownError, webAuthnString("Pin is null."))
+            respondWithError(.UnknownError, makeWTFString("Pin is null."))
             return
         }
 
@@ -723,7 +705,7 @@ extension WebKit.CtapAuthenticator {
         }
         let tokenRequest = fido.pin.tokenRequestParts(selectPinProtocol(), pinUTF8, peerKey)
         guard let sharedKey = tokenRequest.sharedKey.get() else {
-            respondWithError(.UnknownError, webAuthnString("Cannot create a TokenRequest."))
+            respondWithError(.UnknownError, makeWTFString("Cannot create a TokenRequest."))
             return
         }
 
@@ -734,7 +716,7 @@ extension WebKit.CtapAuthenticator {
         }
     }
 
-    private func continueRequestAfterGetPinToken(_ data: cbor.CBORValue.BinaryValue, _ sharedKey: WebCore.CryptoKeyAES) {
+    private func continueRequestAfterGetPinToken(_ data: cbor.Bytes, _ sharedKey: WebCore.CryptoKeyAES) {
         log("continueGetNextAssertionAfterResponseReceived")
         let token = fido.pin.parseTokenResponse(selectPinProtocol(), sharedKey, data)
         guard let tokenKey = token.get() else {
@@ -863,7 +845,7 @@ extension WebKit.CtapAuthenticator {
     }
 
     private func continueSetupPinAfterCommand(
-        _ data: cbor.CBORValue.BinaryValue,
+        _ data: cbor.Bytes,
         _ pin: WTF.String,
         _ peerKey: WebCore.CryptoKeyEC
     ) {
@@ -883,7 +865,7 @@ extension WebKit.CtapAuthenticator {
         let tokenRequest = fido.pin.tokenRequestParts(selectPinProtocol(), pinUTF8, peerKey)
         guard let sharedKey = tokenRequest.sharedKey.get() else {
             log("continueSetupPinAfterCommand: Failed to create TokenRequest.")
-            respondWithError(.UnknownError, webAuthnString("Cannot create a TokenRequest."))
+            respondWithError(.UnknownError, makeWTFString("Cannot create a TokenRequest."))
             return
         }
 
@@ -894,7 +876,7 @@ extension WebKit.CtapAuthenticator {
         }
     }
 
-    private func continueSetupPinAfterGetKeyAgreement(_ data: cbor.CBORValue.BinaryValue, _ pin: WTF.String) {
+    private func continueSetupPinAfterGetKeyAgreement(_ data: cbor.Bytes, _ pin: WTF.String) {
         let keyAgreement = fido.pin.parseKeyAgreementResponse(data)
         guard let peerKey = keyAgreement.get() else {
             let error = fido.getResponseCode(data)
@@ -903,7 +885,7 @@ extension WebKit.CtapAuthenticator {
         }
         let setPinRequest = fido.pin.setPinRequestParts(selectPinProtocol(), pin, peerKey)
         if !setPinRequest.valid {
-            respondWithError(.UnknownError, webAuthnString("Cannot create a SetPinRequest."))
+            respondWithError(.UnknownError, makeWTFString("Cannot create a SetPinRequest."))
             return
         }
         m_pinAuth = setPinRequest.pinAuth
@@ -947,7 +929,7 @@ extension WebKit.CtapAuthenticator {
 
     private func performAuthenticatorSelectionForSetupPin() {
         log("performAuthenticatorSelectionForSetupPin: Requesting gesture for authenticator selection")
-        let command: cbor.CBORValue.BinaryValue
+        let command: cbor.Bytes
         if hasVersion(.ctap21) || hasVersion(.ctap21Pre) {
             // The authenticatorSelection command.
             command = fido.encodeEmptyAuthenticatorRequest(.authenticatorAuthenticatorSelection)
@@ -962,7 +944,7 @@ extension WebKit.CtapAuthenticator {
 
     private func prepareHmacSecretParameters(
         _ prfInputs: WebCore.AuthenticationExtensionsClientInputs.PRFInputs,
-        _ credentialId: cbor.CBORValue.BinaryValue?
+        _ credentialId: cbor.Bytes?
     ) -> fido.HmacSecretParameters? {
         if m_cachedPeerKey.get() == nil {
             log("prepareHmacSecretParameters: No cached peer key available (likely first attempt before PIN)")
@@ -1008,7 +990,7 @@ extension WebKit.CtapAuthenticator {
     }
 
     // readCTAPGetAssertionResponse with the pending hmac-secret request.
-    private func readGetAssertionResponse(_ data: cbor.CBORValue.BinaryValue) -> fido.AssertionResponsePtr {
+    private func readGetAssertionResponse(_ data: cbor.Bytes) -> fido.AssertionResponsePtr {
         fido.readCTAPGetAssertionResponse(
             data, .CrossPlatform, m_hmacSecretSharedKey, m_hmacSecretProtocol
         )
@@ -1024,15 +1006,6 @@ extension WebKit.CtapAuthenticator {
         precondition(hasObserver())
         updateObserverStatus(status)
     }
-}
-
-private func makeBinaryValue(_ bytes: [UInt8]) -> cbor.CBORValue.BinaryValue {
-    var value = cbor.CBORValue.BinaryValue()
-    value.reserveCapacity(bytes.count)
-    for byte in bytes {
-        value.append(consuming: byte)
-    }
-    return value
 }
 
 #endif // ENABLE_WEB_AUTHN

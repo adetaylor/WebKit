@@ -867,7 +867,6 @@
 				WebCore/CachedMatchFinder.cpp,
 				WebCore/CARingBufferTest.cpp,
 				WebCore/CBORReaderTest.cpp,
-				WebCore/CBORValueTest.cpp,
 				WebCore/CBORWriterTest.cpp,
 				WebCore/CDMClearKeyTests.cpp,
 				WebCore/cocoa/AttributedStringFontCache.mm,

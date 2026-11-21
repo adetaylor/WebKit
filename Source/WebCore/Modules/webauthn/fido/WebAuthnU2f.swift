@@ -22,7 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 // ENABLE(WEB_AUTHN) (PlatformEnableCocoa.h): every Cocoa platform but watchOS and Mac Catalyst.
-#if !os(watchOS) && !targetEnvironment(macCatalyst)
+#if !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST
 
 // Without these, no operator in this file type-checks: WebCore's C++ operators name types these modules define.
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -50,30 +50,44 @@ private let u2fSignatureIndex = 5
 // X.690 SEQUENCE tag (CommonCryptoDERUtilities.h SequenceMark).
 private let derSequenceMark: UInt8 = 0x30
 
-private func u2fRegisterCommand(_ applicationParameter: Span<UInt8>, _ challengeParameter: Span<UInt8>) -> cbor.CBORValue.BinaryValue {
+private func u2fRegisterCommand(_ applicationParameter: Span<UInt8>, _ challengeParameter: Span<UInt8>) -> cbor.Bytes {
     var sink = fido.WebAuthnByteSink()
     sink.reserve(challengeParameter.count + applicationParameter.count)
-    addBytes(&sink, challengeParameter)
-    addBytes(&sink, applicationParameter)
+    sink.append(challengeParameter)
+    sink.append(applicationParameter)
     let data = sink.take()
     // P1 asks for user presence, which the test of user presence needs though the spec does not say so.
-    return encodeApduCommand(0, fido.U2fApduInstruction.register.rawValue, fido.kP1EnforceUserPresenceAndSign, 0, UInt(apduMaxResponseLength), data.span())
+    return encodeApduCommand(
+        0,
+        fido.U2fApduInstruction.register.rawValue,
+        fido.kP1EnforceUserPresenceAndSign,
+        0,
+        UInt(apduMaxResponseLength),
+        data.span()
+    )
 }
 
-private func u2fSignCommand(_ applicationParameter: Span<UInt8>, _ challengeParameter: Span<UInt8>, _ keyHandle: Span<UInt8>, _ checkOnly: Bool) -> fido.OptionalByteVector {
+private func u2fSignCommand(
+    _ applicationParameter: Span<UInt8>,
+    _ challengeParameter: Span<UInt8>,
+    _ keyHandle: Span<UInt8>,
+    _ checkOnly: Bool
+) -> fido.OptionalByteVector {
     if keyHandle.count > fido.kMaxKeyHandleLength {
         return fido.OptionalByteVector()
     }
     var sink = fido.WebAuthnByteSink()
     sink.reserve(challengeParameter.count + applicationParameter.count + 1 + keyHandle.count)
-    addBytes(&sink, challengeParameter)
-    addBytes(&sink, applicationParameter)
+    sink.append(challengeParameter)
+    sink.append(applicationParameter)
     let keyHandleLength = InlineArray<1, UInt8>(repeating: UInt8(keyHandle.count))
-    addBytes(&sink, keyHandleLength.span)
-    addBytes(&sink, keyHandle)
+    sink.append(keyHandleLength.span)
+    sink.append(keyHandle)
     let data = sink.take()
     let p1 = checkOnly ? fido.kP1CheckOnly : fido.kP1EnforceUserPresenceAndSign
-    return fido.OptionalByteVector(encodeApduCommand(0, fido.U2fApduInstruction.sign.rawValue, p1, 0, UInt(apduMaxResponseLength), data.span()))
+    return fido.OptionalByteVector(
+        encodeApduCommand(0, fido.U2fApduInstruction.sign.rawValue, p1, 0, UInt(apduMaxResponseLength), data.span())
+    )
 }
 
 // CommonCryptoDERUtilities bytesUsedToEncodedLength: 1 for a short form length octet, else the octet minus 127.
@@ -119,38 +133,45 @@ private func parseX509Length(_ bytes: Span<UInt8>, _ start: Int) -> UInt {
     return sequenceLength &+ UInt(sequenceLengthLength) &+ 1
 }
 
-// The "fido-u2f" attestation statement (x509 certificate then signature, from `offset`), or an empty map.
-private func u2fAttestationStatement(_ u2fData: borrowing cbor.CBORValue.BinaryValue, _ bytes: Span<UInt8>, _ offset: Int) -> cbor.CBORValue.MapValue {
+// The "fido-u2f" attestation statement (x509 certificate then signature, from `offset`), encoded, or no bytes.
+private func u2fAttestationStatement(_ bytes: Span<UInt8>, _ offset: Int) -> cbor.Bytes {
     let x509Length = parseX509Length(bytes, offset)
     let (requiredLength, overflow) = x509Length.addingReportingOverflow(UInt(offset))
     if overflow || x509Length == 0 || UInt(bytes.count) < requiredLength {
-        return cbor.CBORValue.MapValue()
+        return cbor.Bytes()
     }
     // Both fit in Int: requiredLength is at most the size.
     let signatureOffset = Int(requiredLength)
-    let x509 = u2fData.subvector(offset, Int(x509Length))
-    let signature = u2fData.subvector(signatureOffset, bytes.count - signatureOffset)
-    if signature.isEmpty() {
-        return cbor.CBORValue.MapValue()
+    if signatureOffset == bytes.count {
+        return cbor.Bytes()
     }
-    return u2fAttestationStatementMap(signature, x509)
+    return u2fAttestationStatementMap(bytes.extracting(signatureOffset..<bytes.count), bytes.extracting(offset..<signatureOffset))
 }
 
 // {"sig": signature, "x5c": [x509]}
-private func u2fAttestationStatementMap(_ signature: consuming cbor.CBORValue.BinaryValue, _ x509: consuming cbor.CBORValue.BinaryValue) -> cbor.CBORValue.MapValue {
-    var map = CBOR.Map()
-    map.set("sig", .byteString(makeByteArray(signature)))
-    map.set("x5c", .array([.byteString(makeByteArray(x509))]))
-    return CBOR.map(map).makeMapValue()
+private func u2fAttestationStatementMap(_ signature: Span<UInt8>, _ x509: Span<UInt8>) -> cbor.Bytes {
+    var writer = CBORWriter(reservingCapacity: signature.count + x509.count + 16)
+    writer.beginMap(count: 2)
+    writer.writeTextString("sig")
+    writer.writeByteString(signature)
+    writer.writeTextString("x5c")
+    writer.beginArray(count: 1)
+    writer.writeByteString(x509)
+    return writer.takeVector()
 }
 
 extension fido {
-    @cxx @implementation public static func isConvertibleToU2fRegisterCommand(_ request: WebCore.PublicKeyCredentialCreationOptions) -> Bool {
+    /// Whether a request converts to a U2F register command.
+    @cxx
+    @implementation
+    public static func isConvertibleToU2fRegisterCommand(_ request: WebCore.PublicKeyCredentialCreationOptions) -> Bool {
         isConvertibleToU2fRegisterCommandBody(request)
     }
 
     private static func isConvertibleToU2fRegisterCommandBody(_ request: WebCore.PublicKeyCredentialCreationOptions) -> Bool {
-        if let selection = Optional(fromCxx: request.authenticatorSelection), selection.userVerification == .Required || selection.requireResidentKey {
+        if let selection = Optional(fromCxx: request.authenticatorSelection),
+            selection.userVerification == .Required || selection.requireResidentKey
+        {
             return false
         }
         let parameters: Span<WebCore.PublicKeyCredentialParameters> = request.pubKeyCredParams.span()
@@ -160,62 +181,118 @@ extension fido {
         return false
     }
 
-    @cxx @implementation public static func isConvertibleToU2fSignCommand(_ request: WebCore.PublicKeyCredentialRequestOptions) -> Bool {
+    /// Whether a request converts to a U2F sign command.
+    @cxx
+    @implementation
+    public static func isConvertibleToU2fSignCommand(_ request: WebCore.PublicKeyCredentialRequestOptions) -> Bool {
         request.userVerification != .Required && !request.allowCredentials.isEmpty()
     }
 
-    @cxx @implementation public static func convertToU2fRegisterCommand(_ clientDataHash: cbor.CBORValue.BinaryValue, _ request: WebCore.PublicKeyCredentialCreationOptions) -> fido.OptionalByteVector {
+    /// The U2F register command for a request, if it converts.
+    @cxx
+    @implementation
+    public static func convertToU2fRegisterCommand(
+        _ clientDataHash: cbor.Bytes,
+        _ request: WebCore.PublicKeyCredentialCreationOptions
+    ) -> fido.OptionalByteVector {
         convertToU2fRegisterCommandBody(clientDataHash, request)
     }
 
-    private static func convertToU2fRegisterCommandBody(_ clientDataHash: cbor.CBORValue.BinaryValue, _ request: WebCore.PublicKeyCredentialCreationOptions) -> fido.OptionalByteVector {
+    private static func convertToU2fRegisterCommandBody(
+        _ clientDataHash: cbor.Bytes,
+        _ request: WebCore.PublicKeyCredentialCreationOptions
+    ) -> fido.OptionalByteVector {
         if !isConvertibleToU2fRegisterCommand(request) {
             return fido.OptionalByteVector()
         }
-        let rpIdHash = WebCore.produceRpIdHash(request.rp.id)
-        return fido.OptionalByteVector(u2fRegisterCommand(rpIdHash.span(), clientDataHash.span()))
+        let rpIDHash = produceRpIdHash(request.rp.id)
+        return fido.OptionalByteVector(u2fRegisterCommand(rpIDHash.span(), clientDataHash.span()))
     }
 
-    @cxx @implementation public static func convertToU2fCheckOnlySignCommand(_ clientDataHash: cbor.CBORValue.BinaryValue, _ request: WebCore.PublicKeyCredentialCreationOptions, _ keyHandle: WebCore.PublicKeyCredentialDescriptor) -> fido.OptionalByteVector {
+    /// The U2F check-only sign command for a request, if it converts.
+    @cxx
+    @implementation
+    public static func convertToU2fCheckOnlySignCommand(
+        _ clientDataHash: cbor.Bytes,
+        _ request: WebCore.PublicKeyCredentialCreationOptions,
+        _ keyHandle: WebCore.PublicKeyCredentialDescriptor
+    ) -> fido.OptionalByteVector {
         convertToU2fCheckOnlySignCommandBody(clientDataHash, request, keyHandle)
     }
 
-    private static func convertToU2fCheckOnlySignCommandBody(_ clientDataHash: cbor.CBORValue.BinaryValue, _ request: WebCore.PublicKeyCredentialCreationOptions, _ keyHandle: WebCore.PublicKeyCredentialDescriptor) -> fido.OptionalByteVector {
+    private static func convertToU2fCheckOnlySignCommandBody(
+        _ clientDataHash: cbor.Bytes,
+        _ request: WebCore.PublicKeyCredentialCreationOptions,
+        _ keyHandle: WebCore.PublicKeyCredentialDescriptor
+    ) -> fido.OptionalByteVector {
         if keyHandle.type != fido.publicKeyCredentialTypePublicKey() {
             return fido.OptionalByteVector()
         }
-        let rpIdHash = WebCore.produceRpIdHash(request.rp.id)
-        return u2fSignCommand(rpIdHash.span(), clientDataHash.span(), keyHandle.id.span(), true)
+        let rpIDHash = produceRpIdHash(request.rp.id)
+        return u2fSignCommand(rpIDHash.span(), clientDataHash.span(), keyHandle.id.span(), true)
     }
 
-    @cxx @implementation public static func convertToU2fSignCommand(_ clientDataHash: cbor.CBORValue.BinaryValue, _ request: WebCore.PublicKeyCredentialRequestOptions, _ keyHandle: WebCore.BufferSource, _ isAppId: Bool) -> fido.OptionalByteVector {
+    /// The U2F sign command for a request, if it converts.
+    @cxx
+    @implementation
+    public static func convertToU2fSignCommand(
+        _ clientDataHash: cbor.Bytes,
+        _ request: WebCore.PublicKeyCredentialRequestOptions,
+        _ keyHandle: WebCore.BufferSource,
+        _ isAppId: Bool
+    ) -> fido.OptionalByteVector {
         convertToU2fSignCommandBody(clientDataHash, request, keyHandle, isAppId)
     }
 
-    private static func convertToU2fSignCommandBody(_ clientDataHash: cbor.CBORValue.BinaryValue, _ request: WebCore.PublicKeyCredentialRequestOptions, _ keyHandle: WebCore.BufferSource, _ isAppId: Bool) -> fido.OptionalByteVector {
+    private static func convertToU2fSignCommandBody(
+        _ clientDataHash: cbor.Bytes,
+        _ request: WebCore.PublicKeyCredentialRequestOptions,
+        _ keyHandle: WebCore.BufferSource,
+        _ isAppId: Bool
+    ) -> fido.OptionalByteVector {
         if !isConvertibleToU2fSignCommand(request) {
             return fido.OptionalByteVector()
         }
         if !isAppId {
-            let rpIdHash = WebCore.produceRpIdHash(request.rpId)
-            return u2fSignCommand(rpIdHash.span(), clientDataHash.span(), keyHandle.span(), false)
+            let rpIDHash = produceRpIdHash(request.rpId)
+            return u2fSignCommand(rpIDHash.span(), clientDataHash.span(), keyHandle.span(), false)
         }
-        // The extensions are present; dereferencing an empty optional traps.
-        let appIdHash = WebCore.produceRpIdHash(Optional(fromCxx: request.extensions)!.appid)
-        return u2fSignCommand(appIdHash.span(), clientDataHash.span(), keyHandle.span(), false)
+        guard let extensions = Optional(fromCxx: request.extensions) else {
+            preconditionFailure("An app ID signature request has extensions")
+        }
+        let appIDHash = produceRpIdHash(extensions.appid)
+        return u2fSignCommand(appIDHash.span(), clientDataHash.span(), keyHandle.span(), false)
     }
 
-    @cxx @implementation public static func constructBogusU2fRegistrationCommand() -> cbor.CBORValue.BinaryValue {
+    /// A U2F register command that is not a real request.
+    @cxx
+    @implementation
+    public static func constructBogusU2fRegistrationCommand() -> cbor.Bytes {
         let application = Array(fido.kBogusAppParam)
         let challenge = Array(fido.kBogusChallenge)
         return u2fRegisterCommand(application.span, challenge.span)
     }
 
-    @cxx @implementation public static func readU2fRegisterResponse(_ rpId: WTF.String, _ u2fData: cbor.CBORValue.BinaryValue, _ attachment: WebCore.AuthenticatorAttachment, _ transports: fido.TransportVector, _ attestation: WebCore.AttestationConveyancePreference) -> fido.AttestationResponsePtr {
+    /// Reads a U2F register response.
+    @cxx
+    @implementation
+    public static func readU2fRegisterResponse(
+        _ rpId: WTF.String,
+        _ u2fData: cbor.Bytes,
+        _ attachment: WebCore.AuthenticatorAttachment,
+        _ transports: fido.TransportVector,
+        _ attestation: WebCore.AttestationConveyancePreference
+    ) -> fido.AttestationResponsePtr {
         readU2fRegisterResponseBody(rpId, u2fData, attachment, transports, attestation)
     }
 
-    private static func readU2fRegisterResponseBody(_ rpId: WTF.String, _ u2fData: cbor.CBORValue.BinaryValue, _ attachment: WebCore.AuthenticatorAttachment, _ transports: fido.TransportVector, _ attestation: WebCore.AttestationConveyancePreference) -> fido.AttestationResponsePtr {
+    private static func readU2fRegisterResponseBody(
+        _ rpId: WTF.String,
+        _ u2fData: cbor.Bytes,
+        _ attachment: WebCore.AuthenticatorAttachment,
+        _ transports: fido.TransportVector,
+        _ attestation: WebCore.AttestationConveyancePreference
+    ) -> fido.AttestationResponsePtr {
         let bytes: Span<UInt8> = u2fData.span()
         let fieldLength = WebCore.ES256FieldElementLength
 
@@ -228,7 +305,10 @@ extension fido {
         if bytes.count < position + 2 * fieldLength {
             return fido.AttestationResponsePtr()
         }
-        let publicKey = WebCore.encodeES256PublicKeyAsCBOR(consuming: u2fData.subvector(position, fieldLength), consuming: u2fData.subvector(position + fieldLength, fieldLength))
+        let publicKey = encodeES256PublicKeyAsCBOR(
+            u2fData.subvector(position, fieldLength),
+            u2fData.subvector(position + fieldLength, fieldLength)
+        )
         if publicKey.isEmpty() {
             return fido.AttestationResponsePtr()
         }
@@ -237,42 +317,57 @@ extension fido {
         if bytes.count <= fido.kU2fKeyHandleLengthOffset {
             return fido.AttestationResponsePtr()
         }
-        let credentialIdLength = Int(bytes[fido.kU2fKeyHandleLengthOffset])
-        if bytes.count < fido.kU2fKeyHandleOffset + credentialIdLength {
+        let credentialIDLength = Int(bytes[fido.kU2fKeyHandleLengthOffset])
+        if bytes.count < fido.kU2fKeyHandleOffset + credentialIDLength {
             return fido.AttestationResponsePtr()
         }
-        let credentialId = u2fData.subvector(fido.kU2fKeyHandleOffset, credentialIdLength)
-        if credentialId.isEmpty() {
+        let credentialID = u2fData.subvector(fido.kU2fKeyHandleOffset, credentialIDLength)
+        if credentialID.isEmpty() {
             return fido.AttestationResponsePtr()
         }
 
-        var aaguid = cbor.CBORValue.BinaryValue()
+        var aaguid = cbor.Bytes()
         aaguid.reserveCapacity(WebCore.aaguidLength)
         for _ in 0..<WebCore.aaguidLength {
             aaguid.append(consuming: UInt8(0))
         }
-        let attestedCredentialData = WebCore.buildAttestedCredentialData(aaguid, credentialId, publicKey)
+        let attestedCredentialData = buildAttestedCredentialData(aaguid, credentialID, publicKey)
         if attestedCredentialData.isEmpty() {
             return fido.AttestationResponsePtr()
         }
 
         // The counter is zero for registrations.
-        let authData = WebCore.buildAuthData(rpId, u2fMakeCredentialFlags, 0, attestedCredentialData)
+        let authData = buildAuthData(rpId, u2fMakeCredentialFlags, 0, attestedCredentialData)
 
-        let statement = u2fAttestationStatement(u2fData, bytes, fido.kU2fKeyHandleOffset + credentialIdLength)
-        if statement.empty() {
+        let statement = u2fAttestationStatement(bytes, fido.kU2fKeyHandleOffset + credentialIDLength)
+        if statement.isEmpty() {
             return fido.AttestationResponsePtr()
         }
 
-        let attestationObject = WebCore.buildAttestationObject(consuming: authData, consuming: u2fFormat(), consuming: statement, attestation)
-        return fido.AttestationResponsePtr(WebCore.AuthenticatorAttestationResponse.create(credentialId, attestationObject, attachment, consuming: transports).get())
+        let attestationObject = buildAttestationObject(authData, u2fFormat(), statement, attestation)
+        return fido.AttestationResponsePtr(
+            WebCore.AuthenticatorAttestationResponse.create(credentialID, attestationObject, attachment, consuming: transports).get()
+        )
     }
 
-    @cxx @implementation public static func readU2fSignResponse(_ rpId: WTF.String, _ keyHandle: WebCore.BufferSource, _ u2fData: cbor.CBORValue.BinaryValue, _ attachment: WebCore.AuthenticatorAttachment) -> fido.AssertionResponsePtr {
+    /// Reads a U2F sign response.
+    @cxx
+    @implementation
+    public static func readU2fSignResponse(
+        _ rpId: WTF.String,
+        _ keyHandle: WebCore.BufferSource,
+        _ u2fData: cbor.Bytes,
+        _ attachment: WebCore.AuthenticatorAttachment
+    ) -> fido.AssertionResponsePtr {
         readU2fSignResponseBody(rpId, keyHandle, u2fData, attachment)
     }
 
-    private static func readU2fSignResponseBody(_ rpId: WTF.String, _ keyHandle: WebCore.BufferSource, _ u2fData: cbor.CBORValue.BinaryValue, _ attachment: WebCore.AuthenticatorAttachment) -> fido.AssertionResponsePtr {
+    private static func readU2fSignResponseBody(
+        _ rpId: WTF.String,
+        _ keyHandle: WebCore.BufferSource,
+        _ u2fData: cbor.Bytes,
+        _ attachment: WebCore.AuthenticatorAttachment
+    ) -> fido.AssertionResponsePtr {
         let bytes: Span<UInt8> = u2fData.span()
         if keyHandle.byteLength() == 0 || bytes.count <= u2fSignatureIndex {
             return fido.AssertionResponsePtr()
@@ -280,17 +375,17 @@ extension fido {
 
         let flags = bytes[0]
         // Big-endian counter.
-        let counter = UInt32(bytes[u2fCounterIndex]) << 24 | UInt32(bytes[u2fCounterIndex + 1]) << 16
+        let counter =
+            UInt32(bytes[u2fCounterIndex]) << 24 | UInt32(bytes[u2fCounterIndex + 1]) << 16
             | UInt32(bytes[u2fCounterIndex + 2]) << 8 | UInt32(bytes[u2fCounterIndex + 3])
-        let authData = WebCore.buildAuthData(rpId, flags, counter, cbor.CBORValue.BinaryValue())
+        let authData = buildAuthData(rpId, flags, counter, cbor.Bytes())
 
         let signature = u2fData.subvector(u2fSignatureIndex, bytes.count - u2fSignatureIndex)
         let keyHandleBytes: Span<UInt8> = keyHandle.span()
-        var keyHandleSink = fido.WebAuthnByteSink()
-        keyHandleSink.reserve(keyHandleBytes.count)
-        addBytes(&keyHandleSink, keyHandleBytes)
-        let keyHandleVector = keyHandleSink.take()
-        return fido.AssertionResponsePtr(WebCore.AuthenticatorAssertionResponse.create(keyHandleVector, authData, signature, cbor.CBORValue.BinaryValue(), attachment).get())
+        let keyHandleVector = makeByteVector(keyHandleBytes)
+        return fido.AssertionResponsePtr(
+            WebCore.AuthenticatorAssertionResponse.create(keyHandleVector, authData, signature, cbor.Bytes(), attachment).get()
+        )
     }
 }
 
@@ -299,4 +394,4 @@ private func u2fFormat() -> WTF.String {
     makeWTFString("fido-u2f")
 }
 
-#endif // !os(watchOS) && !targetEnvironment(macCatalyst)
+#endif // !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST

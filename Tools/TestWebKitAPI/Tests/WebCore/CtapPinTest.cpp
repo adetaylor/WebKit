@@ -27,10 +27,10 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#include "CBORTestUtilities.h"
 #include "FidoTestData.h"
 #include "Helpers/PlatformUtilities.h"
-#include <WebCore/CBORReader.h>
-#include <WebCore/CBORValue.h>
+#include <WebCore/CBORBytes.h>
 #include <WebCore/CryptoAlgorithmAESCBC.h>
 #include <WebCore/CryptoAlgorithmAesCbcCfbParams.h>
 #include <WebCore/CryptoAlgorithmECDH.h>
@@ -51,6 +51,46 @@ using namespace WebCore;
 using namespace cbor;
 using namespace fido;
 using namespace fido::pin;
+
+// Decodes the CTAP2 request that encodeAsCBOR wrote after its command byte, and returns its canonical bytes, a map.
+static Vector<uint8_t> decodeRequestMap(std::span<const uint8_t> request)
+{
+    auto decoded = cbor::readCanonical(request.subspan(1));
+    EXPECT_TRUE(decoded.error == cbor::DecoderError::CBORNoError);
+    EXPECT_TRUE(isCBORMap(decoded.canonical.span()));
+    return WTF::move(decoded.canonical);
+}
+
+static std::optional<int64_t> integerAt(std::span<const uint8_t> map, int64_t key)
+{
+    auto value = cborMapLookup(map, key);
+    if (!value)
+        return std::nullopt;
+    return cborIntegerValue(*value);
+}
+
+static std::optional<Vector<uint8_t>> byteStringAt(std::span<const uint8_t> map, int64_t key)
+{
+    auto value = cborMapLookup(map, key);
+    if (!value)
+        return std::nullopt;
+    return cborByteStringValue(*value);
+}
+
+// Checks kty, alg and crv of the COSE key under RequestKey::kKeyAgreement, and returns the COSE key's bytes.
+static Vector<uint8_t> checkRequestCOSEKey(std::span<const uint8_t> requestMap)
+{
+    auto coseKeyItem = cborMapLookup(requestMap, static_cast<int64_t>(RequestKey::kKeyAgreement));
+    EXPECT_TRUE(coseKeyItem.has_value());
+    if (!coseKeyItem)
+        return { };
+    EXPECT_TRUE(isCBORMap(*coseKeyItem));
+    Vector<uint8_t> coseKey { *coseKeyItem };
+    EXPECT_EQ(integerAt(coseKey.span(), COSE::kty), COSE::EC2);
+    EXPECT_EQ(integerAt(coseKey.span(), COSE::alg), COSE::ECDH256);
+    EXPECT_EQ(integerAt(coseKey.span(), COSE::crv), COSE::P_256);
+    return coseKey;
+}
 
 TEST(CtapPinTest, TestValidateAndConvertToUTF8)
 {
@@ -91,45 +131,20 @@ TEST(CtapPinTest, TestSetPinRequest)
     EXPECT_EQ(result[0], static_cast<uint8_t>(CtapRequestCommand::kAuthenticatorClientPin));
 
     // Decode the CBOR binary to check if each field is encoded correctly.
-    Vector<uint8_t> buffer;
-    buffer.append(result.subspan(1));
-    auto decodedResponse = cbor::CBORReader::read(buffer);
-    EXPECT_TRUE(decodedResponse);
-    EXPECT_TRUE(decodedResponse->isMap());
-    const auto& responseMap = decodedResponse->getMap();
+    auto responseMap = decodeRequestMap(result.span());
 
-    const auto& it1 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kProtocol)));
-    EXPECT_NE(it1, responseMap.end());
-    EXPECT_EQ(it1->second.getInteger(), kProtocolVersion);
-
-    const auto& it2 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kSubcommand)));
-    EXPECT_NE(it2, responseMap.end());
-    EXPECT_EQ(it2->second.getInteger(), static_cast<uint8_t>(Subcommand::kSetPin));
+    EXPECT_EQ(integerAt(responseMap.span(), static_cast<int64_t>(RequestKey::kProtocol)), kProtocolVersion);
+    EXPECT_EQ(integerAt(responseMap.span(), static_cast<int64_t>(RequestKey::kSubcommand)), static_cast<int64_t>(Subcommand::kSetPin));
 
     // COSE
-    auto it = responseMap.find(CBORValue(static_cast<int>(RequestKey::kKeyAgreement)));
-    EXPECT_TRUE(decodedResponse);
-    EXPECT_TRUE(decodedResponse->isMap());
-    const auto& coseKey = it->second.getMap();
-
-    const auto& it3 = coseKey.find(CBORValue(COSE::kty));
-    EXPECT_NE(it3, coseKey.end());
-    EXPECT_EQ(it3->second.getInteger(), COSE::EC2);
-
-    const auto& it4 = coseKey.find(CBORValue(COSE::alg));
-    EXPECT_NE(it4, coseKey.end());
-    EXPECT_EQ(it4->second.getInteger(), COSE::ECDH256);
-
-    const auto& it5 = coseKey.find(CBORValue(COSE::crv));
-    EXPECT_NE(it5, coseKey.end());
-    EXPECT_EQ(it5->second.getInteger(), COSE::P_256);
+    auto coseKey = checkRequestCOSEKey(responseMap.span());
 
     // Check the cose key.
-    const auto& xIt = coseKey.find(CBORValue(COSE::x));
-    EXPECT_NE(xIt, coseKey.end());
-    const auto& yIt = coseKey.find(CBORValue(COSE::y));
-    EXPECT_NE(yIt, coseKey.end());
-    auto cosePublicKey = CryptoKeyEC::importRaw(CryptoAlgorithmIdentifier::ECDH, "P-256"_s, encodeRawPublicKey(xIt->second.getByteString(), yIt->second.getByteString()), true, CryptoKeyUsageDeriveBits);
+    auto x = byteStringAt(coseKey.span(), COSE::x);
+    auto y = byteStringAt(coseKey.span(), COSE::y);
+    ASSERT_TRUE(x.has_value());
+    ASSERT_TRUE(y.has_value());
+    auto cosePublicKey = CryptoKeyEC::importRaw(CryptoAlgorithmIdentifier::ECDH, "P-256"_s, encodeRawPublicKey(*x, *y), true, CryptoKeyUsageDeriveBits);
     EXPECT_TRUE(cosePublicKey);
 
     // Check the encrypted Pin.
@@ -143,9 +158,9 @@ TEST(CtapPinTest, TestSetPinRequest)
     auto aesKey = CryptoKeyAES::importRaw(CryptoAlgorithmIdentifier::AES_CBC, WTF::move(sharedKeyHash), true, CryptoKeyUsageDecrypt);
     EXPECT_TRUE(aesKey);
 
-    const auto& it6 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kNewPinEnc)));
-    EXPECT_NE(it6, responseMap.end());
-    auto newPinEncResult = CryptoAlgorithmAESCBC::platformDecrypt({ }, *aesKey, it6->second.getByteString(), CryptoAlgorithmAESCBC::Padding::No);
+    auto encryptedNewPin = byteStringAt(responseMap.span(), static_cast<int64_t>(RequestKey::kNewPinEnc));
+    ASSERT_TRUE(encryptedNewPin.has_value());
+    auto newPinEncResult = CryptoAlgorithmAESCBC::platformDecrypt({ }, *aesKey, *encryptedNewPin, CryptoAlgorithmAESCBC::Padding::No);
     EXPECT_FALSE(newPinEncResult.hasException());
     auto newPinEnc = newPinEncResult.releaseReturnValue();
 
@@ -224,29 +239,39 @@ TEST(CtapPinTest, TestKeyAgreementResponse)
 #endif
 
     // Test COSE
-    auto coseKey = encodeCOSEPublicKey(Vector<uint8_t>(65));
-    coseKey[CBORValue(COSE::kty)] = CBORValue(0); // wrong kty
-    auto coseResult = KeyAgreementResponse::parseFromCOSE(coseKey);
+    auto coseKeyWith = [](int64_t key, const CBORItem& replacement) {
+        // The five keys of encodeCOSEPublicKey's map, in CTAP2 order, with the value of one of them replaced.
+        Vector<uint8_t> zeros(32);
+        CBORItem coseKey;
+        appendCBORHead(coseKey, 5, 5);
+        for (auto [entryKey, entryValue] : std::initializer_list<std::pair<int64_t, CBORItem>> {
+            { COSE::kty, cborInteger(COSE::EC2) },
+            { COSE::alg, cborInteger(COSE::ECDH256) },
+            { COSE::crv, cborInteger(COSE::P_256) },
+            { COSE::x, cborBytes(zeros.span()) },
+            { COSE::y, cborBytes(zeros.span()) } }) {
+            coseKey.appendVector(cborInteger(entryKey));
+            coseKey.appendVector(entryKey == key ? replacement : entryValue);
+        }
+        return coseKey;
+    };
+
+    // The encoded key of an all-zero point is the map above with the right values.
+    EXPECT_TRUE(encodeCOSEPublicKey(Vector<uint8_t>(65)) == coseKeyWith(0, { }));
+
+    auto coseResult = KeyAgreementResponse::parseFromCOSE(coseKeyWith(COSE::kty, cborInteger(0))); // wrong kty
     EXPECT_FALSE(coseResult);
 
-    coseKey = encodeCOSEPublicKey(Vector<uint8_t>(65));
-    coseKey[CBORValue(COSE::alg)] = CBORValue(0); // wrong alg
-    coseResult = KeyAgreementResponse::parseFromCOSE(coseKey);
+    coseResult = KeyAgreementResponse::parseFromCOSE(coseKeyWith(COSE::alg, cborInteger(0))); // wrong alg
     EXPECT_FALSE(coseResult);
 
-    coseKey = encodeCOSEPublicKey(Vector<uint8_t>(65));
-    coseKey[CBORValue(COSE::crv)] = CBORValue(0); // wrong crv
-    coseResult = KeyAgreementResponse::parseFromCOSE(coseKey);
+    coseResult = KeyAgreementResponse::parseFromCOSE(coseKeyWith(COSE::crv, cborInteger(0))); // wrong crv
     EXPECT_FALSE(coseResult);
 
-    coseKey = encodeCOSEPublicKey(Vector<uint8_t>(65));
-    coseKey[CBORValue(COSE::x)] = CBORValue(0); // wrong x
-    coseResult = KeyAgreementResponse::parseFromCOSE(coseKey);
+    coseResult = KeyAgreementResponse::parseFromCOSE(coseKeyWith(COSE::x, cborInteger(0))); // wrong x
     EXPECT_FALSE(coseResult);
 
-    coseKey = encodeCOSEPublicKey(Vector<uint8_t>(65));
-    coseKey[CBORValue(COSE::y)] = CBORValue(0); // wrong y
-    coseResult = KeyAgreementResponse::parseFromCOSE(coseKey);
+    coseResult = KeyAgreementResponse::parseFromCOSE(coseKeyWith(COSE::y, cborInteger(0))); // wrong y
     EXPECT_FALSE(coseResult);
 
     // Success cases
@@ -279,45 +304,21 @@ TEST(CtapPinTest, TestTokenRequest)
     EXPECT_EQ(result[0], static_cast<uint8_t>(CtapRequestCommand::kAuthenticatorClientPin));
 
     // Decode the CBOR binary to check if each field is encoded correctly.
-    Vector<uint8_t> buffer;
-    buffer.append(result.subspan(1));
-    auto decodedResponse = cbor::CBORReader::read(buffer);
-    EXPECT_TRUE(decodedResponse);
-    EXPECT_TRUE(decodedResponse->isMap());
-    const auto& responseMap = decodedResponse->getMap();
+    auto responseMap = decodeRequestMap(result.span());
 
-    const auto& it1 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kProtocol)));
-    EXPECT_NE(it1, responseMap.end());
-    EXPECT_EQ(it1->second.getInteger(), kProtocolVersion);
+    EXPECT_EQ(integerAt(responseMap.span(), static_cast<int64_t>(RequestKey::kProtocol)), kProtocolVersion);
 
-    const auto& it2 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kSubcommand)));
-    EXPECT_NE(it2, responseMap.end());
-    EXPECT_EQ(it2->second.getInteger(), static_cast<uint8_t>(Subcommand::kGetPinToken));
+    EXPECT_EQ(integerAt(responseMap.span(), static_cast<int64_t>(RequestKey::kSubcommand)), static_cast<int64_t>(Subcommand::kGetPinToken));
 
     // COSE
-    auto it = responseMap.find(CBORValue(static_cast<int>(RequestKey::kKeyAgreement)));
-    EXPECT_TRUE(decodedResponse);
-    EXPECT_TRUE(decodedResponse->isMap());
-    const auto& coseKey = it->second.getMap();
-
-    const auto& it3 = coseKey.find(CBORValue(COSE::kty));
-    EXPECT_NE(it3, coseKey.end());
-    EXPECT_EQ(it3->second.getInteger(), COSE::EC2);
-
-    const auto& it4 = coseKey.find(CBORValue(COSE::alg));
-    EXPECT_NE(it4, coseKey.end());
-    EXPECT_EQ(it4->second.getInteger(), COSE::ECDH256);
-
-    const auto& it5 = coseKey.find(CBORValue(COSE::crv));
-    EXPECT_NE(it5, coseKey.end());
-    EXPECT_EQ(it5->second.getInteger(), COSE::P_256);
+    auto coseKey = checkRequestCOSEKey(responseMap.span());
 
     // Check the cose key.
-    const auto& xIt = coseKey.find(CBORValue(COSE::x));
-    EXPECT_NE(xIt, coseKey.end());
-    const auto& yIt = coseKey.find(CBORValue(COSE::y));
-    EXPECT_NE(yIt, coseKey.end());
-    auto cosePublicKey = CryptoKeyEC::importRaw(CryptoAlgorithmIdentifier::ECDH, "P-256"_s, encodeRawPublicKey(xIt->second.getByteString(), yIt->second.getByteString()), true, CryptoKeyUsageDeriveBits);
+    auto x = byteStringAt(coseKey.span(), COSE::x);
+    auto y = byteStringAt(coseKey.span(), COSE::y);
+    ASSERT_TRUE(x.has_value());
+    ASSERT_TRUE(y.has_value());
+    auto cosePublicKey = CryptoKeyEC::importRaw(CryptoAlgorithmIdentifier::ECDH, "P-256"_s, encodeRawPublicKey(*x, *y), true, CryptoKeyUsageDeriveBits);
     EXPECT_TRUE(cosePublicKey);
 
     // Check the encrypted Pin.
@@ -331,9 +332,9 @@ TEST(CtapPinTest, TestTokenRequest)
     auto aesKey = CryptoKeyAES::importRaw(CryptoAlgorithmIdentifier::AES_CBC, WTF::move(sharedKeyHash), true, CryptoKeyUsageDecrypt);
     EXPECT_TRUE(aesKey);
 
-    const auto& it6 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kPinHashEnc)));
-    EXPECT_NE(it6, responseMap.end());
-    auto pinHashResult = CryptoAlgorithmAESCBC::platformDecrypt({ }, *aesKey, it6->second.getByteString(), CryptoAlgorithmAESCBC::Padding::No);
+    auto encryptedPinHash = byteStringAt(responseMap.span(), static_cast<int64_t>(RequestKey::kPinHashEnc));
+    ASSERT_TRUE(encryptedPinHash.has_value());
+    auto pinHashResult = CryptoAlgorithmAESCBC::platformDecrypt({ }, *aesKey, *encryptedPinHash, CryptoAlgorithmAESCBC::Padding::No);
     EXPECT_FALSE(pinHashResult.hasException());
     auto pinHash = pinHashResult.releaseReturnValue();
     constexpr std::array<uint8_t, 16> expectedPinHash { 0x03, 0xac, 0x67, 0x42, 0x16, 0xf3, 0xe1, 0x5c, 0x76, 0x1e, 0xe1, 0xa5, 0xe2, 0x55, 0xf0, 0x67 };
@@ -409,48 +410,22 @@ TEST(CtapPinTest, TestSetPinRequestProtocol2)
     EXPECT_EQ(result.size(), 203u);
     EXPECT_EQ(result[0], static_cast<uint8_t>(CtapRequestCommand::kAuthenticatorClientPin));
 
-    Vector<uint8_t> buffer;
-    buffer.append(result.subspan(1));
-    auto decodedResponse = cbor::CBORReader::read(buffer);
-    EXPECT_TRUE(decodedResponse);
-    EXPECT_TRUE(decodedResponse->isMap());
-    const auto& responseMap = decodedResponse->getMap();
+    auto responseMap = decodeRequestMap(result.span());
 
-    const auto& it1 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kProtocol)));
-    EXPECT_NE(it1, responseMap.end());
-    EXPECT_EQ(it1->second.getInteger(), static_cast<int64_t>(PINUVAuthProtocol::kPinProtocol2));
+    EXPECT_EQ(integerAt(responseMap.span(), static_cast<int64_t>(RequestKey::kProtocol)), static_cast<int64_t>(PINUVAuthProtocol::kPinProtocol2));
 
-    const auto& it2 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kSubcommand)));
-    EXPECT_NE(it2, responseMap.end());
-    EXPECT_EQ(it2->second.getInteger(), static_cast<uint8_t>(Subcommand::kSetPin));
+    EXPECT_EQ(integerAt(responseMap.span(), static_cast<int64_t>(RequestKey::kSubcommand)), static_cast<int64_t>(Subcommand::kSetPin));
 
-    // COSE key validation
-    auto it = responseMap.find(CBORValue(static_cast<int>(RequestKey::kKeyAgreement)));
-    EXPECT_NE(it, responseMap.end());
-    EXPECT_TRUE(it->second.isMap());
-    const auto& coseKey = it->second.getMap();
+    // COSE
+    auto coseKey = checkRequestCOSEKey(responseMap.span());
 
-    const auto& it3 = coseKey.find(CBORValue(COSE::kty));
-    EXPECT_NE(it3, coseKey.end());
-    EXPECT_EQ(it3->second.getInteger(), COSE::EC2);
+    auto encryptedNewPin = byteStringAt(responseMap.span(), static_cast<int64_t>(RequestKey::kNewPinEnc));
+    ASSERT_TRUE(encryptedNewPin.has_value());
+    EXPECT_EQ(encryptedNewPin->size(), 80u);
 
-    const auto& it4 = coseKey.find(CBORValue(COSE::alg));
-    EXPECT_NE(it4, coseKey.end());
-    EXPECT_EQ(it4->second.getInteger(), COSE::ECDH256);
-
-    const auto& it5 = coseKey.find(CBORValue(COSE::crv));
-    EXPECT_NE(it5, coseKey.end());
-    EXPECT_EQ(it5->second.getInteger(), COSE::P_256);
-
-    const auto& it6 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kNewPinEnc)));
-    EXPECT_NE(it6, responseMap.end());
-    EXPECT_TRUE(it6->second.isByteString());
-    EXPECT_EQ(it6->second.getByteString().size(), 80u);
-
-    const auto& it7 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kPinAuth)));
-    EXPECT_NE(it7, responseMap.end());
-    EXPECT_TRUE(it7->second.isByteString());
-    EXPECT_GT(it7->second.getByteString().size(), 0u);
+    auto pinAuth = byteStringAt(responseMap.span(), static_cast<int64_t>(RequestKey::kPinAuth));
+    ASSERT_TRUE(pinAuth.has_value());
+    EXPECT_GT(pinAuth->size(), 0u);
 }
 
 TEST(CtapPinTest, TestTokenRequestProtocol2)
@@ -468,44 +443,19 @@ TEST(CtapPinTest, TestTokenRequestProtocol2)
     EXPECT_EQ(result.size(), 120u);
     EXPECT_EQ(result[0], static_cast<uint8_t>(CtapRequestCommand::kAuthenticatorClientPin));
 
-    Vector<uint8_t> buffer;
-    buffer.append(result.subspan(1));
-    auto decodedResponse = cbor::CBORReader::read(buffer);
-    EXPECT_TRUE(decodedResponse);
-    EXPECT_TRUE(decodedResponse->isMap());
-    const auto& responseMap = decodedResponse->getMap();
+    auto responseMap = decodeRequestMap(result.span());
 
-    const auto& it1 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kProtocol)));
-    EXPECT_NE(it1, responseMap.end());
-    EXPECT_EQ(it1->second.getInteger(), static_cast<int64_t>(PINUVAuthProtocol::kPinProtocol2));
+    EXPECT_EQ(integerAt(responseMap.span(), static_cast<int64_t>(RequestKey::kProtocol)), static_cast<int64_t>(PINUVAuthProtocol::kPinProtocol2));
 
-    const auto& it2 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kSubcommand)));
-    EXPECT_NE(it2, responseMap.end());
-    EXPECT_EQ(it2->second.getInteger(), static_cast<uint8_t>(Subcommand::kGetPinToken));
+    EXPECT_EQ(integerAt(responseMap.span(), static_cast<int64_t>(RequestKey::kSubcommand)), static_cast<int64_t>(Subcommand::kGetPinToken));
 
-    // COSE key validation
-    auto it = responseMap.find(CBORValue(static_cast<int>(RequestKey::kKeyAgreement)));
-    EXPECT_NE(it, responseMap.end());
-    EXPECT_TRUE(it->second.isMap());
-    const auto& coseKey = it->second.getMap();
-
-    const auto& it3 = coseKey.find(CBORValue(COSE::kty));
-    EXPECT_NE(it3, coseKey.end());
-    EXPECT_EQ(it3->second.getInteger(), COSE::EC2);
-
-    const auto& it4 = coseKey.find(CBORValue(COSE::alg));
-    EXPECT_NE(it4, coseKey.end());
-    EXPECT_EQ(it4->second.getInteger(), COSE::ECDH256);
-
-    const auto& it5 = coseKey.find(CBORValue(COSE::crv));
-    EXPECT_NE(it5, coseKey.end());
-    EXPECT_EQ(it5->second.getInteger(), COSE::P_256);
+    // COSE
+    auto coseKey = checkRequestCOSEKey(responseMap.span());
 
     // Verify encrypted PIN hash is present
-    const auto& it6 = responseMap.find(CBORValue(static_cast<uint8_t>(RequestKey::kPinHashEnc)));
-    EXPECT_NE(it6, responseMap.end());
-    EXPECT_TRUE(it6->second.isByteString());
-    EXPECT_EQ(it6->second.getByteString().size(), 32u);
+    auto encryptedPinHash = byteStringAt(responseMap.span(), static_cast<int64_t>(RequestKey::kPinHashEnc));
+    ASSERT_TRUE(encryptedPinHash.has_value());
+    EXPECT_EQ(encryptedPinHash->size(), 32u);
 }
 
 TEST(CtapPinTest, TestProtocol2HKDFKeyDerivation)
@@ -628,6 +578,43 @@ TEST(CtapPinTest, TestHmacSecretResponseInvalidSize)
     Vector<uint8_t> invalidOutput(FillWith { }, 16, 0x00); // Too short, should be 32 or 64
     auto response = HmacSecretResponse::parse(PINUVAuthProtocol::kPinProtocol1, request->sharedKey(), invalidOutput);
     EXPECT_FALSE(response);
+}
+
+TEST(CtapPinTest, TestHmacSecretSaltLengths)
+{
+    auto keyPairResult = CryptoKeyEC::generatePair(CryptoAlgorithmIdentifier::ECDH, "P-256"_s, true, CryptoKeyUsageDeriveBits);
+    ASSERT_FALSE(keyPairResult.hasException());
+    auto keyPair = keyPairResult.releaseReturnValue();
+    RefPtr peerKey = downcast<CryptoKeyEC>(keyPair.publicKey);
+
+    Vector<uint8_t> salt1(FillWith { }, 32, 0x5a);
+    Vector<uint8_t> salt2(FillWith { }, 32, 0xa5);
+    for (size_t length : { 31u, 33u, 64u })
+        EXPECT_FALSE(HmacSecretRequest::create(PINUVAuthProtocol::kPinProtocol1, Vector<uint8_t>(FillWith { }, length, 0x5a), std::nullopt, peerKey));
+    for (size_t length : { 31u, 33u })
+        EXPECT_FALSE(HmacSecretRequest::create(PINUVAuthProtocol::kPinProtocol1, salt1, Vector<uint8_t>(FillWith { }, length, 0xa5), peerKey));
+
+    Vector<uint8_t> bothSalts = salt1;
+    bothSalts.appendVector(salt2);
+    for (auto protocol : { PINUVAuthProtocol::kPinProtocol1, PINUVAuthProtocol::kPinProtocol2 }) {
+        // Protocol 2 puts a 16-byte IV before the ciphertext.
+        size_t ivLength = protocol == PINUVAuthProtocol::kPinProtocol2 ? 16 : 0;
+
+        auto request = HmacSecretRequest::create(protocol, salt1, salt2, peerKey);
+        ASSERT_TRUE(request);
+        EXPECT_EQ(request->saltEnc().size(), 64u + ivLength);
+        // The authenticator's output has the salts' length, so the request's own ciphertext stands in for it.
+        auto response = HmacSecretResponse::parse(protocol, request->sharedKey(), request->saltEnc());
+        ASSERT_TRUE(response);
+        EXPECT_TRUE(equalSpans(response->output().span(), bothSalts.span()));
+
+        request = HmacSecretRequest::create(protocol, salt1, std::nullopt, peerKey);
+        ASSERT_TRUE(request);
+        EXPECT_EQ(request->saltEnc().size(), 32u + ivLength);
+        response = HmacSecretResponse::parse(protocol, request->sharedKey(), request->saltEnc());
+        ASSERT_TRUE(response);
+        EXPECT_TRUE(equalSpans(response->output().span(), salt1.span()));
+    }
 }
 
 } // namespace TestWebKitAPI

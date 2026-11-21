@@ -31,8 +31,10 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#include "CBORTestUtilities.h"
 #include "FidoTestData.h"
 #include "Helpers/PlatformUtilities.h"
+#include <WebCore/AuthenticationExtensionsClientInputs.h>
 #include <WebCore/AuthenticatorAttachment.h>
 #include <WebCore/AuthenticatorSelectionCriteria.h>
 #include <WebCore/DeviceRequestConverter.h>
@@ -613,6 +615,130 @@ TEST(CTAPRequestTest, TestConstructGetAssertionRequestWithHmacSecret)
     // Verify the request was encoded successfully
     EXPECT_FALSE(serializedData.isEmpty());
     EXPECT_EQ(serializedData[0], static_cast<uint8_t>(CtapRequestCommand::kAuthenticatorGetAssertion));
+}
+
+static PublicKeyCredentialDescriptor testDescriptor(size_t idLength)
+{
+    Vector<uint8_t> id(FillWith { }, idLength, 0x5c);
+    return PublicKeyCredentialDescriptor { PublicKeyCredentialType::PublicKey, WebCore::toBufferSource(id.span()), { } };
+}
+
+static PublicKeyCredentialCreationOptions testCreationOptions(PublicKeyCredentialUserEntity user, Vector<PublicKeyCredentialDescriptor> excludeCredentials)
+{
+    Vector<PublicKeyCredentialParameters> params { { PublicKeyCredentialType::PublicKey, -7 } };
+    return PublicKeyCredentialCreationOptions { testRp(), WTF::move(user), testChallenge(), params, std::nullopt, WTF::move(excludeCredentials), std::nullopt, AttestationConveyancePreference::None, std::nullopt };
+}
+
+// The encoded "id" of the first descriptor in the request's credential list under listKey.
+static std::optional<std::span<const uint8_t>> firstDescriptorID(std::span<const uint8_t> request, int64_t listKey)
+{
+    auto list = cborMapLookup(request.subspan(1), cborInteger(listKey).span());
+    if (!list)
+        return std::nullopt;
+    auto head = readCBORHead(*list);
+    if (!head || head->majorType != 4 || !head->argument)
+        return std::nullopt;
+    return cborMapLookup(list->subspan(head->headLength), cborText("id"_s).span());
+}
+
+TEST(CTAPRequestTest, TestConstructRequestsWithCredentialIDLengths)
+{
+    Vector<uint8_t> hash;
+    hash.append(std::span { TestData::kClientDataHash });
+    // A credential ID of 65,535 bytes has a 3-byte head; one of 65,536 bytes needs 5.
+    for (auto [length, headLength] : std::array { std::pair<size_t, size_t> { 65535, 3 }, std::pair<size_t, size_t> { 65536, 5 } }) {
+        auto makeCredential = encodeMakeCredentialRequestAsCBOR(hash, testCreationOptions(testUser(), { testDescriptor(length) }), AuthenticatorSupportedOptions::UserVerificationAvailability::kNotSupported, UserVerificationRequirement::Discouraged, AuthenticatorSupportedOptions::ResidentKeyAvailability::kNotSupported, { });
+        auto excluded = firstDescriptorID(makeCredential.span(), 5);
+        ASSERT_TRUE(excluded);
+        auto excludedHead = readCBORHead(*excluded);
+        ASSERT_TRUE(excludedHead);
+        EXPECT_EQ(excludedHead->majorType, 2);
+        EXPECT_EQ(excludedHead->argument, length);
+        EXPECT_EQ(excludedHead->headLength, headLength);
+        EXPECT_EQ(excluded->size(), headLength + length);
+
+        auto options = testRequestOptions();
+        options.allowCredentials = { testDescriptor(length) };
+        auto getAssertion = encodeGetAssertionRequestAsCBOR(hash, options, AuthenticatorSupportedOptions::UserVerificationAvailability::kNotSupported, UserVerificationRequirement::Discouraged, { });
+        auto allowed = firstDescriptorID(getAssertion.span(), 3);
+        ASSERT_TRUE(allowed);
+        auto allowedHead = readCBORHead(*allowed);
+        ASSERT_TRUE(allowedHead);
+        EXPECT_EQ(allowedHead->argument, length);
+        EXPECT_EQ(allowedHead->headLength, headLength);
+    }
+}
+
+TEST(CTAPRequestTest, TestConstructRequestsWithEmptyCredentialOverride)
+{
+    Vector<uint8_t> hash;
+    hash.append(std::span { TestData::kClientDataHash });
+    // An empty override replaces the options' list: makeCredential then has no exclude list, and getAssertion an empty
+    // allow list.
+    auto makeCredential = encodeMakeCredentialRequestAsCBOR(hash, testCreationOptions(testUser(), { testDescriptor(16) }), AuthenticatorSupportedOptions::UserVerificationAvailability::kNotSupported, UserVerificationRequirement::Discouraged, AuthenticatorSupportedOptions::ResidentKeyAvailability::kNotSupported, { }, std::nullopt, std::nullopt, Vector<PublicKeyCredentialDescriptor> { });
+    EXPECT_FALSE(cborMapLookup(makeCredential.span().subspan(1), cborInteger(5).span()));
+
+    auto options = testRequestOptions();
+    options.allowCredentials = { testDescriptor(16) };
+    auto getAssertion = encodeGetAssertionRequestAsCBOR(hash, options, AuthenticatorSupportedOptions::UserVerificationAvailability::kNotSupported, UserVerificationRequirement::Discouraged, { }, std::nullopt, Vector<PublicKeyCredentialDescriptor> { });
+    auto allowed = cborMapLookup(getAssertion.span().subspan(1), cborInteger(3).span());
+    ASSERT_TRUE(allowed);
+    EXPECT_TRUE(std::ranges::equal(*allowed, cborArray({ }).span()));
+}
+
+TEST(CTAPRequestTest, TestConstructMakeCredentialRequestWithEmptyUserID)
+{
+    auto user = testUser();
+    user.id = testChallenge();
+    Vector<uint8_t> hash;
+    hash.append(std::span { TestData::kClientDataHash });
+    auto makeCredential = encodeMakeCredentialRequestAsCBOR(hash, testCreationOptions(WTF::move(user), { }), AuthenticatorSupportedOptions::UserVerificationAvailability::kNotSupported, UserVerificationRequirement::Discouraged, AuthenticatorSupportedOptions::ResidentKeyAvailability::kNotSupported, { });
+    auto userMap = cborMapLookup(makeCredential.span().subspan(1), cborInteger(3).span());
+    ASSERT_TRUE(userMap);
+    auto id = cborMapLookup(*userMap, cborText("id"_s).span());
+    ASSERT_TRUE(id);
+    EXPECT_TRUE(std::ranges::equal(*id, cborBytes({ }).span()));
+}
+
+static CBORItem evalByCredentialCBOR(std::initializer_list<CBORMapEntry> entries)
+{
+    return cborMap({ { cborText("prf"_s), cborMap({ { cborText("evalByCredential"_s), cborMap(entries) } }) } });
+}
+
+static AuthenticationExtensionsClientInputs evalByCredentialInputs(std::initializer_list<std::pair<String, uint8_t>> entries)
+{
+    Vector<KeyValuePair<String, AuthenticationExtensionsClientInputs::PRFValues>> values;
+    for (auto& entry : entries) {
+        Vector<uint8_t> first(FillWith { }, 4, entry.second);
+        values.append({ entry.first, AuthenticationExtensionsClientInputs::PRFValues { WebCore::toBufferSource(first.span()), std::nullopt } });
+    }
+    AuthenticationExtensionsClientInputs inputs;
+    inputs.prf = AuthenticationExtensionsClientInputs::PRFInputs { std::nullopt, WTF::move(values) };
+    return inputs;
+}
+
+static CBORItem firstValue(uint8_t byte)
+{
+    Vector<uint8_t> first(FillWith { }, 4, byte);
+    return cborMap({ { cborText("first"_s), cborBytes(first.span()) } });
+}
+
+TEST(CTAPRequestTest, TestExtensionInputsEvalByCredentialKeys)
+{
+    auto utf16 = [](std::initializer_list<char16_t> units) {
+        return String(std::span<const char16_t> { units.begin(), units.size() });
+    };
+    // Keys sort by their UTF-16 code units and are written as UTF-8, an unpaired surrogate as U+FFFD: two keys can then
+    // be written alike.
+    CBORItem replacement { 0x63, 0xef, 0xbf, 0xbd };
+    auto surrogates = evalByCredentialCBOR({ { replacement, firstValue(1) }, { replacement, firstValue(2) } });
+    EXPECT_EQ(evalByCredentialInputs({ { utf16({ 0xd800 }), 1 }, { utf16({ 0xdbff }), 2 } }).toCBOR(), surrogates);
+    EXPECT_EQ(evalByCredentialInputs({ { utf16({ 0xdbff }), 2 }, { utf16({ 0xd800 }), 1 } }).toCBOR(), surrogates);
+
+    // Equal keys keep the later value, whatever their string's width; the null key equals the empty one.
+    EXPECT_EQ(evalByCredentialInputs({ { "a"_s, 1 }, { "b"_s, 2 }, { "a"_s, 3 } }).toCBOR(), evalByCredentialCBOR({ { cborText("a"_s), firstValue(3) }, { cborText("b"_s), firstValue(2) } }));
+    EXPECT_EQ(evalByCredentialInputs({ { String::fromLatin1("\xE9"), 1 }, { utf16({ 0xe9 }), 2 } }).toCBOR(), evalByCredentialCBOR({ { CBORItem { 0x62, 0xc3, 0xa9 }, firstValue(2) } }));
+    EXPECT_EQ(evalByCredentialInputs({ { String(), 1 }, { emptyString(), 2 } }).toCBOR(), evalByCredentialCBOR({ { cborText(emptyString()), firstValue(2) } }));
 }
 
 } // namespace TestWebKitAPI

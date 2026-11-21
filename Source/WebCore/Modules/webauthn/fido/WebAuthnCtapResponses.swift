@@ -22,7 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 // ENABLE(WEB_AUTHN) (PlatformEnableCocoa.h): every Cocoa platform but watchOS and Mac Catalyst.
-#if !os(watchOS) && !targetEnvironment(macCatalyst)
+#if !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST
 
 // Without these, no operator in this file type-checks: WebCore's C++ operators name types these modules define.
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -37,70 +37,52 @@ internal import wtf.Core.Stopwatch
 internal import wtf
 internal import WebCore_Private.Core.WebAuthnSwiftTypes
 
-// CTAP2 response decoding and the protocol constants' helpers.
+// CTAP2 response decoding.
 
-/// Whether `code` is a response code a CTAP device can send.
-func isCtapDeviceResponseCode(_ code: fido.CtapDeviceResponseCode) -> Bool {
-    switch code {
-    case .success, .ctap1ErrInvalidCommand, .ctap1ErrInvalidParameter, .ctap1ErrInvalidLength, .ctap1ErrInvalidSeq,
-        .ctap1ErrTimeout, .ctap1ErrChannelBusy, .ctap1ErrLockRequired, .ctap1ErrInvalidChannel,
-        .ctap2ErrCBORParsing, .ctap2ErrUnexpectedType, .ctap2ErrInvalidCBOR, .ctap2ErrInvalidCBORType,
-        .ctap2ErrMissingParameter, .ctap2ErrLimitExceeded, .ctap2ErrUnsupportedExtension, .ctap2ErrTooManyElements,
-        .ctap2ErrExtensionNotSupported, .ctap2ErrCredentialExcluded, .ctap2ErrProcesssing,
-        .ctap2ErrInvalidCredential, .ctap2ErrUserActionPending, .ctap2ErrOperationPending, .ctap2ErrNoOperations,
-        .ctap2ErrUnsupportedAlgorithms, .ctap2ErrOperationDenied, .ctap2ErrKeyStoreFull, .ctap2ErrNotBusy,
-        .ctap2ErrNoOperationPending, .ctap2ErrUnsupportedOption, .ctap2ErrInvalidOption, .ctap2ErrKeepAliveCancel,
-        .ctap2ErrNoCredentials, .ctap2ErrUserActionTimeout, .ctap2ErrUserPresenceRequired, .ctap2ErrNotAllowed,
-        .ctap2ErrPinInvalid, .ctap2ErrPinBlocked, .ctap2ErrPinAuthInvalid, .ctap2ErrPinAuthBlocked,
-        .ctap2ErrPinNotSet, .ctap2ErrPinRequired, .ctap2ErrPinPolicyViolation, .ctap2ErrPinTokenExpired,
-        .ctap2ErrRequestTooLarge, .ctap2ErrActionTimeout, .ctap2ErrOther, .ctap2ErrSpecLast,
-        .ctap2ErrExtensionFirst, .ctap2ErrExtensionLast, .ctap2ErrVendorFirst, .ctap2ErrVendorLast:
-        return true
-    default:
-        return false
-    }
-}
-
-/// `getResponseCode` on bytes.
+/// The response code a device response starts with; an empty or unknown one is `ctap2ErrInvalidCBOR`.
 private func responseCode(_ bytes: Span<UInt8>) -> fido.CtapDeviceResponseCode {
     if bytes.isEmpty {
         return .ctap2ErrInvalidCBOR
     }
     // init?(rawValue:) of an imported C++ enum never fails; the check is the one above.
-    let code = fido.CtapDeviceResponseCode(rawValue: bytes[0])!
-    return isCtapDeviceResponseCode(code) ? code : .ctap2ErrInvalidCBOR
+    guard let code = fido.CtapDeviceResponseCode(rawValue: bytes[0]) else {
+        preconditionFailure("an imported C++ enum's init(rawValue:) never fails")
+    }
+    return code.isDeviceResponseCode ? code : .ctap2ErrInvalidCBOR
 }
 
-/// `decodeResponseMap`: the CBOR map after a success status byte, read from the buffer in place. The span of a
-/// by-value C++ parameter is taken in a helper (see apdu.ApduCommand.createFromMessage).
-private func decodeResponseMap(_ buffer: borrowing cbor.CBORValue.BinaryValue) -> CBOR.Map? {
-    let bytes: Span<UInt8> = buffer.span()
+/// The CBOR map after a success status byte, as a view of the bytes it was read from.
+@_lifetime(copy bytes)
+func decodeResponseMap(_ bytes: Span<UInt8>) -> CBORView? {
     if bytes.count <= fido.kResponseCodeLength {
         return nil
     }
     if responseCode(bytes) != .success {
         return nil
     }
-    return CBOR.read(bytes.extracting(1...))?.mapValue
+    guard let map = CBORView(bytes.extracting(1...)), map.isMap else {
+        return nil
+    }
+    return map
 }
 
 /// A big-endian 16-bit length at `offset`; the caller has checked the bounds.
-private func readLength16(_ bytes: [UInt8], _ offset: Int) -> Int {
+private func readLength16(_ bytes: Span<UInt8>, _ offset: Int) -> Int {
     (Int(bytes[offset]) << 8) | Int(bytes[offset + 1])
 }
 
 /// The credential ID in authenticator data: empty when the authenticator data has no complete credential ID.
-private func credentialId(fromAuthenticatorData authenticatorData: [UInt8]) -> [UInt8] {
-    let credentialIdLengthOffset = WebCore.rpIdHashLength + WebCore.flagsLength + WebCore.signCounterLength + WebCore.aaguidLength
-    if authenticatorData.count < credentialIdLengthOffset + WebCore.credentialIdLengthLength {
-        return []
+private func credentialID(fromAuthenticatorData authenticatorData: Span<UInt8>) -> cbor.Bytes {
+    let credentialIDLengthOffset = WebCore.rpIdHashLength + WebCore.flagsLength + WebCore.signCounterLength + WebCore.aaguidLength
+    if authenticatorData.count < credentialIDLengthOffset + WebCore.credentialIdLengthLength {
+        return cbor.Bytes()
     }
-    let credentialIdLength = readLength16(authenticatorData, credentialIdLengthOffset)
-    let start = credentialIdLengthOffset + WebCore.credentialIdLengthLength
-    if authenticatorData.count < start + credentialIdLength {
-        return []
+    let credentialIDLength = readLength16(authenticatorData, credentialIDLengthOffset)
+    let start = credentialIDLengthOffset + WebCore.credentialIdLengthLength
+    if authenticatorData.count < start + credentialIDLength {
+        return cbor.Bytes()
     }
-    return Array(authenticatorData[start..<(start + credentialIdLength)])
+    return makeByteVector(authenticatorData.extracting(start..<(start + credentialIDLength)))
 }
 
 /// The prf state that `parseAuthenticatorDataExtensions` builds, as plain values.
@@ -109,10 +91,21 @@ private struct PRFState {
     /// The decrypted output of the last hmac-secret byte string that decrypted.
     var output: [UInt8]?
 
-    /// An engaged `AuthenticationExtensionsClientOutputs`, with prf when the C++ would set it.
+    /// Takes what an hmac-secret value says: its flag, or the output of its encrypted bytes.
+    mutating func apply(_ value: CBORView, _ hmacSharedKey: WebCore.CryptoKeyAES?, _ pinProtocol: fido.PINUVAuthProtocol) {
+        if let flag = value.bool {
+            enabled = flag
+        } else if let encryptedOutput = value.byteString, let hmacSharedKey {
+            if let decrypted = hmacSecretOutput(pinProtocol, hmacSharedKey, encryptedOutput) {
+                output = decrypted
+            }
+        }
+    }
+
+    /// The extension outputs, with prf when the response had an hmac-secret flag or output.
     func makeOutputs() -> fido.OptionalClientOutputs {
-        var first = cbor.CBORValue.BinaryValue()
-        var second = cbor.CBORValue.BinaryValue()
+        var first = cbor.Bytes()
+        var second = cbor.Bytes()
         var hasSecond = false
         if let output {
             // first: the first hmacSecretOutputLength bytes (fewer if shorter); second: the next ones, for a dual output.
@@ -126,8 +119,12 @@ private struct PRFState {
     }
 }
 
-/// `parseAuthenticatorDataExtensions`: nil where it gives nullopt, which the callers turn into empty outputs.
-private func parseAuthenticatorDataExtensions(_ authData: [UInt8], _ hmacSharedKey: WebCore.CryptoKeyAES?, _ pinProtocol: fido.PINUVAuthProtocol) -> PRFState? {
+/// The prf state of the extensions in `authData`, or nil when it cannot be read; callers then use empty outputs.
+private func parseAuthenticatorDataExtensions(
+    _ authData: Span<UInt8>,
+    _ hmacSharedKey: WebCore.CryptoKeyAES?,
+    _ pinProtocol: fido.PINUVAuthProtocol
+) -> PRFState? {
     let minAuthDataLength = WebCore.rpIdHashLength + WebCore.flagsLength + WebCore.signCounterLength
     if authData.count < minAuthDataLength {
         return nil
@@ -144,353 +141,418 @@ private func parseAuthenticatorDataExtensions(_ authData: [UInt8], _ hmacSharedK
         if authData.count < offset + WebCore.credentialIdLengthLength {
             return nil
         }
-        let credentialIdLength = readLength16(authData, offset)
-        offset += WebCore.credentialIdLengthLength + credentialIdLength
+        let credentialIDLength = readLength16(authData, offset)
+        offset += WebCore.credentialIdLengthLength + credentialIDLength
         if authData.count <= offset {
             return nil
         }
-        guard let publicKey = CBOR.readWithBytesConsumed(authData.span.extracting(offset...)) else {
+        guard let publicKey = CBORView(prefixOf: authData.extracting(offset...)) else {
             return nil
         }
-        offset += publicKey.bytesConsumed
+        offset += publicKey.encoded.count
     }
 
     if authData.count <= offset {
         return nil
     }
-    guard let extensionsMap = CBOR.read(authData.span.extracting(offset...))?.mapValue else {
+    guard let extensionsMap = CBORView(authData.extracting(offset...)), extensionsMap.isMap else {
         return nil
     }
 
     var state = PRFState()
     // hmac-secret-mc is looked at only when hmac-secret is present.
-    guard let hmacSecret = extensionsMap[FidoName.extensionHmacSecret] else {
+    guard let hmacSecret = extensionsMap.value(forKey: FidoName.extensionHmacSecret) else {
         return state
     }
-    for value in [hmacSecret, extensionsMap[FidoName.extensionHmacSecretMc]] {
-        guard let value else {
-            break
-        }
-        if let enabled = value.boolValue {
-            state.enabled = enabled
-        } else if let encryptedOutput = value.byteStringValue, let hmacSharedKey {
-            if let output = hmacSecretOutput(pinProtocol, hmacSharedKey, encryptedOutput) {
-                state.output = output
-            }
-        }
+    state.apply(hmacSecret, hmacSharedKey, pinProtocol)
+    if let hmacSecretMc = extensionsMap.value(forKey: FidoName.extensionHmacSecretMc) {
+        state.apply(hmacSecretMc, hmacSharedKey, pinProtocol)
     }
     return state
 }
 
 extension fido {
-    @cxx @implementation public static func isCtap2Protocol(_ version: fido.ProtocolVersion) -> Bool {
-        switch version {
-        case .ctap2, .ctap21, .ctap21Pre:
-            return true
-        default:
-            return false
-        }
+    /// The response code a device response starts with.
+    @cxx
+    @implementation
+    public static func getResponseCode(_ buffer: cbor.Bytes) -> fido.CtapDeviceResponseCode {
+        getResponseCodeBody(buffer)
     }
 
-    @cxx @implementation public static func toString(_ version: fido.ProtocolVersion) -> WTF.String {
-        makeWTFString(protocolVersionName(version))
+    // The body takes the span: a span of an `@cxx @implementation` parameter does not compile (see WebAuthnApdu.swift).
+    private static func getResponseCodeBody(_ buffer: cbor.Bytes) -> fido.CtapDeviceResponseCode {
+        responseCode(buffer.span())
     }
 
-    @cxx @implementation public static func getResponseCode(_ buffer: cbor.CBORValue.BinaryValue) -> fido.CtapDeviceResponseCode {
-        if buffer.isEmpty() {
-            return .ctap2ErrInvalidCBOR
-        }
-        let code = fido.CtapDeviceResponseCode(rawValue: buffer[0])!
-        return isCtapDeviceResponseCode(code) ? code : .ctap2ErrInvalidCBOR
+    /// Reads a CTAP makeCredential response.
+    @cxx
+    @implementation
+    public static func readCTAPMakeCredentialResponse(
+        _ inBuffer: cbor.Bytes,
+        _ attachment: WebCore.AuthenticatorAttachment,
+        _ transports: fido.TransportVector,
+        _ attestation: WebCore.AttestationConveyancePreference,
+        _ hmacSharedKey: fido.CryptoKeyAESPtr,
+        _ pinProtocol: fido.PINUVAuthProtocol
+    ) -> fido.AttestationResponsePtr {
+        readMakeCredentialResponse(inBuffer, attachment, transports, attestation, hmacSharedKey, pinProtocol)
     }
 
-    @cxx @implementation public static func readCTAPMakeCredentialResponse(_ inBuffer: cbor.CBORValue.BinaryValue, _ attachment: WebCore.AuthenticatorAttachment, _ transports: fido.TransportVector, _ attestation: WebCore.AttestationConveyancePreference, _ hmacSharedKey: fido.CryptoKeyAESPtr, _ pinProtocol: fido.PINUVAuthProtocol) -> fido.AttestationResponsePtr {
-        guard let responseMap = decodeResponseMap(inBuffer) else {
-            return fido.AttestationResponsePtr()
-        }
-        guard let format = responseMap[fido.kCtapMakeCredentialResponseFormatKey], format.isString else {
-            return fido.AttestationResponsePtr()
-        }
-        guard let authDataBytes = responseMap[fido.kCtapMakeCredentialResponseAuthDataKey]?.byteStringValue else {
-            return fido.AttestationResponsePtr()
-        }
-        let credentialId = credentialId(fromAuthenticatorData: authDataBytes)
-        if credentialId.isEmpty {
-            return fido.AttestationResponsePtr()
-        }
-        guard let attStmt = responseMap[fido.kCtapMakeCredentialResponseAttStmtKey], attStmt.isMap else {
-            return fido.AttestationResponsePtr()
-        }
-
-        let extensions = (parseAuthenticatorDataExtensions(authDataBytes, hmacSharedKey.get(), pinProtocol) ?? PRFState()).makeOutputs()
-
-        var attestationObject: cbor.CBORValue.BinaryValue
-        if attestation == .None {
-            attestationObject = WebCore.buildAttestationObject(consuming: makeByteVector(authDataBytes), consuming: fido.emptyWTFString(), consuming: cbor.CBORValue.MapValue(), attestation, .Yes)
-        } else {
-            // The response map nests attStmt as deep as this map does, and it was read within the writer's limit.
-            guard let written = CBOR.writeAttestationObject(format: format, attStatement: attStmt, authData: authDataBytes) else {
-                preconditionFailure("an attestation object nests no deeper than the response it came from")
-            }
-            attestationObject = makeByteVector(written)
-        }
-
-        let response = WebCore.AuthenticatorAttestationResponse.create(makeByteVector(credentialId), attestationObject, consuming: extensions, attachment, consuming: transports).get()
-        return fido.AttestationResponsePtr(response)
+    /// Reads a CTAP getAssertion response.
+    @cxx
+    @implementation
+    public static func readCTAPGetAssertionResponse(
+        _ inBuffer: cbor.Bytes,
+        _ attachment: WebCore.AuthenticatorAttachment,
+        _ hmacSharedKey: fido.CryptoKeyAESPtr,
+        _ pinProtocol: fido.PINUVAuthProtocol
+    ) -> fido.AssertionResponsePtr {
+        readGetAssertionResponse(inBuffer, attachment, hmacSharedKey, pinProtocol)
     }
 
-    @cxx @implementation public static func readCTAPGetAssertionResponse(_ inBuffer: cbor.CBORValue.BinaryValue, _ attachment: WebCore.AuthenticatorAttachment, _ hmacSharedKey: fido.CryptoKeyAESPtr, _ pinProtocol: fido.PINUVAuthProtocol) -> fido.AssertionResponsePtr {
-        guard let responseMap = decodeResponseMap(inBuffer) else {
-            return fido.AssertionResponsePtr()
-        }
-        guard let credential = responseMap[fido.kCtapGetAssertionResponseCredentialKey]?.mapValue,
-            let credentialId = credential[FidoName.credentialId]?.byteStringValue else {
-            return fido.AssertionResponsePtr()
-        }
-        guard let authData = responseMap[fido.kCtapGetAssertionResponseAuthDataKey]?.byteStringValue else {
-            return fido.AssertionResponsePtr()
-        }
-        guard let signature = responseMap[fido.kCtapGetAssertionResponseSignatureKey]?.byteStringValue else {
-            return fido.AssertionResponsePtr()
-        }
-
-        // Parse extensions from authenticatorData
-        let extensions = (parseAuthenticatorDataExtensions(authData, hmacSharedKey.get(), pinProtocol) ?? PRFState()).makeOutputs()
-
-        var userHandle: [UInt8] = []
-        var name: Swift.String?
-        var displayName: Swift.String?
-        if let user = responseMap[fido.kCtapGetAssertionResponseUserKey]?.mapValue {
-            guard let id = user[FidoName.entityId]?.byteStringValue else {
-                return fido.AssertionResponsePtr()
-            }
-            userHandle = id
-            if let value = user[FidoName.entityName] {
-                guard let string = value.stringValue else {
-                    return fido.AssertionResponsePtr()
-                }
-                name = string
-            }
-            if let value = user[FidoName.displayName] {
-                guard let string = value.stringValue else {
-                    return fido.AssertionResponsePtr()
-                }
-                displayName = string
-            }
-        }
-
-        let response = WebCore.AuthenticatorAssertionResponse.create(makeByteVector(credentialId), makeByteVector(authData), makeByteVector(signature), makeByteVector(userHandle), consuming: extensions, attachment).get()
-        if let name {
-            response.setName(makeWTFString(name))
-        }
-        if let displayName {
-            response.setDisplayName(makeWTFString(displayName))
-        }
-        if let numberOfCredentials = responseMap[fido.kCtapGetAssertionResponseNumberOfCredentialsKey]?.unsignedValue {
-            response.setNumberOfCredentials(Int(numberOfCredentials))
-        }
-        return fido.AssertionResponsePtr(response)
-    }
-
-    @cxx @implementation public static func readCTAPGetInfoResponse(_ inBuffer: cbor.CBORValue.BinaryValue) -> fido.OptionalGetInfoResponse {
-        guard let responseMap = decodeResponseMap(inBuffer) else {
-            return noGetInfoResponse()
-        }
-
-        var fields = fido.GetInfoResponseFields()
-        guard let versions = responseMap[fido.kCtapAuthenticatorGetInfoVersionsKey]?.arrayValue else {
-            return noGetInfoResponse()
-        }
-        // StdSet<ProtocolVersion>: kept in enum order.
-        var protocolVersions: [fido.ProtocolVersion] = []
-        for version in versions {
-            guard let string = version.stringValue else {
-                return noGetInfoResponse()
-            }
-            let protocolVersion = protocolVersionFromName(string)
-            if protocolVersion == .unknown {
-                continue
-            }
-            if protocolVersions.contains(protocolVersion) {
-                return noGetInfoResponse()
-            }
-            protocolVersions.append(protocolVersion)
-        }
-        if protocolVersions.isEmpty {
-            return noGetInfoResponse()
-        }
-        protocolVersions.sort { $0.rawValue < $1.rawValue }
-        for protocolVersion in protocolVersions {
-            fields.versions.append(consuming: protocolVersion)
-        }
-
-        guard let aaguid = responseMap[fido.kCtapAuthenticatorGetInfoAAGUIDKey]?.byteStringValue, aaguid.count == WebCore.aaguidLength else {
-            return noGetInfoResponse()
-        }
-        fields.aaguid = makeByteVector(aaguid)
-
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoExtensionsKey] {
-            guard let extensions = value.arrayValue else {
-                return noGetInfoResponse()
-            }
-            var extensionNames = fido.StringVector()
-            for extensionName in extensions {
-                guard let string = extensionName.stringValue else {
-                    return noGetInfoResponse()
-                }
-                extensionNames.append(consuming: makeWTFString(string))
-            }
-            fields.extensions = fido.OptionalStringVector(extensionNames)
-        }
-
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoOptionsKey] {
-            guard let optionMap = value.mapValue else {
-                return noGetInfoResponse()
-            }
-            if let option = optionMap[FidoName.platformDevice] {
-                guard let flag = option.boolValue else {
-                    return noGetInfoResponse()
-                }
-                fields.isPlatformDevice = flag
-            }
-            if let option = optionMap[FidoName.residentKey] {
-                guard let flag = option.boolValue else {
-                    return noGetInfoResponse()
-                }
-                fields.residentKeyAvailability = flag ? .supported : .notSupported
-            }
-            if let option = optionMap[FidoName.userPresence] {
-                guard let flag = option.boolValue else {
-                    return noGetInfoResponse()
-                }
-                fields.userPresenceRequired = flag
-            }
-            if let option = optionMap[FidoName.userVerification] {
-                guard let flag = option.boolValue else {
-                    return noGetInfoResponse()
-                }
-                fields.userVerificationAvailability = flag ? .supportedAndConfigured : .supportedButNotConfigured
-            }
-            if let option = optionMap[FidoName.clientPin] {
-                guard let flag = option.boolValue else {
-                    return noGetInfoResponse()
-                }
-                fields.clientPinAvailability = flag ? .supportedAndPinSet : .supportedButPinNotSet
-            }
-        }
-
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoMaxMsgSizeKey] {
-            guard let size = value.unsignedValue else {
-                return noGetInfoResponse()
-            }
-            fields.maxMsgSize = fido.OptionalUInt32(UInt32(truncatingIfNeeded: size)) // setMaxMsgSize(uint32_t) narrows getUnsigned().
-        }
-
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoPinUVAuthProtocolsKey] {
-            guard let protocols = value.arrayValue else {
-                return noGetInfoResponse()
-            }
-            // StdSet<PINUVAuthProtocol>: 1 before 2, each once; unknown protocols are ignored.
-            var hasProtocol1 = false
-            var hasProtocol2 = false
-            for protocolValue in protocols {
-                guard let number = protocolValue.unsignedValue else {
-                    return noGetInfoResponse()
-                }
-                if number == Int64(fido.PINUVAuthProtocol.pinProtocol1.rawValue) {
-                    hasProtocol1 = true
-                } else if number == Int64(fido.PINUVAuthProtocol.pinProtocol2.rawValue) {
-                    hasProtocol2 = true
-                }
-            }
-            var pinProtocols = fido.PinProtocolVector()
-            if hasProtocol1 {
-                pinProtocols.append(consuming: .pinProtocol1)
-            }
-            if hasProtocol2 {
-                pinProtocols.append(consuming: .pinProtocol2)
-            }
-            fields.pinProtocols = fido.OptionalPinProtocolVector(pinProtocols)
-        }
-
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoMaxCredentialCountInListKey] {
-            guard let count = value.unsignedValue else {
-                return noGetInfoResponse()
-            }
-            fields.maxCredentialCountInList = fido.OptionalUInt32(UInt32(truncatingIfNeeded: count))
-        }
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoMaxCredentialIdLengthKey] {
-            guard let length = value.unsignedValue else {
-                return noGetInfoResponse()
-            }
-            fields.maxCredentialIDLength = fido.OptionalUInt32(UInt32(truncatingIfNeeded: length))
-        }
-
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoTransportsKey] {
-            guard let transports = value.arrayValue else {
-                return noGetInfoResponse()
-            }
-            var transportList = fido.TransportVector()
-            for transportName in transports {
-                guard let string = transportName.stringValue else {
-                    return noGetInfoResponse()
-                }
-                if let transport = Optional(fromCxx: WebCore.convertStringToAuthenticatorTransport(makeWTFString(string))) {
-                    transportList.append(consuming: transport)
-                }
-            }
-            fields.transports = fido.OptionalTransportVector(transportList)
-        }
-
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoMinPINLengthKey] {
-            guard let length = value.unsignedValue else {
-                return noGetInfoResponse()
-            }
-            fields.minPINLength = fido.OptionalUInt32(UInt32(truncatingIfNeeded: length))
-        }
-
-        if let value = responseMap[fido.kCtapAuthenticatorGetInfoRemainingDiscoverableCredentialsKey] {
-            guard let count = value.unsignedValue else {
-                return noGetInfoResponse()
-            }
-            fields.remainingDiscoverableCredentials = fido.OptionalUInt32(UInt32(truncatingIfNeeded: count))
-        }
-
-        return fido.makeGetInfoResponse(consuming: fields)
+    /// Reads a CTAP getInfo response.
+    @cxx
+    @implementation
+    public static func readCTAPGetInfoResponse(_ inBuffer: cbor.Bytes) -> fido.OptionalGetInfoResponse {
+        readGetInfoResponse(inBuffer)
     }
 }
 
-/// nullopt (makeGetInfoResponse gives it for an empty versions list).
+/// The attestation object `{"fmt": format, "attStmt": attStatement, "authData": authData}`, the keys in `CTAPLess`
+/// order, the format and the statement as they were read.
+private func encodeAttestationObject(format: CBORView, attStatement: CBORView, authData: Span<UInt8>) -> cbor.Bytes {
+    var writer = CBORWriter(reservingCapacity: authData.count + 64)
+    writer.beginMap(count: 3)
+    writer.writeTextString(FidoName.format)
+    writer.append(encodedItem: format.encoded)
+    writer.writeTextString(FidoName.attestationStatement)
+    writer.append(encodedItem: attStatement.encoded)
+    writer.writeTextString(FidoName.authData)
+    writer.writeByteString(authData)
+    return writer.takeVector()
+}
+
+private func readMakeCredentialResponse(
+    _ inBuffer: borrowing cbor.Bytes,
+    _ attachment: WebCore.AuthenticatorAttachment,
+    _ transports: fido.TransportVector,
+    _ attestation: WebCore.AttestationConveyancePreference,
+    _ hmacSharedKey: fido.CryptoKeyAESPtr,
+    _ pinProtocol: fido.PINUVAuthProtocol
+) -> fido.AttestationResponsePtr {
+    let bytes: Span<UInt8> = inBuffer.span()
+    guard let responseMap = decodeResponseMap(bytes) else {
+        return fido.AttestationResponsePtr()
+    }
+    guard let format = responseMap.value(forKey: fido.kCtapMakeCredentialResponseFormatKey), format.isText else {
+        return fido.AttestationResponsePtr()
+    }
+    guard let authDataItem = responseMap.value(forKey: fido.kCtapMakeCredentialResponseAuthDataKey), let authData = authDataItem.byteString
+    else {
+        return fido.AttestationResponsePtr()
+    }
+    let credentialID = credentialID(fromAuthenticatorData: authData)
+    if credentialID.isEmpty() {
+        return fido.AttestationResponsePtr()
+    }
+    guard let attStmt = responseMap.value(forKey: fido.kCtapMakeCredentialResponseAttStmtKey), attStmt.isMap else {
+        return fido.AttestationResponsePtr()
+    }
+
+    let extensions = (parseAuthenticatorDataExtensions(authData, hmacSharedKey.get(), pinProtocol) ?? PRFState()).makeOutputs()
+
+    let attestationObject: cbor.Bytes
+    if attestation == .None {
+        attestationObject = buildAttestationObject(
+            makeByteVector(authData),
+            fido.emptyWTFString(),
+            makeByteVector([0xa0]),
+            attestation,
+            .Yes
+        )
+    } else {
+        attestationObject = encodeAttestationObject(format: format, attStatement: attStmt, authData: authData)
+    }
+
+    let response = WebCore.AuthenticatorAttestationResponse
+        .create(credentialID, attestationObject, consuming: extensions, attachment, consuming: transports).get()
+    return fido.AttestationResponsePtr(response)
+}
+
+private func readGetAssertionResponse(
+    _ inBuffer: borrowing cbor.Bytes,
+    _ attachment: WebCore.AuthenticatorAttachment,
+    _ hmacSharedKey: fido.CryptoKeyAESPtr,
+    _ pinProtocol: fido.PINUVAuthProtocol
+) -> fido.AssertionResponsePtr {
+    let bytes: Span<UInt8> = inBuffer.span()
+    guard let responseMap = decodeResponseMap(bytes) else {
+        return fido.AssertionResponsePtr()
+    }
+    guard let credential = responseMap.value(forKey: fido.kCtapGetAssertionResponseCredentialKey), credential.isMap,
+        let credentialIDItem = credential.value(forKey: FidoName.credentialID), let credentialID = credentialIDItem.byteString
+    else {
+        return fido.AssertionResponsePtr()
+    }
+    guard let authDataItem = responseMap.value(forKey: fido.kCtapGetAssertionResponseAuthDataKey), let authData = authDataItem.byteString
+    else {
+        return fido.AssertionResponsePtr()
+    }
+    guard let signatureItem = responseMap.value(forKey: fido.kCtapGetAssertionResponseSignatureKey),
+        let signature = signatureItem.byteString
+    else {
+        return fido.AssertionResponsePtr()
+    }
+
+    // Parse extensions from authenticatorData
+    let extensions = (parseAuthenticatorDataExtensions(authData, hmacSharedKey.get(), pinProtocol) ?? PRFState()).makeOutputs()
+
+    var userHandle = cbor.Bytes()
+    var name: Swift.String?
+    var displayName: Swift.String?
+    if let user = responseMap.value(forKey: fido.kCtapGetAssertionResponseUserKey), user.isMap {
+        guard let idItem = user.value(forKey: FidoName.entityID), let id = idItem.byteString else {
+            return fido.AssertionResponsePtr()
+        }
+        userHandle = makeByteVector(id)
+        if let value = user.value(forKey: FidoName.entityName) {
+            guard let string = value.string else {
+                return fido.AssertionResponsePtr()
+            }
+            name = string
+        }
+        if let value = user.value(forKey: FidoName.displayName) {
+            guard let string = value.string else {
+                return fido.AssertionResponsePtr()
+            }
+            displayName = string
+        }
+    }
+
+    let response = WebCore.AuthenticatorAssertionResponse
+        .create(
+            makeByteVector(credentialID),
+            makeByteVector(authData),
+            makeByteVector(signature),
+            userHandle,
+            consuming: extensions,
+            attachment
+        )
+        .get()
+    if let name {
+        response.setName(makeWTFString(name))
+    }
+    if let displayName {
+        response.setDisplayName(makeWTFString(displayName))
+    }
+    if let value = responseMap.value(forKey: fido.kCtapGetAssertionResponseNumberOfCredentialsKey), let numberOfCredentials = value.unsigned
+    {
+        response.setNumberOfCredentials(Int(numberOfCredentials))
+    }
+    return fido.AssertionResponsePtr(response)
+}
+
+/// A getInfo response that `readCTAPGetInfoResponse` rejects.
+private struct MalformedGetInfoResponse: Error {}
+
+private func readGetInfoResponse(_ inBuffer: borrowing cbor.Bytes) -> fido.OptionalGetInfoResponse {
+    let bytes: Span<UInt8> = inBuffer.span()
+    guard let responseMap = decodeResponseMap(bytes) else {
+        return noGetInfoResponse()
+    }
+
+    var fields = fido.GetInfoResponseFields()
+    do {
+        try readVersions(responseMap, into: &fields)
+        try readAAGUID(responseMap, into: &fields)
+        try readExtensions(responseMap, into: &fields)
+        try readOptions(responseMap, into: &fields)
+        fields.maxMsgSize = try readUInt32(responseMap, fido.kCtapAuthenticatorGetInfoMaxMsgSizeKey)
+        try readPinProtocols(responseMap, into: &fields)
+        fields.maxCredentialCountInList = try readUInt32(responseMap, fido.kCtapAuthenticatorGetInfoMaxCredentialCountInListKey)
+        fields.maxCredentialIDLength = try readUInt32(responseMap, fido.kCtapAuthenticatorGetInfoMaxCredentialIdLengthKey)
+        try readTransports(responseMap, into: &fields)
+        fields.minPINLength = try readUInt32(responseMap, fido.kCtapAuthenticatorGetInfoMinPINLengthKey)
+        fields.remainingDiscoverableCredentials = try readUInt32(
+            responseMap,
+            fido.kCtapAuthenticatorGetInfoRemainingDiscoverableCredentialsKey
+        )
+    } catch {
+        return noGetInfoResponse()
+    }
+    return fido.makeGetInfoResponse(consuming: fields)
+}
+
+/// The unsigned integer at `key`, narrowed as the `uint32_t` setters narrow `getUnsigned()`; none when there is no entry.
+private func readUInt32(_ responseMap: CBORView, _ key: Int64) throws(MalformedGetInfoResponse) -> fido.OptionalUInt32 {
+    guard let value = responseMap.value(forKey: key) else {
+        return fido.OptionalUInt32()
+    }
+    guard let number = value.unsigned else {
+        throw MalformedGetInfoResponse()
+    }
+    return fido.OptionalUInt32(UInt32(truncatingIfNeeded: number))
+}
+
+private func readVersions(_ responseMap: CBORView, into fields: inout fido.GetInfoResponseFields) throws(MalformedGetInfoResponse) {
+    guard let versionsItem = responseMap.value(forKey: fido.kCtapAuthenticatorGetInfoVersionsKey), var versions = versionsItem.elements
+    else {
+        throw MalformedGetInfoResponse()
+    }
+    // StdSet<ProtocolVersion>: kept in enum order.
+    var protocolVersions: [fido.ProtocolVersion] = []
+    while let version = versions.next() {
+        guard version.isText else {
+            throw MalformedGetInfoResponse()
+        }
+        let protocolVersion = protocolVersionNamed(by: version)
+        if protocolVersion == .unknown {
+            continue
+        }
+        if protocolVersions.contains(protocolVersion) {
+            throw MalformedGetInfoResponse()
+        }
+        protocolVersions.append(protocolVersion)
+    }
+    if protocolVersions.isEmpty {
+        throw MalformedGetInfoResponse()
+    }
+    protocolVersions.sort { $0.rawValue < $1.rawValue }
+    for protocolVersion in protocolVersions {
+        fields.versions.append(consuming: protocolVersion)
+    }
+}
+
+private func readAAGUID(_ responseMap: CBORView, into fields: inout fido.GetInfoResponseFields) throws(MalformedGetInfoResponse) {
+    guard let aaguidItem = responseMap.value(forKey: fido.kCtapAuthenticatorGetInfoAAGUIDKey), let aaguid = aaguidItem.byteString,
+        aaguid.count == WebCore.aaguidLength
+    else {
+        throw MalformedGetInfoResponse()
+    }
+    fields.aaguid = makeByteVector(aaguid)
+}
+
+private func readExtensions(_ responseMap: CBORView, into fields: inout fido.GetInfoResponseFields) throws(MalformedGetInfoResponse) {
+    guard let value = responseMap.value(forKey: fido.kCtapAuthenticatorGetInfoExtensionsKey) else {
+        return
+    }
+    guard var extensions = value.elements else {
+        throw MalformedGetInfoResponse()
+    }
+    var extensionNames = fido.StringVector()
+    while let extensionName = extensions.next() {
+        guard let string = extensionName.string else {
+            throw MalformedGetInfoResponse()
+        }
+        extensionNames.append(consuming: makeWTFString(string))
+    }
+    fields.extensions = fido.OptionalStringVector(extensionNames)
+}
+
+/// The boolean option at `key`; nil when there is no entry.
+private func readOption(_ options: CBORView, _ key: Swift.String) throws(MalformedGetInfoResponse) -> Bool? {
+    guard let option = options.value(forKey: key) else {
+        return nil
+    }
+    guard let flag = option.bool else {
+        throw MalformedGetInfoResponse()
+    }
+    return flag
+}
+
+private func readOptions(_ responseMap: CBORView, into fields: inout fido.GetInfoResponseFields) throws(MalformedGetInfoResponse) {
+    guard let options = responseMap.value(forKey: fido.kCtapAuthenticatorGetInfoOptionsKey) else {
+        return
+    }
+    guard options.isMap else {
+        throw MalformedGetInfoResponse()
+    }
+    if let flag = try readOption(options, FidoName.platformDevice) {
+        fields.isPlatformDevice = flag
+    }
+    if let flag = try readOption(options, FidoName.residentKey) {
+        fields.residentKeyAvailability = flag ? .supported : .notSupported
+    }
+    if let flag = try readOption(options, FidoName.userPresence) {
+        fields.userPresenceRequired = flag
+    }
+    if let flag = try readOption(options, FidoName.userVerification) {
+        fields.userVerificationAvailability = flag ? .supportedAndConfigured : .supportedButNotConfigured
+    }
+    if let flag = try readOption(options, FidoName.clientPin) {
+        fields.clientPinAvailability = flag ? .supportedAndPinSet : .supportedButPinNotSet
+    }
+}
+
+private func readPinProtocols(_ responseMap: CBORView, into fields: inout fido.GetInfoResponseFields) throws(MalformedGetInfoResponse) {
+    guard let value = responseMap.value(forKey: fido.kCtapAuthenticatorGetInfoPinUVAuthProtocolsKey) else {
+        return
+    }
+    guard var protocols = value.elements else {
+        throw MalformedGetInfoResponse()
+    }
+    // StdSet<PINUVAuthProtocol>: 1 before 2, each once; unknown protocols are ignored.
+    var hasProtocol1 = false
+    var hasProtocol2 = false
+    while let protocolValue = protocols.next() {
+        guard let number = protocolValue.unsigned else {
+            throw MalformedGetInfoResponse()
+        }
+        if number == Int64(fido.PINUVAuthProtocol.pinProtocol1.rawValue) {
+            hasProtocol1 = true
+        } else if number == Int64(fido.PINUVAuthProtocol.pinProtocol2.rawValue) {
+            hasProtocol2 = true
+        }
+    }
+    var pinProtocols = fido.PinProtocolVector()
+    if hasProtocol1 {
+        pinProtocols.append(consuming: .pinProtocol1)
+    }
+    if hasProtocol2 {
+        pinProtocols.append(consuming: .pinProtocol2)
+    }
+    fields.pinProtocols = fido.OptionalPinProtocolVector(pinProtocols)
+}
+
+private func readTransports(_ responseMap: CBORView, into fields: inout fido.GetInfoResponseFields) throws(MalformedGetInfoResponse) {
+    guard let value = responseMap.value(forKey: fido.kCtapAuthenticatorGetInfoTransportsKey) else {
+        return
+    }
+    guard var transports = value.elements else {
+        throw MalformedGetInfoResponse()
+    }
+    var transportList = fido.TransportVector()
+    while let transportName = transports.next() {
+        guard let string = transportName.string else {
+            throw MalformedGetInfoResponse()
+        }
+        if let transport = Optional(fromCxx: WebCore.convertStringToAuthenticatorTransport(makeWTFString(string))) {
+            transportList.append(consuming: transport)
+        }
+    }
+    fields.transports = fido.OptionalTransportVector(transportList)
+}
+
+/// A response with no value, which `makeGetInfoResponse` gives for an empty versions list.
 private func noGetInfoResponse() -> fido.OptionalGetInfoResponse {
     fido.makeGetInfoResponse(consuming: fido.GetInfoResponseFields())
 }
 
-/// `toString(ProtocolVersion)`'s names.
-func protocolVersionName(_ version: fido.ProtocolVersion) -> Swift.String {
-    switch version {
-    case .ctap2: "FIDO_2_0"
-    case .ctap21: "FIDO_2_1"
-    case .ctap21Pre: "FIDO_2_1_PRE"
-    case .u2f: "U2F_V2"
-    default: "UNKNOWN"
-    }
-}
-
-/// The protocol version a name stands for, against FidoConstants.h's names.
-private func protocolVersionFromName(_ name: Swift.String) -> fido.ProtocolVersion {
-    if sameCodeUnits(name, FidoName.ctap21Version) {
+/// The protocol version a text string stands for, against FidoConstants.h's names.
+private func protocolVersionNamed(by name: CBORView) -> fido.ProtocolVersion {
+    if name.textEquals(FidoName.ctap21Version) {
         return .ctap21
     }
-    if sameCodeUnits(name, FidoName.ctap21PreVersion) {
+    if name.textEquals(FidoName.ctap21PreVersion) {
         return .ctap21Pre
     }
-    if sameCodeUnits(name, FidoName.ctap2Version) {
+    if name.textEquals(FidoName.ctap2Version) {
         return .ctap2
     }
-    if sameCodeUnits(name, FidoName.u2fVersion) {
+    if name.textEquals(FidoName.u2fVersion) {
         return .u2f
     }
     return .unknown
 }
 
-#endif // !os(watchOS) && !targetEnvironment(macCatalyst)
+#endif // !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST

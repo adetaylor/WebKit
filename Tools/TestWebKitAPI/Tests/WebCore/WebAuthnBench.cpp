@@ -105,10 +105,7 @@ static void run(ASCIILiteral name, size_t bytes, uint64_t expected, unsigned pas
 
 using Bytes = std::span<const uint8_t>;
 
-// The CBOR reader's default nesting limit.
-static constexpr int kCBORMaxDepth = 16;
-
-static void readAndHash(Hash& hash, Bytes bytes, int maxNesting = kCBORMaxDepth)
+static void readAndHash(Hash& hash, Bytes bytes, int maxNesting = cbor::kCBORMaxDepth)
 {
     auto result = readCanonicalBytes(bytes, maxNesting, false);
     hash.addFlag(result.ok);
@@ -325,7 +322,7 @@ TEST(WebAuthnBench, CBORReadSmallExhaustive)
 
 static void readWithBytesConsumedAndHash(Hash& hash, Bytes bytes)
 {
-    auto result = readCanonicalBytes(bytes, kCBORMaxDepth, true);
+    auto result = readCanonicalBytes(bytes, cbor::kCBORMaxDepth, true);
     hash.addFlag(result.ok);
     hash.add(static_cast<uint64_t>(result.error));
     if (result.ok) {
@@ -370,13 +367,12 @@ TEST(WebAuthnBench, CBORReadWithBytesConsumed)
 
 // ---- CBOR writer ----
 
-// The CBOR writer's default nesting limit, and the reader's limit for the read that comes first: the inputs of these
-// benchmarks are the writer's own output, deeper than the default reader limit allows in one case.
-static constexpr size_t kCBORDefaultMaxNestingDepth = 16;
+// The reader's limit for the read that comes first: the inputs of these benchmarks are the writer's own output,
+// deeper than the default reader limit allows in one case.
 static constexpr int kCBORRewriteReadDepth = 64;
 
 // The bytes the writer produced for a value, as the value's own canonical encoding: read, then written again.
-static void writeAndHash(Hash& hash, Bytes input, size_t maxNesting = kCBORDefaultMaxNestingDepth)
+static void writeAndHash(Hash& hash, Bytes input, size_t maxNesting = cbor::kCBORDefaultMaxNestingDepth)
 {
     auto bytes = rewriteCanonicalBytes(input, kCBORRewriteReadDepth, maxNesting);
     hash.addFlag(!!bytes);
@@ -387,7 +383,7 @@ static void writeAndHash(Hash& hash, Bytes input, size_t maxNesting = kCBORDefau
 TEST(WebAuthnBench, CBORWriteMakeCredential)
 {
     auto value = makeMakeCredentialBytes();
-    auto size = rewriteCanonicalBytes(value.span(), kCBORRewriteReadDepth, kCBORDefaultMaxNestingDepth);
+    auto size = rewriteCanonicalBytes(value.span(), kCBORRewriteReadDepth, cbor::kCBORDefaultMaxNestingDepth);
     ASSERT_TRUE(size);
     ASSERT_TRUE(value == *size);
     run("CBORWriteMakeCredential"_s, size->size(), 0x71ff33e4925402deULL, 450000u, [&] {
@@ -400,7 +396,7 @@ TEST(WebAuthnBench, CBORWriteMakeCredential)
 TEST(WebAuthnBench, CBORWriteScalars)
 {
     auto value = makeScalarsBytes();
-    auto size = rewriteCanonicalBytes(value.span(), kCBORRewriteReadDepth, kCBORDefaultMaxNestingDepth);
+    auto size = rewriteCanonicalBytes(value.span(), kCBORRewriteReadDepth, cbor::kCBORDefaultMaxNestingDepth);
     ASSERT_TRUE(size);
     ASSERT_TRUE(value == *size);
     run("CBORWriteScalars"_s, size->size(), 0x0616c42b88ecd7abULL, 5050u, [&] {

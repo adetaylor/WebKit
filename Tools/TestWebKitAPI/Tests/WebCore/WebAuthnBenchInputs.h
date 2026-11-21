@@ -27,20 +27,13 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#include <WebCore/CBORBytes.h>
 #include <WebCore/Pin.h>
 #include <array>
 #include <wtf/StdLibExtras.h>
 #include <wtf/Vector.h>
 #include <wtf/text/StringBuilder.h>
 #include <wtf/text/WTFString.h>
-
-#if __has_include(<WebCore/CBORBytes.h>)
-#include <WebCore/CBORBytes.h>
-#else
-#include <WebCore/CBORReader.h>
-#include <WebCore/CBORValue.h>
-#include <WebCore/CBORWriter.h>
-#endif
 
 // The deterministic inputs of WebAuthnBench.cpp. Every input is a function of fixed bytes or of a fixed seed, so a
 // checksum over the outputs is the same on every run.
@@ -122,161 +115,33 @@ inline Vector<uint8_t> patternBytes(size_t size, uint64_t seed)
 
 // ---- The CBOR surface the benchmark uses: bytes in, bytes out ----
 //
-// The benchmark names no CBOR value type, so that it builds both with cbor::CBORValue and with the byte-level CBOR
-// surface of WebCore/CBORBytes.h. Every read is observed as its canonical re-encoding (the reader accepts only
-// canonical CBOR, so that is the input's own prefix) with the decoder's error code, and every write as the bytes of a
-// read followed by a write. The three functions below are the only code that differs between the two: where CBORBytes.h
-// exists they forward to it, and otherwise they use CBORValue, CBORReader and CBORWriter.
+// Every read is observed as its canonical re-encoding (the reader accepts only canonical CBOR, so that is the input's
+// own prefix) with the decoder's error code, and every write as the bytes of a read followed by a write, through the
+// byte-level surface of WebCore/CBORBytes.h.
 
 struct CanonicalRead {
     bool ok { false };
-    unsigned error { 0 }; // cbor::CBORReader::DecoderError's numbering: 0 is no error.
+    unsigned error { 0 }; // cbor::DecoderError's numbering: 0 is no error.
     size_t bytesConsumed { 0 };
     Vector<uint8_t> canonical;
 };
 
-#if __has_include(<WebCore/CBORBytes.h>)
-
-// The byte-level functions take their input as a std::span<const uint8_t> (readCanonical, through a C++ shell) or as a
-// Vector<uint8_t> by value (writeCanonical); callWithBytes passes the span where the function takes one and a copy
-// in a Vector where it does not, so these call sites compile either way.
-template<typename Function>
-inline auto callWithBytes(Function&& function, std::span<const uint8_t> bytes) -> decltype(function(bytes))
-{
-    return function(bytes);
-}
-
-template<typename Function>
-inline auto callWithBytes(Function&& function, std::span<const uint8_t> bytes) -> decltype(function(Vector<uint8_t> { bytes }))
-{
-    return function(Vector<uint8_t> { bytes });
-}
-
 inline CanonicalRead readCanonicalBytes(std::span<const uint8_t> bytes, int maxNesting, bool allowTrailingData)
 {
-    auto result = callWithBytes([&](auto&& input) -> decltype(cbor::readCanonical(input, maxNesting, allowTrailingData)) {
-        return cbor::readCanonical(input, maxNesting, allowTrailingData);
-    }, bytes);
+    auto result = cbor::readCanonical(bytes, maxNesting, allowTrailingData);
     return { result.error == cbor::DecoderError::CBORNoError, static_cast<unsigned>(result.error), result.bytesConsumed, WTF::move(result.canonical) };
 }
 
-// writeCanonical reads leniently (nesting up to 64) itself, so only the CBORValue branch uses readMaxNesting.
+// writeCanonical reads leniently (nesting up to 64) itself, so the read nesting parameter is unused.
 inline std::optional<Vector<uint8_t>> rewriteCanonicalBytes(std::span<const uint8_t> bytes, int, size_t writeMaxNesting)
 {
-    return callWithBytes([&](auto&& input) -> decltype(cbor::writeCanonical(input, writeMaxNesting)) {
-        return cbor::writeCanonical(input, writeMaxNesting);
-    }, bytes);
+    return cbor::writeCanonical(Vector<uint8_t> { bytes }, writeMaxNesting);
 }
 
 inline Vector<uint8_t> coseKeyBytes(Vector<uint8_t> rawKey)
 {
     return fido::pin::encodeCOSEPublicKey(WTF::move(rawKey));
 }
-
-#else
-
-inline CanonicalRead readCanonicalBytes(std::span<const uint8_t> bytes, int maxNesting, bool allowTrailingData)
-{
-    CanonicalRead result;
-    auto error = cbor::CBORReader::DecoderError::CBORNoError;
-    std::optional<cbor::CBORValue> value;
-    if (allowTrailingData) {
-        auto read = cbor::CBORReader::readWithBytesConsumed(bytes, &error, maxNesting);
-        if (read) {
-            value = WTF::move(read->first);
-            result.bytesConsumed = read->second;
-        }
-    } else
-        value = cbor::CBORReader::read(bytes, &error, maxNesting);
-    result.error = static_cast<unsigned>(error);
-    if (!value)
-        return result;
-    auto written = cbor::CBORWriter::write(*value, 1024);
-    if (!written)
-        return result;
-    result.ok = true;
-    result.canonical = WTF::move(*written);
-    return result;
-}
-
-// A lenient parse into a tree, as writeCanonical does it (keys in any order, the first of a repeated key
-// kept, nesting up to 64), because CBORReader reads no deeper than 16.
-inline std::optional<cbor::CBORValue> parseLenient(std::span<const uint8_t> bytes, size_t& position, unsigned depth = 0)
-{
-    if (position >= bytes.size() || depth > 64)
-        return std::nullopt;
-    uint8_t initial = bytes[position++];
-    unsigned major = initial >> 5;
-    unsigned info = initial & 0x1f;
-    uint64_t argument = info;
-    if (info >= 24) {
-        if (info > 27)
-            return std::nullopt;
-        size_t width = static_cast<size_t>(1) << (info - 24);
-        if (bytes.size() - position < width)
-            return std::nullopt;
-        argument = 0;
-        for (size_t i = 0; i < width; ++i)
-            argument = (argument << 8) | bytes[position++];
-    }
-    switch (major) {
-    case 0:
-        return cbor::CBORValue(static_cast<int64_t>(argument));
-    case 1:
-        return cbor::CBORValue(-1 - static_cast<int64_t>(argument));
-    case 2:
-    case 3: {
-        if (bytes.size() - position < argument)
-            return std::nullopt;
-        auto payload = bytes.subspan(position, argument);
-        position += argument;
-        if (major == 2)
-            return cbor::CBORValue(Vector<uint8_t> { payload });
-        return cbor::CBORValue(String::fromUTF8(payload));
-    }
-    case 4: {
-        cbor::CBORValue::ArrayValue array;
-        for (uint64_t i = 0; i < argument; ++i) {
-            auto element = parseLenient(bytes, position, depth + 1);
-            if (!element)
-                return std::nullopt;
-            array.append(WTF::move(*element));
-        }
-        return cbor::CBORValue(WTF::move(array));
-    }
-    case 5: {
-        cbor::CBORValue::MapValue map;
-        for (uint64_t i = 0; i < argument; ++i) {
-            auto key = parseLenient(bytes, position, depth + 1);
-            auto value = key ? parseLenient(bytes, position, depth + 1) : std::nullopt;
-            if (!value)
-                return std::nullopt;
-            map.emplace(WTF::move(*key), WTF::move(*value));
-        }
-        return cbor::CBORValue(WTF::move(map));
-    }
-    case 7:
-        return cbor::CBORValue(static_cast<cbor::CBORValue::SimpleValue>(info));
-    }
-    return std::nullopt;
-}
-
-inline std::optional<Vector<uint8_t>> rewriteCanonicalBytes(std::span<const uint8_t> bytes, int, size_t writeMaxNesting)
-{
-    size_t position = 0;
-    auto value = parseLenient(bytes, position);
-    if (!value || position != bytes.size())
-        return std::nullopt;
-    return cbor::CBORWriter::write(*value, writeMaxNesting);
-}
-
-inline Vector<uint8_t> coseKeyBytes(Vector<uint8_t> rawKey)
-{
-    auto written = cbor::CBORWriter::write(cbor::CBORValue(fido::pin::encodeCOSEPublicKey(WTF::move(rawKey))));
-    return written ? WTF::move(*written) : Vector<uint8_t> { };
-}
-
-#endif
 
 // The tree of one canonical CBOR item, as the checksum observes it: the type (major type + 2), then the payload,
 // maps in their (canonical) order. False when the bytes are not an item.

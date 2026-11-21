@@ -669,9 +669,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/webauthn/apdu/ApduCommand.h
     Modules/webauthn/apdu/ApduResponse.h
 
-    Modules/webauthn/cbor/CBORReader.h
-    Modules/webauthn/cbor/CBORValue.h
-    Modules/webauthn/cbor/CBORWriter.h
+    Modules/webauthn/cbor/CBORBytes.h
 
     Modules/webauthn/fido/AuthenticatorGetInfoResponse.h
     Modules/webauthn/fido/AuthenticatorSupportedOptions.h

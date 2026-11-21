@@ -48,7 +48,7 @@ extension WebKit.CtapHidDriver {
         m_channelId = fido.kHidBroadcastChannel
 
         // A pseudo random nonce, not a cryptographically strong one: the nonce only identifies the response.
-        var nonce = cbor.CBORValue.BinaryValue()
+        var nonce = cbor.Bytes()
         nonce.reserveCapacity(fido.kHidInitNonceLength)
         for _ in 0..<(fido.kHidInitNonceLength / MemoryLayout<UInt32>.size) {
             let random = UInt32.random(in: UInt32.min...UInt32.max)
@@ -73,7 +73,7 @@ extension WebKit.CtapHidDriver {
         }
         // Cancel any outstanding request.
         if m_state == .Ready {
-            let packets = fido.FidoHidMessage.serializedPackets(m_channelId, .cancel, cbor.CBORValue.BinaryValue())
+            let packets = fido.FidoHidMessage.serializedPackets(m_channelId, .cancel, cbor.Bytes())
             workerReset()
             m_connection.get().invalidateCache()
             assert(packets.size() == 1)
@@ -105,7 +105,7 @@ extension WebKit.CtapHidDriver {
 
     // One report from the connection.
     @cxx @implementation
-    func workerRead(_ data: cbor.CBORValue.BinaryValue) {
+    func workerRead(_ data: cbor.Bytes) {
         precondition(WTF.RunLoop.isMain())
         if m_workerState != .Read {
             return
@@ -205,7 +205,7 @@ extension WebKit.CtapHidDriver {
             return
         }
         if !message.valid {
-            returnResponse(cbor.CBORValue.BinaryValue())
+            returnResponse(cbor.Bytes())
             return
         }
         assert(message.channelId == m_channelId)
@@ -235,10 +235,10 @@ extension WebKit.CtapHidDriver {
             return
         }
         assert(!message.valid || message.channelId == m_channelId)
-        returnResponse(message.valid ? message.payload : cbor.CBORValue.BinaryValue())
+        returnResponse(message.valid ? message.payload : cbor.Bytes())
     }
 
-    private func hasNoncePrefix(_ payload: cbor.CBORValue.BinaryValue) -> Bool {
+    private func hasNoncePrefix(_ payload: cbor.Bytes) -> Bool {
         let nonce = m_nonce
         if payload.size() < nonce.size() {
             return false

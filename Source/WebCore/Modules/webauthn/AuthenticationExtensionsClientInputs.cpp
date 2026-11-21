@@ -28,107 +28,18 @@
 
 #if ENABLE(WEB_AUTHN)
 
-#include "BufferSource.h"
-#include "CBORReader.h"
-#include "CBORWriter.h"
-
-#include <wtf/Borrow.h>
+#include "WebCore-Swift.h"
 
 namespace WebCore {
 
 std::optional<AuthenticationExtensionsClientInputs> AuthenticationExtensionsClientInputs::fromCBOR(std::span<const uint8_t> buffer)
 {
-    std::optional<cbor::CBORValue> decodedValue = cbor::CBORReader::read(buffer);
-    if (!decodedValue || !decodedValue->isMap())
-        return std::nullopt;
-    AuthenticationExtensionsClientInputs clientInputs;
-
-    const auto& decodedMap = decodedValue->getMap();
-    auto it = decodedMap.find(cbor::CBORValue("appid"));
-    if (it != decodedMap.end() && it->second.isString())
-        clientInputs.appid = it->second.getString();
-    it = decodedMap.find(cbor::CBORValue("credProps"));
-    if (it != decodedMap.end() && it->second.isBool())
-        clientInputs.credProps = it->second.getBool();
-    it = decodedMap.find(cbor::CBORValue("crossDeviceFallbackUrl"));
-    if (it != decodedMap.end() && it->second.isString())
-        clientInputs.crossDeviceFallbackURL = it->second.getString();
-    it = decodedMap.find(cbor::CBORValue("largeBlob"));
-    if (it != decodedMap.end() && it->second.isMap()) {
-        const auto& largeBlobMap = it->second.getMap();
-        AuthenticationExtensionsClientInputs::LargeBlobInputs largeBlob;
-        auto largeBlobIt = largeBlobMap.find(cbor::CBORValue("support"));
-
-        if (largeBlobIt != largeBlobMap.end() && largeBlobIt->second.isString())
-            largeBlob.support = largeBlobIt->second.getString();
-
-        largeBlobIt = largeBlobMap.find(cbor::CBORValue("read"));
-        if (largeBlobIt != largeBlobMap.end() && largeBlobIt->second.isBool())
-            largeBlob.read = largeBlobIt->second.getBool();
-
-        largeBlobIt = largeBlobMap.find(cbor::CBORValue("write"));
-        if (largeBlobIt != largeBlobMap.end() && largeBlobIt->second.isByteString())
-            largeBlob.write = BufferSource(ArrayBuffer::create(borrow(largeBlobIt->second.getByteString())->span()));
-
-        clientInputs.largeBlob = largeBlob;
-    }
-
-    return clientInputs;
+    return webAuthnExtensionInputsFromCBOR(buffer);
 }
 
 Vector<uint8_t> AuthenticationExtensionsClientInputs::toCBOR() const
 {
-    cbor::CBORValue::MapValue clientInputsMap;
-    if (!appid.isEmpty())
-        clientInputsMap[cbor::CBORValue("appid")] = cbor::CBORValue(appid);
-    if (credProps)
-        clientInputsMap[cbor::CBORValue("credProps")] = cbor::CBORValue(*credProps);
-    if (!crossDeviceFallbackURL.isEmpty())
-        clientInputsMap[cbor::CBORValue("crossDeviceFallbackUrl")] = cbor::CBORValue(crossDeviceFallbackURL);
-    if (largeBlob) {
-        cbor::CBORValue::MapValue largeBlobMap;
-        if (!largeBlob->support.isNull())
-            largeBlobMap[cbor::CBORValue("support")] = cbor::CBORValue(largeBlob->support);
-
-        if (largeBlob->read)
-            largeBlobMap[cbor::CBORValue("read")] = cbor::CBORValue(largeBlob->read.value());
-
-        if (largeBlob->write)
-            largeBlobMap[cbor::CBORValue("write")] = cbor::CBORValue(largeBlob->write.value());
-
-        clientInputsMap[cbor::CBORValue("largeBlob")] = cbor::CBORValue(largeBlobMap);
-    }
-
-    if (prf) {
-        cbor::CBORValue::MapValue prfMap;
-
-        if (prf->eval) {
-            cbor::CBORValue::MapValue evalMap;
-            evalMap[cbor::CBORValue("first")] = cbor::CBORValue(prf->eval->first);
-            if (prf->eval->second)
-                evalMap[cbor::CBORValue("second")] = cbor::CBORValue(*prf->eval->second);
-            prfMap[cbor::CBORValue("eval")] = cbor::CBORValue(evalMap);
-        }
-
-        if (prf->evalByCredential) {
-            cbor::CBORValue::MapValue evalByCredentialMap;
-            for (const auto& entry : borrow(*prf->evalByCredential)) {
-                cbor::CBORValue::MapValue valuesMap;
-                valuesMap[cbor::CBORValue("first")] = cbor::CBORValue(entry.value.first);
-                if (entry.value.second)
-                    valuesMap[cbor::CBORValue("second")] = cbor::CBORValue(*entry.value.second);
-                evalByCredentialMap[cbor::CBORValue(entry.key)] = cbor::CBORValue(valuesMap);
-            }
-            prfMap[cbor::CBORValue("evalByCredential")] = cbor::CBORValue(evalByCredentialMap);
-        }
-
-        clientInputsMap[cbor::CBORValue("prf")] = cbor::CBORValue(prfMap);
-    }
-
-    auto clientInputs = cbor::CBORWriter::write(cbor::CBORValue(WTF::move(clientInputsMap)));
-    ASSERT(clientInputs);
-
-    return *clientInputs;
+    return webAuthnExtensionInputsToCBOR(*this);
 }
 
 } // namespace WebCore

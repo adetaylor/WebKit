@@ -30,10 +30,10 @@
 
 #include "Logging.h"
 #include <WebCore/AuthenticatorGetInfoResponse.h>
-#include <WebCore/CBORReader.h>
 #include <WebCore/FidoConstants.h>
 #include <WebCore/Pin.h>
 #include <WebCore/WebAuthenticationConstants.h>
+#include <WebCore/WebAuthenticationUtils.h>
 #include <wtf/BlockPtr.h>
 #include <wtf/Borrow.h>
 #include <wtf/CryptographicallyRandomNumber.h>
@@ -44,7 +44,6 @@
 namespace WebKit {
 using Mock = WebCore::MockWebAuthenticationConfiguration;
 using namespace WebCore;
-using namespace cbor;
 using namespace fido;
 
 Ref<MockHidConnection> MockHidConnection::create(IOHIDDeviceRef device, const WebCore::MockWebAuthenticationConfiguration& configuration)
@@ -160,33 +159,12 @@ void MockHidConnection::parseRequest()
             ASSERT(payload.size());
             auto cmd = static_cast<CtapRequestCommand>(payload[0]);
             payload.removeAt(0);
-            auto requestMap = CBORReader::read(borrow(payload));
-            ASSERT(requestMap || cmd == CtapRequestCommand::kAuthenticatorGetNextAssertion);
-
-            if (cmd == CtapRequestCommand::kAuthenticatorMakeCredential) {
-                auto it = requestMap->getMap().find(CBORValue(kCtapMakeCredentialRequestOptionsKey)); // Find options.
-                if (it != requestMap->getMap().end()) {
-                    auto& optionMap = it->second.getMap();
-
-                    auto itr = optionMap.find(CBORValue(kResidentKeyMapKey));
-                    if (itr != optionMap.end())
-                        m_requireResidentKey = itr->second.getBool();
-
-                    itr = optionMap.find(CBORValue(kUserVerificationMapKey));
-                    if (itr != optionMap.end())
-                        m_requireUserVerification = itr->second.getBool();
-                }
-            }
-
-            if (cmd == CtapRequestCommand::kAuthenticatorGetAssertion) {
-                auto it = requestMap->getMap().find(CBORValue(kCtapGetAssertionRequestOptionsKey)); // Find options.
-                if (it != requestMap->getMap().end()) {
-                    auto& optionMap = it->second.getMap();
-                    auto itr = optionMap.find(CBORValue(kUserVerificationMapKey));
-                    if (itr != optionMap.end())
-                        m_requireUserVerification = itr->second.getBool();
-                }
-            }
+            auto options = decodeMockRequestOptions(WTF::move(payload), cmd);
+            ASSERT(options || cmd == CtapRequestCommand::kAuthenticatorGetNextAssertion);
+            if (options && options->requireResidentKey)
+                m_requireResidentKey = *options->requireResidentKey;
+            if (options && options->requireUserVerification)
+                m_requireUserVerification = *options->requireUserVerification;
         }
     }
 

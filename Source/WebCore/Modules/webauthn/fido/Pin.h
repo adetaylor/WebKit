@@ -35,7 +35,6 @@
 
 #if ENABLE(WEB_AUTHN)
 
-#include <WebCore/CBORValue.h>
 #include <WebCore/CryptoKeyAES.h>
 #include <WebCore/DeviceRequestConverter.h>
 #include <WebCore/FidoConstants.h>
@@ -85,7 +84,7 @@ enum class ResponseKey : uint8_t {
 constexpr int64_t kProtocolVersion = 1;
 
 // encodeCOSEPublicKey takes a raw ECDH256 public key and returns it as a COSE structure.
-WEBCORE_EXPORT cbor::CBORValue::MapValue encodeCOSEPublicKey(Vector<uint8_t> key);
+WEBCORE_EXPORT Vector<uint8_t> encodeCOSEPublicKey(Vector<uint8_t> key);
 
 // validateAndConvertToUTF8 convert the input to a UTF8 CString if it is a syntactically valid PIN.
 WEBCORE_EXPORT std::optional<UTF8CString> validateAndConvertToUTF8(String pin);
@@ -156,7 +155,7 @@ struct KeyAgreementRequest {
 // authenticator's ephemeral key.
 struct KeyAgreementResponse {
     WEBCORE_EXPORT static std::optional<KeyAgreementResponse> parse(Vector<uint8_t>);
-    WEBCORE_EXPORT static std::optional<KeyAgreementResponse> parseFromCOSE(const cbor::CBORValue::MapValue&);
+    WEBCORE_EXPORT static std::optional<KeyAgreementResponse> parseFromCOSE(Vector<uint8_t>);
 
     Ref<WebCore::CryptoKeyEC> peerKey;
     WEBCORE_EXPORT ~KeyAgreementResponse();
@@ -176,14 +175,14 @@ public:
 
 private:
     const Ref<WebCore::CryptoKeyAES> m_sharedKey;
-    mutable cbor::CBORValue::MapValue m_coseKey;
+    mutable Vector<uint8_t> m_coseKey;
     Vector<uint8_t> m_newPinEnc;
     Vector<uint8_t> m_pinUvAuthParam;
     PINUVAuthProtocol m_protocol;
 
-    SetPinRequest(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& m_newPinEnc, Vector<uint8_t>&& m_pinUvAuthParam, PINUVAuthProtocol);
+    SetPinRequest(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& m_newPinEnc, Vector<uint8_t>&& m_pinUvAuthParam, PINUVAuthProtocol);
     // For Swift, which cannot wrap a move-only value in std::optional itself.
-    static std::optional<SetPinRequest> makeOptional(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& newPinEnc, Vector<uint8_t>&& pinUvAuthParam, PINUVAuthProtocol protocol) { return SetPinRequest(sharedKey, WTF::move(coseKey), WTF::move(newPinEnc), WTF::move(pinUvAuthParam), protocol); }
+    static std::optional<SetPinRequest> makeOptional(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& newPinEnc, Vector<uint8_t>&& pinUvAuthParam, PINUVAuthProtocol protocol) { return SetPinRequest(sharedKey, WTF::move(coseKey), WTF::move(newPinEnc), WTF::move(pinUvAuthParam), protocol); }
 };
 
 // TokenRequest requests a pin-token from an authenticator. These tokens can be
@@ -202,11 +201,11 @@ public:
     friend Vector<uint8_t> encodeAsCBOR(const TokenRequest&);
 
 private:
-    TokenRequest(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& pinHash, PINUVAuthProtocol);
-    static std::optional<TokenRequest> makeOptional(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& pinHash, PINUVAuthProtocol protocol) { return TokenRequest(sharedKey, WTF::move(coseKey), WTF::move(pinHash), protocol); }
+    TokenRequest(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& pinHash, PINUVAuthProtocol);
+    static std::optional<TokenRequest> makeOptional(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& pinHash, PINUVAuthProtocol protocol) { return TokenRequest(sharedKey, WTF::move(coseKey), WTF::move(pinHash), protocol); }
 
     const Ref<WebCore::CryptoKeyAES> m_sharedKey;
-    mutable cbor::CBORValue::MapValue m_coseKey;
+    mutable Vector<uint8_t> m_coseKey;
     Vector<uint8_t> m_pinHash; // Only the left 16 bytes are kept.
     PINUVAuthProtocol m_protocol;
 };
@@ -243,7 +242,7 @@ public:
     const WebCore::CryptoKeyAES& sharedKey() const { return m_sharedKey.get(); }
     Ref<WebCore::CryptoKeyAES> protectedSharedKey() const { return m_sharedKey; }
 
-    const cbor::CBORValue::MapValue& coseKey() const LIFETIME_BOUND { return m_coseKey; }
+    const Vector<uint8_t>& coseKey() const LIFETIME_BOUND { return m_coseKey; }
 
     const Vector<uint8_t>& saltEnc() const LIFETIME_BOUND { return m_saltEnc; }
 
@@ -252,11 +251,11 @@ public:
     PINUVAuthProtocol protocol() const { return m_protocol; }
 
 private:
-    HmacSecretRequest(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& saltEnc, Vector<uint8_t>&& saltAuth, PINUVAuthProtocol);
-    static std::optional<HmacSecretRequest> makeOptional(WebCore::CryptoKeyAES& sharedKey, cbor::CBORValue::MapValue&& coseKey, Vector<uint8_t>&& saltEnc, Vector<uint8_t>&& saltAuth, PINUVAuthProtocol protocol) { return HmacSecretRequest(sharedKey, WTF::move(coseKey), WTF::move(saltEnc), WTF::move(saltAuth), protocol); }
+    HmacSecretRequest(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& saltEnc, Vector<uint8_t>&& saltAuth, PINUVAuthProtocol);
+    static std::optional<HmacSecretRequest> makeOptional(WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t>&& coseKey, Vector<uint8_t>&& saltEnc, Vector<uint8_t>&& saltAuth, PINUVAuthProtocol protocol) { return HmacSecretRequest(sharedKey, WTF::move(coseKey), WTF::move(saltEnc), WTF::move(saltAuth), protocol); }
 
     Ref<WebCore::CryptoKeyAES> m_sharedKey;
-    cbor::CBORValue::MapValue m_coseKey;
+    Vector<uint8_t> m_coseKey;
     Vector<uint8_t> m_saltEnc;
     Vector<uint8_t> m_saltAuth;
     PINUVAuthProtocol m_protocol;
