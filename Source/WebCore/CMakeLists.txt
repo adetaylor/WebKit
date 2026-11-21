@@ -4325,13 +4325,15 @@ else ()
         dom/Attribute.h dom/ContainerNode.h dom/Document.h dom/Element.h html/HTMLElement.h
         ${WebCore_DERIVED_SOURCES_DIR}/HTMLElementFactory.h html/parser/HTMLNameCache.h dom/Node.h
         ${WebCore_DERIVED_SOURCES_DIR}/NodeName.h dom/QualifiedName.h dom/Text.h)
-    if (WIN32)
-        # Document's map of std::unique_ptr<Locale>: with the MSVC standard library the importer instantiates
-        # its destructor, which needs Locale's definition, so the Document submodule has PlatformLocale.h too.
-        set(_webcore_swift_core_submodule_headers_Document platform/text/PlatformLocale.h)
-        # Node's pure virtual serializeNode() returns SerializedNode by value: the importer needs its definition
-        # for the member's thunk (Swift 6.5-dev baff8d0917d3).
-        set(_webcore_swift_core_submodule_headers_Node dom/SerializedNode.h)
+    # Document's map of std::unique_ptr<Locale>: with the MSVC and GNU standard libraries the importer instantiates its
+    # destructor, which needs Locale's definition, so the Document submodule has PlatformLocale.h too.
+    set(_webcore_swift_core_submodule_headers_Document platform/text/PlatformLocale.h)
+    if (USE_COORDINATED_GRAPHICS)
+        # ScrollingStateNode.h includes CoordinatedPlatformLayer.h (PlatformLayer), whose buffers are
+        # std::optional<std::unique_ptr<CoordinatedPlatformLayerBuffer>>: the importer instantiates their destructors
+        # too.
+        set(_webcore_swift_core_submodule_headers_ScrollingStateNode
+            platform/graphics/coordinated/CoordinatedPlatformLayerBuffer.h)
     endif ()
     # The importer emits a call of Node's virtual serializeNode(), which returns a SerializedNode by value.
     set(_webcore_swift_core_submodule_headers_Node dom/SerializedNode.h)
