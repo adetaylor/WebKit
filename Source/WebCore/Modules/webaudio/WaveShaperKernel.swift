@@ -66,7 +66,10 @@ struct WaveShaperBlockConvolver<let blockSize: Int, let bufferSize: Int>: ~Copya
 
     /// `destination` holds `source.count` frames; a source that is not one block, or a kernel longer than one, does
     /// nothing.
-    @inline(always)
+    // FIXME: Not @inline(always), as the samplers' process functions are: inlined into the down-sampler's, the
+    // history's bounds checks are hoisted above the span they check, and the SIL verifier stops an assertions toolchain
+    // (KIT docs/interop-limitations.md, "BoundsCheckOpts hoists a MutableSpan's bounds check above the span"). One
+    // call a block, to a whole convolution.
     mutating func process(kernel: Span<Float>, source: Span<Float>, destination: inout MutableSpan<Float>) {
         guard source.count == blockSize, kernel.count <= blockSize else {
             return
