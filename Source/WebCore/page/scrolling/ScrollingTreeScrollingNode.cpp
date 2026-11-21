@@ -164,7 +164,7 @@ bool ScrollingTreeScrollingNode::shouldRubberBandOnSide(BoxSide side, RectEdges<
         allowsHorizontalScrolling(), allowsVerticalScrolling(), horizontalOverscrollBehaviorPreventsPropagation(), verticalOverscrollBehaviorPreventsPropagation());
 }
 
-bool ScrollingTreeScrollingNode::shouldRubberBand(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting) const
+bool ScrollingTreeScrollingNode::shouldRubberBand(PlatformWheelEvent wheelEvent, EventTargeting eventTargeting) const
 {
     // A root latched while it couldn't scroll rubber-bands as if it weren't latched. Check that first: in the web process, the
     // EventDispatcher queue clears the latch when the next gesture starts while the scrolling thread may be here, and checking
@@ -191,7 +191,7 @@ bool ScrollingTreeScrollingNode::shouldRubberBand(const PlatformWheelEvent& whee
     return false;
 }
 
-bool ScrollingTreeScrollingNode::canHandleWheelEvent(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting) const
+bool ScrollingTreeScrollingNode::canHandleWheelEvent(PlatformWheelEvent wheelEvent, EventTargeting eventTargeting) const
 {
     if (!canHaveScrollbars())
         return false;
@@ -236,7 +236,7 @@ FloatPoint ScrollingTreeScrollingNode::clampedCurrentScrollOffset() const
     return ScrollableArea::scrollOffsetFromPosition(clampedScrollPosition, toFloatSize(scrollOrigin()));
 }
 
-bool ScrollingTreeScrollingNode::eventCanScrollContents(const PlatformWheelEvent& wheelEvent) const
+bool ScrollingTreeScrollingNode::eventCanScrollContents(PlatformWheelEvent wheelEvent) const
 {
 #if PLATFORM(WPE) || PLATFORM(GTK)
     // In case of GTK and WPE the end of momentum scroll events always have a delta of 0.
@@ -342,13 +342,13 @@ void ScrollingTreeScrollingNode::setScrollAnimationInProgress(bool animationInPr
     scrollingTree()->setScrollAnimationInProgressForNode(scrollingNodeID(), animationInProgress);
 }
 
-void ScrollingTreeScrollingNode::handleKeyboardScrollRequest(const RequestedKeyboardScrollData& scrollData)
+void ScrollingTreeScrollingNode::handleKeyboardScrollRequest(RequestedKeyboardScrollData scrollData)
 {
     if (m_delegate)
         m_delegate->handleKeyboardScrollRequest(scrollData);
 }
 
-void ScrollingTreeScrollingNode::requestKeyboardScroll(const RequestedKeyboardScrollData& scrollData)
+void ScrollingTreeScrollingNode::requestKeyboardScroll(RequestedKeyboardScrollData scrollData)
 {
     scrollingTree()->scrollingTreeNodeRequestsKeyboardScroll(scrollingNodeID(), scrollData);
 }
@@ -359,7 +359,7 @@ void ScrollingTreeScrollingNode::handleScrollPositionRequests(const ScrollReques
         handleScrollPositionRequest(request);
 }
 
-void ScrollingTreeScrollingNode::handleScrollPositionRequest(const RequestedScrollData& requestedScrollData)
+void ScrollingTreeScrollingNode::handleScrollPositionRequest(RequestedScrollData requestedScrollData)
 {
     RefPtr tree = scrollingTree();
     Ref node = *this;
@@ -556,7 +556,7 @@ ScrollbarRevealBehavior ScrollingTreeScrollingNode::takeScrollbarRevealBehaviorF
     return std::exchange(m_scrollbarRevealBehaviorForNextScrollbarUpdate, ScrollbarRevealBehavior::Default);
 }
 
-PlatformWheelEvent ScrollingTreeScrollingNode::eventForPropagation(const PlatformWheelEvent& wheelEvent) const
+PlatformWheelEvent ScrollingTreeScrollingNode::eventForPropagation(PlatformWheelEvent wheelEvent) const
 {
     auto filteredDelta = wheelEvent.delta();
 #if PLATFORM(MAC)

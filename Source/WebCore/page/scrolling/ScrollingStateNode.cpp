@@ -149,7 +149,15 @@ void ScrollingStateNode::cloneAndResetChildren(ScrollingStateNode& clone, Scroll
         clone.appendChild(child->cloneAndReset(adoptiveTree));
 }
 
-void ScrollingStateNode::appendChild(Ref<ScrollingStateNode>&& childNode)
+std::optional<ScrollingNodeID> ScrollingStateNode::parentNodeID() const
+{
+    auto parent = m_parent.get();
+    if (!parent)
+        return std::nullopt;
+    return parent->scrollingNodeID();
+}
+
+void ScrollingStateNode::appendChild(Ref<ScrollingStateNode> childNode)
 {
     childNode->setParent(this);
 
@@ -157,7 +165,7 @@ void ScrollingStateNode::appendChild(Ref<ScrollingStateNode>&& childNode)
     setPropertyChanged(Property::ChildNodes);
 }
 
-void ScrollingStateNode::insertChild(Ref<ScrollingStateNode>&& childNode, size_t index)
+void ScrollingStateNode::insertChild(Ref<ScrollingStateNode> childNode, size_t index)
 {
     childNode->setParent(this);
 

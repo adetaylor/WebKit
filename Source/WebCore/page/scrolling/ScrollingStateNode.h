@@ -296,8 +296,8 @@ public:
     WEBCORE_EXPORT void setChildren(Vector<Ref<ScrollingStateNode>>&&);
     void traverse(NOESCAPE const Function<void(ScrollingStateNode&)>&);
 
-    void appendChild(Ref<ScrollingStateNode>&&);
-    void insertChild(Ref<ScrollingStateNode>&&, size_t index);
+    void appendChild(Ref<ScrollingStateNode>);
+    void insertChild(Ref<ScrollingStateNode>, size_t index);
 
     // Note that node ownership is via the parent, so these functions can trigger node deletion.
     void removeFromParent();
@@ -335,14 +335,6 @@ private:
 
     LayerRepresentation m_layer;
 };
-
-inline std::optional<ScrollingNodeID> ScrollingStateNode::parentNodeID() const
-{
-    auto parent = m_parent.get();
-    if (!parent)
-        return std::nullopt;
-    return parent->scrollingNodeID();
-}
 
 // For Swift: node's child at index, or null when index is past its last child.
 inline ScrollingStateNode* scrollingStateChildAtIndex(const ScrollingStateNode& node, size_t index)

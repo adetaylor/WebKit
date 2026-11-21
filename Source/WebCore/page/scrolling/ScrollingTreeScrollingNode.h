@@ -73,7 +73,7 @@ public:
     SWIFT_UNSAFE bool commitStateAfterChildren(const ScrollingStateNode&) override;
     NODELETE SWIFT_UNSAFE void didCompleteCommitForNode() final;
 
-    virtual bool canHandleWheelEvent(const PlatformWheelEvent&, EventTargeting) const;
+    virtual bool canHandleWheelEvent(PlatformWheelEvent, EventTargeting) const;
     SWIFT_UNSAFE virtual WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting = EventTargeting::Propagate);
     virtual void handleWheelEventPhase(const PlatformWheelEventPhase) { }
     
@@ -111,8 +111,8 @@ public:
 
     SWIFT_UNSAFE void handleScrollPositionRequests(const ScrollRequestData&);
 
-    SWIFT_UNSAFE void handleKeyboardScrollRequest(const RequestedKeyboardScrollData&);
-    SWIFT_UNSAFE void requestKeyboardScroll(const RequestedKeyboardScrollData&);
+    SWIFT_UNSAFE void handleKeyboardScrollRequest(RequestedKeyboardScrollData);
+    SWIFT_UNSAFE void requestKeyboardScroll(RequestedKeyboardScrollData);
 
     SWIFT_UNSAFE void wasScrolledByDelegatedScrolling(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport = { }, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync);
     
@@ -140,7 +140,7 @@ public:
     NODELETE void setCurrentHorizontalSnapPointIndex(std::optional<unsigned>);
     NODELETE void setCurrentVerticalSnapPointIndex(std::optional<unsigned>);
 
-    bool eventCanScrollContents(const PlatformWheelEvent&) const;
+    bool eventCanScrollContents(PlatformWheelEvent) const;
     
     bool scrolledSinceLastCommit() const { return m_scrolledSinceLastCommit; }
 
@@ -198,14 +198,14 @@ protected:
 
     void applyLayerPositions() override;
 
-    const FloatSize& reachableContentsSize() const LIFETIME_BOUND { return m_reachableContentsSize; }
+    FloatSize reachableContentsSize() const { return m_reachableContentsSize; }
     
     bool isLatchedNode() const;
 
     // If the totalContentsSize changes in the middle of a rubber-band, we still want to use the old totalContentsSize for the sake of
     // computing the stretchAmount(). Using the old value will keep the animation smooth. When there is no rubber-band in progress at
     // all, m_totalContentsSizeForRubberBand should be equivalent to m_totalContentsSize.
-    const FloatSize& totalContentsSizeForRubberBand() const LIFETIME_BOUND { return m_totalContentsSizeForRubberBand; }
+    FloatSize totalContentsSizeForRubberBand() const { return m_totalContentsSizeForRubberBand; }
 
     // Public for the tree's wheel event handling in Swift (ScrollingTreeLatchingController.swift).
 public:
@@ -215,13 +215,13 @@ public:
     bool overscrollBehaviorAllowsHorizontalRubberBand() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior != OverscrollBehavior::None; }
     bool overscrollBehaviorAllowsVerticalRubberBand() const { return m_scrollableAreaParameters.verticalOverscrollBehavior != OverscrollBehavior::None; }
 
-    NODELETE PlatformWheelEvent eventForPropagation(const PlatformWheelEvent&) const;
+    NODELETE PlatformWheelEvent eventForPropagation(PlatformWheelEvent) const;
 protected:
     bool overscrollBehaviorAllowsRubberBand() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior != OverscrollBehavior::None ||  m_scrollableAreaParameters.verticalOverscrollBehavior != OverscrollBehavior::None; }
 
-    bool shouldRubberBand(const PlatformWheelEvent&, EventTargeting) const;
+    bool shouldRubberBand(PlatformWheelEvent, EventTargeting) const;
 
-    void handleScrollPositionRequest(const RequestedScrollData&);
+    void handleScrollPositionRequest(RequestedScrollData);
 
     float rubberbandHyperbolicCoefficientForTesting() const;
 

@@ -47,7 +47,7 @@ ScrollingTreeNode::ScrollingTreeNode(ScrollingTree& scrollingTree, ScrollingNode
 
 ScrollingTreeNode::~ScrollingTreeNode() = default;
 
-void ScrollingTreeNode::appendChild(Ref<ScrollingTreeNode>&& childNode)
+void ScrollingTreeNode::appendChild(Ref<ScrollingTreeNode> childNode)
 {
     RELEASE_ASSERT(scrollingTree()->inCommitTreeState());
 

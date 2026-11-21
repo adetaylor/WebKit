@@ -292,7 +292,7 @@ void ScrollingStateScrollingNode::setSynchronousScrollingReasons(OptionSet<Synch
 #endif
 
 
-void ScrollingStateScrollingNode::setKeyboardScrollData(const RequestedKeyboardScrollData& scrollData)
+void ScrollingStateScrollingNode::setKeyboardScrollData(RequestedKeyboardScrollData scrollData)
 {
     m_keyboardScrollData = scrollData;
     setPropertyChanged(Property::KeyboardScrollData);
