@@ -32,6 +32,7 @@
 // output; the elements have no invalid bit patterns; and no input overlaps an output (an input that is the output comes
 // as an empty span, see inputUnlessOutput).
 
+#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
 internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
 // These imports make the operators JavaScriptCore declares visible before WebCore's C++ operators are
 // (rdar://192229293).
@@ -40,6 +41,7 @@ internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+#endif
 public import WebCore_Private.AudioDSPBoundaryTypes
 internal import wtf.Core.Stopwatch
 
