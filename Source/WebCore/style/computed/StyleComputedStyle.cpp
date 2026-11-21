@@ -36,6 +36,7 @@
 #include "StyleCustomPropertyRegistry.h"
 #include "StyleLineHeight.h"
 #include "StylePrimitiveNumericTypes+Evaluation.h"
+#include "StylePrimitiveNumericTypes+EvaluationMinimum.h"
 #include "StyleScaleTransformFunction.h"
 #include <wtf/MathExtras.h>
 #include <wtf/StdLibExtras.h>
@@ -178,6 +179,21 @@ void ComputedStyle::inheritFrom(const ComputedStyle& inheritParent)
 bool ComputedStyle::isListItemType() const
 {
     return display().isListItemType();
+}
+
+float ComputedStyle::opacityValueForSwift() const
+{
+    return Style::evaluate<float>(opacity());
+}
+
+LayoutUnit ComputedStyle::evaluatedMinWidthForSwift(LayoutUnit referenceLength) const
+{
+    return evaluateMinimum<LayoutUnit>(minWidth(), referenceLength, usedZoomForLength());
+}
+
+LayoutUnit ComputedStyle::evaluatedMinHeightForSwift(LayoutUnit referenceLength) const
+{
+    return evaluateMinimum<LayoutUnit>(minHeight(), referenceLength, usedZoomForLength());
 }
 
 void ComputedStyle::inheritIgnoringCustomPropertiesFrom(const ComputedStyle& inheritParent)

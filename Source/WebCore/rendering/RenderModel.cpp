@@ -119,7 +119,7 @@ void RenderModel::paintReplaced(PaintInfo& paintInfo, const LayoutPoint& paintOf
 
 #if ENABLE(MODEL_PROCESS)
     // If the backing owns a dedicated badge layer (visionOS separated-portal case), it paints the badge itself.
-    if (CheckedPtr layer = this->layer(); layer && layer->backing() && layer->backing()->systemPreviewBadgeLayer())
+    if (auto* layer = this->layer(); layer && layer->backing() && layer->backing()->systemPreviewBadgeLayer())
         return;
 #endif
 

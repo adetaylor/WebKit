@@ -873,9 +873,9 @@ void LineLayout::updateRenderTreePositions(const Vector<LineAdjustment>& lineAdj
 
         if (layoutBox->isOutOfFlowPositioned()) {
             ASSERT(renderer->layer());
-            CheckedRef layer = *renderer->layer();
+            auto& layer = *renderer->layer();
             auto borderBoxLogicalTopLeft = Layout::BoxGeometry::borderBoxTopLeft(logicalGeometry);
-            auto previousStaticPosition = LayoutPoint { layer->staticInlinePosition(), layer->staticBlockPosition() };
+            auto previousStaticPosition = LayoutPoint { layer.staticInlinePosition(), layer.staticBlockPosition() };
             auto delta = borderBoxLogicalTopLeft - previousStaticPosition;
             auto hasStaticInlinePositioning = layoutBox->style().hasStaticInlinePosition(renderer->isHorizontalWritingMode());
 
@@ -885,8 +885,8 @@ void LineLayout::updateRenderTreePositions(const Vector<LineAdjustment>& lineAdj
                     renderer->move(delta.width(), delta.height());
             }
 
-            layer->setStaticBlockPosition(borderBoxLogicalTopLeft.y());
-            layer->setStaticInlinePosition(borderBoxLogicalTopLeft.x());
+            layer.setStaticBlockPosition(borderBoxLogicalTopLeft.y());
+            layer.setStaticInlinePosition(borderBoxLogicalTopLeft.x());
             continue;
         }
     }

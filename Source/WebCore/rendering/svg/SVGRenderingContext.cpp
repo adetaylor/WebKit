@@ -230,7 +230,7 @@ AffineTransform SVGRenderingContext::calculateTransformationToOutermostCoordinat
     }
 
     // Continue walking up the layer tree, accumulating CSS transforms.
-    CheckedPtr layer = ancestor ? ancestor->enclosingLayer() : nullptr;
+    RenderLayer* layer = ancestor ? ancestor->enclosingLayer() : nullptr;
     while (layer) {
         if (TransformationMatrix* layerTransform = layer->transform())
             absoluteTransform = layerTransform->toAffineTransform() * absoluteTransform;

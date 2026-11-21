@@ -105,7 +105,7 @@ void BlockPainter::paint()
     // z-index. We paint after we painted the background/border, so that the scrollbars will
     // sit above the background/border.
     if (phase == PaintPhase::BlockBackground || phase == PaintPhase::ChildBlockBackground) {
-        CheckedPtr layer = m_block->layer();
+        auto* layer = m_block->layer();
         if (m_block->hasNonVisibleOverflow() && layer && layer->scrollableArea() && m_block->usedStyle().visibility() == UsedVisibility::Visible
             && m_paintInfo.shouldPaintWithinRoot(m_block) && !m_paintInfo.paintRootBackgroundOnly()) {
             protect(layer->scrollableArea())->paintOverflowControls(m_paintInfo.context(), m_paintInfo.paintBehavior, roundedIntPoint(adjustedPaintOffset), snappedIntRect(m_paintInfo.rect));

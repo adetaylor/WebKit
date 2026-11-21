@@ -31,6 +31,7 @@
 #include <WebCore/IntRect.h>
 #include <WebCore/LayoutRect.h>
 #include <WebCore/PaintPhase.h>
+#include <bit>
 #include <limits>
 #include <wtf/HashMap.h>
 #include <wtf/OptionSet.h>
@@ -58,7 +59,7 @@ enum class StateSavedByCaller : bool { No, Yes };
  * (tx|ty) is the calculated position of the parent
  */
 struct PaintInfo {
-    PaintInfo(GraphicsContext& newContext, const LayoutRect& newRect, PaintPhase newPhase, OptionSet<PaintBehavior> newPaintBehavior,
+    SWIFT_UNAVAILABLE_IN_SWIFT __attribute__((swift_attr("@_lifetime(immortal)"))) PaintInfo(GraphicsContext& newContext, const LayoutRect& newRect, PaintPhase newPhase, OptionSet<PaintBehavior> newPaintBehavior,
         RenderObject* newSubtreePaintRoot = nullptr, SingleThreadWeakListHashSet<RenderBoxModelObject>* newOutlineObjects = nullptr,
         OverlapTestRequestMap* overlapTestRequests = nullptr, const RenderLayerModelObject* newPaintContainer = nullptr,
         const RenderLayer* enclosingSelfPaintingLayer = nullptr, bool newRequireSecurityOriginAccessForWidgets = false)
@@ -66,41 +67,62 @@ struct PaintInfo {
             , phase(newPhase)
             , requireSecurityOriginAccessForWidgets(newRequireSecurityOriginAccessForWidgets)
             , paintBehavior(newPaintBehavior)
-            , subtreePaintRoot(newSubtreePaintRoot)
-            , outlineObjects(newOutlineObjects)
-            , overlapTestRequests(overlapTestRequests)
-            , paintContainer(newPaintContainer)
-            , m_enclosingSelfPaintingLayer(enclosingSelfPaintingLayer)
-            , m_context(&newContext)
+            , m_subtreePaintRoot(std::bit_cast<uintptr_t>(newSubtreePaintRoot))
+            , m_paintContainer(std::bit_cast<uintptr_t>(newPaintContainer))
+            , m_enclosingSelfPaintingLayer(std::bit_cast<uintptr_t>(enclosingSelfPaintingLayer))
+            , m_outlineObjects(std::bit_cast<uintptr_t>(newOutlineObjects))
+            , m_overlapTestRequests(std::bit_cast<uintptr_t>(overlapTestRequests))
+            , m_context(std::bit_cast<uintptr_t>(&newContext))
+    {
+    }
+
+    PaintInfo(LentGraphicsContext newContext LIFETIME_BOUND, const LayoutRect& newRect, PaintPhase newPhase, OptionSet<PaintBehavior> newPaintBehavior,
+        RenderObject* newSubtreePaintRoot, const RenderLayerModelObject* newPaintContainer, const RenderLayer* enclosingSelfPaintingLayer, bool newRequireSecurityOriginAccessForWidgets)
+            : PaintInfo(*newContext, newRect, newPhase, newPaintBehavior, newSubtreePaintRoot, nullptr, nullptr, newPaintContainer, enclosingSelfPaintingLayer, newRequireSecurityOriginAccessForWidgets)
     {
     }
 
     GraphicsContext& context() const LIFETIME_BOUND
     {
         ASSERT(m_context);
-        return *m_context;
+        return *std::bit_cast<GraphicsContext*>(m_context);
     }
+
+    bool paintingDisabled() const { return context().paintingDisabled(); }
 
     void setContext(GraphicsContext& context)
     {
-        m_context = &context;
+        m_context = std::bit_cast<uintptr_t>(&context);
     }
+
+    RenderObject* subtreePaintRoot() const { return std::bit_cast<RenderObject*>(m_subtreePaintRoot); }
+    const RenderLayerModelObject* paintContainer() const { return std::bit_cast<const RenderLayerModelObject*>(m_paintContainer); }
+
+    RegionContext* regionContext() const { return std::bit_cast<RegionContext*>(m_regionContext); }
+    void setRegionContext(RegionContext* context) { m_regionContext = std::bit_cast<uintptr_t>(context); }
+
+    // Used to list outlines that should be painted by a block with inline children.
+    SingleThreadWeakListHashSet<RenderBoxModelObject>* outlineObjects() const { return std::bit_cast<SingleThreadWeakListHashSet<RenderBoxModelObject>*>(m_outlineObjects); }
+    void setOutlineObjects(SingleThreadWeakListHashSet<RenderBoxModelObject>* outlineObjects) { m_outlineObjects = std::bit_cast<uintptr_t>(outlineObjects); }
+
+    OverlapTestRequestMap* overlapTestRequests() const { return std::bit_cast<OverlapTestRequestMap*>(m_overlapTestRequests); }
+    void setOverlapTestRequests(OverlapTestRequestMap* overlapTestRequests) { m_overlapTestRequests = std::bit_cast<uintptr_t>(overlapTestRequests); }
 
     void updateSubtreePaintRootForChildren(const RenderObject* renderer)
     {
-        if (!subtreePaintRoot)
+        if (!m_subtreePaintRoot)
             return;
 
         // If we're the painting root, kids draw normally, and see root of nullptr.
-        if (subtreePaintRoot == renderer) {
-            subtreePaintRoot = nullptr;
+        if (subtreePaintRoot() == renderer) {
+            m_subtreePaintRoot = 0;
             return;
         }
     }
 
     bool shouldPaintWithinRoot(const RenderObject& renderer) const
     {
-        return !subtreePaintRoot || subtreePaintRoot == &renderer;
+        return !m_subtreePaintRoot || subtreePaintRoot() == &renderer;
     }
 
     bool forceTextColor() const { return forceBlackText() || forceWhiteText(); }
@@ -111,7 +133,7 @@ struct PaintInfo {
     bool skipRootBackground() const { return paintBehavior.contains(PaintBehavior::SkipRootBackground); }
     bool paintRootBackgroundOnly() const { return paintBehavior.contains(PaintBehavior::RootBackgroundOnly); }
 
-    const RenderLayer* enclosingSelfPaintingLayer() const { return m_enclosingSelfPaintingLayer; }
+    const RenderLayer* enclosingSelfPaintingLayer() const { return std::bit_cast<const RenderLayer*>(m_enclosingSelfPaintingLayer); }
 
     void applyTransform(const AffineTransform& localToAncestorTransform)
     {
@@ -128,7 +150,8 @@ struct PaintInfo {
         rect.setSize(LayoutSize(tranformedRect.size()));
     }
 
-    EventRegionContext* eventRegionContext() { return dynamicDowncast<EventRegionContext>(regionContext); }
+    EventRegionContext* eventRegionContext() { return dynamicDowncast<EventRegionContext>(regionContext()); }
+    EventRegionContext* eventRegionContextForSwift() const { return dynamicDowncast<EventRegionContext>(regionContext()); }
     inline AccessibilityRegionContext* accessibilityRegionContext();
 #if ENABLE(AX_CUSTOM_COLOR_MODE)
     inline AXCustomColorBackdropContext* axCustomColorBackdropContext();
@@ -139,15 +162,35 @@ struct PaintInfo {
     bool requireSecurityOriginAccessForWidgets { false };
     StateSavedByCaller stateSavedByCaller { StateSavedByCaller::No };
     OptionSet<PaintBehavior> paintBehavior;
-    SUPPRESS_FORWARD_DECL_MEMBER RenderObject* subtreePaintRoot; // used to draw just one element and its visual children
-    SingleThreadWeakListHashSet<RenderBoxModelObject>* outlineObjects; // used to list outlines that should be painted by a block with inline children
-    OverlapTestRequestMap* overlapTestRequests;
-    SUPPRESS_FORWARD_DECL_MEMBER const RenderLayerModelObject* paintContainer; // the layer object that originates the current painting
-    SUPPRESS_FORWARD_DECL_MEMBER const RenderLayer* m_enclosingSelfPaintingLayer { nullptr };
-    RegionContext* regionContext { nullptr }; // For PaintPhase::EventRegion and PaintPhase::Accessibility.
 
 private:
-    GraphicsContext* m_context;
-};
+    // A view of the painting call's context and objects, held as integers so that the struct is trivially copyable. It
+    // must not outlive the call that made it, and Swift reaches the objects only through the accessors above: the
+    // context is never null; the others may be. It has no operator*. setContext(), setRegionContext(), setOutlineObjects()
+    // and setOverlapTestRequests() store what they are given, which the caller keeps alive.
+    uintptr_t m_subtreePaintRoot; // used to draw just one element and its visual children
+    uintptr_t m_paintContainer; // the layer object that originates the current painting
+    uintptr_t m_enclosingSelfPaintingLayer { 0 };
+    uintptr_t m_regionContext { 0 }; // For PaintPhase::EventRegion and PaintPhase::Accessibility.
+    uintptr_t m_outlineObjects;
+    uintptr_t m_overlapTestRequests;
+    uintptr_t m_context;
+} SWIFT_VIEW;
+
+// A PaintInfo that a C++ caller lends to Swift for the duration of one call. Made from a reference, so it is never
+// null; operator* is the PaintInfo.
+class PaintInfoView {
+public:
+    PaintInfoView(PaintInfo& paintInfo LIFETIME_BOUND)
+        : m_paintInfo(std::bit_cast<uintptr_t>(&paintInfo))
+    {
+    }
+
+    PaintInfo& operator*() const LIFETIME_BOUND { return *std::bit_cast<PaintInfo*>(m_paintInfo); }
+
+private:
+    // An integer, as in LentGraphicsContext: Swift does not import a pointer to a view type.
+    uintptr_t m_paintInfo;
+} SWIFT_VIEW;
 
 } // namespace WebCore

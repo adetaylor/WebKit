@@ -42,6 +42,7 @@
 #include "Chrome.h"
 #include "ChromeClient.h"
 #include "ComposedTreeIterator.h"
+#include "DebugPageOverlays.h"
 #include "DiagnosticLoggingClient.h"
 #include "DiagnosticLoggingKeys.h"
 #include "DocumentLoader.h"
@@ -281,6 +282,36 @@ JSC::Debugger* LocalFrame::debugger() const
     if (auto* page = this->page())
         return page->debugger();
     return nullptr;
+}
+
+bool LocalFrame::isHandlingWheelEventForSwift() const
+{
+    return eventHandler().isHandlingWheelEvent();
+}
+
+bool LocalFrame::autoscrollInProgressForSwift() const
+{
+    return eventHandler().autoscrollInProgress();
+}
+
+void LocalFrame::dispatchFakeMouseMoveEventSoonInQuadForSwift(FloatQuad quad)
+{
+    eventHandler().dispatchFakeMouseMoveEventSoonInQuad(quad);
+}
+
+void LocalFrame::setCaretRectNeedsUpdateForSwift()
+{
+    selection().setCaretRectNeedsUpdate();
+}
+
+void LocalFrame::renderLayerDidScrollForSwift(const RenderLayer& layer)
+{
+    protect(editor())->renderLayerDidScroll(layer);
+}
+
+void LocalFrame::debugPageOverlaysDidLayoutForSwift()
+{
+    DebugPageOverlays::didLayout(*this);
 }
 
 void LocalFrame::addDestructionObserver(FrameDestructionObserver& observer)

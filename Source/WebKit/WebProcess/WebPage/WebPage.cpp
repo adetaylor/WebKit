@@ -8158,6 +8158,7 @@ bool WebPage::pageContainsAnyHorizontalScrollbars() const
         if (!scrollableAreas)
             continue;
 
+        LocalFrameView::ScrollableAreaIterationScope iterationScope(*frameView);
         for (CheckedRef scrollableArea : *scrollableAreas) {
             if (!scrollableArea->scrollbarsCanBeActive())
                 continue;

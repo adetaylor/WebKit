@@ -285,7 +285,7 @@ static inline void clearAnchorScrollSnapshots(RenderBox& anchored, bool clearAnc
 
 static inline bool isFixed(const RenderBoxModelObject& box)
 {
-    CheckedPtr layer = box.layer() ? : box.enclosingLayer();
+    auto* layer = box.layer() ? : box.enclosingLayer();
     return layer && layer->behavesAsFixed();
 }
 
@@ -331,7 +331,7 @@ void AnchorPositionEvaluator::captureScrollSnapshots(RenderBox& anchored, bool i
             if (auto* ancestorAdjuster = layoutContext->anchorScrollAdjusterFor(*box)) {
                 adjuster.removeMatchingSnapshots(*ancestorAdjuster);
                 // We use the presence of the adjustment on fixedpos as a compositing signal.
-                protect(anchored.layer())->setAnchorScrollAdjustment({ });
+                anchored.layer()->setAnchorScrollAdjustment({ });
                 clearAdjustmentIfEmpty = false;
             }
         }
@@ -350,7 +350,7 @@ void AnchorPositionEvaluator::captureScrollSnapshots(RenderBox& anchored, bool i
         if (CheckedPtr element = anchored.element())
             element->invalidateForAnchorRectChange();
     }
-    protect(anchored.layer())->setAnchorScrollAdjustment({ });
+    anchored.layer()->setAnchorScrollAdjustment({ });
 }
 
 void AnchorPositionEvaluator::updateScrollAdjustments(RenderView& renderView)
@@ -367,7 +367,7 @@ void AnchorPositionEvaluator::updateScrollAdjustments(RenderView& renderView)
         }
 
         LayoutSize scrollOffset = adjuster.accumulateAdjustments(renderView, *anchored);
-        if (!protect(anchored->layer())->setAnchorScrollAdjustment(scrollOffset))
+        if (!anchored->layer()->setAnchorScrollAdjustment(scrollOffset))
             continue;
 
         bool shouldBeHidden = false;

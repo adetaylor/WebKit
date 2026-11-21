@@ -552,7 +552,7 @@ void RenderDeprecatedFlexibleBox::layoutHorizontalBox(RelayoutChildren relayoutC
         for (RenderBox* child = iterator.first(); child; child = iterator.next()) {
             if (child->isOutOfFlowPositioned()) {
                 child->containingBlock()->addOutOfFlowBox(*child);
-                CheckedPtr childLayer = child->layer();
+                auto* childLayer = child->layer();
                 childLayer->setStaticInlinePosition(xPos);
                 if (childLayer->staticBlockPosition() != yPos) {
                     childLayer->setStaticBlockPosition(yPos);
@@ -823,7 +823,7 @@ void RenderDeprecatedFlexibleBox::layoutVerticalBox(RelayoutChildren relayoutChi
 
             if (child->isOutOfFlowPositioned()) {
                 child->containingBlock()->addOutOfFlowBox(*child);
-                CheckedPtr childLayer = child->layer();
+                auto* childLayer = child->layer();
                 childLayer->setStaticInlinePosition(borderAndPaddingStart());
                 if (childLayer->staticBlockPosition() != borderBoxHeight()) {
                     childLayer->setStaticBlockPosition(borderBoxHeight());

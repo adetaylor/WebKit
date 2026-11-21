@@ -329,7 +329,7 @@ static DocumentScope::ScrollState scrollStateFor(const RenderBox& containerRende
         scrollableArea = &frameView;
         canScrollHorizontally = frameView.horizontalScrollbarMode() != ScrollbarMode::AlwaysOff;
         canScrollVertically = frameView.verticalScrollbarMode() != ScrollbarMode::AlwaysOff;
-    } else if (CheckedPtr layer = containerRenderer.layer()) {
+    } else if (auto* layer = containerRenderer.layer()) {
         scrollableArea = layer->scrollableArea();
         // Only auto and scroll overflow are reachable through user initiated scrolling, which is what
         // the feature queries; scrollable never matches a hidden container.

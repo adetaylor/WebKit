@@ -479,6 +479,8 @@ public:
     virtual LayoutRect overflowClipRect(const LayoutPoint& location, OverlayScrollbarSizeRelevancy = OverlayScrollbarSizeRelevancy::IgnoreOverlayScrollbarSize, PaintPhase = PaintPhase::BlockBackground) const;
     virtual LayoutRect overflowClipRectForChildLayers(const LayoutPoint& location, OverlayScrollbarSizeRelevancy relevancy) const { return overflowClipRect(location, relevancy); }
     LayoutRect clipRect(const LayoutPoint& location) const;
+    std::optional<LayoutRect> blockEndClipRectForSwift(const RenderElement&) const;
+    bool isSkippedContentRootForSwift() const;
     virtual bool hasControlClip() const { return false; }
     virtual LayoutRect controlClipRect(const LayoutPoint&) const { return LayoutRect(); }
     bool pushContentsClip(PaintInfo&, const LayoutPoint& accumulatedOffset);
@@ -763,7 +765,9 @@ private:
 
     // Used to store state between styleWillChange and styleDidChange
     static bool s_hadNonVisibleOverflow;
-};
+
+    // Swift retains, releases and receives one as it does a RenderObject.
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 inline bool isSkippedContentRoot(const RenderBox&);
 

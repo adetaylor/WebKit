@@ -73,7 +73,7 @@ public:
     LayoutUnit clientLogicalHeightForFixedPosition() const;
 
 
-    NODELETE inline LocalFrameView& frameView() const LIFETIME_BOUND; // Defined in LocalFrameViewInlines.h.
+    NODELETE inline LocalFrameView& frameView() const LIFETIME_BOUND_EXCEPT_IN_SWIFT; // Defined in LocalFrameViewInlines.h.
 
     Layout::InitialContainingBlock& initialContainingBlock() { return m_initialContainingBlock.get(); }
     const Layout::InitialContainingBlock& initialContainingBlock() const { return m_initialContainingBlock.get(); }
@@ -92,7 +92,7 @@ public:
         SkipAfterReset,
     };
     TextAutosizingState textAutosizingState() const { return m_textAutosizingState; }
-    void setTextAutosizingState(TextAutosizingState state) { m_textAutosizingState = state; }
+    SWIFT_UNSAFE void setTextAutosizingState(TextAutosizingState state) { m_textAutosizingState = state; }
 
     std::optional<RepaintRects> computeVisibleRectsInContainer(const RepaintRects&, const RenderLayerModelObject* container, const VisibleRectContext&, VisibleRectState) const override;
     void repaintRootContents();
@@ -159,9 +159,16 @@ public:
     void setIsInWindow(bool);
 
     WEBCORE_EXPORT RenderLayerCompositor& compositor();
+    // compositor() with the existing-compositor case inlined, for RenderLayer::compositor().
+    RenderLayerCompositor& inlineCompositor() { return m_compositor ? *m_compositor : compositor(); }
     NODELETE WEBCORE_EXPORT bool usesCompositing() const;
 
     WEBCORE_EXPORT IntRect unscaledDocumentRect() const;
+    LayoutPoint frameViewScrollPositionForFixedPositionForSwift() const;
+    bool frameViewHasFlippedBlockRenderersForSwift() const;
+    LayoutRect frameViewLayoutViewportRectForSwift() const;
+    float frameViewFrameScaleFactorForSwift() const;
+    IntRect frameViewLegacyIOSDocumentVisibleRectForSwift() const;
     LayoutRect unextendedBackgroundRect() const;
     LayoutRect backgroundRect() const;
 
@@ -327,7 +334,9 @@ private:
 
     SingleThreadWeakPtr<RenderBlockFlow> m_viewTransitionContainingBlock;
     HashMap<AtomString, SingleThreadWeakPtr<RenderBox>> m_viewTransitionGroups;
-};
+
+    // Swift retains, releases and receives one as it does a RenderObject.
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 } // namespace WebCore
 

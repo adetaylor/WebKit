@@ -106,6 +106,21 @@ inline bool RenderElement::canContainFixedPositionObjects(const Style::ComputedS
         || (isRenderBlock() && style.willChange().createsContainingBlockForOutOfFlowPositioned(isDocumentElementRenderer()));
 }
 
+inline bool RenderElement::canContainFixedPositionObjectsForSwift() const
+{
+    return canContainFixedPositionObjects();
+}
+
+inline bool RenderElement::canContainAbsolutelyPositionedObjectsForSwift() const
+{
+    return canContainAbsolutelyPositionedObjects();
+}
+
+inline bool RenderElement::isInTopLayerOrBackdropForSwift() const
+{
+    return isInTopLayerOrBackdrop(style(), element());
+}
+
 inline bool RenderElement::createsGroupForStyleExcludingClipPathAndMask(const Style::ComputedStyle& style)
 {
     return !style.opacity().isOpaque()
@@ -187,6 +202,11 @@ inline bool RenderElement::visibleToHitTesting(const std::optional<HitTestReques
     return isVisible
         && !isSkippedContent()
         && ((request && request->ignoreCSSPointerEventsProperty()) || usedPointerEvents() != PointerEvents::None);
+}
+
+inline bool RenderElement::visibleToHitTestingForSwift() const
+{
+    return visibleToHitTesting();
 }
 
 inline bool RenderElement::isViewTransitionContainer() const

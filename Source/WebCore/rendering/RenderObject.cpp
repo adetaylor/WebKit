@@ -31,6 +31,7 @@
 #include "AXUtilities.h"
 #include "BoundaryPointInlines.h"
 #include "ContainerNodeInlines.h"
+#include "DocumentFullscreen.h"
 #include "DocumentView.h"
 #include "EditingInlines.h"
 #include "Editor.h"
@@ -56,6 +57,7 @@
 #include "PlatformRenderTheme.h"
 #include "PseudoElement.h"
 #include "ReferencedSVGResources.h"
+#include "RemoteFrame.h"
 #include "RenderChildIterator.h"
 #include "RenderCounter.h"
 #include "RenderElementInlines.h"
@@ -63,6 +65,7 @@
 #include "RenderFragmentedFlow.h"
 #include "RenderGrid.h"
 #include "RenderHTMLCanvas.h"
+#include "RenderImage.h"
 #include "RenderIterator.h"
 #include "RenderLayer.h"
 #include "RenderLayerBacking.h"
@@ -88,6 +91,7 @@
 #include "RenderView.h"
 #include "RenderViewTransitionCapture.h"
 #include "RenderWidget.h"
+#include "RenderWidgetInlines.h"
 #include "RenderedPosition.h"
 #include "SVGRenderSupport.h"
 #include "ScrollAnchoringController.h"
@@ -770,6 +774,119 @@ RenderBlock* RenderObject::containingBlockForPositionType(PositionType positionT
     return nullptr;
 }
 
+const RenderBox* RenderObject::asRenderBox() const
+{
+    return dynamicDowncast<RenderBox>(*this);
+}
+
+const RenderBoxModelObject* RenderObject::asRenderBoxModelObject() const
+{
+    return dynamicDowncast<RenderBoxModelObject>(*this);
+}
+
+const RenderLayerModelObject* RenderObject::asRenderLayerModelObject() const
+{
+    return dynamicDowncast<RenderLayerModelObject>(*this);
+}
+
+const RenderSVGModelObject* RenderObject::asRenderSVGModelObject() const
+{
+    return dynamicDowncast<RenderSVGModelObject>(*this);
+}
+
+const RenderView* RenderObject::asRenderView() const
+{
+    return dynamicDowncast<RenderView>(*this);
+}
+
+const RenderImage* RenderObject::asRenderImage() const
+{
+    return dynamicDowncast<RenderImage>(*this);
+}
+
+const RenderMultiColumnFlow* RenderObject::asRenderMultiColumnFlow() const
+{
+    return dynamicDowncast<RenderMultiColumnFlow>(*this);
+}
+
+FloatQuad RenderObject::localToAbsoluteQuadForSwift(const FloatQuad& quad) const
+{
+    return localToAbsoluteQuad(quad);
+}
+
+FloatQuad RenderObject::localToContainerQuadForSwift(const FloatQuad& quad, const RenderLayerModelObject* container) const
+{
+    return localToContainerQuad(quad, container);
+}
+
+LayoutRect RenderObject::fragmentsBoundingBoxForSwift(const LayoutRect& layerBoundingBox) const
+{
+    return downcast<RenderFragmentedFlow>(*this).fragmentsBoundingBox(layerBoundingBox);
+}
+
+void RenderObject::collectLayerFragmentsForSwift(LayerFragments& fragments, const LayoutRect& layerBoundingBox, const LayoutRect& dirtyRect) const
+{
+    downcast<RenderFragmentedFlow>(*this).collectLayerFragments(fragments, layerBoundingBox, dirtyRect);
+}
+
+const RenderReplica* RenderObject::asRenderReplica() const
+{
+    return dynamicDowncast<RenderReplica>(*this);
+}
+
+const RenderBlock* RenderObject::asRenderBlock() const
+{
+    return dynamicDowncast<RenderBlock>(*this);
+}
+
+bool RenderObject::hasRemoteContentFrameForSwift() const
+{
+    auto* renderWidget = dynamicDowncast<RenderWidget>(*this);
+    if (!renderWidget)
+        return false;
+    RefPtr frame = renderWidget->frameOwnerElement().contentFrame();
+    return frame && is<RemoteFrame>(frame);
+}
+
+RenderView* RenderObject::contentRenderViewForSwift() const
+{
+    auto* renderWidget = dynamicDowncast<RenderWidget>(*this);
+    if (!renderWidget)
+        return nullptr;
+    RefPtr contentDocument = renderWidget->frameOwnerElement().contentDocument();
+    return contentDocument ? contentDocument->renderView() : nullptr;
+}
+
+bool RenderObject::frameIsMainFrameForSwift() const
+{
+    return frame().isMainFrame();
+}
+
+bool RenderObject::hasEnclosingFragmentedFlowForSwift() const
+{
+    return enclosingFragmentedFlow();
+}
+
+RenderLayerModelObject* RenderObject::fullscreenElementRendererForSwift() const
+{
+#if ENABLE(FULLSCREEN_API)
+    RefPtr documentFullscreen = document().fullscreenIfExists();
+    if (!documentFullscreen)
+        return nullptr;
+    RefPtr fullscreenElement = documentFullscreen->fullscreenElement();
+    if (!fullscreenElement)
+        return nullptr;
+    return dynamicDowncast<RenderLayerModelObject>(fullscreenElement->renderer());
+#else
+    return nullptr;
+#endif
+}
+
+bool RenderObject::documentHasActiveViewTransitionForSwift() const
+{
+    return document().activeViewTransition();
+}
+
 RenderBlock* RenderObject::containingBlock() const
 {
     // FIXME: See https://bugs.webkit.org/show_bug.cgi?id=270977 for RenderLineBreak special treatment.
@@ -891,16 +1008,16 @@ RenderObject::RepaintContainerStatus RenderObject::containerForRepaint() const
     auto usesCompositing = view().usesCompositing();
     auto hasRenderersWithPixelMovingFilter = view().hasRenderersWithPixelMovingFilter();
     if (usesCompositing || hasRenderersWithPixelMovingFilter) {
-        if (CheckedPtr enclosingLayer = this->enclosingLayer()) {
+        if (auto* enclosingLayer = this->enclosingLayer()) {
             if (usesCompositing) {
                 auto compLayerStatus = enclosingLayer->enclosingCompositingLayerForRepaint();
                 if (compLayerStatus.layer) {
-                    repaintContainer = &compLayerStatus.layer->renderer();
+                    repaintContainer = &static_cast<RenderLayer*>(compLayerStatus.layer)->renderer();
                     fullRepaintAlreadyScheduled = compLayerStatus.fullRepaintAlreadyScheduled;
                 }
             }
             if (hasRenderersWithPixelMovingFilter) {
-                if (CheckedPtr pixelMovingFilterLayer = enclosingLayer->enclosingPixelMovingFilterLayer()) {
+                if (auto* pixelMovingFilterLayer = enclosingLayer->enclosingPixelMovingFilterLayer()) {
                     fullRepaintAlreadyScheduled = enclosingLayer->scheduledFullRepaintCoversContentPaintedBy(*enclosingLayer);
                     return { fullRepaintAlreadyScheduled, &pixelMovingFilterLayer->renderer() };
                 }
@@ -970,6 +1087,11 @@ static void requestCanvasPaintEventIfNeeded(const RenderObject& renderer, const 
         canvasRenderer->requestPaintEventIfNeeded(*renderElement);
 }
 
+void RenderObject::repaintUsingContainerForSwift(const RenderLayerModelObject* repaintContainer, LayoutRect rect) const
+{
+    repaintUsingContainer(repaintContainer, rect);
+}
+
 void RenderObject::repaintUsingContainer(SingleThreadWeakPtr<const RenderLayerModelObject>&& repaintContainer, const LayoutRect& r, ClipRepaintToLayer clipRepaintToLayer, RepaintRectIsPartial rectIsPartial) const
 {
     if (r.isEmpty())
@@ -995,7 +1117,7 @@ void RenderObject::repaintUsingContainer(SingleThreadWeakPtr<const RenderLayerMo
         auto useFilterOutsets = RenderLayer::UseFilterOutsets::Add;
         if (rectIsPartial == RepaintRectIsPartial::No && repaintContainer.get() == this && is<RenderBox>(*this))
             useFilterOutsets = RenderLayer::UseFilterOutsets::AlreadyIncluded;
-        protect(repaintContainer->layer())->setFilterBackendNeedsRepaintingInRect(r, useFilterOutsets);
+        repaintContainer->layer()->setFilterBackendNeedsRepaintingInRect(r, useFilterOutsets);
         return;
     }
 
@@ -1014,7 +1136,7 @@ void RenderObject::repaintUsingContainer(SingleThreadWeakPtr<const RenderLayerMo
 
     if (view().usesCompositing()) {
         ASSERT(repaintContainer->isComposited());
-        if (CheckedPtr layer = repaintContainer->layer())
+        if (auto* layer = repaintContainer->layer())
             layer->setBackingNeedsRepaintInRect(r, clipRepaintToLayer == ClipRepaintToLayer::Yes ? GraphicsLayer::ShouldClipToLayer::Clip : GraphicsLayer::ShouldClipToLayer::DoNotClip);
     }
 }
@@ -1692,7 +1814,7 @@ void RenderObject::getTransformFromContainer(const LayoutSize& offsetInContainer
 {
     transform.makeIdentity();
     transform.translate(offsetInContainer.width(), offsetInContainer.height());
-    CheckedPtr<RenderLayer> layer;
+    RenderLayer* layer = nullptr;
     if (hasLayer() && (layer = downcast<RenderLayerModelObject>(*this).layer()) && layer->transform())
         transform.multiply(layer->currentTransform());
     else if (document().settings().layerBasedSVGEngineEnabled() && isSVGLayerAwareRenderer()) {
@@ -1899,7 +2021,7 @@ bool RenderObject::setCapturedInViewTransition(bool captured)
 
     m_stateBitfields.setFlag(StateFlag::CapturedInViewTransition, captured);
 
-    CheckedPtr<RenderLayer> layerToInvalidate;
+    RenderLayer* layerToInvalidate = nullptr;
     if (isDocumentElementRenderer()) {
         layerToInvalidate = view().layer();
         view().compositor().setRootElementCapturedInViewTransition(captured);
@@ -2514,7 +2636,7 @@ ScrollAnchoringController* RenderObject::searchParentChainForScrollAnchoringCont
                 return controller;
         }
     }
-    for (CheckedPtr enclosingLayer = renderer.enclosingLayer(); enclosingLayer; enclosingLayer = enclosingLayer->parent()) {
+    for (auto* enclosingLayer = renderer.enclosingLayer(); enclosingLayer; enclosingLayer = enclosingLayer->parent()) {
         if (RenderLayerScrollableArea* scrollableArea = enclosingLayer->scrollableArea()) {
             auto* controller = scrollableArea->scrollAnchoringController();
             if (controller && controller->hasAnchorElement())
@@ -2812,7 +2934,7 @@ static std::optional<PlatformLayerIdentifier> primaryLayerID(const RenderObject&
     if (!layerRenderer)
         return { };
 
-    CheckedPtr layer = layerRenderer->layer();
+    auto* layer = layerRenderer->layer();
     if (!layer)
         return { };
 

@@ -78,7 +78,12 @@ public:
     GraphicsContext* beginFilterEffect(RenderElement&, GraphicsContext&, OptionSet<PaintBehavior>, const LayoutRect& filterBoxRect, const LayoutRect& dirtyRect, const LayoutRect& layerRepaintRect, const LayoutRect& clipRect, NOESCAPE const Function<void(GraphicsContext&)>& applyAdditionalDestinationClip = { });
     void applyFilterEffect(GraphicsContext& destinationContext);
 
+    // True while a RenderLayer::FilterPaintScope paints into the context beginFilterEffect() returned.
+    bool hasPaintScope() const { return m_hasPaintScope; }
+
 private:
+    friend class RenderLayer::FilterPaintScope;
+
     explicit RenderLayerFilters(RenderLayer&);
 
     void notifyFinished(CachedResource&, const NetworkLoadMetrics&, LoadWillContinueInAnotherProcess) final;
@@ -97,6 +102,8 @@ private:
 
     RefPtr<CSSFilterRenderer> m_filter;
     std::unique_ptr<GraphicsContextSwitcher> m_targetSwitcher;
+
+    bool m_hasPaintScope { false };
 };
 
 } // namespace WebCore

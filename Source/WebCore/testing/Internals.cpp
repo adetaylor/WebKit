@@ -1710,13 +1710,13 @@ bool Internals::isPaintingFrequently(Element& element)
 void Internals::incrementFrequentPaintCounter(Element& element)
 {
     if (element.renderer() && element.renderer()->enclosingLayer())
-        protect(element.renderer()->enclosingLayer())->simulateFrequentPaint();
+        element.renderer()->enclosingLayer()->simulateFrequentPaint();
 }
 
 void Internals::purgeFrontBuffer(Element& element)
 {
     if (element.renderer()) {
-        if (CheckedPtr layer = element.renderer()->enclosingLayer())
+        if (auto* layer = element.renderer()->enclosingLayer())
             layer->purgeFrontBufferForTesting();
     }
 }
@@ -1724,7 +1724,7 @@ void Internals::purgeFrontBuffer(Element& element)
 void Internals::purgeBackBuffer(Element& element)
 {
     if (element.renderer()) {
-        if (CheckedPtr layer = element.renderer()->enclosingLayer())
+        if (auto* layer = element.renderer()->enclosingLayer())
             layer->purgeBackBufferForTesting();
     }
 }
@@ -1732,7 +1732,7 @@ void Internals::purgeBackBuffer(Element& element)
 void Internals::markFrontBufferVolatile(Element& element)
 {
     if (element.renderer()) {
-        if (CheckedPtr layer = element.renderer()->enclosingLayer())
+        if (auto* layer = element.renderer()->enclosingLayer())
             layer->markFrontBufferVolatileForTesting();
     }
 }
@@ -4283,7 +4283,7 @@ ExceptionOr<void> Internals::setElementUsesDisplayListDrawing(Element& element, 
     if (!element.renderer()->hasLayer())
         return Exception { ExceptionCode::InvalidAccessError };
 
-    CheckedPtr layer = downcast<RenderLayerModelObject>(element.renderer())->layer();
+    auto* layer = downcast<RenderLayerModelObject>(element.renderer())->layer();
     if (!layer->isComposited())
         return Exception { ExceptionCode::InvalidAccessError };
 
@@ -4305,7 +4305,7 @@ ExceptionOr<void> Internals::setElementTracksDisplayListReplay(Element& element,
     if (!element.renderer()->hasLayer())
         return Exception { ExceptionCode::InvalidAccessError };
 
-    CheckedPtr layer = downcast<RenderLayerModelObject>(element.renderer())->layer();
+    auto* layer = downcast<RenderLayerModelObject>(element.renderer())->layer();
     if (!layer->isComposited())
         return Exception { ExceptionCode::InvalidAccessError };
 
@@ -4337,7 +4337,7 @@ ExceptionOr<String> Internals::displayListForElement(Element& element, unsigned 
     if (!element.renderer()->hasLayer())
         return Exception { ExceptionCode::InvalidAccessError };
 
-    CheckedPtr layer = downcast<RenderLayerModelObject>(element.renderer())->layer();
+    auto* layer = downcast<RenderLayerModelObject>(element.renderer())->layer();
     if (!layer->isComposited())
         return Exception { ExceptionCode::InvalidAccessError };
 
@@ -4358,7 +4358,7 @@ ExceptionOr<String> Internals::replayDisplayListForElement(Element& element, uns
     if (!element.renderer()->hasLayer())
         return Exception { ExceptionCode::InvalidAccessError };
 
-    CheckedPtr layer = downcast<RenderLayerModelObject>(element.renderer())->layer();
+    auto* layer = downcast<RenderLayerModelObject>(element.renderer())->layer();
     if (!layer->isComposited())
         return Exception { ExceptionCode::InvalidAccessError };
 

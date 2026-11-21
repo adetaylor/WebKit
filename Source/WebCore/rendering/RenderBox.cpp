@@ -61,6 +61,7 @@
 #include "InlineRunAndOffset.h"
 #include "LayoutIntegrationLineLayout.h"
 #include "LegacyRenderSVGResourceClipper.h"
+#include "LineClampUpdater.h"
 #include "LocalFrame.h"
 #include "LocalFrameViewInlines.h"
 #include "Page.h"
@@ -436,7 +437,7 @@ static void updateSpatialPortalController(Element& element)
         notifyEnvironmentMapStyleDidChange(element);
 #endif
 
-        if (CheckedPtr layer = box->layer()) {
+        if (auto* layer = box->layer()) {
             layer->setNeedsCompositingConfigurationUpdate();
             layer->setDescendantsNeedCompositingRequirementsTraversal();
         }
@@ -2028,7 +2029,7 @@ static bool isCandidateForOpaquenessTest(const RenderBox& childBox)
         return false;
     if (!childBox.borderBoxWidth() || !childBox.borderBoxHeight())
         return false;
-    if (CheckedPtr childLayer = childBox.layer()) {
+    if (auto* childLayer = childBox.layer()) {
         if (childLayer->isComposited())
             return false;
         // FIXME: Deal with z-index.
@@ -2217,7 +2218,7 @@ bool RenderBox::repaintLayerRectsForImage(WrappedImagePtr image, const Layers& l
                     // (since root backgrounds cover the canvas, not just the element). If the root element
                     // is composited though, we need to issue the repaint to that root element.
                     auto documentElementRenderer = downcast<RenderBox>(document().documentElement()->renderer());
-                    CheckedPtr rendererLayer = documentElementRenderer->layer();
+                    auto* rendererLayer = documentElementRenderer->layer();
                     if (rendererLayer && rendererLayer->isComposited())
                         layerRenderer = documentElementRenderer;
                 } else {
@@ -2300,7 +2301,7 @@ bool RenderBox::pushContentsClip(PaintInfo& paintInfo, const LayoutPoint& accumu
     paintInfo.context().clip(clipRect);
 
     if (paintInfo.phase == PaintPhase::EventRegion || paintInfo.phase == PaintPhase::Accessibility)
-        paintInfo.regionContext->pushClip(enclosingIntRect(clipRect));
+        paintInfo.regionContext()->pushClip(enclosingIntRect(clipRect));
 
     return true;
 }
@@ -2310,7 +2311,7 @@ void RenderBox::popContentsClip(PaintInfo& paintInfo, PaintPhase originalPhase, 
     ASSERT(hasControlClip() || (hasNonVisibleOverflow() && !layer()->isSelfPaintingLayer()));
 
     if (paintInfo.phase == PaintPhase::EventRegion || paintInfo.phase == PaintPhase::Accessibility)
-        paintInfo.regionContext->popClip();
+        paintInfo.regionContext()->popClip();
 
     paintInfo.context().restore();
     if (originalPhase == PaintPhase::Outline) {
@@ -2339,6 +2340,16 @@ LayoutRect RenderBox::overflowClipRect(const LayoutPoint& location, OverlayScrol
     }
 
     return clipRect;
+}
+
+std::optional<LayoutRect> RenderBox::blockEndClipRectForSwift(const RenderElement& paintingRoot) const
+{
+    return LineClampUpdater::blockEndClipRect(*this, paintingRoot);
+}
+
+bool RenderBox::isSkippedContentRootForSwift() const
+{
+    return isSkippedContentRoot(*this);
 }
 
 LayoutRect RenderBox::clipRect(const LayoutPoint& location) const

@@ -1782,7 +1782,7 @@ void RenderGrid::prepareGridItemForPositionedLayout(RenderBox& gridItem)
     ASSERT(gridItem.isOutOfFlowPositioned());
     gridItem.containingBlock()->addOutOfFlowBox(gridItem);
 
-    CheckedPtr gridItemLayer = gridItem.layer();
+    auto* gridItemLayer = gridItem.layer();
     // Static position of a positioned grid item should use the content-box (https://drafts.csswg.org/css-grid/#static-position).
     gridItemLayer->setStaticInlinePosition(borderAndPaddingStart());
     gridItemLayer->setStaticBlockPosition(borderAndPaddingBefore());

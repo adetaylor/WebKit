@@ -89,8 +89,8 @@ public:
 
     bool isContainingBlockAncestorFor(RenderObject&) const;
 
-    void setHasMarginBeforeQuirk(bool b) { setRenderBlockHasMarginBeforeQuirk(b); }
-    void setHasMarginAfterQuirk(bool b) { setRenderBlockHasMarginAfterQuirk(b); }
+    SWIFT_UNSAFE void setHasMarginBeforeQuirk(bool b) { setRenderBlockHasMarginBeforeQuirk(b); }
+    SWIFT_UNSAFE void setHasMarginAfterQuirk(bool b) { setRenderBlockHasMarginAfterQuirk(b); }
     void setShouldForceRelayoutChildren(bool b) { setRenderBlockShouldForceRelayoutChildren(b); }
 
     bool hasMarginBeforeQuirk() const { return renderBlockHasMarginBeforeQuirk(); }
@@ -385,7 +385,9 @@ private:
 private:
     // Used to store state between styleWillChange and styleDidChange
     static bool s_canPropagateFloatIntoSibling;
-};
+
+    // Swift retains, releases and receives one as it does a RenderObject.
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 NODELETE LayoutUnit blockDirectionOffset(RenderBlock& rootBlock, const LayoutSize& offsetFromRootBlock);
 NODELETE LayoutUnit inlineDirectionOffset(RenderBlock& rootBlock, const LayoutSize& offsetFromRootBlock);

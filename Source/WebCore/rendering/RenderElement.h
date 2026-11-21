@@ -36,6 +36,7 @@
 namespace WebCore {
 
 class ContainerNode;
+class LayerRef;
 class BlendingKeyframes;
 class GraphicsLayerAnimation;
 class ImageAnimationTimeline;
@@ -147,6 +148,10 @@ public:
     inline bool isInsideDrawableCanvas() const; // Defined in RenderElementStyleInlines.h.
     inline bool canContainFixedPositionObjects(const Style::ComputedStyle* styleToUse = nullptr) const; // Defined in RenderElementStyleInlines.h.
     inline bool canContainAbsolutelyPositionedObjects(const Style::ComputedStyle* styleToUse = nullptr) const; // Defined in RenderElementStyleInlines.h.
+    // Swift takes no pointer argument safely: these read the renderer's own style.
+    inline bool canContainFixedPositionObjectsForSwift() const; // Defined in RenderElementStyleInlines.h.
+    inline bool canContainAbsolutelyPositionedObjectsForSwift() const; // Defined in RenderElementStyleInlines.h.
+    inline bool isInTopLayerOrBackdropForSwift() const; // Defined in RenderElementStyleInlines.h.
     bool canEstablishContainingBlockWithTransform() const;
     RenderBlock* nearestNonAnonymousContainingBlockIncludingSelf() const;
     RenderHTMLCanvas* drawableCanvas() const;
@@ -173,15 +178,14 @@ public:
     const Style::ComputedStyle* targetTextPseudoStyle() const LIFETIME_BOUND;
 
     virtual bool isChildAllowed(const RenderObject&, const Style::ComputedStyle&) const { return true; }
-    void didAttachChild(RenderObject& child, RenderObject* beforeChild);
+    SWIFT_UNSAFE void didAttachChild(RenderObject& child, RenderObject* beforeChild);
 
     // The following functions are used when the render tree hierarchy changes to make sure layers get
     // properly added and removed. Since containership can be implemented by any subclass, and since a hierarchy
     // can contain a mixture of boxes and other object types, these functions need to be in the base class.
     NODELETE RenderLayer* layerParent() const;
-    RenderLayer* layerNextSibling(RenderLayer& parentLayer) const;
-    void removeLayers();
-    void moveLayers(RenderLayer& newParent);
+    SWIFT_UNSAFE void removeLayers();
+    SWIFT_UNSAFE void addLayers(const RenderElement& insertedRenderer, RenderLayer& parentLayer);
 
     // Conservative hint used to skip layer-less subtrees in findNextLayer.
     // True means "this or some descendant may have a RenderLayer". May be a false
@@ -203,6 +207,7 @@ public:
 
     // paintOffset is the offset from the origin of the GraphicsContext at which to paint the current object.
     virtual void paint(PaintInfo&, const LayoutPoint& paintOffset) = 0;
+    void paintForSwift(NOESCAPE PaintInfo& paintInfo, LayoutPoint paintOffset) { paint(paintInfo, paintOffset); }
 
     // inline-block elements paint all phases atomically. This function ensures that. Certain other elements
     // (grid items, flex items) require this behavior as well, and this function exists as a helper for them.
@@ -237,6 +242,7 @@ public:
     inline float opacity() const; // Defined in RenderElementStyleInlines.h.
 
     inline bool visibleToHitTesting(const std::optional<HitTestRequest>& = std::nullopt) const; // Defined in RenderElementStyleInlines.h.
+    inline bool visibleToHitTestingForSwift() const SWIFT_NAME(visibleToHitTesting()); // Defined in RenderElementStyleInlines.h.
 
     inline bool hasBackground() const; // Defined in RenderElementStyleInlines.h.
     inline bool hasMask() const; // Defined in RenderElementStyleInlines.h.
@@ -298,7 +304,7 @@ public:
     Ref<ImageAnimationTimeline> imageAnimationTimeline() const;
     bool repaintForPausedImageAnimationsIfNeeded(const IntRect& visibleRect);
     bool hasPausedImageAnimations() const { return m_hasPausedImageAnimations; }
-    void setHasPausedImageAnimations(bool b) { m_hasPausedImageAnimations = b; }
+    SWIFT_UNSAFE void setHasPausedImageAnimations(bool b) { m_hasPausedImageAnimations = b; }
 
     virtual void forEachStyleImage(NOESCAPE const ScopedLambda<void(Style::Image&)>&);
 
@@ -308,7 +314,7 @@ public:
 #endif
 
     bool hasCounterNodeMap() const { return m_hasCounterNodeMap; }
-    void setHasCounterNodeMap(bool f) { m_hasCounterNodeMap = f; }
+    SWIFT_UNSAFE void setHasCounterNodeMap(bool f) { m_hasCounterNodeMap = f; }
 
     void adjustFontSizesOnBlocks(float size, float visibleWidth);
     WEBCORE_EXPORT void resetTextAutosizing();
@@ -328,8 +334,8 @@ public:
     bool isFirstLetter() const { return m_isFirstLetter; }
     void setIsFirstLetter() { m_isFirstLetter = true; }
 
-    RenderObject* attachRendererInternal(RenderPtr<RenderObject> child, RenderObject* beforeChild);
-    RenderPtr<RenderObject> detachRendererInternal(RenderObject&);
+    SWIFT_UNSAFE RenderObject* attachRendererInternal(RenderPtr<RenderObject> child, RenderObject* beforeChild);
+    SWIFT_UNSAFE RenderPtr<RenderObject> detachRendererInternal(RenderObject&);
 
     virtual bool startAnimation(double /* timeOffset */, const GraphicsLayerAnimation&, const BlendingKeyframes&, const IntOutsets& /* filterAnimationOutsets */) { return false; }
     virtual void animationPaused(double /* timeOffset */, const BlendingKeyframes&) { }
@@ -345,8 +351,9 @@ public:
 
     std::unique_ptr<Style::ComputedStyle> animatedStyle();
 
-    SingleThreadWeakPtr<RenderBlockFlow> pseudoElementRenderer(PseudoElementType) const;
-    void setPseudoElementRenderer(PseudoElementType, RenderBlockFlow&);
+    SWIFT_UNSAFE SingleThreadWeakPtr<RenderBlockFlow> pseudoElementRenderer(PseudoElementType) const;
+    SWIFT_UNSAFE void setPseudoElementRenderer(PseudoElementType, RenderBlockFlow&);
+    bool hasBackdropRendererForSwift(const RenderObject&) const;
 
     ReferencedSVGResources& ensureReferencedSVGResources();
     NODELETE ReferencedSVGResources* referencedSVGResources() const;
@@ -364,8 +371,8 @@ public:
 
     virtual LayoutRect paintRectToClipOutFromBorder(const LayoutRect&) { return { }; }
 
-    void establishesTopLayerWillChange();
-    void establishesTopLayerDidChange();
+    SWIFT_UNSAFE void establishesTopLayerWillChange();
+    SWIFT_UNSAFE void establishesTopLayerDidChange();
 
     static void markRendererDirtyAfterTopLayerChange(RenderElement* renderer, RenderBoxModelObject* containingBlockBeforeStyleResolution);
 
@@ -462,6 +469,7 @@ protected:
     inline bool shouldApplySizeOrStyleContainment(bool) const;
 
 private:
+    LayerRef linkLayerParent() const;
     RenderElement(Type, ContainerNode&, UniqueRef<Style::ComputedStyle>&&, OptionSet<TypeFlag>, TypeSpecificFlags);
     void node() const = delete;
     void nonPseudoNode() const = delete;
@@ -539,7 +547,9 @@ private:
     unsigned m_mayHaveNonScalingStrokeInSubtree : 1 { false };
     unsigned m_lineClampState : 2 { static_cast<unsigned>(LineClampState::None) };
     // 8 bits free.
-};
+
+    // Swift retains, releases and receives one as it does a RenderObject.
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_PRIVATE_FILEID("WebCore/RenderElementLayers.swift");
 
 NODELETE WEBCORE_EXPORT float opacity(const RenderElement&);
 
@@ -581,6 +591,11 @@ inline RenderObject* RenderElement::lastInFlowChild() const
 inline RenderElement* RenderObject::parent() const
 {
     return m_parent.get();
+}
+
+inline const RenderElement* RenderObject::asRenderElement() const
+{
+    return dynamicDowncast<RenderElement>(*this);
 }
 
 } // namespace WebCore

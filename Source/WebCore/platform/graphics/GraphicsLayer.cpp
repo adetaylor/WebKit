@@ -220,10 +220,10 @@ GraphicsLayer::~GraphicsLayer()
 
 void GraphicsLayer::unparentAndClear(RefPtr<GraphicsLayer>& layer)
 {
-    if (layer) {
-        layer->removeFromParent();
-        layer->clearClient();
-        layer = nullptr;
+    // Removing the layer from its parent can call into the client, which may clear the same field.
+    if (RefPtr protectedLayer = std::exchange(layer, nullptr)) {
+        protectedLayer->removeFromParent();
+        protectedLayer->clearClient();
     }
 }
 

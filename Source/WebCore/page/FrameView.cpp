@@ -128,11 +128,11 @@ ScrollableArea* FrameView::enclosingScrollableArea() const
     if (!ownerRenderer)
         return nullptr;
 
-    CheckedPtr layer = ownerRenderer->enclosingLayer();
+    auto* layer = ownerRenderer->enclosingLayer();
     if (!layer)
         return nullptr;
 
-    CheckedPtr enclosingScrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::IncludeSelf, CrossFrameBoundaries::No);
+    auto* enclosingScrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::IncludeSelf, CrossFrameBoundaries::No);
     if (!enclosingScrollableLayer)
         return nullptr;
 

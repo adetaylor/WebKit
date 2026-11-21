@@ -44,6 +44,61 @@ public:
     // Same result as replace(clone(other)), without allocating.
     void cloneFrom(const ComputedStyle&);
 
+    // The getters that Swift calls on a borrowed style: the importer takes no member of the generated base. They have
+    // names of their own because the generated code takes the base getters' addresses; Swift sees the plain names.
+    inline BackfaceVisibility backfaceVisibilityForSwift() const SWIFT_NAME(backfaceVisibility());
+    inline bool hasFilterForSwift() const SWIFT_NAME(hasFilter());
+    inline bool filterHasReferenceFilterForSwift() const SWIFT_NAME(filterHasReferenceFilter());
+    inline bool filterHasFilterThatAffectsOpacityForSwift() const SWIFT_NAME(filterHasFilterThatAffectsOpacity());
+    inline bool filterHasFilterThatMovesPixelsForSwift() const SWIFT_NAME(filterHasFilterThatMovesPixels());
+    inline PositionType positionForSwift() const SWIFT_NAME(position());
+    inline std::optional<PseudoElementType> pseudoElementTypeForSwift() const SWIFT_NAME(pseudoElementType());
+    inline Isolation isolationForSwift() const SWIFT_NAME(isolation());
+    inline bool usedZIndexIsAutoForSwift() const SWIFT_NAME(usedZIndexIsAuto());
+    inline bool willChangeCanCreateStackingContextForSwift() const SWIFT_NAME(willChangeCanCreateStackingContext());
+    inline bool willChangeCanBeBackdropRootForSwift() const SWIFT_NAME(willChangeCanBeBackdropRoot());
+    inline bool willChangeCanTriggerCompositingForSwift() const SWIFT_NAME(willChangeCanTriggerCompositing());
+    inline bool willChangeCanTriggerCompositingOnInlineForSwift() const SWIFT_NAME(willChangeCanTriggerCompositingOnInline());
+    inline bool opacityIsTransparentForSwift() const SWIFT_NAME(opacityIsTransparent());
+    float opacityValueForSwift() const SWIFT_NAME(opacityValue());
+    inline Visibility visibilityForSwift() const SWIFT_NAME(visibility());
+    inline bool isForceHiddenForSwift() const SWIFT_NAME(isForceHidden());
+    inline ContentVisibility usedContentVisibilityForSwift() const SWIFT_NAME(usedContentVisibility());
+    inline bool hasSameUsedZIndexForSwift(const ComputedStyle&) const SWIFT_NAME(hasSameUsedZIndex(_:));
+    inline bool hasSameWritingModeForSwift(const ComputedStyle&) const SWIFT_NAME(hasSameWritingMode(_:));
+    inline bool viewTransitionNameIsNoneForSwift() const SWIFT_NAME(viewTransitionNameIsNone());
+    inline bool perspectiveIsNoneForSwift() const SWIFT_NAME(perspectiveIsNone());
+    inline bool hasBorderRadiusForSwift() const SWIFT_NAME(hasBorderRadius());
+    inline bool hasResizeForSwift() const SWIFT_NAME(hasResize());
+    inline bool displayIsNoneForSwift() const SWIFT_NAME(displayIsNone());
+    inline bool scrollbarWidthIsNoneForSwift() const SWIFT_NAME(scrollbarWidthIsNone());
+    inline StyleAppearance usedAppearanceForSwift() const SWIFT_NAME(usedAppearance());
+    inline OverscrollBehavior overscrollBehaviorXForSwift() const SWIFT_NAME(overscrollBehaviorX());
+    inline OverscrollBehavior overscrollBehaviorYForSwift() const SWIFT_NAME(overscrollBehaviorY());
+    inline Overflow overflowXForSwift() const SWIFT_NAME(overflowX());
+    inline Overflow overflowYForSwift() const SWIFT_NAME(overflowY());
+    inline bool hasLegacyLineClampForSwift() const SWIFT_NAME(hasLegacyLineClamp());
+    inline float usedZoomForSwift() const SWIFT_NAME(usedZoom());
+    inline BoxSizing boxSizingForSwift() const SWIFT_NAME(boxSizing());
+    inline Resize resizeForSwift() const SWIFT_NAME(resize());
+    LayoutUnit evaluatedMinWidthForSwift(LayoutUnit referenceLength) const SWIFT_NAME(evaluatedMinWidth(_:));
+    LayoutUnit evaluatedMinHeightForSwift(LayoutUnit referenceLength) const SWIFT_NAME(evaluatedMinHeight(_:));
+    inline bool borderHasVisibleBorderForSwift() const SWIFT_NAME(borderHasVisibleBorder());
+    inline bool borderHasNonRoundCornerShapeForSwift() const SWIFT_NAME(borderHasNonRoundCornerShape());
+    inline bool hasImageInAnyBackgroundLayerForSwift() const SWIFT_NAME(hasImageInAnyBackgroundLayer());
+    inline unsigned backgroundLayersUsedLengthForSwift() const SWIFT_NAME(backgroundLayersUsedLength());
+    inline FillBox backgroundFirstLayerClipForSwift() const SWIFT_NAME(backgroundFirstLayerClip());
+    inline bool boxShadowIsNoneForSwift() const SWIFT_NAME(boxShadowIsNone());
+    inline bool backdropFilterHasReferenceFilterForSwift() const SWIFT_NAME(backdropFilterHasReferenceFilter());
+    inline bool objectViewBoxIsNoneForSwift() const SWIFT_NAME(objectViewBoxIsNone());
+    inline bool clipPathIsNoneForSwift() const SWIFT_NAME(clipPathIsNone());
+    inline ObjectFit objectFitForSwift() const SWIFT_NAME(objectFit());
+    inline ImageRendering imageRenderingForSwift() const SWIFT_NAME(imageRendering());
+    inline void applyTranslateForSwift(TransformationMatrix&, const FloatSize&) const SWIFT_NAME(applyTranslate(_:_:));
+    inline void applyScaleForSwift(TransformationMatrix&, const FloatSize&) const SWIFT_NAME(applyScale(_:_:));
+    inline void applyRotateForSwift(TransformationMatrix&, const FloatSize&) const SWIFT_NAME(applyRotate(_:_:));
+    inline void applyTransformForSwift(TransformationMatrix&, const FloatSize&) const SWIFT_NAME(applyTransform(_:_:));
+
     NODELETE static ComputedStyle& defaultStyleSingleton();
 
     // MARK: - Initialization
@@ -231,7 +286,15 @@ public:
 private:
     // Layout::Box stores its style inline and folds it into its CheckedPtr deletion check.
     friend class Layout::Box;
+#if defined(__swift__)
+    // Swift's importer takes a C++ value type only with a public copy or move constructor, and drops the type and every
+    // member that names it otherwise. Swift only borrows a style: it never holds one by value, so it never moves one.
+public:
+#endif
     ComputedStyle(ComputedStyle&&);
+#if defined(__swift__)
+private:
+#endif
 
     explicit ComputedStyle(CreateDefaultStyleTag);
     ComputedStyle(const ComputedStyle&, CloneTag);

@@ -46,6 +46,7 @@ enum class LayerTreeAsTextOptions : uint16_t {
     IncludeDeviceScale           = 1 << 13,
     IncludeRootLayers            = 1 << 14,
 };
+using LayerTreeAsTextOptionSet = OptionSet<LayerTreeAsTextOptions>;
 
 static constexpr OptionSet<LayerTreeAsTextOptions> AllLayerTreeAsTextOptions = {
     LayerTreeAsTextOptions::Debug,

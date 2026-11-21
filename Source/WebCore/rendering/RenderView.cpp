@@ -400,7 +400,7 @@ void RenderView::repaintRootContents()
         if (CheckedPtr rootRenderer = dynamicDowncast<RenderLayerModelObject>(rootElement->renderer())) {
             // Only repaint if its has its own backing. Otherwise, it paints into its
             // ancestor layer (this RenderView), which we're repainting anyway.
-            if (CheckedPtr rootLayer = rootRenderer->layer(); rootLayer && compositedWithOwnBackingStore(*rootLayer))
+            if (auto* rootLayer = rootRenderer->layer(); rootLayer && compositedWithOwnBackingStore(*rootLayer))
                 rootLayer->setBackingNeedsRepaint(GraphicsLayerShouldClipToLayer::DoNotClip);
         }
     }
@@ -531,8 +531,10 @@ void RenderView::repaintViewAndCompositedLayers()
     repaintRootContents();
 
     RenderLayerCompositor& compositor = this->compositor();
-    if (compositor.usesCompositing())
+    if (compositor.usesCompositing()) {
+        LayerFreeForbiddenScope layerFreeForbiddenScope;
         compositor.repaintCompositedLayers();
+    }
 }
 
 auto RenderView::computeVisibleRectsInContainer(const RepaintRects& rects, const RenderLayerModelObject* container, const VisibleRectContext&, VisibleRectState state) const -> std::optional<RepaintRects>
@@ -598,6 +600,31 @@ LayoutRect RenderView::viewRect() const
 {
     if (shouldUsePrintingLayout())
         return LayoutRect(LayoutPoint(), borderBoxSize());
+    return frameView().visibleContentRect(ScrollableArea::LegacyIOSDocumentVisibleRect);
+}
+
+LayoutPoint RenderView::frameViewScrollPositionForFixedPositionForSwift() const
+{
+    return frameView().scrollPositionForFixedPosition();
+}
+
+bool RenderView::frameViewHasFlippedBlockRenderersForSwift() const
+{
+    return frameView().hasFlippedBlockRenderers();
+}
+
+LayoutRect RenderView::frameViewLayoutViewportRectForSwift() const
+{
+    return frameView().layoutViewportRect();
+}
+
+float RenderView::frameViewFrameScaleFactorForSwift() const
+{
+    return frameView().frame().frameScaleFactor();
+}
+
+IntRect RenderView::frameViewLegacyIOSDocumentVisibleRectForSwift() const
+{
     return frameView().visibleContentRect(ScrollableArea::LegacyIOSDocumentVisibleRect);
 }
 

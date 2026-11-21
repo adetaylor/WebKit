@@ -189,7 +189,7 @@ CGRect LocalFrame::renderRectForPoint(CGPoint point, bool* isReplaced, float* fo
         return CGRectZero;
 
     // FIXME: Why this layer check?
-    CheckedPtr layer = m_doc->renderBox()->layer();
+    auto* layer = m_doc->renderBox()->layer();
     if (!layer)
         return CGRectZero;
 
@@ -582,7 +582,7 @@ void LocalFrame::overflowScrollPositionChangedForNode(const IntPoint& position, 
     if (!renderer || !renderer->hasLayer())
         return;
 
-    CheckedPtr layer = downcast<RenderBoxModelObject>(*renderer).layer();
+    auto* layer = downcast<RenderBoxModelObject>(*renderer).layer();
     if (!layer)
         return;
 

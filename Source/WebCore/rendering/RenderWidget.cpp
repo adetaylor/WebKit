@@ -137,7 +137,7 @@ NODELETE static inline IntRect roundedIntRect(const LayoutRect& rect)
 
 bool RenderWidget::setWidgetGeometry(const LayoutRect& frame)
 {
-    IntRect clipRect = roundedIntRect(protect(enclosingLayer())->childrenClipRect());
+    IntRect clipRect = roundedIntRect(enclosingLayer()->childrenClipRect());
     IntRect newFrameRect = roundedIntRect(frame);
     IntRect oldFrameRect = protect(m_widget)->frameRect();
     bool clipChanged = m_clipRect != clipRect;
@@ -330,26 +330,26 @@ void RenderWidget::paintContents(PaintInfo& paintInfo, const LayoutPoint& paintO
         paintRect.move(-widgetPaintOffset.width(), -widgetPaintOffset.height());
     }
 
-    if (paintInfo.regionContext) {
+    if (paintInfo.regionContext()) {
         AffineTransform transform;
         transform.translate(snappedPaintOffset);
-        paintInfo.regionContext->pushTransform(transform);
+        paintInfo.regionContext()->pushTransform(transform);
     }
 
     // FIXME: Remove repaintrect enclosing/integral snapping when RenderWidget becomes device pixel snapped.
-    protect(m_widget)->paint(paintInfo.context(), enclosingIntRect(paintRect), paintInfo.requireSecurityOriginAccessForWidgets ? Widget::SecurityOriginPaintPolicy::AccessibleOriginOnly : Widget::SecurityOriginPaintPolicy::AnyOrigin, paintInfo.regionContext);
+    protect(m_widget)->paint(paintInfo.context(), enclosingIntRect(paintRect), paintInfo.requireSecurityOriginAccessForWidgets ? Widget::SecurityOriginPaintPolicy::AccessibleOriginOnly : Widget::SecurityOriginPaintPolicy::AnyOrigin, paintInfo.regionContext());
 
-    if (paintInfo.regionContext)
-        paintInfo.regionContext->popTransform();
+    if (paintInfo.regionContext())
+        paintInfo.regionContext()->popTransform();
 
     if (!widgetPaintOffset.isZero())
         paintInfo.context().translate(-widgetPaintOffset);
 
     if (RefPtr frameView = dynamicDowncast<LocalFrameView>(m_widget)) {
         bool runOverlapTests = !frameView->useSlowRepaintsIfNotOverlapped();
-        if (paintInfo.overlapTestRequests && runOverlapTests) {
-            ASSERT(!paintInfo.overlapTestRequests->contains(this) || (paintInfo.overlapTestRequests->get(this) == protect(m_widget)->frameRect()));
-            paintInfo.overlapTestRequests->set(this, protect(m_widget)->frameRect());
+        if (paintInfo.overlapTestRequests() && runOverlapTests) {
+            ASSERT(!paintInfo.overlapTestRequests()->contains(this) || (paintInfo.overlapTestRequests()->get(this) == protect(m_widget)->frameRect()));
+            paintInfo.overlapTestRequests()->set(this, protect(m_widget)->frameRect());
         }
         if (paintInfo.paintBehavior & PaintBehavior::DefaultAsynchronousImageDecode)
             frameView->setPaintBehavior(oldBehavior);
@@ -415,7 +415,7 @@ void RenderWidget::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
     if (hasLayer() && layer()->canResize()) {
         ASSERT(layer()->scrollableArea());
         auto controlsRects = layer()->scrollableArea()->overflowControlsRects();
-        layer()->scrollableArea()->paintResizer(paintInfo.context(), roundedIntPoint(adjustedPaintOffset), controlsRects.resizer, paintInfo.rect);
+        layer()->scrollableArea()->paintResizer(LentGraphicsContext { paintInfo.context() }, roundedIntPoint(adjustedPaintOffset), controlsRects.resizer, paintInfo.rect);
     }
 }
 

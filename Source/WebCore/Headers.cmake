@@ -793,6 +793,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     animation/AnimationTimeline.h
     animation/AnimationTimelinesController.h
     animation/BasicEffectTiming.h
+    animation/BlendingKeyframes.h
     animation/CSSAnimation.h
     animation/CompositeOperation.h
     animation/CompositeOperationOrAuto.h
@@ -3190,6 +3191,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     rendering/RenderFlexibleBox.h
     rendering/RenderFrame.h
     rendering/RenderFrameBase.h
+    rendering/RenderGeometryMap.h
     rendering/RenderHighlight.h
     rendering/RenderIFrame.h
     rendering/RenderImage.h
@@ -3201,6 +3203,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     rendering/RenderLayerModelObject.h
     rendering/RenderLayerSVGAdditions.h
     rendering/RenderLayerScrollableArea.h
+    rendering/RenderLayerStyleInlines.h
     rendering/RenderLayoutState.h
     rendering/RenderListItem.h
     rendering/RenderMedia.h

@@ -428,7 +428,8 @@ void LocalFrameViewLayoutContext::flushUpdateLayerPositions()
     bool environmentChanged = repaintRectEnvironment != m_lastRepaintRectEnvironment;
 
     auto updateLayerPositions = *std::exchange(m_pendingUpdateLayerPositions, std::nullopt);
-    protect(view->layer())->updateLayerPositionsAfterLayout(updateLayerPositions.needsFullRepaint, environmentChanged);
+    LayerFreeForbiddenScope layerFreeForbiddenScope;
+    view->layer()->updateLayerPositionsAfterLayout(updateLayerPositions.needsFullRepaint, environmentChanged);
 
     m_renderLayerPositionUpdateCount++;
     m_lastRepaintRectEnvironment = WTF::move(repaintRectEnvironment);
@@ -447,7 +448,10 @@ bool LocalFrameViewLayoutContext::updateCompositingLayersAfterStyleChange()
     auto repaintRectEnvironment = RepaintRectEnvironment { view->page().deviceScaleFactor(), protect(document())->printing(), protect(this->view())->useFixedLayout() };
     bool environmentChanged = repaintRectEnvironment != m_lastRepaintRectEnvironment;
 
-    protect(view->layer())->updateLayerPositionsAfterStyleChange(environmentChanged);
+    {
+        LayerFreeForbiddenScope layerFreeForbiddenScope;
+        view->layer()->updateLayerPositionsAfterStyleChange(environmentChanged);
+    }
 
     m_lastRepaintRectEnvironment = WTF::move(repaintRectEnvironment);
 
@@ -1168,7 +1172,7 @@ void LocalFrameViewLayoutContext::unregisterAnchorScrollAdjusterFor(const Render
         return item.anchored() == &anchored;
     }));
 
-    if (CheckedPtr layer = anchored.layer()) {
+    if (auto* layer = anchored.layer()) {
         if (clearAnchorScrollAdjustment)
             layer->clearAnchorScrollAdjustment();
         else

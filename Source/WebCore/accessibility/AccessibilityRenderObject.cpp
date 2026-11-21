@@ -2362,7 +2362,7 @@ RefPtr<AXCoreObject> AccessibilityRenderObject::accessibilityHitTest(const IntPo
     constexpr OptionSet hitType { HitTestRequest::Type::ReadOnly, HitTestRequest::Type::Active, HitTestRequest::Type::AccessibilityHitTest };
     HitTestResult hitTestResult { adjustedPoint };
 
-    protect(protect(dynamicDowncast<RenderLayerModelObject>(*m_renderer))->layer())->hitTest(hitType, hitTestResult);
+    protect(dynamicDowncast<RenderLayerModelObject>(*m_renderer))->layer()->hitTest(hitType, hitTestResult);
     RefPtr node = hitTestResult.innerNode();
     if (!node)
         return nullptr;

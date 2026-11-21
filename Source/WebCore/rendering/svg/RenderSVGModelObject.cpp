@@ -205,7 +205,7 @@ void RenderSVGModelObject::styleDidChange(Style::Difference diff, const Style::C
     // A non-layer renderer with a clip-path or a mask is an atomic paint boundary, so rebuild the
     // enclosing layer's DOM-order paint cache when either is added or removed.
     if (oldStyle && (oldStyle->clipPath().isNone() != style().clipPath().isNone() || oldStyle->hasMask() != protect(style())->hasMask())) {
-        if (CheckedPtr layer = enclosingLayer(); layer && layer->isSVGLayer())
+        if (auto* layer = enclosingLayer(); layer && layer->isSVGLayer())
             layer->dirtyChildrenInDOMOrderForSVG();
     }
 
@@ -249,7 +249,7 @@ void RenderSVGModelObject::styleDidChange(Style::Difference diff, const Style::C
         if (visualOverflowStyleChanged(protect(style()), *oldStyle)) {
             m_cachedVisualOverflowRect = std::nullopt;
             // The old area was repainted before the change. Unless layout follows, repaint the new one too.
-            CheckedPtr layer = this->layer();
+            auto* layer = this->layer();
             if (layer) {
                 layer->setSelfAndDescendantsNeedPositionUpdate();
                 layer->setRepaintStatus(RepaintStatus::NeedsFullRepaint);
@@ -265,7 +265,7 @@ void RenderSVGModelObject::styleDidChange(Style::Difference diff, const Style::C
     // bool hasSVGMask = hasSVGMask();
     bool hasSVGMask = false;
     if (hasSVGMask && hasLayer() && usedStyle().visibility() != UsedVisibility::Visible)
-        protect(layer())->setHasVisibleContent();
+        layer()->setHasVisibleContent();
 }
 
 std::optional<FloatPoint3D> RenderSVGModelObject::cachedTransformOriginForReferenceBox(const Style::ComputedStyle& style, const FloatRect& referenceBox) const

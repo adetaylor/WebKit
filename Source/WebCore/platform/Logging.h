@@ -86,7 +86,6 @@ namespace WebCore {
     M(Calc) \
     M(ClipRects) \
     M(Compositing) \
-    M(CompositingOverlap) \
     M(ContentFiltering) \
     M(ContentObservation) \
     M(ContentVisibility) \

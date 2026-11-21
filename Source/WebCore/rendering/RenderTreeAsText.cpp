@@ -703,7 +703,7 @@ static void writeLayers(TextStream& ts, const RenderLayer& rootLayer, RenderLaye
             ts.increaseIndent();
         }
         
-        for (CheckedPtr currLayer : negativeZOrderLayers)
+        for (auto* currLayer : negativeZOrderLayers)
             writeLayers(ts, rootLayer, *currLayer, paintDirtyRect, behavior);
 
         if (behavior.contains(RenderAsTextFlag::ShowLayerNesting))
@@ -736,7 +736,7 @@ static void writeLayers(TextStream& ts, const RenderLayer& rootLayer, RenderLaye
             ts.increaseIndent();
         }
         
-        for (CheckedPtr currLayer : normalFlowLayers)
+        for (auto* currLayer : normalFlowLayers)
             writeLayers(ts, rootLayer, *currLayer, paintDirtyRect, behavior);
 
         if (behavior.contains(RenderAsTextFlag::ShowLayerNesting))
@@ -753,7 +753,7 @@ static void writeLayers(TextStream& ts, const RenderLayer& rootLayer, RenderLaye
                 ts.increaseIndent();
             }
 
-            for (CheckedPtr currLayer : positiveZOrderLayers)
+            for (auto* currLayer : positiveZOrderLayers)
                 writeLayers(ts, rootLayer, *currLayer, paintDirtyRect, behavior);
 
             if (behavior.contains(RenderAsTextFlag::ShowLayerNesting))
@@ -835,8 +835,9 @@ static String externalRepresentation(RenderBox& renderer, OptionSet<RenderAsText
     LOG(Layout, "externalRepresentation: dumping layer tree");
 
     ScriptDisallowedScope scriptDisallowedScope;
-    CheckedRef layer = *renderer.layer();
-    writeLayers(ts, layer, layer, layer->rect(), behavior);
+    LayerFreeForbiddenScope layerFreeForbiddenScope;
+    auto& layer = *renderer.layer();
+    writeLayers(ts, layer, layer, layer.rect(), behavior);
     writeSelection(ts, renderer);
     return ts.release();
 }
@@ -865,7 +866,8 @@ void externalRepresentationForLocalFrame(TextStream &ts, LocalFrame& frame, Opti
     ASSERT(frame.document());
 
     if (CheckedPtr root = frame.contentRenderer()) {
-        if (CheckedPtr layer = root->layer())
+        LayerFreeForbiddenScope layerFreeForbiddenScope;
+        if (auto* layer = root->layer())
             writeLayers(ts, *layer, *layer, layer->rect(), behavior);
     }
 }

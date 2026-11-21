@@ -1582,7 +1582,7 @@ EnclosingLayerInfomation computeEnclosingLayer(const SimpleRange& range)
         return renderer->enclosingLayer();
     };
 
-    auto [startLayer, endLayer] = [&] -> std::pair<CheckedPtr<RenderLayer>, CheckedPtr<RenderLayer>> {
+    auto [startLayer, endLayer] = [&] -> std::pair<RenderLayer*, RenderLayer*> {
         if (RefPtr container = start.containerNode(); container && ImageOverlay::isInsideOverlay(*container)) {
             RefPtr host = container->shadowHost();
             if (!host) {
@@ -1594,7 +1594,7 @@ EnclosingLayerInfomation computeEnclosingLayer(const SimpleRange& range)
             if (!renderer)
                 return { };
 
-            CheckedPtr enclosingLayer = renderer->enclosingLayer();
+            auto* enclosingLayer = renderer->enclosingLayer();
             return { enclosingLayer, enclosingLayer };
         }
 
@@ -1607,7 +1607,7 @@ EnclosingLayerInfomation computeEnclosingLayer(const SimpleRange& range)
     if (!endLayer)
         return { };
 
-    for (CheckedPtr layer = startLayer->commonAncestorWithLayer(*endLayer); layer; layer = layer->enclosingContainingBlockLayer(CrossFrameBoundaries::Yes)) {
+    for (auto* layer = startLayer->commonAncestorWithLayer(*endLayer); layer; layer = layer->enclosingContainingBlockLayer(CrossFrameBoundaries::Yes)) {
         if (!layer->isComposited())
             continue;
 
@@ -1632,7 +1632,7 @@ EnclosingLayerInfomation computeEnclosingLayer(const SimpleRange& range)
         if (!identifier)
             continue;
 
-        return { WTF::move(startLayer), WTF::move(endLayer), WTF::move(layer), WTF::move(graphicsLayer), WTF::move(identifier) };
+        return { startLayer, endLayer, layer, WTF::move(graphicsLayer), WTF::move(identifier) };
     }
     return { };
 }

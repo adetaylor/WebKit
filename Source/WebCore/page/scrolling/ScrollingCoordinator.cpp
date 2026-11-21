@@ -131,6 +131,7 @@ EventTrackingRegions ScrollingCoordinator::absoluteEventTrackingRegionsForFrame(
     // to not ask for regions at bad times.
 
     if (auto* scrollableAreas = frameView->scrollableAreas()) {
+        LocalFrameView::ScrollableAreaIterationScope iterationScope(*frameView);
         for (CheckedRef area : *scrollableAreas) {
             // Composited scrollable areas can be scrolled off the main thread.
             if (!area->isVisibleToHitTesting() || area->usesAsyncScrolling())

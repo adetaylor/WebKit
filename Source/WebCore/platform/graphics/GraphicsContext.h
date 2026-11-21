@@ -460,6 +460,46 @@ private:
     friend class DrawGlyphsRecorder; // To access drawGlyphsImmediate.
 };
 
+// A GraphicsContext that C++ lends to Swift for the duration of a call. Swift cannot import
+// GraphicsContext, which is neither copyable nor movable, so it calls the members it needs here.
+// Made from a reference, so it is never null; operator* is the context.
+class LentGraphicsContext {
+public:
+    explicit LentGraphicsContext(GraphicsContext& context LIFETIME_BOUND)
+        : m_context(std::bit_cast<uintptr_t>(&context))
+    {
+    }
+
+    GraphicsContext& operator*() const LIFETIME_BOUND { return *std::bit_cast<GraphicsContext*>(m_context); }
+
+    bool paintingDisabled() const { return (**this).paintingDisabled(); }
+    bool performingPaintInvalidation() const { return (**this).performingPaintInvalidation(); }
+    bool invalidatingControlTints() const { return (**this).invalidatingControlTints(); }
+    bool detectingContentfulPaint() const { return (**this).detectingContentfulPaint(); }
+    bool contentfulPaintDetected() const { return (**this).contentfulPaintDetected(); }
+    bool shouldSubpixelQuantizeFonts() const { return (**this).shouldSubpixelQuantizeFonts(); }
+    void setShouldSubpixelQuantizeFonts(bool value) const { (**this).setShouldSubpixelQuantizeFonts(value); }
+    float alpha() const { return (**this).alpha(); }
+    void setAlpha(float alpha) const { (**this).setAlpha(alpha); }
+    CompositeOperator compositeOperation() const { return (**this).compositeOperation(); }
+    void setCompositeOperation(CompositeOperator operation, BlendMode blendMode) const { (**this).setCompositeOperation(operation, blendMode); }
+    void save() const { (**this).save(); }
+    void restore() const { (**this).restore(); }
+    void clip(FloatRect rect) const { (**this).clip(rect); }
+    void translate(FloatSize size) const { (**this).translate(size); }
+    void concatCTM(const AffineTransform& transform) const { (**this).concatCTM(transform); }
+    void setCTM(const AffineTransform& transform) const { (**this).setCTM(transform); }
+    void saveTransform() const { (**this).saveTransform(); }
+    bool restoreTransform() const { return (**this).restoreTransform(); }
+    AffineTransform getCTM() const { return (**this).getCTM(); }
+    void beginTransparencyLayer(float opacity) const { (**this).beginTransparencyLayer(opacity); }
+    void endTransparencyLayer() const { (**this).endTransparencyLayer(); }
+    AffineTransform getCTMIncludingDeviceScale() const { return (**this).getCTM(GraphicsContext::DefinitelyIncludeDeviceScale); }
+
+private:
+    uintptr_t m_context;
+} SWIFT_VIEW;
+
 } // namespace WebCore
 
 #include <WebCore/GraphicsContextStateSaver.h>

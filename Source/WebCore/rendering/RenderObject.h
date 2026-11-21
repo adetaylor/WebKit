@@ -38,6 +38,10 @@
 #include <wtf/Platform.h>
 #include <wtf/TZoneMalloc.h>
 
+#if defined(__swift__)
+#include <WebCore/StyleComputedStyle.h>
+#endif
+
 namespace WTF {
 class TextStream;
 }
@@ -58,6 +62,8 @@ class Frame;
 class HitTestLocation;
 class HitTestRequest;
 class HitTestResult;
+class LayerFragment;
+typedef Vector<LayerFragment, 1> LayerFragments;
 class HostWindow;
 class LocalFrame;
 class LocalFrameViewLayoutContext;
@@ -74,8 +80,12 @@ class RenderBlockFlow;
 class RenderElement;
 class RenderFragmentedFlow;
 class RenderGeometryMap;
+class RenderImage;
 class RenderLayer;
 class RenderLayerModelObject;
+class RenderMultiColumnFlow;
+class RenderReplica;
+class RenderSVGModelObject;
 class RenderFragmentContainer;
 class RenderTheme;
 class RenderTreeBuilder;
@@ -115,6 +125,8 @@ typedef const void* WrappedImagePtr;
 
 // Base class for all rendering tree objects.
 // Only RenderElement and RenderText derive from RenderObject directly. Their second base is their layout box.
+enum class RenderObjectStyleTag : uint8_t { Style };
+
 class RenderObject : public CanMakeSingleThreadWeakPtr<RenderObject>, public CanMakeCheckedPtr<RenderObject> {
     WTF_MAKE_PREFERABLY_COMPACT_TZONE_ALLOCATED(RenderObject);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RenderObject);
@@ -342,7 +354,7 @@ public:
 
     // Anonymous objects should pass the document as their node, and they will then automatically be
     // marked as anonymous in the constructor.
-    RenderObject(Type, Node&, OptionSet<TypeFlag>, TypeSpecificFlags);
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderObject(Type, Node&, OptionSet<TypeFlag>, TypeSpecificFlags);
     virtual ~RenderObject();
 
     Type type() const { return m_type; }
@@ -525,10 +537,10 @@ public:
     };
 
     enum class SkipDescendentFragmentedFlow : bool { No, Yes };
-    void setFragmentedFlowStateIncludingDescendants(FragmentedFlowState, SkipDescendentFragmentedFlow = SkipDescendentFragmentedFlow::Yes);
+    SWIFT_UNSAFE void setFragmentedFlowStateIncludingDescendants(FragmentedFlowState, SkipDescendentFragmentedFlow = SkipDescendentFragmentedFlow::Yes);
 
     FragmentedFlowState fragmentedFlowState() const { return m_stateBitfields.fragmentedFlowState(); }
-    void setFragmentedFlowState(FragmentedFlowState state) { m_stateBitfields.setFragmentedFlowState(state); }
+    SWIFT_UNSAFE void setFragmentedFlowState(FragmentedFlowState state) { m_stateBitfields.setFragmentedFlowState(state); }
 
 #if ENABLE(MATHML)
     NODELETE virtual bool isRenderMathMLBlock() const { return false; }
@@ -691,7 +703,7 @@ public:
     bool hasSVGTransform() const { return m_stateBitfields.hasFlag(StateFlag::HasSVGTransform); }
 
     bool isExcludedFromNormalLayout() const { return m_stateBitfields.hasFlag(StateFlag::IsExcludedFromNormalLayout); }
-    void setIsExcludedFromNormalLayout(bool excluded) { m_stateBitfields.setFlag(StateFlag::IsExcludedFromNormalLayout, excluded); }
+    SWIFT_UNSAFE void setIsExcludedFromNormalLayout(bool excluded) { m_stateBitfields.setFlag(StateFlag::IsExcludedFromNormalLayout, excluded); }
     bool isExcludedAndPlacedInBorder() const { return isExcludedFromNormalLayout() && isLegend(); }
     // An outside list marker: the box showing the marker beside its list item's content.
     NODELETE bool isOutsideListMarker() const;
@@ -739,7 +751,7 @@ public:
     // instead. Returns the capture state with this adjustment applied.
     bool effectiveCapturedInViewTransition() const;
 
-    NODELETE inline RenderView& view() const LIFETIME_BOUND; // Defined in RenderObjectDocument.h
+    NODELETE inline RenderView& view() const LIFETIME_BOUND_EXCEPT_IN_SWIFT; // Defined in RenderObjectDocument.h
     inline LocalFrameViewLayoutContext& layoutContext() const;
 
     HostWindow* hostWindow() const;
@@ -781,25 +793,25 @@ public:
     
     inline void setNeedsLayoutAndInvalidateContentLogicalWidths();
 
-    void setPositionState(PositionType);
-    void clearPositionedState() { m_stateBitfields.clearPositionedState(); }
+    SWIFT_UNSAFE void setPositionState(PositionType);
+    SWIFT_UNSAFE void clearPositionedState() { m_stateBitfields.clearPositionedState(); }
 
-    void setFloating(bool b = true) { m_stateBitfields.setFlag(StateFlag::Floating, b); }
-    void setInline(bool b) { m_stateBitfields.setFlag(StateFlag::IsBlock, !b); }
+    SWIFT_UNSAFE void setFloating(bool b = true) { m_stateBitfields.setFlag(StateFlag::Floating, b); }
+    SWIFT_UNSAFE void setInline(bool b) { m_stateBitfields.setFlag(StateFlag::IsBlock, !b); }
 
     void setHasVisibleBoxDecorations(bool = true);
     void invalidateBackgroundObscurationStatus();
 
-    void setBlockLevelReplacedOrAtomicInline(bool b = true) { m_stateBitfields.setFlag(StateFlag::IsBlockLevelReplacedOrAtomicInline, b); }
-    void setHorizontalWritingMode(bool b = true) { m_stateBitfields.setFlag(StateFlag::VerticalWritingMode, !b); }
-    void setHasNonVisibleOverflow(bool b = true) { m_stateBitfields.setFlag(StateFlag::HasNonVisibleOverflow, b); }
-    void setHasLayer(bool b = true) { m_stateBitfields.setFlag(StateFlag::HasLayer, b); }
-    void setHasTransformRelatedProperty(bool b = true) { m_stateBitfields.setFlag(StateFlag::HasTransformRelatedProperty, b); }
+    SWIFT_UNSAFE void setBlockLevelReplacedOrAtomicInline(bool b = true) { m_stateBitfields.setFlag(StateFlag::IsBlockLevelReplacedOrAtomicInline, b); }
+    SWIFT_UNSAFE void setHorizontalWritingMode(bool b = true) { m_stateBitfields.setFlag(StateFlag::VerticalWritingMode, !b); }
+    SWIFT_UNSAFE void setHasNonVisibleOverflow(bool b = true) { m_stateBitfields.setFlag(StateFlag::HasNonVisibleOverflow, b); }
+    SWIFT_UNSAFE void setHasLayer(bool b = true) { m_stateBitfields.setFlag(StateFlag::HasLayer, b); }
+    SWIFT_UNSAFE void setHasTransformRelatedProperty(bool b = true) { m_stateBitfields.setFlag(StateFlag::HasTransformRelatedProperty, b); }
 
     void setHasReflection(bool = true);
-    void setHasOutlineAutoAncestor(bool = true);
-    void setPaintContainmentApplies(bool value = true) { m_stateBitfields.setFlag(StateFlag::PaintContainmentApplies, value); }
-    void setHasSVGTransform(bool value = true) { m_stateBitfields.setFlag(StateFlag::HasSVGTransform, value); }
+    SWIFT_UNSAFE void setHasOutlineAutoAncestor(bool = true);
+    SWIFT_UNSAFE void setPaintContainmentApplies(bool value = true) { m_stateBitfields.setFlag(StateFlag::PaintContainmentApplies, value); }
+    SWIFT_UNSAFE void setHasSVGTransform(bool value = true) { m_stateBitfields.setFlag(StateFlag::HasSVGTransform, value); }
 
     // used for element state updates that cannot be fixed with a
     // repaint and do not need a relayout
@@ -822,10 +834,41 @@ public:
 
     // Returns the containing block level element for this element.
     WEBCORE_EXPORT RenderBlock* containingBlock() const;
+
+    // Swift has no downcast of a foreign reference type. Each is null when the renderer is not of the type.
+    const RenderBox* asRenderBox() const;
+    const RenderBoxModelObject* asRenderBoxModelObject() const;
+    inline const RenderElement* asRenderElement() const; // Defined in RenderElement.h.
+    const RenderLayerModelObject* asRenderLayerModelObject() const;
+    const RenderSVGModelObject* asRenderSVGModelObject() const;
+    const RenderView* asRenderView() const;
+    const RenderImage* asRenderImage() const;
+    const RenderMultiColumnFlow* asRenderMultiColumnFlow() const;
+    const RenderReplica* asRenderReplica() const;
+    const RenderBlock* asRenderBlock() const;
+    bool frameIsMainFrameForSwift() const;
+    bool hasEnclosingFragmentedFlowForSwift() const;
+    // The renderer of the document's fullscreen element, when it has a layer model renderer.
+    RenderLayerModelObject* fullscreenElementRendererForSwift() const;
+    bool documentHasActiveViewTransitionForSwift() const;
+    // Whether this is a RenderWidget whose content frame is a remote frame.
+    bool hasRemoteContentFrameForSwift() const;
+    // The render view of this RenderWidget's content document, if it has one.
+    RenderView* contentRenderViewForSwift() const;
+    // Swift compares renderers here: it has no identity comparison of its own for them.
+    static bool isSameRenderer(const RenderObject* a, const RenderObject* b) { return a == b; }
     static RenderBlock* containingBlockForPositionType(PositionType, const RenderObject&);
 
     // Convert the given local point to absolute coordinates. If OptionSet<MapCoordinatesMode> includes UseTransforms, take transforms into account.
     WEBCORE_EXPORT FloatPoint localToAbsolute(const FloatPoint& localPoint = FloatPoint(), OptionSet<MapCoordinatesMode> = { }, bool* wasFixed = nullptr) const;
+    // The origin mapped with MapCoordinatesMode::IsFixed, for Swift, which takes no pointer argument.
+    FloatPoint fixedOriginToAbsoluteForSwift() const { return localToAbsolute({ }, MapCoordinatesMode::IsFixed); }
+    FloatQuad localToAbsoluteQuadForSwift(const FloatQuad&) const;
+    FloatQuad localToContainerQuadForSwift(const FloatQuad&, const RenderLayerModelObject* container) const;
+    // The bounding box of the fragments of this fragmented flow that the given box spans.
+    LayoutRect fragmentsBoundingBoxForSwift(const LayoutRect&) const;
+    // The layer fragments of this fragmented flow that the given box and dirty rect span, appended.
+    void collectLayerFragmentsForSwift(LayerFragments&, const LayoutRect& layerBoundingBox, const LayoutRect& dirtyRect) const;
     TransformState viewTransitionTransform() const;
     FloatPoint absoluteToLocal(const DoublePoint&, OptionSet<MapCoordinatesMode> = { }) const;
 
@@ -833,6 +876,7 @@ public:
     inline FloatQuad localToAbsoluteQuad(const FloatQuad&, OptionSet<MapCoordinatesMode> = MapCoordinatesMode::UseTransforms, bool* wasFixed = nullptr) const; // Defined in RenderObjectInlines.h
     // Convert an absolute quad to local coordinates.
     FloatQuad absoluteToLocalQuad(const FloatQuad&, OptionSet<MapCoordinatesMode> = MapCoordinatesMode::UseTransforms) const;
+    inline FloatQuad absoluteToLocalQuadForSwift(FloatQuad) const; // Defined in RenderObjectInlines.h
 
     // Convert a local quad into the coordinate system of container, taking transforms into account.
     WEBCORE_EXPORT FloatQuad localToContainerQuad(const FloatQuad&, const RenderLayerModelObject* container, OptionSet<MapCoordinatesMode> = MapCoordinatesMode::UseTransforms, bool* wasFixed = nullptr) const;
@@ -881,7 +925,9 @@ public:
     WEBCORE_EXPORT LayoutRect subtreePaintRootRect(LayoutRect& topLevelRect, RespectTransforms = RespectTransforms::No);
 
     inline const Style::ComputedStyle& style() const LIFETIME_BOUND; // Defined in RenderObjectStyle.h.
+    inline const Style::ComputedStyle& operator[](RenderObjectStyleTag) const LIFETIME_BOUND; // Defined in RenderObjectStyle.h.
     inline UsedStyle usedStyle() const LIFETIME_BOUND; // Defined in RenderElementInlines.h.
+    inline UsedVisibility usedVisibility() const; // Defined in RenderElementInlines.h.
     inline UsedStyle firstLineUsedStyle() const LIFETIME_BOUND; // Defined in RenderElementInlines.h.
     inline CheckedRef<const Style::ComputedStyle> firstLineStyle() const LIFETIME_BOUND;
     inline WritingMode writingMode() const; // Defined in RenderObjectStyle.h.
@@ -901,6 +947,7 @@ public:
     enum class ClipRepaintToLayer : bool { No, Yes };
     enum class RepaintRectIsPartial : bool { No, Yes };
     void repaintUsingContainer(SingleThreadWeakPtr<const RenderLayerModelObject>&& repaintContainer, const LayoutRect&, ClipRepaintToLayer = ClipRepaintToLayer::Yes, RepaintRectIsPartial = RepaintRectIsPartial::No) const;
+    void repaintUsingContainerForSwift(const RenderLayerModelObject* repaintContainer, LayoutRect) const;
 
     // Repaint the entire object.  Called when, e.g., the color of a border changes, or when a border
     // style changes.
@@ -1045,7 +1092,7 @@ public:
     // The current selection state for an object.  For blocks, the state refers to the state of the leaf
     // descendants (as described above in the HighlightState enum declaration).
     HighlightState selectionState() const { return m_stateBitfields.selectionState(); }
-    virtual void setSelectionState(HighlightState);
+    SWIFT_UNSAFE virtual void setSelectionState(HighlightState);
     inline void setSelectionStateIfNeeded(HighlightState);
     bool canUpdateSelectionOnRootLineBoxes();
 
@@ -1061,7 +1108,7 @@ public:
     // When performing a global document tear-down, or when going into the back/forward cache, the renderer of the document is cleared.
     bool renderTreeBeingDestroyed() const; // Defined in RenderObjectDocument.h
 
-    void destroy();
+    SWIFT_UNSAFE void destroy();
 
     // Virtual function helpers for the deprecated Flexible Box Layout (display: -webkit-box).
     bool isRenderDeprecatedFlexibleBox() const { return m_type == RenderObject::Type::DeprecatedFlexibleBox; }
@@ -1104,8 +1151,8 @@ public:
     LayoutRect absoluteOutlineBounds() const { return outlineBoundsForRepaint(nullptr); }
 
     // FIXME: Renderers should not need to be notified about internal reparenting (webkit.org/b/224143).
-    virtual void insertedIntoTree();
-    virtual void willBeRemovedFromTree();
+    SWIFT_UNSAFE virtual void insertedIntoTree();
+    SWIFT_UNSAFE virtual void willBeRemovedFromTree();
 
     void resetFragmentedFlowStateOnRemoval();
     void initializeFragmentedFlowStateOnInsertion();
@@ -1354,7 +1401,11 @@ private:
 
     using RareDataMap = SingleThreadWeakHashMap<const RenderObject, std::unique_ptr<RenderObjectRareData>>;
     NODELETE static RareDataMap& rareDataMap();
-};
+
+    // Swift retains and releases a renderer through its checked pointer count. If C++ destroys one while Swift holds
+    // it, its memory is zero-filled and not freed, so Swift's next use faults. A function that returns one leaves it
+    // owned by C++, and Swift retains it.
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 class RenderObject::SetLayoutNeededForbiddenScope {
 public:

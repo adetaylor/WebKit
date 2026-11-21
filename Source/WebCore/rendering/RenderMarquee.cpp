@@ -79,9 +79,9 @@ RenderMarquee::~RenderMarquee() = default;
 
 int RenderMarquee::marqueeSpeed() const
 {
-    CheckedRef layer = m_layer.get();
-    auto result = static_cast<int>(layer->renderer().style().marqueeSpeed().asMilliseconds());
-    if (RefPtr marquee = dynamicDowncast<HTMLMarqueeElement>(layer->renderer().element()))
+    auto& layer = m_layer.get();
+    auto result = static_cast<int>(layer.renderer().style().marqueeSpeed().asMilliseconds());
+    if (RefPtr marquee = dynamicDowncast<HTMLMarqueeElement>(layer.renderer().element()))
         result = std::max(result, marquee->minimumDelay());
     return result;
 }
@@ -181,11 +181,11 @@ int RenderMarquee::computePosition(MarqueeDirection dir, bool stopAtContentEdge)
 
 void RenderMarquee::start()
 {
-    CheckedRef layer = m_layer.get();
-    if (m_timer.isActive() || layer->renderer().style().marqueeIncrement().isKnownZero())
+    auto& layer = m_layer.get();
+    if (m_timer.isActive() || layer.renderer().style().marqueeIncrement().isKnownZero())
         return;
 
-    CheckedPtr scrollableArea = layer->scrollableArea();
+    CheckedPtr scrollableArea = layer.scrollableArea();
     ASSERT(scrollableArea);
 
     auto details = ScrollPositionChangeOptions::createProgrammaticUnclamped();
@@ -228,8 +228,8 @@ void RenderMarquee::updateMarqueePosition()
 
 void RenderMarquee::updateMarqueeStyle()
 {
-    CheckedRef layer = m_layer.get();
-    CheckedRef style = layer->renderer().style();
+    auto& layer = m_layer.get();
+    CheckedRef style = layer.renderer().style();
 
     auto newDirection = style->marqueeDirection();
     auto newTotalLoops = WTF::switchOn(style->marqueeRepetition(),
@@ -247,7 +247,7 @@ void RenderMarquee::updateMarqueeStyle()
     m_direction = newDirection;
     m_totalLoops = newTotalLoops;
 
-    if (layer->renderer().isHTMLMarquee()) {
+    if (layer.renderer().isHTMLMarquee()) {
         // Hack for WinIE.  In WinIE, a value of 0 or lower for the loop count for SLIDE means to only do
         // one loop.
         if (m_totalLoops <= 0 && style->marqueeBehavior() == MarqueeBehavior::Slide)
@@ -263,18 +263,18 @@ void RenderMarquee::updateMarqueeStyle()
     // Check the loop count to see if we should now stop.
     bool activate = (m_totalLoops <= 0 || m_currentLoop < m_totalLoops);
     if (activate && !m_timer.isActive())
-        layer->renderer().setNeedsLayout();
+        layer.renderer().setNeedsLayout();
     else if (!activate && m_timer.isActive())
         m_timer.stop();
 }
 
 void RenderMarquee::timerFired()
 {
-    CheckedRef layer = m_layer.get();
-    if (layer->renderer().view().needsLayout())
+    auto& layer = m_layer.get();
+    if (layer.renderer().view().needsLayout())
         return;
 
-    CheckedPtr scrollableArea = layer->scrollableArea();
+    CheckedPtr scrollableArea = layer.scrollableArea();
     ASSERT(scrollableArea);
 
     if (m_reset) {
@@ -286,8 +286,8 @@ void RenderMarquee::timerFired()
         return;
     }
     
-    CheckedRef style = layer->renderer().style();
-    CheckedPtr renderBox = layer->renderBox();
+    CheckedRef style = layer.renderer().style();
+    CheckedPtr renderBox = layer.renderBox();
     
     int endPoint = m_end;
     int range = m_end - m_start;
@@ -305,7 +305,7 @@ void RenderMarquee::timerFired()
         }
         bool positive = range > 0;
         int clientSize = (isHorizontal() ? roundToInt(renderBox->paddingBoxWidth()) : roundToInt(renderBox->paddingBoxHeight()));
-        int increment = std::abs(Style::evaluate<float>(layer->renderer().style().marqueeIncrement(), clientSize, layer->renderer().style().usedZoomForLength()));
+        int increment = std::abs(Style::evaluate<float>(layer.renderer().style().marqueeIncrement(), clientSize, layer.renderer().style().usedZoomForLength()));
         int currentPos = (isHorizontal() ? scrollableArea->scrollOffset().x() : scrollableArea->scrollOffset().y());
         newPos =  currentPos + (addIncrement ? increment : -increment);
         if (positive)

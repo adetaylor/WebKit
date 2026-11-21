@@ -522,7 +522,7 @@ RefPtr<NativeImage> MediaControlTextTrackContainerElement::createTextTrackRepres
     if (!renderer->hasLayer())
         return nullptr;
 
-    CheckedPtr layer = downcast<RenderLayerModelObject>(*renderer).layer();
+    auto* layer = downcast<RenderLayerModelObject>(*renderer).layer();
 
     float deviceScaleFactor = 1;
     if (Page* page = document().page())

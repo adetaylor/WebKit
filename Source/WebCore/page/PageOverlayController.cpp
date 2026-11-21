@@ -87,7 +87,7 @@ void PageOverlayController::installedPageOverlaysChanged()
 
     // Frame-associated overlays are hosted in their own local root's compositing tree, which
     // localMainOrRootFrame() above doesn't cover; schedule an update for each so its
-    // RenderLayerCompositor re-runs appendDocumentOverlayLayers and picks up its overlay container.
+    // RenderLayerCompositor re-runs documentOverlayHostLayer and picks up its overlay container.
     for (auto& overlay : m_pageOverlays) {
         RefPtr associatedFrame = overlay->associatedFrame();
         if (!associatedFrame)

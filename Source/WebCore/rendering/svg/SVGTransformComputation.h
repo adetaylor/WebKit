@@ -137,13 +137,13 @@ public:
     float calculateScreenFontSizeScalingFactor() const
     {
         // Walk up the render tree, accumulating transforms
-        CheckedPtr layer = m_renderer->enclosingLayer();
+        auto* layer = m_renderer->enclosingLayer();
 
         RenderLayer* stopAtLayer = nullptr;
         while (layer) {
             // We can stop at compositing layers, to match the backing resolution.
             if (layer->isComposited()) {
-                stopAtLayer = layer.get();
+                stopAtLayer = layer;
                 break;
             }
 

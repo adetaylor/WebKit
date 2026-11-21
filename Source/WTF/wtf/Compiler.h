@@ -303,6 +303,16 @@
 #define WTF_VIEW_TYPE
 #endif
 
+/* LIFETIME_BOUND_EXCEPT_IN_SWIFT */
+
+// LIFETIME_BOUND for C++ callers only: Swift's importer treats a lifetime-bound accessor that returns a
+// shared reference as returning an interior pointer, which makes every call to it unsafe.
+#if defined(__swift__)
+#define LIFETIME_BOUND_EXCEPT_IN_SWIFT
+#else
+#define LIFETIME_BOUND_EXCEPT_IN_SWIFT LIFETIME_BOUND
+#endif
+
 /* NEVER_INLINE */
 
 #if !defined(NEVER_INLINE)

@@ -796,8 +796,8 @@ std::optional<TransformationMatrix> SpatialPortalController::transformForHostedL
 
     RefPtr promotedChildGraphicsLayer = promotedChildBacking->graphicsLayer();
     RefPtr graphicsLayer = backing->graphicsLayer();
-    CheckedPtr<RenderLayer> owner = &layer;
-    CheckedPtr nextCompositedAncestor = layer.ancestorCompositingLayer();
+    RenderLayer* owner = &layer;
+    auto* nextCompositedAncestor = layer.ancestorCompositingLayer();
     TransformationMatrix layerToPromotedChild;
 
     while (graphicsLayer != promotedChildGraphicsLayer) {
@@ -836,7 +836,7 @@ std::optional<TransformationMatrix> SpatialPortalController::transformForHostedL
 
 TransformationMatrix SpatialPortalController::transformForPromotedChild(RenderLayerModelObject& renderer, bool* isAnimating)
 {
-    CheckedPtr layer = renderer.layer();
+    auto* layer = renderer.layer();
     if (!layer || !layer->transform())
         return { };
 
@@ -879,8 +879,8 @@ bool SpatialPortalController::refreshPromotedChildTransforms()
     bool didChange = false;
     bool isAnimating = false;
     for (auto& child : m_promotedChildren) {
-        CheckedPtr layer = layerForNode(child.nodeID);
-        CheckedPtr promotedChild = layerForNode(child.rootNodeID);
+        auto* layer = layerForNode(child.nodeID);
+        auto* promotedChild = layerForNode(child.rootNodeID);
         if (!layer || !promotedChild)
             continue;
 

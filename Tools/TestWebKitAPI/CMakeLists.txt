@@ -380,6 +380,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/Quirks.cpp
         Tests/WebCore/RegionTests.cpp
         Tests/WebCore/RegistrableDomain.cpp
+        Tests/WebCore/RenderLayerListBench.cpp
         Tests/WebCore/RenderStyleChange.cpp
         Tests/WebCore/ResourceResponsePersistence.cpp
         Tests/WebCore/STUNMessageParsingTest.cpp

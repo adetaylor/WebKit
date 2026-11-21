@@ -198,6 +198,10 @@ public:
     virtual void clearObscuredInsetsAdjustments() = 0;
     virtual void obscuredInsetsWillChange(FloatBoxExtent&&) = 0;
     virtual FloatRect adjustedTileClipRectForObscuredInsets(const FloatRect&) const = 0;
-};
+
+    // Swift retains and releases a tiled backing through its checked pointer count. If C++ destroys one while Swift
+    // holds it, its memory is zero-filled and not freed, so Swift's next use faults. A function that returns one leaves
+    // it owned by C++, and Swift retains it.
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 } // namespace WebCore

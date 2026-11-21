@@ -85,9 +85,9 @@ public:
     // CheckedPtr interface
     uint32_t checkedPtrCount() const final { return CanMakeCheckedPtr::checkedPtrCount(); }
     uint32_t checkedPtrCountWithoutThreadCheck() const final { return CanMakeCheckedPtr::checkedPtrCountWithoutThreadCheck(); }
-    void incrementCheckedPtrCount() const final { CanMakeCheckedPtr::incrementCheckedPtrCount(); }
-    void decrementCheckedPtrCount() const final { CanMakeCheckedPtr::decrementCheckedPtrCount(); }
-    void setDidBeginCheckedPtrDeletion() final { CanMakeCheckedPtr::setDidBeginCheckedPtrDeletion(); }
+    SWIFT_UNSAFE void incrementCheckedPtrCount() const final { CanMakeCheckedPtr::incrementCheckedPtrCount(); }
+    SWIFT_UNSAFE void decrementCheckedPtrCount() const final { CanMakeCheckedPtr::decrementCheckedPtrCount(); }
+    SWIFT_UNSAFE void setDidBeginCheckedPtrDeletion() final { CanMakeCheckedPtr::setDidBeginCheckedPtrDeletion(); }
 
     USING_CAN_MAKE_WEAKPTR(Widget);
 
@@ -234,6 +234,13 @@ public:
 
     // Size available for view contents, including content inset areas. Not affected by zooming.
     WEBCORE_EXPORT IntSize sizeForVisibleContent(VisibleContentRectIncludesScrollbars = VisibleContentRectIncludesScrollbars::No) const;
+
+    // ScrollableArea's members that Swift does not see through a ScrollView.
+    bool hasOverlayScrollbarsForSwift() const { return hasOverlayScrollbars(); }
+    void invalidateScrollbarForSwift(Scrollbar& scrollbar, IntRect rect) { invalidateScrollbar(scrollbar, rect); }
+    void invalidateScrollCornerForSwift(IntRect rect) { invalidateScrollCorner(rect); }
+    float obscuredContentInsetTopForSwift() const { return obscuredContentInsets().top(); }
+    float obscuredContentInsetLeftForSwift() const { return obscuredContentInsets().left(); }
     // FIXME: remove this. It's only used for the incorrectly behaving ScrollView::unobscuredContentRectInternal().
     virtual float visibleContentScaleFactor() const { return 1; }
 

@@ -63,7 +63,7 @@ public:
         GlobalCoordinateSpace,
         LocalCoordinateSpace
     };
-    RenderSVGShape(Type, SVGGraphicsElement&, UniqueRef<Style::ComputedStyle>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderSVGShape(Type, SVGGraphicsElement&, UniqueRef<Style::ComputedStyle>&&);
     virtual ~RenderSVGShape();
 
     inline SVGGraphicsElement& graphicsElement() const;

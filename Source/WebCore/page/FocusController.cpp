@@ -1368,6 +1368,7 @@ void FocusController::setIsVisibleAndActiveInternal(bool contentIsVisible)
         if (!scrollableAreas)
             continue;
 
+        LocalFrameView::ScrollableAreaIterationScope iterationScope(*frameView);
         for (CheckedRef area : *scrollableAreas) {
             ASSERT(area->scrollbarsCanBeActive() || page->shouldSuppressScrollbarAnimations());
             contentAreaDidShowOrHide(area.ptr(), contentIsVisible);

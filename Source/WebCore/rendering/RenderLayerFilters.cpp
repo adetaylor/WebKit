@@ -82,7 +82,7 @@ bool RenderLayerFilters::hasSourceImage() const
 
 void RenderLayerFilters::notifyFinished(CachedResource&, const NetworkLoadMetrics&, LoadWillContinueInAnotherProcess)
 {
-    CheckedPtr layer = m_layer.get();
+    auto* layer = m_layer.get();
     if (!layer)
         return;
 
@@ -107,7 +107,7 @@ void RenderLayerFilters::updateReferenceFilterClients(const Style::Filter& filte
                     m_externalSVGReferences.append(cachedSVGDocument.releaseNonNull());
                 } else {
                     // Reference is internal; add layer as a client so we can trigger filter repaint on SVG attribute change.
-                    CheckedPtr layer = m_layer.get();
+                    auto* layer = m_layer.get();
                     if (!layer)
                         return;
                     RefPtr filterElement = protect(layer->renderer().document())->getElementById(filterReference.cachedFragment);
@@ -132,7 +132,7 @@ void RenderLayerFilters::removeReferenceFilterClients()
 
     m_externalSVGReferences.clear();
 
-    if (CheckedPtr layer = m_layer.get()) {
+    if (auto* layer = m_layer.get()) {
         for (auto& filterElement : m_internalSVGReferences) {
             if (CheckedPtr renderer = filterElement->renderer())
                 downcast<LegacyRenderSVGResourceContainer>(*renderer).removeClientRenderLayer(*layer);
@@ -291,7 +291,7 @@ void RenderLayerFilters::applyFilterEffect(GraphicsContext& destinationContext)
 
     auto colorSpace = ColorSpace::SRGB();
 #if !USE(CAIRO)
-    if (CheckedPtr layer = m_layer.get()) {
+    if (auto* layer = m_layer.get()) {
         if (layer->renderer().isSVGLayerAwareRenderer() && !layer->renderer().isRenderSVGRoot())
             colorSpace = ColorSpace::LinearSRGB();
     }

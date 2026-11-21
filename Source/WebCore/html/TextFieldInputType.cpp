@@ -264,7 +264,7 @@ void TextFieldInputType::elementDidBlur()
     if (!innerTextRenderer)
         return;
 
-    CheckedPtr innerLayer = innerTextRenderer->layer();
+    auto* innerLayer = innerTextRenderer->layer();
     if (!innerLayer)
         return;
 

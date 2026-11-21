@@ -117,7 +117,7 @@ void InlineContentPainter::paintDisplayBox(const InlineDisplay::Box& box)
 
         auto inlineBoxPaintInfo = PaintInfo { m_paintInfo };
         inlineBoxPaintInfo.phase = m_paintInfo.phase == PaintPhase::ChildOutlines ? PaintPhase::Outline : m_paintInfo.phase;
-        inlineBoxPaintInfo.outlineObjects = &m_outlineObjects;
+        inlineBoxPaintInfo.setOutlineObjects(&m_outlineObjects);
 
         Paint::InlineBoxPainter { m_inlineContent, box, inlineBoxPaintInfo, m_paintOffset }.paint();
         return;
@@ -136,7 +136,7 @@ void InlineContentPainter::paintDisplayBox(const InlineDisplay::Box& box)
         if (!hasVisibleDamage)
             return;
 
-        if (CheckedPtr subtreePaintRoot = m_paintInfo.subtreePaintRoot) {
+        if (CheckedPtr subtreePaintRoot = m_paintInfo.subtreePaintRoot()) {
             CheckedPtr renderer = box.layoutBox().rendererForIntegration();
             if (renderer != subtreePaintRoot && !renderer->isDescendantOf(subtreePaintRoot))
                 return;

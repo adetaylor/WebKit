@@ -125,8 +125,8 @@ class RenderBlockFlow : public RenderBlock {
     WTF_MAKE_TZONE_ALLOCATED(RenderBlockFlow);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RenderBlockFlow);
 public:
-    RenderBlockFlow(Type, Element&, UniqueRef<Style::ComputedStyle>&&, OptionSet<BlockFlowFlag> = { });
-    RenderBlockFlow(Type, Document&, UniqueRef<Style::ComputedStyle>&&, OptionSet<BlockFlowFlag> = { });
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderBlockFlow(Type, Element&, UniqueRef<Style::ComputedStyle>&&, OptionSet<BlockFlowFlag> = { });
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderBlockFlow(Type, Document&, UniqueRef<Style::ComputedStyle>&&, OptionSet<BlockFlowFlag> = { });
     virtual ~RenderBlockFlow();
         
     void layoutBlock(RelayoutChildren, LayoutUnit pageLogicalHeight = 0_lu) override;
@@ -349,7 +349,7 @@ public:
 
     enum LineLayoutPath { UndeterminedPath = 0, InlinePath };
     LineLayoutPath lineLayoutPath() const { return static_cast<LineLayoutPath>(renderBlockFlowLineLayoutPath()); }
-    void setLineLayoutPath(LineLayoutPath path) { setRenderBlockFlowLineLayoutPath(path); }
+    SWIFT_UNSAFE void setLineLayoutPath(LineLayoutPath path) { setRenderBlockFlowLineLayoutPath(path); }
 
     NODELETE int lineCount() const;
 
@@ -566,7 +566,9 @@ private:
     // m_lineLayout's destructor runs first which requires the cache to still exist.
     std::unique_ptr<Layout::InlineContentCache> m_inlineContentCache;
     std::unique_ptr<LayoutIntegration::LineLayout> m_lineLayout;
-};
+
+    // Swift retains, releases and receives one as it does a RenderObject.
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 } // namespace WebCore
 

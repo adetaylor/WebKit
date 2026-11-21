@@ -362,6 +362,251 @@ inline bool ComputedStyle::isSkippedRootOrSkippedContent() const
     return usedContentVisibility() != ContentVisibility::Visible;
 }
 
+inline BackfaceVisibility ComputedStyle::backfaceVisibilityForSwift() const
+{
+    return ComputedStyleProperties::backfaceVisibility();
+}
+
+inline bool ComputedStyle::hasFilterForSwift() const
+{
+    return !filter().isNone();
+}
+
+inline bool ComputedStyle::filterHasReferenceFilterForSwift() const
+{
+    return filter().hasReferenceFilter();
+}
+
+inline bool ComputedStyle::filterHasFilterThatAffectsOpacityForSwift() const
+{
+    return filter().hasFilterThatAffectsOpacity();
+}
+
+inline bool ComputedStyle::filterHasFilterThatMovesPixelsForSwift() const
+{
+    return filter().hasFilterThatMovesPixels();
+}
+
+inline PositionType ComputedStyle::positionForSwift() const
+{
+    return ComputedStyleProperties::position();
+}
+
+inline std::optional<PseudoElementType> ComputedStyle::pseudoElementTypeForSwift() const
+{
+    return ComputedStyleBase::pseudoElementType();
+}
+
+inline Isolation ComputedStyle::isolationForSwift() const
+{
+    return ComputedStyleProperties::isolation();
+}
+
+inline bool ComputedStyle::usedZIndexIsAutoForSwift() const
+{
+    return usedZIndex().isAuto();
+}
+
+inline bool ComputedStyle::willChangeCanCreateStackingContextForSwift() const
+{
+    return willChange().canCreateStackingContext();
+}
+
+inline bool ComputedStyle::willChangeCanBeBackdropRootForSwift() const
+{
+    return willChange().canBeBackdropRoot();
+}
+
+inline bool ComputedStyle::willChangeCanTriggerCompositingForSwift() const
+{
+    return willChange().canTriggerCompositing();
+}
+
+inline bool ComputedStyle::willChangeCanTriggerCompositingOnInlineForSwift() const
+{
+    return willChange().canTriggerCompositingOnInline();
+}
+
+inline bool ComputedStyle::opacityIsTransparentForSwift() const
+{
+    return opacity().isTransparent();
+}
+
+inline Visibility ComputedStyle::visibilityForSwift() const
+{
+    return ComputedStyleProperties::visibility();
+}
+
+inline bool ComputedStyle::isForceHiddenForSwift() const
+{
+    return ComputedStyleBase::isForceHidden();
+}
+
+inline ContentVisibility ComputedStyle::usedContentVisibilityForSwift() const
+{
+    return ComputedStyleBase::usedContentVisibility();
+}
+
+inline bool ComputedStyle::hasSameUsedZIndexForSwift(const ComputedStyle& other) const
+{
+    return usedZIndex() == other.usedZIndex();
+}
+
+inline bool ComputedStyle::hasSameWritingModeForSwift(const ComputedStyle& other) const
+{
+    return writingMode() == other.writingMode();
+}
+
+inline bool ComputedStyle::viewTransitionNameIsNoneForSwift() const
+{
+    return viewTransitionName().isNone();
+}
+
+inline bool ComputedStyle::perspectiveIsNoneForSwift() const
+{
+    return perspective().isNone();
+}
+
+inline bool ComputedStyle::hasBorderRadiusForSwift() const
+{
+    return border().hasBorderRadius();
+}
+
+inline bool ComputedStyle::hasResizeForSwift() const
+{
+    return resize() != Resize::None;
+}
+
+inline bool ComputedStyle::displayIsNoneForSwift() const
+{
+    return display() == DisplayType::None;
+}
+
+inline bool ComputedStyle::scrollbarWidthIsNoneForSwift() const
+{
+    return scrollbarWidth() == Style::ScrollbarWidth::None;
+}
+
+inline StyleAppearance ComputedStyle::usedAppearanceForSwift() const
+{
+    return usedAppearance();
+}
+
+inline OverscrollBehavior ComputedStyle::overscrollBehaviorXForSwift() const
+{
+    return overscrollBehaviorX();
+}
+
+inline OverscrollBehavior ComputedStyle::overscrollBehaviorYForSwift() const
+{
+    return overscrollBehaviorY();
+}
+
+inline Overflow ComputedStyle::overflowXForSwift() const
+{
+    return overflowX();
+}
+
+inline Overflow ComputedStyle::overflowYForSwift() const
+{
+    return overflowY();
+}
+
+inline bool ComputedStyle::hasLegacyLineClampForSwift() const
+{
+    return hasLegacyLineClamp();
+}
+
+inline float ComputedStyle::usedZoomForSwift() const
+{
+    return usedZoom();
+}
+
+inline BoxSizing ComputedStyle::boxSizingForSwift() const
+{
+    return boxSizing();
+}
+
+inline Resize ComputedStyle::resizeForSwift() const
+{
+    return resize();
+}
+
+inline bool ComputedStyle::borderHasVisibleBorderForSwift() const
+{
+    return border().hasVisibleBorder();
+}
+
+inline bool ComputedStyle::borderHasNonRoundCornerShapeForSwift() const
+{
+    return border().hasNonRoundCornerShape();
+}
+
+inline bool ComputedStyle::hasImageInAnyBackgroundLayerForSwift() const
+{
+    return Style::hasImageInAnyLayer(backgroundLayers());
+}
+
+inline unsigned ComputedStyle::backgroundLayersUsedLengthForSwift() const
+{
+    return backgroundLayers().usedLength();
+}
+
+inline FillBox ComputedStyle::backgroundFirstLayerClipForSwift() const
+{
+    return backgroundLayers().usedFirst().clip();
+}
+
+inline bool ComputedStyle::boxShadowIsNoneForSwift() const
+{
+    return boxShadow().isNone();
+}
+
+inline bool ComputedStyle::backdropFilterHasReferenceFilterForSwift() const
+{
+    return backdropFilter().hasReferenceFilter();
+}
+
+inline bool ComputedStyle::objectViewBoxIsNoneForSwift() const
+{
+    return objectViewBox().isNone();
+}
+
+inline bool ComputedStyle::clipPathIsNoneForSwift() const
+{
+    return clipPath().isNone();
+}
+
+inline ObjectFit ComputedStyle::objectFitForSwift() const
+{
+    return objectFit();
+}
+
+inline ImageRendering ComputedStyle::imageRenderingForSwift() const
+{
+    return imageRendering();
+}
+
+inline void ComputedStyle::applyTranslateForSwift(TransformationMatrix& matrix, const FloatSize& boxSize) const
+{
+    translate().apply(matrix, boxSize, usedZoomForLength());
+}
+
+inline void ComputedStyle::applyScaleForSwift(TransformationMatrix& matrix, const FloatSize& boxSize) const
+{
+    scale().apply(matrix, boxSize, usedZoomForLength());
+}
+
+inline void ComputedStyle::applyRotateForSwift(TransformationMatrix& matrix, const FloatSize& boxSize) const
+{
+    rotate().apply(matrix, boxSize, usedZoomForLength());
+}
+
+inline void ComputedStyle::applyTransformForSwift(TransformationMatrix& matrix, const FloatSize& boxSize) const
+{
+    transform().apply(matrix, boxSize, usedZoomForLength());
+}
+
 // MARK: - Logical getters
 
 // MARK: logical inset value aliases

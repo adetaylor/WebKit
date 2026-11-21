@@ -39,7 +39,11 @@ class RegionContext : public CanMakeCheckedPtr<RegionContext> {
     WTF_MAKE_TZONE_ALLOCATED(RegionContext);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RegionContext);
 public:
-    virtual ~RegionContext() = default;
+    virtual ~RegionContext()
+    {
+        // A region context lives on its creator's stack, so a counted reference to it must not outlive it.
+        RELEASE_ASSERT(!checkedPtrCountWithoutThreadCheck());
+    }
 
     void pushTransform(const AffineTransform&);
     NODELETE void popTransform();
@@ -58,7 +62,10 @@ protected:
     Vector<AffineTransform> m_transformStack;
     Vector<IntRect> m_clipStack;
 
-}; // class RegionContext
+    // Swift retains and releases a region context through its checked pointer count. A region context lives on its
+    // creator's stack: if it ends while Swift holds one, its destructor's RELEASE_ASSERT traps before the frame is reused.
+    // A function that returns one leaves it owned by its creator, and Swift retains it.
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT; // class RegionContext
 
 class RegionContextStateSaver {
 public:

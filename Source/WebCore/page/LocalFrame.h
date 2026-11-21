@@ -73,6 +73,7 @@ class Editor;
 class Element;
 class EventHandler;
 class FloatPoint;
+class FloatQuad;
 class FloatSize;
 class FrameDestructionObserver;
 class FrameConsoleClient;
@@ -175,6 +176,15 @@ public:
 
     inline FrameSelection& selection(); // Defined in LocalFrameInlines.h
     inline const FrameSelection& selection() const; // Defined in LocalFrameInlines.h
+
+    // The calls a scrolled layer makes on the frame's event handler, selection, editor and debug overlays, for
+    // Swift, which does not import those classes.
+    bool isHandlingWheelEventForSwift() const;
+    bool autoscrollInProgressForSwift() const;
+    void dispatchFakeMouseMoveEventSoonInQuadForSwift(FloatQuad);
+    void setCaretRectNeedsUpdateForSwift();
+    void renderLayerDidScrollForSwift(const RenderLayer&);
+    void debugPageOverlaysDidLayoutForSwift();
     ScriptController& script() { return m_script; }
     const ScriptController& script() const { return m_script; }
     void resetScript();

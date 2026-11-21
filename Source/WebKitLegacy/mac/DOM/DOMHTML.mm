@@ -78,7 +78,7 @@
     if (!is<WebCore::RenderBox>(*renderer) || !renderer->hasNonVisibleOverflow())
         return 0;
 
-    CheckedPtr layer = downcast<WebCore::RenderBox>(*renderer).layer();
+    auto* layer = downcast<WebCore::RenderBox>(*renderer).layer();
     if (!layer)
         return 0;
     CheckedPtr scrollableArea = layer->scrollableArea();
@@ -99,7 +99,7 @@
     if (!is<WebCore::RenderBox>(*renderer) || !renderer->hasNonVisibleOverflow())
         return 0;
 
-    CheckedPtr layer = downcast<WebCore::RenderBox>(*renderer).layer();
+    auto* layer = downcast<WebCore::RenderBox>(*renderer).layer();
     if (!layer)
         return 0;
     CheckedPtr scrollableArea = layer->scrollableArea();
@@ -125,7 +125,7 @@
     if (!renderer->hasNonVisibleOverflow() || !is<WebCore::RenderBox>(*renderer))
         return;
 
-    CheckedPtr layer = downcast<WebCore::RenderBox>(*renderer).layer();
+    auto* layer = downcast<WebCore::RenderBox>(*renderer).layer();
     if (!layer)
         return;
     CheckedPtr scrollableArea = layer->ensureLayerScrollableArea();

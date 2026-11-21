@@ -1881,8 +1881,8 @@ void Editor::renderLayerDidScroll(const RenderLayer& layer)
         return;
 
     // FIXME: Ideally, this would also cancel deferred selection revealing if the selection is inside a subframe and a parent frame is scrolled.
-    for (CheckedPtr enclosingLayer = startContainerRenderer->enclosingLayer(); enclosingLayer; enclosingLayer = enclosingLayer->parent()) {
-        if (enclosingLayer.get() == &layer) {
+    for (auto* enclosingLayer = startContainerRenderer->enclosingLayer(); enclosingLayer; enclosingLayer = enclosingLayer->parent()) {
+        if (enclosingLayer == &layer) {
             m_imageElementsToLoadBeforeRevealingSelection.clear();
             break;
         }

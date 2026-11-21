@@ -168,6 +168,10 @@ public:
     WEBCORE_EXPORT virtual void addChildAtIndex(Ref<GraphicsLayer>&&, int index);
     WEBCORE_EXPORT virtual void addChildAbove(Ref<GraphicsLayer>&&, GraphicsLayer* sibling);
     WEBCORE_EXPORT virtual void addChildBelow(Ref<GraphicsLayer>&&, GraphicsLayer* sibling);
+    // The child insertions for Swift, which cannot pass a Ref.
+    void addChildForSwift(GraphicsLayer& child) { addChild(child); }
+    void addChildAboveForSwift(GraphicsLayer& child, GraphicsLayer* sibling) { addChildAbove(child, sibling); }
+    void addChildBelowForSwift(GraphicsLayer& child, GraphicsLayer* sibling) { addChildBelow(child, sibling); }
     WEBCORE_EXPORT virtual bool replaceChild(GraphicsLayer* oldChild, Ref<GraphicsLayer>&& newChild);
 
     WEBCORE_EXPORT void removeAllChildren();
@@ -176,6 +180,7 @@ public:
     // The parent() of a maskLayer is set to the layer being masked.
     GraphicsLayer* maskLayer() const { return m_maskLayer.get(); }
     WEBCORE_EXPORT virtual void setMaskLayer(RefPtr<GraphicsLayer>&&);
+    void setMaskLayerForSwift(GraphicsLayer* layer) { setMaskLayer(RefPtr { layer }); }
 
     void setIsMaskLayer(bool isMask) { m_isMaskLayer = isMask; }
     bool isMaskLayer() const { return m_isMaskLayer; }
@@ -185,6 +190,7 @@ public:
 
     // The given layer will replicate this layer and its children; the replica renders behind this layer.
     WEBCORE_EXPORT virtual void setReplicatedByLayer(RefPtr<GraphicsLayer>&&);
+    void setReplicatedByLayerForSwift(GraphicsLayer* layer) { setReplicatedByLayer(RefPtr { layer }); }
     // Whether this layer is being replicated by another layer.
     bool isReplicated() const { return m_replicaLayer; }
     // The layer that replicates this layer (if any).
@@ -208,6 +214,7 @@ public:
 
     // The position of the layer (the location of its top-left corner in its parent)
     const FloatPoint& position() const LIFETIME_BOUND { return m_position; }
+    FloatPoint positionForSwift() const { return m_position; }
     virtual void setPosition(const FloatPoint& p) { m_approximatePosition = std::nullopt; m_position = p; }
 
     // approximatePosition, if set, overrides position() and is used during coverage rect computation.
@@ -220,14 +227,17 @@ public:
     // Anchor point: (0, 0) is top left, (1, 1) is bottom right. The anchor point
     // affects the origin of the transforms.
     const FloatPoint3D& anchorPoint() const LIFETIME_BOUND { return m_anchorPoint; }
+    FloatPoint3D anchorPointForSwift() const { return m_anchorPoint; }
     virtual void setAnchorPoint(const FloatPoint3D& p) { m_anchorPoint = p; }
 
     // The size of the layer.
     const FloatSize& size() const LIFETIME_BOUND { return m_size; }
+    FloatSize sizeForSwift() const { return m_size; }
     WEBCORE_EXPORT virtual void setSize(const FloatSize&);
 
     // The boundOrigin affects the offset at which content is rendered, and sublayers are positioned.
     const FloatPoint& boundsOrigin() const LIFETIME_BOUND { return m_boundsOrigin; }
+    FloatPoint boundsOriginForSwift() const { return m_boundsOrigin; }
     virtual void setBoundsOrigin(const FloatPoint& origin) { m_boundsOrigin = origin; }
 
     // For platforms that move underlying platform layers on a different thread for scrolling; just update the GraphicsLayer state.
@@ -296,6 +306,7 @@ public:
     // Note that this covers the entire layer. Use setContentsToSolidColor() if the color should
     // only cover the contentsRect.
     const Color& backgroundColor() const LIFETIME_BOUND { return m_backgroundColor; }
+    Color backgroundColorForSwift() const { return m_backgroundColor; }
     WEBCORE_EXPORT virtual void setBackgroundColor(const Color&);
 
     // opaque means that we know the layer contents have no alpha

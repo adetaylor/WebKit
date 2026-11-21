@@ -1840,7 +1840,7 @@ std::optional<Cursor> EventHandler::selectCursor(const HitTestResult& result, bo
 
         if (resizerRenderer && resizerRenderer->hasLayer()) {
             CheckedRef layerRenderer = downcast<RenderLayerModelObject>(*resizerRenderer);
-            inResizer = protect(layerRenderer->layer())->isPointInResizeControl(roundedIntPoint(result.localPoint()));
+            inResizer = layerRenderer->layer()->isPointInResizeControl(roundedIntPoint(result.localPoint()));
             if (inResizer)
                 return layerRenderer->shouldPlaceVerticalScrollbarOnLeft() ? southWestResizeCursor() : southEastResizeCursor();
         }
@@ -2203,7 +2203,7 @@ HandleUserInputEventResult EventHandler::handleMousePressEvent(const PlatformMou
     }
 
     auto localPoint = roundedIntPoint(mouseEvent.hitTestResult().localPoint());
-    if (CheckedPtr layer = m_clickNode->renderer() ? m_clickNode->renderer()->enclosingLayer() : nullptr; layer && layer->isPointInResizeControl(localPoint)) {
+    if (auto* layer = m_clickNode->renderer() ? m_clickNode->renderer()->enclosingLayer() : nullptr; layer && layer->isPointInResizeControl(localPoint)) {
         layer->setInResizeMode(true);
         m_resizeLayer = *layer;
         m_offsetFromResizeCorner = layer->offsetFromResizeCorner(localPoint);
@@ -2322,11 +2322,11 @@ ScrollableArea* EventHandler::enclosingScrollableArea(Node* node) const
             }
         }
 
-        CheckedPtr layer = renderer->enclosingLayer();
+        auto* layer = renderer->enclosingLayer();
         if (!layer)
             return nullptr;
 
-        if (CheckedPtr scrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::IncludeSelf, CrossFrameBoundaries::No)) {
+        if (auto* scrollableLayer = layer->enclosingScrollableLayer(IncludeSelfOrNot::IncludeSelf, CrossFrameBoundaries::No)) {
             if (!scrollableLayer->isRenderViewLayer())
                 return scrollableLayer->scrollableArea();
         }
@@ -2485,10 +2485,10 @@ HandleUserInputEventResult EventHandler::handleMouseMoveEvent(const PlatformMous
         *hitTestResult = mouseEvent.hitTestResult();
 
     if (m_resizeLayer && m_resizeLayer->inResizeMode()) {
-        CheckedPtr resizeLayer = m_resizeLayer.get();
+        InlineWeakPtr<RenderLayer> resizeLayer = m_resizeLayer;
         resizeLayer->resize(platformMouseEvent, m_offsetFromResizeCorner);
 
-        if (resizeLayer->renderer().shouldPlaceVerticalScrollbarOnLeft()) {
+        if (resizeLayer && resizeLayer->renderer().shouldPlaceVerticalScrollbarOnLeft()) {
             auto absolutePoint = protect(frame->view())->windowToContents(flooredIntPoint(platformMouseEvent.position()));
             auto localPoint = roundedIntPoint(resizeLayer->absoluteToContents(absolutePoint));
             m_offsetFromResizeCorner.setWidth(resizeLayer->offsetFromResizeCorner(localPoint).width());

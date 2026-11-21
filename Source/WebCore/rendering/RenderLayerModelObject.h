@@ -27,13 +27,13 @@
 #include <WebCore/PaintPhase.h>
 #include <WebCore/RenderElement.h>
 #include <wtf/OptionSet.h>
-#include <wtf/UniquelyOwned.h>
 
 namespace WebCore {
 
 class BlendingKeyframes;
 class GraphicsLayerAnimation;
 class LegacyRenderSVGResourceClipper;
+class PaintInfoView;
 class RenderLayer;
 class RenderSVGResourceClipper;
 class RenderSVGResourceFilter;
@@ -62,19 +62,34 @@ enum class ContentChangeType : uint8_t {
     Model
 };
 
+enum class RenderLayerModelObjectOldStyleTag : uint8_t { OldStyle };
+
+// Only RenderLayerModelObject and RenderLayer can make one, so only they can reach RenderLayerOwners.
+class RenderLayerOwnersKey {
+    friend class RenderLayer;
+    friend class RenderLayerModelObject;
+    RenderLayerOwnersKey() = default;
+};
+
 class RenderLayerModelObject : public RenderElement {
     WTF_MAKE_TZONE_ALLOCATED(RenderLayerModelObject);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RenderLayerModelObject);
 public:
+    using PaintPhases = OptionSet<PaintPhase>;
+
     virtual ~RenderLayerModelObject();
 
-    void destroyLayer();
+    SWIFT_UNSAFE void destroyLayer();
 
     NODELETE bool hasSelfPaintingLayer() const;
-    RenderLayer* layer() const LIFETIME_BOUND { return m_layer.get(); }
+    RenderLayer* layer() const LIFETIME_BOUND_EXCEPT_IN_SWIFT { return m_layer; }
 
     void styleWillChange(Style::Difference, const Style::ComputedStyle& newStyle) override;
     void styleDidChange(Style::Difference, const Style::ComputedStyle* oldStyle) override;
+
+    // The style that styleDidChange() replaces, while styleDidChange() runs for this renderer.
+    bool hasOldStyle() const { return s_styleChange.renderer == this && s_styleChange.oldStyle; }
+    const Style::ComputedStyle& operator[](RenderLayerModelObjectOldStyleTag) const LIFETIME_BOUND;
 
     virtual bool requiresLayer() const = 0;
     bool requiresLayerForSVGIntrinsicReasons() const;
@@ -94,8 +109,8 @@ public:
     void animationFinished(const BlendingKeyframes&) override;
     void transformRelatedPropertyDidChange() override;
 
-    bool shouldPaintSVGLeafRenderer(const PaintInfo&, const OptionSet<PaintPhase> relevantPaintPhases) const;
-    bool shouldPaintSVGContainerRenderer(const PaintInfo&, const OptionSet<PaintPhase> relevantPaintPhases) const;
+    bool shouldPaintSVGLeafRenderer(PaintInfoView, PaintPhases relevantPaintPhases) const;
+    bool shouldPaintSVGContainerRenderer(PaintInfoView, PaintPhases relevantPaintPhases) const;
 
     // Provides the SVG implementation for computeVisibleRectsInContainer().
     // This lives in RenderLayerModelObject, which is the common base-class for all SVG renderers.
@@ -145,7 +160,7 @@ public:
 
     void paintSVGClippingMask(PaintInfo&, const FloatRect& objectBoundingBox) const;
     void paintSVGMask(PaintInfo&, const LayoutPoint& adjustedPaintOffset) const;
-    void paintSVGEventRegion(PaintInfo&, const LayoutPoint& paintOffset);
+    void paintSVGEventRegion(PaintInfoView, LayoutPoint paintOffset);
 
     NODELETE TransformationMatrix* layerTransform() const;
 
@@ -179,7 +194,7 @@ public:
 
     AffineTransform computeRendererTransform() const;
 
-    void contentChanged(ContentChangeType, const std::optional<FloatRect>& = std::nullopt);
+    void contentChanged(ContentChangeType, std::optional<FloatRect> = std::nullopt);
 
     bool hasAcceleratedCompositing() const;
 
@@ -208,14 +223,27 @@ private:
 
     virtual SVGPaintServerCache* svgPaintServerCache() const { return nullptr; }
 
-    UniquelyOwnedPtr<RenderLayer> m_layer;
+    SWIFT_UNSAFE void dropLayer();
+    SWIFT_UNSAFE static void dropLayerOwner(uint64_t owner, RenderLayer&);
+
+    // RenderLayerOwners (RenderLayerOwners.swift) owns the layer; m_layerOwner is its handle for the layer's owner.
+    SWIFT_UNSAFE RenderLayer* m_layer { nullptr };
+    SWIFT_UNSAFE uint64_t m_layerOwner { 0 };
 
     // Used to store state between styleWillChange and styleDidChange
     static bool s_wasFloating;
     static bool s_hadLayer;
     static bool s_wasTransformed;
     static bool s_layerWasSelfPainting;
-};
+
+    struct StyleChange {
+        const RenderLayerModelObject* renderer { nullptr };
+        const Style::ComputedStyle* oldStyle { nullptr };
+    };
+    static StyleChange s_styleChange;
+
+    // Swift retains, releases and receives one as it does a RenderObject.
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_PRIVATE_FILEID("WebCore/RenderLayerModelObjectLayer.swift");
 
 // Pixel-snapping (== 'device pixel alignment') helpers.
 NODELETE bool rendererNeedsPixelSnapping(const RenderLayerModelObject&);

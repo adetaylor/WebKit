@@ -58,7 +58,7 @@ public:
         GlobalCoordinateSpace,
         LocalCoordinateSpace
     };
-    LegacyRenderSVGShape(Type, SVGGraphicsElement&, UniqueRef<Style::ComputedStyle>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT LegacyRenderSVGShape(Type, SVGGraphicsElement&, UniqueRef<Style::ComputedStyle>&&);
     virtual ~LegacyRenderSVGShape();
 
     inline SVGGraphicsElement& graphicsElement() const;

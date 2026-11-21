@@ -77,6 +77,7 @@ public:
     Element* URLElement() const { return m_innerURLElement.get(); }
 
     void setScrollbar(RefPtr<Scrollbar>&&);
+    void setScrollbarForSwift(Scrollbar*);
     Scrollbar* scrollbar() const { return m_scrollbar.get(); }
 
     bool isOverWidget() const { return m_isOverWidget; }
@@ -107,6 +108,7 @@ public:
     WEBCORE_EXPORT void setToNonUserAgentShadowAncestor();
 
     const HitTestLocation& hitTestLocation() const LIFETIME_BOUND { return m_hitTestLocation; }
+    HitTestLocation hitTestLocationForSwift() const SWIFT_NAME(hitTestLocation()) { return m_hitTestLocation; }
 
     NODELETE WEBCORE_EXPORT LocalFrame* frame() const;
     WEBCORE_EXPORT RefPtr<Frame> targetFrame() const;
@@ -207,7 +209,22 @@ private:
     std::optional<Style::PseudoElementIdentifier> m_pseudoElementIdentifier;
 
     mutable std::unique_ptr<NodeSet> m_listBasedTestResult;
-};
+} SWIFT_SELF_CONTAINED; // Owns everything it points to: its nodes, element and scrollbar by RefPtr, and the node set.
+
+// A HitTestResult that a C++ caller lends to Swift for the duration of one call. Made from a reference, so it is never
+// null; operator* is the result.
+class HitTestResultView {
+public:
+    explicit HitTestResultView(HitTestResult& result LIFETIME_BOUND)
+        : m_result(&result)
+    {
+    }
+
+    HitTestResult& operator*() const LIFETIME_BOUND { return *m_result; }
+
+private:
+    HitTestResult* m_result;
+} SWIFT_VIEW;
 
 WEBCORE_EXPORT String displayString(const String&, const Node*);
 

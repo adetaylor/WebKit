@@ -127,7 +127,7 @@ static RefPtr<LocalFrameView> includedContentFrameView(const RenderElement& rend
 void LayerTreeInspectionState::gatherLayersUsingRenderObjectHierarchy(RenderElement& renderer, const LocalFrameView& rootView, JSON::ArrayOf<Inspector::Protocol::LayerTree::Layer>& layers, NOESCAPE const NodeIdProvider& nodeIdProvider)
 {
     if (renderer.hasLayer()) {
-        gatherLayersUsingRenderLayerHierarchy(CheckedPtr { downcast<RenderLayerModelObject>(renderer).layer() }, rootView, layers, nodeIdProvider);
+        gatherLayersUsingRenderLayerHierarchy(downcast<RenderLayerModelObject>(renderer).layer(), rootView, layers, nodeIdProvider);
         return;
     }
 
@@ -137,17 +137,17 @@ void LayerTreeInspectionState::gatherLayersUsingRenderObjectHierarchy(RenderElem
 
 void LayerTreeInspectionState::gatherLayersUsingRenderLayerHierarchy(RenderLayer* renderLayer, const LocalFrameView& rootView, JSON::ArrayOf<Inspector::Protocol::LayerTree::Layer>& layers, NOESCAPE const NodeIdProvider& nodeIdProvider)
 {
-    CheckedPtr layer = renderLayer;
+    auto* layer = renderLayer;
     if (layer->isComposited())
         layers.addItem(buildObjectForLayer(renderLayer, rootView, nodeIdProvider));
 
     if (RefPtr contentFrameView = includedContentFrameView(layer->renderer(), m_scope)) {
         if (CheckedPtr contentRenderView = contentFrameView->renderView(); contentRenderView && contentRenderView->hasLayer())
-            gatherLayersUsingRenderLayerHierarchy(CheckedPtr { contentRenderView->layer() }.get(), rootView, layers, nodeIdProvider);
+            gatherLayersUsingRenderLayerHierarchy(contentRenderView->layer(), rootView, layers, nodeIdProvider);
     }
 
     for (layer = layer->firstChild(); layer; layer = layer->nextSibling())
-        gatherLayersUsingRenderLayerHierarchy(layer.get(), rootView, layers, nodeIdProvider);
+        gatherLayersUsingRenderLayerHierarchy(layer, rootView, layers, nodeIdProvider);
 }
 
 Ref<Inspector::Protocol::LayerTree::Layer> LayerTreeInspectionState::buildObjectForLayer(RenderLayer* renderLayer, const LocalFrameView& rootView, NOESCAPE const NodeIdProvider& nodeIdProvider)
@@ -217,7 +217,7 @@ Ref<Inspector::Protocol::LayerTree::Layer> LayerTreeInspectionState::buildObject
 
 Inspector::CommandResult<Ref<Inspector::Protocol::LayerTree::CompositingReasons>> LayerTreeInspectionState::reasonsForCompositingLayer(const Inspector::Protocol::LayerTree::LayerId& layerId)
 {
-    const CheckedPtr renderLayer = m_idToLayer.get(layerId);
+    auto* renderLayer = m_idToLayer.get(layerId);
 
     if (!renderLayer)
         return makeUnexpected("Missing render layer for given layerId"_s);
@@ -312,7 +312,7 @@ Inspector::CommandResult<Ref<Inspector::Protocol::LayerTree::CompositingReasons>
 
 Inspector::CommandResult<String> LayerTreeInspectionState::requestContent(const Inspector::Protocol::LayerTree::LayerId& layerId)
 {
-    CheckedPtr renderLayer = m_idToLayer.get(layerId);
+    auto* renderLayer = m_idToLayer.get(layerId);
     if (!renderLayer)
         return makeUnexpected("Missing render layer for given layerId"_s);
 

@@ -1072,7 +1072,7 @@ RenderPtr<RenderObject> RenderTreeBuilder::detachFromRenderElement(RenderElement
     if (parent.renderTreeBeingDestroyed() || m_tearDownType == TearDownType::SubtreeWithRootAlreadyDetached) {
         destroyLineLayoutReferringTo(child);
         if (parent.document().settings().layerBasedSVGEngineEnabled() && parent.isSVGLayerAwareRenderer()) {
-            if (CheckedPtr parentLayer = parent.enclosingLayer())
+            if (auto* parentLayer = parent.enclosingLayer())
                 parentLayer->dirtyChildrenInDOMOrderForSVG();
         }
         return parent.detachRendererInternal(child);

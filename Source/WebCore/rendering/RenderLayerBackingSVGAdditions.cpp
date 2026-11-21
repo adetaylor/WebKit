@@ -50,7 +50,7 @@ bool RenderLayerBacking::updateSVGSegmentLayers()
             return segments;
 
         auto isCompositedChild = [](const SVGPaintOrderLayerItem& item) {
-            CheckedPtr layer = item.layer.get();
+            auto* layer = item.layer.get();
             return layer && layer->isCompositedSVGPaintOrderChild();
         };
 
@@ -58,13 +58,13 @@ bool RenderLayerBacking::updateSVGSegmentLayers()
         // segment boundary and painted inline, so its segment must be emitted even when the run before it
         // is empty, otherwise the child's own content is never painted.
         auto paintsInline = [](const SVGPaintOrderLayerItem& item) {
-            CheckedPtr layer = item.layer.get();
+            auto* layer = item.layer.get();
             return layer && layer->paintsInlineInSVGContainer();
         };
 
-        auto& items = protect(m_owningLayer)->childrenInDOMOrderForSVG();
+        auto& items = m_owningLayer.childrenInDOMOrderForSVG();
         unsigned segBegin = 0;
-        CheckedPtr<RenderLayer> precedingCompositedChild;
+        RenderLayer* precedingCompositedChild { nullptr };
         for (unsigned i = 0; i < items.size(); ++i) {
             if (!isCompositedChild(items[i]))
                 continue;
@@ -75,13 +75,13 @@ bool RenderLayerBacking::updateSVGSegmentLayers()
             // each other leave an empty run and get no overlay, since each paints through its own
             // GraphicsLayer. Together the ranges cover every inline-painted index of the flat list.
             if (segments.isEmpty() || segBegin < i || paintsInline(items[i]))
-                segments.append({ { segBegin, i + 1 }, precedingCompositedChild.get(), nullptr, { } });
+                segments.append({ { segBegin, i + 1 }, precedingCompositedChild, nullptr, { } });
             precedingCompositedChild = items[i].layer.get();
             segBegin = i + 1;
         }
         // Trailing segment after the last composited child, dropped when it is the last item.
         if (!segments.isEmpty() && segBegin < items.size())
-            segments.append({ { segBegin, static_cast<unsigned>(items.size()) }, precedingCompositedChild.get(), nullptr, { } });
+            segments.append({ { segBegin, static_cast<unsigned>(items.size()) }, precedingCompositedChild, nullptr, { } });
         return segments;
     };
 
@@ -116,7 +116,7 @@ bool RenderLayerBacking::updateSVGSegmentLayers()
         if (nextReusable < reusableLayers.size())
             layer = WTF::move(reusableLayers[nextReusable++]);
         else {
-            layer = createGraphicsLayer(makeString(protect(m_owningLayer)->name(), " (svg segment "_s, i, ')'));
+            layer = createGraphicsLayer(makeString(m_owningLayer.name(), " (svg segment "_s, i, ')'));
             layer->setDrawsContent(true);
             layerChanged = true;
         }
@@ -146,22 +146,14 @@ bool RenderLayerBacking::updateSVGSegmentLayers()
 
 void RenderLayerBacking::clearSVGSegmentLayers()
 {
-    for (auto& segment : m_svgPaintOrderSegments) {
+    // Destroying a segment's layer can call into this backing, so the segments are out of their field first.
+    auto segments = std::exchange(m_svgPaintOrderSegments, { });
+    for (auto& segment : segments) {
         if (segment.graphicsLayer) {
             willDestroyLayer(segment.graphicsLayer.get());
             GraphicsLayer::unparentAndClear(segment.graphicsLayer);
         }
     }
-    m_svgPaintOrderSegments.clear();
-}
-
-GraphicsLayer* RenderLayerBacking::svgSegmentLayerAfterCompositedChild(const RenderLayer& compositedChild) const
-{
-    for (auto& segment : m_svgPaintOrderSegments) {
-        if (segment.graphicsLayer && segment.precedingCompositedChild.get() == &compositedChild)
-            return segment.graphicsLayer.get();
-    }
-    return nullptr;
 }
 
 std::optional<WTF::Range<unsigned>> RenderLayerBacking::svgSegmentRangeForGraphicsLayer(const GraphicsLayer& graphicsLayer) const
@@ -191,13 +183,13 @@ FloatRect RenderLayerBacking::computeSVGSegmentBounds(const SVGPaintOrderSegment
     CheckedPtr owningLayerRenderer = &m_owningLayer.renderer();
     auto rendererToCompositedBoundsSpace = owningLayerRenderer->repaintRectInLocalCoordinates(RepaintRectCalculation::Fast).location() - FloatPoint(compositedBounds().location());
 
-    CheckedPtr owningLayer = &m_owningLayer;
+    auto* owningLayer = &m_owningLayer;
     auto& items = owningLayer->childrenInDOMOrderForSVG();
     for (unsigned i = segment.childIndexRange.begin(); i < segment.childIndexRange.end() && i < items.size(); ++i) {
         CheckedPtr renderer = items[i].renderer.get();
         if (!renderer)
             continue;
-        if (CheckedPtr layer = items[i].layer.get()) {
+        if (auto* layer = items[i].layer.get()) {
             // A composited child that owns a backing store paints through its own GraphicsLayer, not this
             // overlay, so it does not contribute to the segment's painted bounds.
             if (!layer->paintsInlineInSVGContainer())
@@ -225,93 +217,17 @@ FloatRect RenderLayerBacking::computeSVGSegmentBounds(const SVGPaintOrderSegment
     return bounds;
 }
 
-void RenderLayerBacking::updateSVGSegmentLayerGeometry(FloatSize foregroundLikeSize, FloatSize foregroundLikeOffset, GraphicsLayer::ShouldSetNeedsDisplay needsDisplayOnOffsetChange)
-{
-    // Crop the overlay to its segment's bounds only in the plain (non-scrolled, non-clipping)
-    // non-transformed case: offsetFromRenderer and position shift by the segment's origin together,
-    // landing the content at the backing's top-left while keeping its on-screen location fixed. A
-    // transformed container keeps the full foreground-sized backing (no crop): shifting the origin
-    // makes the overlay a positioned child of the transformed primary layer, which the compositor
-    // misplaces because the layer's anchor point does not seem to be honoured under the transform.
-    // That appears to be the underlying cause and needs a follow-up investigation, so for now the
-    // origin is kept foreground-aligned to composite identically.
-    bool canCrop = !m_scrolledContentsLayer && !hasClippingLayer() && !m_owningLayer.isTransformed();
-    FloatPoint contentOrigin = FloatRect(compositedBounds()).location();
-
-    for (auto& segment : m_svgPaintOrderSegments) {
-        segment.segmentBoundsInLayerSpace = { };
-        RefPtr graphicsLayer = segment.graphicsLayer;
-        if (!graphicsLayer)
-            continue;
-
-        FloatSize segmentSize = foregroundLikeSize;
-        FloatSize segmentOffset = foregroundLikeOffset;
-        FloatPoint segmentPosition;
-
-        if (canCrop) {
-            FloatRect segmentBounds = computeSVGSegmentBounds(segment);
-            if (!segmentBounds.isEmpty()) {
-                // The segment in foreground-local space, rounded out so the backing always covers its
-                // content and clamped to the foreground area.
-                FloatRect localBounds { segmentBounds.location() - toFloatSize(contentOrigin), segmentBounds.size() };
-                localBounds = FloatRect(enclosingIntRect(localBounds));
-                localBounds.intersect({ FloatPoint(), foregroundLikeSize });
-                if (!localBounds.isEmpty()) {
-                    segment.segmentBoundsInLayerSpace = localBounds;
-                    // Shift offsetFromRenderer by the segment's origin so the paint lands at the
-                    // backing's top-left. The matching position keeps the on-screen location fixed.
-                    segmentSize = localBounds.size();
-                    segmentOffset = foregroundLikeOffset + toFloatSize(localBounds.location());
-                    segmentPosition = localBounds.location();
-                }
-            }
-        }
-
-        graphicsLayer->setPosition(segmentPosition);
-        graphicsLayer->setSize(segmentSize);
-        graphicsLayer->setOffsetFromRenderer(segmentOffset, needsDisplayOnOffsetChange);
-    }
-}
-
 bool RenderLayerBacking::svgSegmentHasInlineContent(const SVGPaintOrderSegment& segment)
 {
     // An overlay paints only the children in its segment that paint inline, so it has nothing to draw
     // when its segment holds only composited children that paint through their own GraphicsLayer.
-    auto& items = protect(m_owningLayer)->childrenInDOMOrderForSVG();
+    auto& items = m_owningLayer.childrenInDOMOrderForSVG();
     for (unsigned i = segment.childIndexRange.begin(); i < segment.childIndexRange.end() && i < items.size(); ++i) {
-        CheckedPtr layer = items[i].layer.get();
+        auto* layer = items[i].layer.get();
         if (layer ? layer->paintsInlineInSVGContainer() : !!items[i].renderer)
             return true;
     }
     return false;
-}
-
-void RenderLayerBacking::updateSVGSegmentLayersDrawsContent(bool hasPaintedContent)
-{
-    // Gate each overlay here so it never allocates a backing store for content it does not paint.
-    for (auto& segment : m_svgPaintOrderSegments) {
-        if (RefPtr graphicsLayer = segment.graphicsLayer)
-            graphicsLayer->setDrawsContent(hasPaintedContent && svgSegmentHasInlineContent(segment));
-    }
-}
-
-void RenderLayerBacking::setSVGSegmentLayersNeedDisplayInRect(const FloatRect& pixelSnappedRectForPainting, GraphicsLayer::ShouldClipToLayer shouldClip)
-{
-    // Repaint only the overlays whose segment overlaps the dirty rect. segmentBoundsInLayerSpace (set in
-    // updateGeometry) holds the segment in foreground-local space, the same space the dirty rect lands in
-    // once the foreground's offset is removed. An empty segmentBoundsInLayerSpace means we do not know the
-    // bounds (for example the overlay was not cropped), so just repaint it.
-    FloatRect foregroundLocalDirtyRect = pixelSnappedRectForPainting;
-    foregroundLocalDirtyRect.move(-m_graphicsLayer->offsetFromRenderer() - m_subpixelOffsetFromRenderer);
-    for (auto& segment : m_svgPaintOrderSegments) {
-        if (!segment.graphicsLayer || !segment.graphicsLayer->drawsContent())
-            continue;
-        if (!segment.segmentBoundsInLayerSpace.isEmpty() && !segment.segmentBoundsInLayerSpace.intersects(foregroundLocalDirtyRect))
-            continue;
-        FloatRect layerDirtyRect = pixelSnappedRectForPainting;
-        layerDirtyRect.move(-segment.graphicsLayer->offsetFromRenderer() - m_subpixelOffsetFromRenderer);
-        protect(segment.graphicsLayer)->setNeedsDisplayInRect(layerDirtyRect, shouldClip);
-    }
 }
 
 } // namespace WebCore

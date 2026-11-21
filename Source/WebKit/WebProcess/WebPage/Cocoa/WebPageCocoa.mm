@@ -928,7 +928,7 @@ void WebPage::getProcessDisplayName(CompletionHandler<void(String&&)>&& completi
 
 static bool rendererIsTransparentOrFullyClipped(const RenderObject& renderer)
 {
-    CheckedPtr enclosingLayer = renderer.enclosingLayer();
+    auto* enclosingLayer = renderer.enclosingLayer();
     if (enclosingLayer && enclosingLayer->isTransparentRespectingParentFrames())
         return true;
 

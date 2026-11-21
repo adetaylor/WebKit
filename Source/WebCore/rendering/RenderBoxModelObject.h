@@ -76,8 +76,8 @@ class RenderBoxModelObject : public RenderLayerModelObject {
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RenderBoxModelObject);
 public:
     // An inline box is a RenderBoxModelObject of its own. Boxes and line breaks use the protected constructors.
-    RenderBoxModelObject(Type, Element&, UniqueRef<Style::ComputedStyle>&&);
-    RenderBoxModelObject(Type, Document&, UniqueRef<Style::ComputedStyle>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderBoxModelObject(Type, Element&, UniqueRef<Style::ComputedStyle>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderBoxModelObject(Type, Document&, UniqueRef<Style::ComputedStyle>&&);
     virtual ~RenderBoxModelObject();
 
     ASCIILiteral renderName() const override;
@@ -223,7 +223,7 @@ public:
     PositionWithAffinity positionForPoint(const LayoutPoint&, HitTestSource, const RenderFragmentContainer*) override;
     std::optional<RepaintRects> computeVisibleRectsInContainer(const RepaintRects&, const RenderLayerModelObject* container, const VisibleRectContext&, VisibleRectState) const override;
 
-    void setSelectionState(HighlightState) override;
+    SWIFT_UNSAFE void setSelectionState(HighlightState) override;
 
     bool hasRunningAcceleratedAnimations() const;
 
@@ -282,7 +282,9 @@ protected:
 
 private:
     RenderBlock* containingBlockForAutoHeightDetectionGeneric(const auto& logicalHeight) const;
-};
+
+    // Swift retains, releases and receives one as it does a RenderObject.
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 NODELETE bool isEmptyInline(const RenderBoxModelObject&);
 NODELETE RenderObject* firstContentfulChild(RenderBoxModelObject&);

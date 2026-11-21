@@ -941,6 +941,11 @@ bool Page::isClosing() const
     return m_topDocumentSyncData->isClosing;
 }
 
+bool Page::focusControllerIsActiveForSwift() const
+{
+    return focusController().isActive();
+}
+
 #if ENABLE(DOM_AUDIO_SESSION)
 void Page::setAudioSessionType(DOMAudioSessionType audioSessionType)
 {
@@ -1911,7 +1916,7 @@ void Page::setDelegatesScaling(bool delegatesScaling)
         if (CheckedPtr renderView = view->renderView()) {
             CheckedRef compositor = renderView->compositor();
             compositor->updateRootContentsLayerAppliesPageScale();
-            // RenderLayer is UniquelyOwned, so it isn't CheckedPtr-capable.
+            // RenderLayer's reference count is private, so it isn't CheckedPtr-capable.
             if (auto* layer = renderView->layer())
                 layer->setNeedsCompositingConfigurationUpdate();
             compositor->scheduleCompositingLayerUpdate();
@@ -2204,6 +2209,7 @@ void Page::lockAllOverlayScrollbarsToHidden(bool lockOverlayScrollbars)
         if (!scrollableAreas)
             continue;
 
+        LocalFrameView::ScrollableAreaIterationScope iterationScope(*frameView);
         for (CheckedRef area : *scrollableAreas)
             area->lockOverlayScrollbarStateToHidden(lockOverlayScrollbars);
     }
@@ -3760,6 +3766,7 @@ void Page::stopKeyboardScrollAnimation()
         if (!scrollableAreas)
             continue;
 
+        LocalFrameView::ScrollableAreaIterationScope iterationScope(*frameView);
         for (CheckedRef area : *scrollableAreas) {
             // First call stopAsyncAnimatedScroll() to prepare for the keyboard scroller running on the scrolling thread.
             area->stopAsyncAnimatedScroll();

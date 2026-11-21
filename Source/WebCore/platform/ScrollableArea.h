@@ -185,8 +185,8 @@ public:
     void lockOverlayScrollbarStateToHidden(bool shouldLockState) const;
     WEBCORE_EXPORT bool scrollbarsCanBeActive() const;
 
-    WEBCORE_EXPORT virtual void didAddScrollbar(Scrollbar*, ScrollbarOrientation);
-    WEBCORE_EXPORT virtual void willRemoveScrollbar(Scrollbar&, ScrollbarOrientation);
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT virtual void didAddScrollbar(Scrollbar*, ScrollbarOrientation);
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT virtual void willRemoveScrollbar(Scrollbar&, ScrollbarOrientation);
 
     WEBCORE_EXPORT virtual void contentsResized();
 
@@ -218,10 +218,10 @@ public:
 
     WEBCORE_EXPORT ScrollbarsController& scrollbarsController() const;
     ScrollbarsController* existingScrollbarsController() const LIFETIME_BOUND { return m_scrollbarsController.get(); }
-    WEBCORE_EXPORT virtual void createScrollbarsController();
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT virtual void createScrollbarsController();
 
     virtual bool isActive() const = 0;
-    WEBCORE_EXPORT virtual void invalidateScrollbar(Scrollbar&, const IntRect&);
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT virtual void invalidateScrollbar(Scrollbar&, const IntRect&);
     virtual bool isScrollCornerVisible() const = 0;
     virtual IntRect scrollCornerRect() const = 0;
     WEBCORE_EXPORT virtual void invalidateScrollCorner(const IntRect&);
@@ -319,7 +319,7 @@ public:
     RectEdges<bool> scrolledDirections() const { return m_scrolledDirections; }
 
     // This reflects animated scrolls triggered by CSS OM View "smooth" scrolls.
-    ScrollAnimationStatus scrollAnimationStatus() { return m_scrollAnimationStatus; }
+    ScrollAnimationStatus scrollAnimationStatus() const { return m_scrollAnimationStatus; }
     void setScrollAnimationStatus(ScrollAnimationStatus status) { m_scrollAnimationStatus = status; }
     virtual void animatedScrollDidEnd() { };
 
@@ -467,7 +467,7 @@ public:
 
     virtual std::optional<FrameIdentifier> rootFrameID() const { return std::nullopt; }
 
-    WEBCORE_EXPORT void setScrollbarsController(std::unique_ptr<ScrollbarsController>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT void setScrollbarsController(std::unique_ptr<ScrollbarsController>&&);
     WEBCORE_EXPORT virtual void scrollbarWidthChanged(ScrollbarWidth) { }
 
     virtual IntSize totalScrollbarSpace() const { return { }; }
@@ -479,9 +479,17 @@ public:
     virtual void scrollDidEnd() { }
     virtual void scrollOriginDidChange() { }
 
+    // Protected for C++, which destroys a ScrollableArea only as one of its subclasses. Swift imports the class only
+    // with a public destructor and move constructor.
+#if !defined(__swift__)
+protected:
+#endif
+    WEBCORE_EXPORT virtual ~ScrollableArea();
+    // Declared so that Swift imports the class. Nothing moves a ScrollableArea: the definition stops if anything does.
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT ScrollableArea(ScrollableArea&&);
+
 protected:
     WEBCORE_EXPORT ScrollableArea();
-    WEBCORE_EXPORT virtual ~ScrollableArea();
 
     void setScrollOrigin(const IntPoint&);
     void resetScrollOriginChanged() { m_scrollOriginChanged = false; }

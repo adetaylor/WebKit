@@ -50,7 +50,7 @@ void FlexLayout::prepareOutOfFlowBoxForPositionedLayout(RenderBox& outOfFlowBox)
 {
     ASSERT(outOfFlowBox.isOutOfFlowPositioned());
     protect(outOfFlowBox.containingBlock())->addOutOfFlowBox(outOfFlowBox);
-    CheckedPtr layer = outOfFlowBox.layer();
+    auto* layer = outOfFlowBox.layer();
     // The static position setStaticPositionForPositionedLayout computes after layout is this content-box corner plus
     // alignment offsets that need the box's size. Starting from the same corner means a box with no offset is already
     // at its static position and isn't laid out a second time.
@@ -522,7 +522,7 @@ LayoutUnit FlexLayout::staticBlockPositionForPositionedFlexItem(const RenderBox&
 bool FlexLayout::setStaticPositionForPositionedLayout(const RenderBox& flexItem)
 {
     bool positionChanged = false;
-    CheckedPtr layer = flexItem.layer();
+    auto* layer = flexItem.layer();
     if (flexItem.style().hasStaticInlinePosition(flexBox().writingMode().isHorizontal())) {
         LayoutUnit inlinePosition = staticInlinePositionForPositionedFlexItem(flexItem);
         if (layer->staticInlinePosition() != inlinePosition) {

@@ -276,7 +276,7 @@ void RenderSVGRoot::layout()
     svgSVGElement().invalidateCachedViewportSizes();
 
     if (!isDocumentElementRenderer()) {
-        if (CheckedPtr layer = this->layer(); layer && layer->scrollableArea())
+        if (auto* layer = this->layer(); layer && layer->scrollableArea())
             layer->updateScrollInfoAfterLayout();
     }
 

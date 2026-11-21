@@ -408,7 +408,7 @@ static CheckedPtr<const RenderBox> backgroundPaintedBySibling(const RenderElemen
 static bool guardedChildHasRegionInOwnLayer(const Element& container, Element& child, float maximumInteractionArea)
 {
     CheckedPtr box = dynamicDowncast<RenderBox>(child.renderer());
-    CheckedPtr layer = box ? box->layer() : nullptr;
+    auto* layer = box ? box->layer() : nullptr;
     if (!layer || !layer->isComposited() || layer->backing()->paintsIntoCompositedAncestor())
         return false;
 

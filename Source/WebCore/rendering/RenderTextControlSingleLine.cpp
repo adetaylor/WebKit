@@ -433,7 +433,7 @@ void RenderTextControlSingleLine::autoscroll(const IntPoint& position)
     CheckedPtr innerTextRenderer = this->innerTextRenderer();
     if (!innerTextRenderer)
         return;
-    if (CheckedPtr layer = innerTextRenderer->layer())
+    if (auto* layer = innerTextRenderer->layer())
         layer->autoscroll(position);
 }
 
@@ -505,7 +505,7 @@ bool RenderTextControlSingleLine::logicalScroll(ScrollLogicalDirection direction
     CheckedPtr innerTextRenderer = this->innerTextRenderer();
     if (!innerTextRenderer)
         return false;
-    CheckedPtr layer = innerTextRenderer->layer();
+    auto* layer = innerTextRenderer->layer();
     CheckedPtr scrollableArea = layer ? layer->scrollableArea() : nullptr;
     if (scrollableArea && scrollableArea->scroll(logicalToPhysical(direction, writingMode().isHorizontal(), writingMode().isBlockFlipped()), granularity, stepCount))
         return true;

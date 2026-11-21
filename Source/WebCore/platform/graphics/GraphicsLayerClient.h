@@ -77,6 +77,10 @@ enum class GraphicsLayerPaintBehavior : uint8_t {
     TonemapHDRToDisplayHeadroom = 1 << 2,
 #endif
 };
+
+using GraphicsLayerPaintingPhases = OptionSet<GraphicsLayerPaintingPhase>;
+using GraphicsLayerPaintBehaviors = OptionSet<GraphicsLayerPaintBehavior>;
+using ContentsFormats = OptionSet<ContentsFormat>;
     
 class GraphicsLayerClient {
 public:

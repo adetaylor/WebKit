@@ -562,6 +562,16 @@
 		82B2FB981FD3E2AB75FAB269 /* FETurbulenceParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 30F051B06E1F24FF5B88D240 /* FETurbulenceParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		C225AD28FF3AEDD439F1CBD3 /* LightSourceParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 8325AC4CE73D1300C42C6938 /* LightSourceParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BA82ABCC815FE398B2CECD1E /* SourceGraphicParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = C638AB6C688AA89AEFE42C7C /* SourceGraphicParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		D892CF2398CC44A1BD6750C8 /* RenderLayerTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E6890CAB6984C8DADA47FC5 /* RenderLayerTree.swift */; };
+		B81A64D3863243669C915029 /* RenderLayerModelObjectLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0A3754B8E64B93891FB7D2 /* RenderLayerModelObjectLayer.swift */; };
+		92594931CE9C4C0BAFCC2F7F /* RenderLayerOwners.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF47DB70303E419DBF9493F4 /* RenderLayerOwners.swift */; };
+		5C8E2A41B7D94F06A3E1C9D2 /* RenderLayerAncestorWalks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3F9B12E6A84C51B0D2E8F4 /* RenderLayerAncestorWalks.swift */; };
+		6E4B1D7A93F25C08A1B2C3D4 /* RenderLayerPaintOrderLists.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A2C5E9F17D34B06C9E8F1A2 /* RenderLayerPaintOrderLists.swift */; };
+		EDF56E5363AA49E0A52859CD /* RenderLayerOwnership.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 415F5D70B7E441B0985D5420 /* RenderLayerOwnership.cpp */; };
+		6B3F927939844494B4AF4772 /* UniqueOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3ABD46149114A2DBD92F5D5 /* UniqueOwner.swift */; };
+		585E272FB5324DA88485EF04 /* RenderLayerBacking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 451C717524E14808B4AA7ADC /* RenderLayerBacking.swift */; };
+		6632A7FE9A2146CAA1AB31C9 /* RenderLayerCompositor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DFE27566A504F7BB14D5F2F /* RenderLayerCompositor.swift */; };
+		9AB8AC29E7094142A8466E5E /* RenderElementLayers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE529DB816954AC98AB8DA68 /* RenderElementLayers.swift */; };
 		07E047C7305A9DB000DFCC4B /* WebCore-Swift.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E047C6305A9DB000DFCC4B /* WebCore-Swift.h */; };
 		07E2C0732C1396FE00BE6743 /* WritingToolsTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E2C0722C1396F600BE6743 /* WritingToolsTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07E2C0772C13A9D100BE6743 /* WritingToolsController.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E2C0742C13A9D100BE6743 /* WritingToolsController.h */; };
@@ -671,7 +681,7 @@
 		0F1A2B3C4D5E6F7080910A01 /* FrameProcessIndicators.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F1A2B3C4D5E6F7080910A02 /* FrameProcessIndicators.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F37F0852202BF9800A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F37F0842202ACB700A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F3DD45012F5EA1B000D9190 /* ShadowBlur.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3DD44E12F5EA1B000D9190 /* ShadowBlur.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		0F3F0E5A157030C3006DA57F /* RenderGeometryMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3F0E58157030C3006DA57F /* RenderGeometryMap.h */; };
+		0F3F0E5A157030C3006DA57F /* RenderGeometryMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3F0E58157030C3006DA57F /* RenderGeometryMap.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F4710AF1DB56AFC002DCEC3 /* DOMRect.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F4710A91DB56AFC002DCEC3 /* DOMRect.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F4710B11DB56AFC002DCEC3 /* DOMRectInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F4710AB1DB56AFC002DCEC3 /* DOMRectInit.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F4710B31DB56AFC002DCEC3 /* DOMRectReadOnly.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F4710AD1DB56AFC002DCEC3 /* DOMRectReadOnly.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -2144,7 +2154,6 @@
 		4958F02F2FC90418008AF649 /* CSSColorImageValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 4958F02D2FC903F3008AF649 /* CSSColorImageValue.h */; };
 		4958F0352FC9049C008AF649 /* StyleColorImage.h in Headers */ = {isa = PBXBuildFile; fileRef = 4958F0332FC90497008AF649 /* StyleColorImage.h */; };
 		4958FE612FCABBA4008AF649 /* CSSLightDarkImageValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 4958FE5F2FCABB9F008AF649 /* CSSLightDarkImageValue.h */; };
-		4969B0F313D0B33F00DF3521 /* HitTestingTransformState.h in Headers */ = {isa = PBXBuildFile; fileRef = 4969B0F113D0B33F00DF3521 /* HitTestingTransformState.h */; };
 		4970AD822AE59BCE00AD3909 /* TransformOperationData.h in Headers */ = {isa = PBXBuildFile; fileRef = 4970AD802AE59BCE00AD3909 /* TransformOperationData.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		4989734B2B663C6700720679 /* StyleScrollbarState.h in Headers */ = {isa = PBXBuildFile; fileRef = 4989734A2B663C6600720679 /* StyleScrollbarState.h */; };
 		499553402B6AD10C00268658 /* RenderSVGResourceGradient.h in Headers */ = {isa = PBXBuildFile; fileRef = 43B632872AC43FB71174B113 /* RenderSVGResourceGradient.h */; };
@@ -4033,6 +4042,7 @@
 		9331BAC929EC982900137ED2 /* InlineIteratorLineBoxInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 9331BAC829EC982800137ED2 /* InlineIteratorLineBoxInlines.h */; };
 		9331BACB29EC9CCB00137ED2 /* InlineIteratorBoxInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 9331BACA29EC9CCA00137ED2 /* InlineIteratorBoxInlines.h */; };
 		9331BACF29EC9FFA00137ED2 /* RenderLayerInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 9331BACE29EC9FF900137ED2 /* RenderLayerInlines.h */; };
+		7B94B369F4A4487A804E59BD /* RenderLayerStyleInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = F9914A6B5F554CD08FA0432C /* RenderLayerStyleInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		9331BAD129EDA36600137ED2 /* StyleBuilderStateInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 9331BAD029EDA36500137ED2 /* StyleBuilderStateInlines.h */; };
 		9331BAD329EDA88200137ED2 /* RenderTableInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 9331BAD229EDA88100137ED2 /* RenderTableInlines.h */; };
 		9331BAD529F02F9000137ED2 /* RenderTableSectionInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 9331BAD429F02F8F00137ED2 /* RenderTableSectionInlines.h */; };
@@ -5601,7 +5611,7 @@
 		BC5EB69F0E81DAEB00B25965 /* StyleMaskLayer.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EB69D0E81DAEB00B25965 /* StyleMaskLayer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC5EB9510E82056B00B25965 /* CounterDirectives.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EB94F0E82056B00B25965 /* CounterDirectives.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC5EB9810E82072500B25965 /* StyleContent.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EB97F0E82072500B25965 /* StyleContent.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		BC5EBA110E823E4700B25965 /* BlendingKeyframes.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EBA0F0E823E4700B25965 /* BlendingKeyframes.h */; };
+		BC5EBA110E823E4700B25965 /* BlendingKeyframes.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EBA0F0E823E4700B25965 /* BlendingKeyframes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC5F9F49FAF7EA4036EF874C /* CSSBorderImageSource.h in Headers */ = {isa = PBXBuildFile; fileRef = BC0D732D2FB6503000952D29 /* CSSBorderImageSource.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC6049CC0DB560C200204739 /* CSSCanvasValue.h in Headers */ = {isa = PBXBuildFile; fileRef = BC6049CB0DB560C200204739 /* CSSCanvasValue.h */; };
 		BC60D6E90D28D83400B9918F /* DOMException.h in Headers */ = {isa = PBXBuildFile; fileRef = BC60D6E80D28D83400B9918F /* DOMException.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -7244,7 +7254,6 @@
 		DED455D86AFC6F27CAED7FD0 /* MaskPainter.h in Headers */ = {isa = PBXBuildFile; fileRef = 67DCCCAC39DA40C5774677AC /* MaskPainter.h */; };
 		37E7335109FD761165A999E6 /* BlockPainter.h in Headers */ = {isa = PBXBuildFile; fileRef = B141E4BFEA47122D7DBF2559 /* BlockPainter.h */; };
 		D5BED17B11A73E7021AA8090 /* TextPaintStyle.h in Headers */ = {isa = PBXBuildFile; fileRef = 273211FAAB837343D620CB8D /* TextPaintStyle.h */; };
-		3A257E33CCFA0AF52DD3E2CF /* PaintTransformScope.h in Headers */ = {isa = PBXBuildFile; fileRef = 43C6D41BC4AA85D259FF1215 /* PaintTransformScope.h */; };
 		E444B0A928C8B19A00CA560E /* BackgroundPainter.h in Headers */ = {isa = PBXBuildFile; fileRef = E444B0A828C8B19900CA560E /* BackgroundPainter.h */; };
 		E44613A20CD6331000FADA75 /* HTMLAudioElement.h in Headers */ = {isa = PBXBuildFile; fileRef = E44613900CD6331000FADA75 /* HTMLAudioElement.h */; };
 		E44613A50CD6331000FADA75 /* HTMLMediaElement.h in Headers */ = {isa = PBXBuildFile; fileRef = E44613930CD6331000FADA75 /* HTMLMediaElement.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -9004,8 +9013,6 @@
 		0F60F32A1DFBB10400416D6C /* CommonVM.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonVM.h; sourceTree = "<group>"; };
 		0F6383DB18615B29003E5DB5 /* ThreadedScrollingTree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ThreadedScrollingTree.cpp; sourceTree = "<group>"; };
 		0F6383DC18615B29003E5DB5 /* ThreadedScrollingTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadedScrollingTree.h; sourceTree = "<group>"; };
-		0F69F2B6228B98FF008D3565 /* LayerOverlapMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LayerOverlapMap.h; sourceTree = "<group>"; };
-		0F69F2B7228B98FF008D3565 /* LayerOverlapMap.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LayerOverlapMap.cpp; sourceTree = "<group>"; };
 		0F6A12BB1A00923700C6DE72 /* DebugPageOverlays.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DebugPageOverlays.cpp; sourceTree = "<group>"; };
 		0F6A12BC1A00923700C6DE72 /* DebugPageOverlays.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DebugPageOverlays.h; sourceTree = "<group>"; };
 		0F6B7077237BC12F0052CA47 /* CSSUnits.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSUnits.h; sourceTree = "<group>"; };
@@ -12658,8 +12665,6 @@
 		4958FE602FCABB9F008AF649 /* CSSLightDarkImageValue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSSLightDarkImageValue.cpp; sourceTree = "<group>"; };
 		4965EA8E2ADF71D5004AE3E0 /* CheckVisibilityOptions.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CheckVisibilityOptions.idl; sourceTree = "<group>"; };
 		4965EA8F2ADF71D5004AE3E0 /* CheckVisibilityOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CheckVisibilityOptions.h; sourceTree = "<group>"; };
-		4969B0F013D0B33F00DF3521 /* HitTestingTransformState.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HitTestingTransformState.cpp; sourceTree = "<group>"; };
-		4969B0F113D0B33F00DF3521 /* HitTestingTransformState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HitTestingTransformState.h; sourceTree = "<group>"; };
 		4970AD7F2AE59BCD00AD3909 /* TransformOperationData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TransformOperationData.cpp; sourceTree = "<group>"; };
 		4970AD802AE59BCE00AD3909 /* TransformOperationData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TransformOperationData.h; sourceTree = "<group>"; };
 		4987053212B58BF9F79B19AD /* UnifiedSource1-header-RenderStyleGetters.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "UnifiedSource1-header-RenderStyleGetters.cpp"; sourceTree = "<group>"; };
@@ -16714,6 +16719,7 @@
 		9331BAC829EC982800137ED2 /* InlineIteratorLineBoxInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InlineIteratorLineBoxInlines.h; sourceTree = "<group>"; };
 		9331BACA29EC9CCA00137ED2 /* InlineIteratorBoxInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InlineIteratorBoxInlines.h; sourceTree = "<group>"; };
 		9331BACE29EC9FF900137ED2 /* RenderLayerInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderLayerInlines.h; sourceTree = "<group>"; };
+		F9914A6B5F554CD08FA0432C /* RenderLayerStyleInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderLayerStyleInlines.h; sourceTree = "<group>"; };
 		9331BAD029EDA36500137ED2 /* StyleBuilderStateInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StyleBuilderStateInlines.h; sourceTree = "<group>"; };
 		9331BAD229EDA88100137ED2 /* RenderTableInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderTableInlines.h; sourceTree = "<group>"; };
 		9331BAD429F02F8F00137ED2 /* RenderTableSectionInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderTableSectionInlines.h; sourceTree = "<group>"; };
@@ -21303,6 +21309,16 @@
 		BCEA4836097D93020094C9E4 /* RenderImage.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = RenderImage.cpp; sourceTree = "<group>"; };
 		BCEA4837097D93020094C9E4 /* RenderImage.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = RenderImage.h; sourceTree = "<group>"; };
 		BCEA483A097D93020094C9E4 /* RenderLayer.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = RenderLayer.cpp; sourceTree = "<group>"; };
+		9E6890CAB6984C8DADA47FC5 /* RenderLayerTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderLayerTree.swift; sourceTree = "<group>"; };
+		AA0A3754B8E64B93891FB7D2 /* RenderLayerModelObjectLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderLayerModelObjectLayer.swift; sourceTree = "<group>"; };
+		FF47DB70303E419DBF9493F4 /* RenderLayerOwners.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderLayerOwners.swift; sourceTree = "<group>"; };
+		7D3F9B12E6A84C51B0D2E8F4 /* RenderLayerAncestorWalks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderLayerAncestorWalks.swift; sourceTree = "<group>"; };
+		8A2C5E9F17D34B06C9E8F1A2 /* RenderLayerPaintOrderLists.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderLayerPaintOrderLists.swift; sourceTree = "<group>"; };
+		415F5D70B7E441B0985D5420 /* RenderLayerOwnership.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RenderLayerOwnership.cpp; sourceTree = "<group>"; };
+		C3ABD46149114A2DBD92F5D5 /* UniqueOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniqueOwner.swift; sourceTree = "<group>"; };
+		451C717524E14808B4AA7ADC /* RenderLayerBacking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderLayerBacking.swift; sourceTree = "<group>"; };
+		9DFE27566A504F7BB14D5F2F /* RenderLayerCompositor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderLayerCompositor.swift; sourceTree = "<group>"; };
+		CE529DB816954AC98AB8DA68 /* RenderElementLayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderElementLayers.swift; sourceTree = "<group>"; };
 		BCEA483B097D93020094C9E4 /* RenderLayer.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = RenderLayer.h; sourceTree = "<group>"; };
 		BCEA4840097D93020094C9E4 /* RenderObject.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RenderObject.cpp; sourceTree = "<group>"; };
 		BCEA4841097D93020094C9E4 /* RenderObject.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = RenderObject.h; sourceTree = "<group>"; };
@@ -23446,7 +23462,6 @@
 		6A8FE8033371680FCD6A824D /* BlockPainter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BlockPainter.cpp; sourceTree = "<group>"; };
 		B141E4BFEA47122D7DBF2559 /* BlockPainter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BlockPainter.h; sourceTree = "<group>"; };
 		273211FAAB837343D620CB8D /* TextPaintStyle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TextPaintStyle.h; sourceTree = "<group>"; };
-		43C6D41BC4AA85D259FF1215 /* PaintTransformScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PaintTransformScope.h; sourceTree = "<group>"; };
 		E444B0A828C8B19900CA560E /* BackgroundPainter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BackgroundPainter.h; sourceTree = "<group>"; };
 		E444B0AA28C8B1A800CA560E /* BackgroundPainter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BackgroundPainter.cpp; sourceTree = "<group>"; };
 		E4451077202C7E0100657D33 /* CompiledSelector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CompiledSelector.h; sourceTree = "<group>"; };
@@ -28800,7 +28815,6 @@
 				0885067E11DA045B00182B98 /* PaintPhase.h */,
 				E4C91A0F1802343900A17F6D /* PaintTextStyle.cpp */,
 				E4C91A0D1802343100A17F6D /* PaintTextStyle.h */,
-				43C6D41BC4AA85D259FF1215 /* PaintTransformScope.h */,
 				E440DF5726EB53EA004AF06B /* TextBoxPainter.cpp */,
 				E440DF5426EB53DF004AF06B /* TextBoxPainter.h */,
 				582DE3221C30C85400BE02A8 /* TextDecorationPainter.cpp */,
@@ -43308,8 +43322,6 @@
 				0FC692EE2585C96A0098E3F9 /* GridLayoutFunctions.h */,
 				E12DE7151E4B748700F9ACCF /* GridTrackSizingAlgorithm.cpp */,
 				E12DE7161E4B748700F9ACCF /* GridTrackSizingAlgorithm.h */,
-				4969B0F013D0B33F00DF3521 /* HitTestingTransformState.cpp */,
-				4969B0F113D0B33F00DF3521 /* HitTestingTransformState.h */,
 				2D8287F416E4A0380086BD00 /* HitTestLocation.cpp */,
 				2D8287F516E4A0380086BD00 /* HitTestLocation.h */,
 				BCA332A52F5B4B6B0013DC4F /* HitTestRequest.cpp */,
@@ -43323,8 +43335,6 @@
 				0FEC120B22BF2CC7004E9D35 /* LayerAncestorClippingStack.cpp */,
 				0FEC120922BF2CC7004E9D35 /* LayerAncestorClippingStack.h */,
 				580371631A66F1D300BAF519 /* LayerFragment.h */,
-				0F69F2B7228B98FF008D3565 /* LayerOverlapMap.cpp */,
-				0F69F2B6228B98FF008D3565 /* LayerOverlapMap.h */,
 				9BD1F6811F046310001C9CDD /* LayoutDisallowedScope.cpp */,
 				9BD1F6801F0462B8001C9CDD /* LayoutDisallowedScope.h */,
 				A120ACA113F9984600FE4AC7 /* LayoutRepainter.cpp */,
@@ -43418,6 +43428,16 @@
 				08F2F0081213E61700DCEC48 /* RenderImageResource.h */,
 				B595FF461824CEE300FF51CD /* RenderIterator.h */,
 				BCEA483A097D93020094C9E4 /* RenderLayer.cpp */,
+				9E6890CAB6984C8DADA47FC5 /* RenderLayerTree.swift */,
+				AA0A3754B8E64B93891FB7D2 /* RenderLayerModelObjectLayer.swift */,
+				FF47DB70303E419DBF9493F4 /* RenderLayerOwners.swift */,
+				7D3F9B12E6A84C51B0D2E8F4 /* RenderLayerAncestorWalks.swift */,
+				8A2C5E9F17D34B06C9E8F1A2 /* RenderLayerPaintOrderLists.swift */,
+				415F5D70B7E441B0985D5420 /* RenderLayerOwnership.cpp */,
+				C3ABD46149114A2DBD92F5D5 /* UniqueOwner.swift */,
+				9DFE27566A504F7BB14D5F2F /* RenderLayerCompositor.swift */,
+				451C717524E14808B4AA7ADC /* RenderLayerBacking.swift */,
+				CE529DB816954AC98AB8DA68 /* RenderElementLayers.swift */,
 				BCEA483B097D93020094C9E4 /* RenderLayer.h */,
 				0F580CFC0F12DE9B0051D689 /* RenderLayerBacking.cpp */,
 				0F580CFB0F12DE9B0051D689 /* RenderLayerBacking.h */,
@@ -43427,6 +43447,7 @@
 				0F53FB8B213B768400C40D34 /* RenderLayerFilters.cpp */,
 				0F53FB89213B768400C40D34 /* RenderLayerFilters.h */,
 				9331BACE29EC9FF900137ED2 /* RenderLayerInlines.h */,
+				F9914A6B5F554CD08FA0432C /* RenderLayerStyleInlines.h */,
 				3C244FE5A375AC633F88BE6F /* RenderLayerModelObject.cpp */,
 				3C244FE4A375AC633F88BE6F /* RenderLayerModelObject.h */,
 				BC913ABD2EDF542D009E3349 /* RenderLayerModelObjectInlines.h */,
@@ -47202,7 +47223,6 @@
 				BC94D1540C275C8B006BC617 /* History.h in Headers */,
 				97DCE20210807C750057D394 /* HistoryController.h in Headers */,
 				51741D110B07259A00ED442C /* HistoryItem.h in Headers */,
-				4969B0F313D0B33F00DF3521 /* HitTestingTransformState.h in Headers */,
 				2D8287F716E4A0380086BD00 /* HitTestLocation.h in Headers */,
 				930908910AF7EDE40081DF01 /* HitTestRequest.h in Headers */,
 				9307F1D80AF2D59000DBA31A /* HitTestResult.h in Headers */,
@@ -49196,7 +49216,6 @@
 				0885068011DA045B00182B98 /* PaintPhase.h in Headers */,
 				4B1E13EB217937B30042CF98 /* PaintRenderingContext2D.h in Headers */,
 				E4C91A0E1802343100A17F6D /* PaintTextStyle.h in Headers */,
-				3A257E33CCFA0AF52DD3E2CF /* PaintTransformScope.h in Headers */,
 				4B6B5CC02164386400603817 /* PaintWorkletGlobalScope.h in Headers */,
 				FD3160A312B026F700C1A359 /* Panner.h in Headers */,
 				FD31601A12B0267600C1A359 /* PannerNode.h in Headers */,
@@ -49665,6 +49684,7 @@
 				0F580CFF0F12DE9B0051D689 /* RenderLayerBacking.h in Headers */,
 				0F580CFD0F12DE9B0051D689 /* RenderLayerCompositor.h in Headers */,
 				9331BACF29EC9FFA00137ED2 /* RenderLayerInlines.h in Headers */,
+				7B94B369F4A4487A804E59BD /* RenderLayerStyleInlines.h in Headers */,
 				3C244FEAA375AC633F88BE6F /* RenderLayerModelObject.h in Headers */,
 				0F53FB84213B7A6400C40D34 /* RenderLayerScrollableArea.h in Headers */,
 				3D4E6A98F12B0C85A2C173D6 /* RenderLayerSVGAdditions.h in Headers */,
@@ -52716,6 +52736,16 @@
 				E2231B01039B2D98A13D21C7 /* WebAuthnPin.swift in Sources */,
 				91A6735B735F6CEFCDCB0084 /* WebAuthnApdu.swift in Sources */,
 				F4A700189418780F7B636395 /* WebAuthnCBOR.swift in Sources */,
+				D892CF2398CC44A1BD6750C8 /* RenderLayerTree.swift in Sources */,
+				B81A64D3863243669C915029 /* RenderLayerModelObjectLayer.swift in Sources */,
+				92594931CE9C4C0BAFCC2F7F /* RenderLayerOwners.swift in Sources */,
+				5C8E2A41B7D94F06A3E1C9D2 /* RenderLayerAncestorWalks.swift in Sources */,
+				6E4B1D7A93F25C08A1B2C3D4 /* RenderLayerPaintOrderLists.swift in Sources */,
+				EDF56E5363AA49E0A52859CD /* RenderLayerOwnership.cpp in Sources */,
+				6B3F927939844494B4AF4772 /* UniqueOwner.swift in Sources */,
+				6632A7FE9A2146CAA1AB31C9 /* RenderLayerCompositor.swift in Sources */,
+				585E272FB5324DA88485EF04 /* RenderLayerBacking.swift in Sources */,
+				9AB8AC29E7094142A8466E5E /* RenderElementLayers.swift in Sources */,
 				C1692DD223D23ABD006E88F7 /* SystemBattery.mm in Sources */,
 				329C0C2328BD96D600F187D2 /* TagName.cpp in Sources */,
 				CE88EE262414467B007F29C2 /* TextAlternativeWithRange.mm in Sources */,

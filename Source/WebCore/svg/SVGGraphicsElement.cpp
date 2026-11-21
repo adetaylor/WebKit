@@ -304,7 +304,7 @@ void SVGGraphicsElement::invalidateResourceImageBuffersIfNeeded()
     if (!document().settings().layerBasedSVGEngineEnabled())
         return;
     if (CheckedPtr svgRenderer = dynamicDowncast<RenderLayerModelObject>(renderer())) {
-        CheckedPtr layer = svgRenderer->enclosingLayer();
+        auto* layer = svgRenderer->enclosingLayer();
         if (!layer)
             return;
         if (CheckedPtr container = layer->enclosingHiddenOrResourceContainerForSVG()) {

@@ -544,6 +544,7 @@ public:
     const DragController& dragController() const LIFETIME_BOUND { return m_dragController.get(); }
 #endif
     FocusController& focusController() const { return m_focusController; }
+    bool focusControllerIsActiveForSwift() const;
 #if ENABLE(CONTEXT_MENUS)
     ContextMenuController& contextMenuController() LIFETIME_BOUND { return m_contextMenuController.get(); }
     const ContextMenuController& contextMenuController() const LIFETIME_BOUND { return m_contextMenuController.get(); }

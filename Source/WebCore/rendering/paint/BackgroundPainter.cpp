@@ -562,7 +562,7 @@ template<typename Layer> void BackgroundPainter::paintFillLayerImpl(const Color&
         // Multiline inline boxes paint like the image was one long strip spanning lines. The backgroundImageStrip is this fictional rectangle.
         auto imageRect = backgroundImageStrip.isEmpty() ? scrolledPaintRect : backgroundImageStrip;
         auto paintOffset = backgroundImageStrip.isEmpty() ? rect.location() : backgroundImageStrip.location();
-        auto geometry = calculateFillLayerImageGeometry(m_renderer, m_paintInfo.paintContainer, layer.layer, layer.zoom, paintOffset, imageRect, m_overrideOrigin);
+        auto geometry = calculateFillLayerImageGeometry(m_renderer, m_paintInfo.paintContainer(), layer.layer, layer.zoom, paintOffset, imageRect, m_overrideOrigin);
 
         auto& clientForBackgroundImage = backgroundObject ? *backgroundObject : m_renderer;
 
@@ -674,7 +674,7 @@ template<typename Layer> BackgroundImageGeometry BackgroundPainter::calculateFil
     LayoutSize positioningAreaSize;
     // Determine the background positioning area and set destination rect to the background painting area.
     // Destination rect will be adjusted later if the background is non-repeating.
-    CheckedPtr enclosingLayer = renderer.enclosingLayer();
+    auto* enclosingLayer = renderer.enclosingLayer();
     bool isTransformed = renderer.isTransformed() || (enclosingLayer && enclosingLayer->hasTransformedAncestor());
     bool fixedAttachment = fillLayer.attachment() == FillAttachment::FixedBackground && !isTransformed;
 

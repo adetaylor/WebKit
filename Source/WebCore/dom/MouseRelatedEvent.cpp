@@ -253,7 +253,7 @@ void MouseRelatedEvent::computeRelativePosition()
         node = node->parentNode();
 
     if (node) {
-        CheckedPtr layer = node->renderer()->enclosingLayer();
+        auto* layer = node->renderer()->enclosingLayer();
         while (layer && !layer->isSelfPaintingLayer())
             layer = layer->parent();
 

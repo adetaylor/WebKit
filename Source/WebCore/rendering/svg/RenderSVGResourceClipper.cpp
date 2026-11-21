@@ -223,7 +223,7 @@ void RenderSVGResourceClipper::applyMaskClipping(PaintInfo& paintInfo, const Ren
         context.setCompositeOperation(CompositeOperator::SourceOver);
     }
 
-    protect(layer())->paintResourceLayerForSVG(context, contentTransform);
+    layer()->paintResourceLayerForSVG(context, contentTransform);
 
     if (pushTransparencyLayer)
         context.endTransparencyLayer();
@@ -330,7 +330,7 @@ void RenderSVGResourceClipper::styleDidChange(Style::Difference diff, const Styl
 
     // Ensure that descendants with layers are rooted within our layer.
     if (hasLayer())
-        protect(layer())->setIsOpportunisticStackingContext(true);
+        layer()->setIsOpportunisticStackingContext(true);
 }
 
 void RenderSVGResourceClipper::clearCacheBeforeLayout()

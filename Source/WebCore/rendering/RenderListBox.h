@@ -50,9 +50,9 @@ public:
     // CheckedPtr interface
     uint32_t checkedPtrCount() const final { return RenderBlockFlow::checkedPtrCount(); }
     uint32_t checkedPtrCountWithoutThreadCheck() const final { return RenderBlockFlow::checkedPtrCountWithoutThreadCheck(); }
-    void incrementCheckedPtrCount() const final { RenderBlockFlow::incrementCheckedPtrCount(); }
-    void decrementCheckedPtrCount() const final { RenderBlockFlow::decrementCheckedPtrCount(); }
-    void setDidBeginCheckedPtrDeletion() final { RenderBlockFlow::setDidBeginCheckedPtrDeletion(); }
+    SWIFT_UNSAFE void incrementCheckedPtrCount() const final { RenderBlockFlow::incrementCheckedPtrCount(); }
+    SWIFT_UNSAFE void decrementCheckedPtrCount() const final { RenderBlockFlow::decrementCheckedPtrCount(); }
+    SWIFT_UNSAFE void setDidBeginCheckedPtrDeletion() final { RenderBlockFlow::setDidBeginCheckedPtrDeletion(); }
 
     NODELETE HTMLSelectElement& selectElement() const;
 
