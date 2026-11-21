@@ -47,6 +47,8 @@ public:
 
     WEBCORE_EXPORT void updateConstraints(const StickyPositionViewportConstraints&);
     const StickyPositionViewportConstraints& viewportConstraints() const LIFETIME_BOUND { return m_constraints; }
+    // Swift imports the reference above only as a pointer, so it reads a copy.
+    StickyPositionViewportConstraints viewportConstraintsCopy() const { return m_constraints; }
 
     const LayerRepresentation& viewportAnchorLayer() const LIFETIME_BOUND { return m_viewportAnchorLayer; }
     WEBCORE_EXPORT void setViewportAnchorLayer(const LayerRepresentation&);

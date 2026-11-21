@@ -47,6 +47,8 @@ public:
 
     WEBCORE_EXPORT void updateConstraints(const FixedPositionViewportConstraints&);
     const FixedPositionViewportConstraints& viewportConstraints() const LIFETIME_BOUND { return m_constraints; }
+    // Swift imports the reference above only as a pointer, so it reads a copy.
+    FixedPositionViewportConstraints viewportConstraintsCopy() const { return m_constraints; }
 
 private:
     WEBCORE_EXPORT ScrollingStateFixedNode(ScrollingNodeID, Vector<Ref<ScrollingStateNode>>&&, OptionSet<ScrollingStateNodeProperty>, std::optional<PlatformLayerIdentifier>, FixedPositionViewportConstraints&&);
