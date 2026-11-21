@@ -208,6 +208,13 @@ namespace WebCore {
 
 WEBCORE_LOG_CHANNELS(DECLARE_LOG_CHANNEL)
 
+// Lets Swift name a channel, e.g. WebCore.LogChannel.Scrolling(), since it cannot use LOG_CHANNEL.
+struct LogChannel {
+#define DEFINE_LOG_CHANNEL_ACCESSOR(name) static WTFLogChannel& name() { return LOG_CHANNEL(name); }
+    WEBCORE_LOG_CHANNELS(DEFINE_LOG_CHANNEL_ACCESSOR)
+#undef DEFINE_LOG_CHANNEL_ACCESSOR
+};
+
 #endif // !LOG_DISABLED || !RELEASE_LOG_DISABLED
 
 } // namespace WebCore
