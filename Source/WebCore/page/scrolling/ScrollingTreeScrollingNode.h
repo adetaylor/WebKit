@@ -106,15 +106,15 @@ public:
     SWIFT_UNSAFE virtual void serviceScrollAnimation(MonotonicTime);
 
     // These are imperative; they adjust the scrolling layers.
-    SWIFT_UNSAFE void scrollTo(const FloatPoint&, ScrollType = ScrollType::User, ScrollClamping = ScrollClamping::Clamped);
-    SWIFT_UNSAFE void scrollBy(const FloatSize&, ScrollClamping = ScrollClamping::Clamped);
+    SWIFT_UNSAFE void scrollTo(FloatPoint, ScrollType = ScrollType::User, ScrollClamping = ScrollClamping::Clamped);
+    SWIFT_UNSAFE void scrollBy(FloatSize, ScrollClamping = ScrollClamping::Clamped);
 
     SWIFT_UNSAFE void handleScrollPositionRequests(const ScrollRequestData&);
 
     SWIFT_UNSAFE void handleKeyboardScrollRequest(const RequestedKeyboardScrollData&);
     SWIFT_UNSAFE void requestKeyboardScroll(const RequestedKeyboardScrollData&);
 
-    SWIFT_UNSAFE void wasScrolledByDelegatedScrolling(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport = { }, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync);
+    SWIFT_UNSAFE void wasScrolledByDelegatedScrolling(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport = { }, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync);
     
 #if ENABLE(SCROLLING_THREAD)
     OptionSet<SynchronousScrollingReason> synchronousScrollingReasons() const { return m_synchronousScrollingReasons; }
@@ -181,17 +181,17 @@ public:
 protected:
     ScrollingTreeScrollingNode(ScrollingTree&, ScrollingNodeType, ScrollingNodeID);
 
-    FloatPoint clampScrollPosition(const FloatPoint&) const;
+    FloatPoint clampScrollPosition(FloatPoint) const;
     
     virtual void willDoProgrammaticScroll(const FloatPoint&) { }
     
-    FloatPoint adjustedScrollPosition(const FloatPoint&, ScrollClamping = ScrollClamping::Clamped) const;
+    FloatPoint adjustedScrollPosition(FloatPoint, ScrollClamping = ScrollClamping::Clamped) const;
 
     void didStopProgrammaticScroll();
 
     virtual void currentScrollPositionChanged(ScrollType, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync);
     virtual void updateViewportForCurrentScrollPosition(std::optional<FloatRect> = { }) { }
-    virtual bool scrollPositionAndLayoutViewportMatch(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport);
+    virtual bool scrollPositionAndLayoutViewportMatch(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport);
 
     virtual void repositionScrollingLayers() { }
     virtual void repositionRelatedLayers() { }

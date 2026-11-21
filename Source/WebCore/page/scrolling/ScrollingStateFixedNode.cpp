@@ -82,7 +82,7 @@ void ScrollingStateFixedNode::updateConstraints(const FixedPositionViewportConst
     setPropertyChanged(Property::ViewportConstraints);
 }
 
-void ScrollingStateFixedNode::reconcileLayerPositionForViewportRect(const LayoutRect& viewportRect, ScrollingLayerPositionAction action)
+void ScrollingStateFixedNode::reconcileLayerPositionForViewportRect(LayoutRect viewportRect, ScrollingLayerPositionAction action)
 {
     auto position = m_constraints.viewportRelativeLayerPosition(viewportRect);
     if (layer().representsGraphicsLayer()) {

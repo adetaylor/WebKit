@@ -211,7 +211,7 @@ WheelEventHandlingResult ScrollingTreeScrollingNode::handleWheelEvent(const Plat
     return WheelEventHandlingResult::unhandled();
 }
 
-FloatPoint ScrollingTreeScrollingNode::clampScrollPosition(const FloatPoint& scrollPosition) const
+FloatPoint ScrollingTreeScrollingNode::clampScrollPosition(FloatPoint scrollPosition) const
 {
     return scrollPosition.constrainedBetween(minimumScrollPosition(), maximumScrollPosition());
 }
@@ -416,7 +416,7 @@ void ScrollingTreeScrollingNode::handleScrollPositionRequest(const RequestedScro
     scrollTo(destinationPosition, requestedScrollData.scrollType, requestedScrollData.clamping);
 }
 
-FloatPoint ScrollingTreeScrollingNode::adjustedScrollPosition(const FloatPoint& scrollPosition, ScrollClamping clamping) const
+FloatPoint ScrollingTreeScrollingNode::adjustedScrollPosition(FloatPoint scrollPosition, ScrollClamping clamping) const
 {
     auto adjustedPosition = m_delegate ? m_delegate->adjustedScrollPosition(scrollPosition) : scrollPosition;
     if (clamping == ScrollClamping::Clamped)
@@ -425,12 +425,12 @@ FloatPoint ScrollingTreeScrollingNode::adjustedScrollPosition(const FloatPoint& 
     return adjustedPosition;
 }
 
-void ScrollingTreeScrollingNode::scrollBy(const FloatSize& delta, ScrollClamping clamp)
+void ScrollingTreeScrollingNode::scrollBy(FloatSize delta, ScrollClamping clamp)
 {
     scrollTo(currentScrollPosition() + delta, ScrollType::User, clamp);
 }
 
-void ScrollingTreeScrollingNode::scrollTo(const FloatPoint& position, ScrollType scrollType, ScrollClamping clamp)
+void ScrollingTreeScrollingNode::scrollTo(FloatPoint position, ScrollType scrollType, ScrollClamping clamp)
 {
     if (position == m_currentScrollPosition)
         return;
@@ -458,7 +458,7 @@ void ScrollingTreeScrollingNode::currentScrollPositionChanged(ScrollType, Scroll
     scrollingTree()->scrollingTreeNodeDidScroll(*this, action);
 }
 
-bool ScrollingTreeScrollingNode::scrollPositionAndLayoutViewportMatch(const FloatPoint& position, std::optional<FloatRect>)
+bool ScrollingTreeScrollingNode::scrollPositionAndLayoutViewportMatch(FloatPoint position, std::optional<FloatRect>)
 {
     return position == m_currentScrollPosition;
 }
@@ -469,7 +469,7 @@ void ScrollingTreeScrollingNode::applyLayerPositions()
     repositionRelatedLayers();
 }
 
-void ScrollingTreeScrollingNode::wasScrolledByDelegatedScrolling(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport, ScrollingLayerPositionAction scrollingLayerPositionAction)
+void ScrollingTreeScrollingNode::wasScrolledByDelegatedScrolling(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport, ScrollingLayerPositionAction scrollingLayerPositionAction)
 {
     bool scrollPositionChanged = !scrollPositionAndLayoutViewportMatch(position, overrideLayoutViewport);
     if (!scrollPositionChanged && scrollingLayerPositionAction != ScrollingLayerPositionAction::Set)

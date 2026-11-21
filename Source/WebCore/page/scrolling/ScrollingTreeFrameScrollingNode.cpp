@@ -106,12 +106,12 @@ bool ScrollingTreeFrameScrollingNode::commitStateBeforeChildren(const ScrollingS
     return true;
 }
 
-bool ScrollingTreeFrameScrollingNode::scrollPositionAndLayoutViewportMatch(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport)
+bool ScrollingTreeFrameScrollingNode::scrollPositionAndLayoutViewportMatch(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport)
 {
     return position == currentScrollPosition() && (!overrideLayoutViewport || overrideLayoutViewport.value() == m_layoutViewport);
 }
 
-FloatRect ScrollingTreeFrameScrollingNode::layoutViewportForScrollPosition(const FloatPoint& visibleContentOrigin, float scale, ScrollBehaviorForFixedElements fixedBehavior) const
+FloatRect ScrollingTreeFrameScrollingNode::layoutViewportForScrollPosition(FloatPoint visibleContentOrigin, float scale, ScrollBehaviorForFixedElements fixedBehavior) const
 {
     FloatSize visualViewportSize = m_overrideVisualViewportSize.value_or(scrollableAreaSize());
     FloatRect visibleContentRect(visibleContentOrigin, visualViewportSize);
@@ -171,13 +171,13 @@ FloatSize ScrollingTreeFrameScrollingNode::sizeForVisibleContent() const
     return m_sizeForVisibleContent;
 }
 
-FloatSize ScrollingTreeFrameScrollingNode::viewToContentsOffset(const FloatPoint& scrollPosition) const
+FloatSize ScrollingTreeFrameScrollingNode::viewToContentsOffset(FloatPoint scrollPosition) const
 {
     auto obscuredContentInsets = this->obscuredContentInsets();
     return toFloatSize(scrollPosition) - FloatSize(insetForLeftScrollbarSpace() + obscuredContentInsets.left(), headerHeight() + obscuredContentInsets.top());
 }
 
-FloatPoint ScrollingTreeFrameScrollingNode::viewToContentsPoint(const FloatPoint& pointInViewCoordinates, const FloatPoint& scrollPosition) const
+FloatPoint ScrollingTreeFrameScrollingNode::viewToContentsPoint(FloatPoint pointInViewCoordinates, FloatPoint scrollPosition) const
 {
     // The insets and the header aren't zoomed, so they come off before undoing the zoom. The scroll position
     // is already in contents coordinates, so it goes on after. A no-op at scale 1.

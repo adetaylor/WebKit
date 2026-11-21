@@ -58,10 +58,10 @@ private:
     ScrollingStateStickyNode(ScrollingStateTree&, ScrollingNodeID);
     ScrollingStateStickyNode(const ScrollingStateStickyNode&, ScrollingStateTree&);
 
-    FloatPoint computeClippingLayerPosition(const LayoutRect& viewportRect) const;
-    FloatPoint computeAnchorLayerPosition(const LayoutRect& viewportRect) const;
-    void reconcileLayerPositionForViewportRect(const LayoutRect& viewportRect, ScrollingLayerPositionAction) final;
-    FloatSize scrollDeltaSinceLastCommit(const LayoutRect& viewportRect) const;
+    FloatPoint computeClippingLayerPosition(LayoutRect viewportRect) const;
+    FloatPoint computeAnchorLayerPosition(LayoutRect viewportRect) const;
+    void reconcileLayerPositionForViewportRect(LayoutRect viewportRect, ScrollingLayerPositionAction) final;
+    FloatSize scrollDeltaSinceLastCommit(LayoutRect viewportRect) const;
 
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const final;
     OptionSet<ScrollingStateNode::Property> applicableProperties() const final;

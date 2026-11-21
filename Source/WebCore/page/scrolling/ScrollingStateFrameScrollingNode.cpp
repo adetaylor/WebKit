@@ -275,7 +275,7 @@ void ScrollingStateFrameScrollingNode::setScrollBehaviorForFixedElements(ScrollB
     setPropertyChanged(Property::BehaviorForFixedElements);
 }
 
-void ScrollingStateFrameScrollingNode::setLayoutViewport(const FloatRect& r)
+void ScrollingStateFrameScrollingNode::setLayoutViewport(FloatRect r)
 {
     if (m_layoutViewport == r)
         return;
@@ -284,7 +284,7 @@ void ScrollingStateFrameScrollingNode::setLayoutViewport(const FloatRect& r)
     setPropertyChanged(Property::LayoutViewport);
 }
 
-void ScrollingStateFrameScrollingNode::setSizeForVisibleContent(const FloatSize& size)
+void ScrollingStateFrameScrollingNode::setSizeForVisibleContent(FloatSize size)
 {
     if (m_sizeForVisibleContent == size)
         return;
@@ -293,7 +293,7 @@ void ScrollingStateFrameScrollingNode::setSizeForVisibleContent(const FloatSize&
     setPropertyChanged(Property::SizeForVisibleContent);
 }
 
-void ScrollingStateFrameScrollingNode::setMinLayoutViewportOrigin(const FloatPoint& p)
+void ScrollingStateFrameScrollingNode::setMinLayoutViewportOrigin(FloatPoint p)
 {
     if (m_minLayoutViewportOrigin == p)
         return;
@@ -302,7 +302,7 @@ void ScrollingStateFrameScrollingNode::setMinLayoutViewportOrigin(const FloatPoi
     setPropertyChanged(Property::MinLayoutViewportOrigin);
 }
 
-void ScrollingStateFrameScrollingNode::setMaxLayoutViewportOrigin(const FloatPoint& p)
+void ScrollingStateFrameScrollingNode::setMaxLayoutViewportOrigin(FloatPoint p)
 {
     if (m_maxLayoutViewportOrigin == p)
         return;
@@ -338,7 +338,7 @@ void ScrollingStateFrameScrollingNode::setFooterHeight(int footerHeight)
     setPropertyChanged(Property::FooterHeight);
 }
 
-void ScrollingStateFrameScrollingNode::setObscuredContentInsets(const FloatBoxExtent& obscuredContentInsets)
+void ScrollingStateFrameScrollingNode::setObscuredContentInsets(FloatBoxExtent obscuredContentInsets)
 {
     if (m_obscuredContentInsets == obscuredContentInsets)
         return;

@@ -46,11 +46,11 @@ public:
     
     bool visualViewportIsSmallerThanLayoutViewport() const { return m_visualViewportIsSmallerThanLayoutViewport; }
 
-    NODELETE FloatSize viewToContentsOffset(const FloatPoint& scrollPosition) const;
+    NODELETE FloatSize viewToContentsOffset(FloatPoint scrollPosition) const;
 
     // Converts a point in the view coordinates events arrive in to the unscaled contents coordinates the tree
     // hit-tests in. viewToContentsOffset() can't undo the zoom on its own.
-    NODELETE FloatPoint viewToContentsPoint(const FloatPoint& pointInViewCoordinates, const FloatPoint& scrollPosition) const;
+    NODELETE FloatPoint viewToContentsPoint(FloatPoint pointInViewCoordinates, FloatPoint scrollPosition) const;
 
     FloatRect layoutViewport() const { return m_layoutViewport; };
     void setLayoutViewport(const FloatRect& r) { m_layoutViewport = r; };
@@ -97,8 +97,8 @@ protected:
 
 private:
     void updateViewportForCurrentScrollPosition(std::optional<FloatRect>) override;
-    NODELETE bool scrollPositionAndLayoutViewportMatch(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport) override;
-    FloatRect layoutViewportForScrollPosition(const FloatPoint&, float scale, ScrollBehaviorForFixedElements = ScrollBehaviorForFixedElements::StickToDocumentBounds) const;
+    NODELETE bool scrollPositionAndLayoutViewportMatch(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport) override;
+    FloatRect layoutViewportForScrollPosition(FloatPoint, float scale, ScrollBehaviorForFixedElements = ScrollBehaviorForFixedElements::StickToDocumentBounds) const;
 
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
 

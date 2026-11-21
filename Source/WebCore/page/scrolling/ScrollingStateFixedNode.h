@@ -55,7 +55,7 @@ private:
     ScrollingStateFixedNode(ScrollingStateTree&, ScrollingNodeID);
     ScrollingStateFixedNode(const ScrollingStateFixedNode&, ScrollingStateTree&);
 
-    void reconcileLayerPositionForViewportRect(const LayoutRect& viewportRect, ScrollingLayerPositionAction) final;
+    void reconcileLayerPositionForViewportRect(LayoutRect viewportRect, ScrollingLayerPositionAction) final;
 
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const final;
     OptionSet<ScrollingStateNode::Property> applicableProperties() const final;

@@ -142,7 +142,7 @@ bool ScrollingTreeStickyNode::isCurrentlySticking() const
     return constrainingRect && isCurrentlySticking(*constrainingRect);
 }
 
-bool ScrollingTreeStickyNode::isCurrentlySticking(const FloatRect& constrainingRect) const
+bool ScrollingTreeStickyNode::isCurrentlySticking(FloatRect constrainingRect) const
 {
     auto stickyOffset = m_constraints.computeStickyOffset(constrainingRect);
     auto stickyRect = m_constraints.stickyBoxRect();

@@ -58,16 +58,16 @@ public:
     WEBCORE_EXPORT void setScrollBehaviorForFixedElements(ScrollBehaviorForFixedElements);
 
     FloatRect layoutViewport() const { return m_layoutViewport; };
-    WEBCORE_EXPORT void setLayoutViewport(const FloatRect&);
+    WEBCORE_EXPORT void setLayoutViewport(FloatRect);
 
     FloatSize sizeForVisibleContent() const { return m_sizeForVisibleContent; }
-    WEBCORE_EXPORT void setSizeForVisibleContent(const FloatSize&);
+    WEBCORE_EXPORT void setSizeForVisibleContent(FloatSize);
 
     FloatPoint minLayoutViewportOrigin() const { return m_minLayoutViewportOrigin; }
-    WEBCORE_EXPORT void setMinLayoutViewportOrigin(const FloatPoint&);
+    WEBCORE_EXPORT void setMinLayoutViewportOrigin(FloatPoint);
 
     FloatPoint maxLayoutViewportOrigin() const { return m_maxLayoutViewportOrigin; }
-    WEBCORE_EXPORT void setMaxLayoutViewportOrigin(const FloatPoint&);
+    WEBCORE_EXPORT void setMaxLayoutViewportOrigin(FloatPoint);
 
     std::optional<FloatSize> overrideVisualViewportSize() const { return m_overrideVisualViewportSize; };
     WEBCORE_EXPORT void setOverrideVisualViewportSize(std::optional<FloatSize>);
@@ -79,7 +79,7 @@ public:
     WEBCORE_EXPORT void setFooterHeight(int);
 
     FloatBoxExtent obscuredContentInsets() const { return m_obscuredContentInsets; }
-    WEBCORE_EXPORT void setObscuredContentInsets(const FloatBoxExtent&);
+    WEBCORE_EXPORT void setObscuredContentInsets(FloatBoxExtent);
 
     // The horizontal space taken up by a vertical scrollbar placed on the left, which the contents are shifted right by.
     int insetForLeftScrollbarSpace() const { return m_insetForLeftScrollbarSpace; }

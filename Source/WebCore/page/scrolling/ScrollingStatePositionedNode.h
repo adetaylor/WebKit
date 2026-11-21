@@ -50,7 +50,7 @@ public:
     const Vector<ScrollingNodeID>& relatedOverflowScrollingNodes() const LIFETIME_BOUND { return m_relatedOverflowScrollingNodes; }
     WEBCORE_EXPORT void setRelatedOverflowScrollingNodes(Vector<ScrollingNodeID>&&);
 
-    WEBCORE_EXPORT void updateConstraints(const AbsolutePositionConstraints&);
+    WEBCORE_EXPORT void updateConstraints(AbsolutePositionConstraints);
     const AbsolutePositionConstraints& layoutConstraints() const LIFETIME_BOUND { return m_constraints; }
 
 private:

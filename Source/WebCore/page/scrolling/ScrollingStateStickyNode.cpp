@@ -102,7 +102,7 @@ void ScrollingStateStickyNode::updateConstraints(const StickyPositionViewportCon
     setPropertyChanged(Property::ViewportConstraints);
 }
 
-FloatPoint ScrollingStateStickyNode::computeAnchorLayerPosition(const LayoutRect& viewportRect) const
+FloatPoint ScrollingStateStickyNode::computeAnchorLayerPosition(LayoutRect viewportRect) const
 {
     // This logic follows ScrollingTreeStickyNode::computeConstrainingRectAndAnchorLayerPosition().
     FloatSize offsetFromStickyAncestors;
@@ -141,7 +141,7 @@ FloatPoint ScrollingStateStickyNode::computeAnchorLayerPosition(const LayoutRect
     return m_constraints.layerPositionAtLastLayout();
 }
 
-FloatPoint ScrollingStateStickyNode::computeClippingLayerPosition(const LayoutRect& viewportRect) const
+FloatPoint ScrollingStateStickyNode::computeClippingLayerPosition(LayoutRect viewportRect) const
 {
     if (!hasViewportClippingLayer()) {
         ASSERT_NOT_REACHED();
@@ -151,7 +151,7 @@ FloatPoint ScrollingStateStickyNode::computeClippingLayerPosition(const LayoutRe
     return m_constraints.viewportRelativeLayerPosition(viewportRect);
 }
 
-void ScrollingStateStickyNode::reconcileLayerPositionForViewportRect(const LayoutRect& viewportRect, ScrollingLayerPositionAction action)
+void ScrollingStateStickyNode::reconcileLayerPositionForViewportRect(LayoutRect viewportRect, ScrollingLayerPositionAction action)
 {
     auto updateLayerPosition = [&](const LayerRepresentation& representation, const FloatPoint& position) {
         if (!representation.representsGraphicsLayer())
@@ -192,7 +192,7 @@ bool ScrollingStateStickyNode::hasViewportClippingLayer() const
     return m_viewportAnchorLayer && layer() != m_viewportAnchorLayer;
 }
 
-FloatSize ScrollingStateStickyNode::scrollDeltaSinceLastCommit(const LayoutRect& viewportRect) const
+FloatSize ScrollingStateStickyNode::scrollDeltaSinceLastCommit(LayoutRect viewportRect) const
 {
     return computeAnchorLayerPosition(viewportRect) - m_constraints.anchorLayerPositionAtLastLayout();
 }

@@ -199,7 +199,7 @@ OptionSet<ScrollingStateNode::Property> ScrollingStateScrollingNode::applicableP
     return properties;
 }
 
-void ScrollingStateScrollingNode::setScrollableAreaSize(const FloatSize& size)
+void ScrollingStateScrollingNode::setScrollableAreaSize(FloatSize size)
 {
     if (m_scrollableAreaSize == size)
         return;
@@ -208,7 +208,7 @@ void ScrollingStateScrollingNode::setScrollableAreaSize(const FloatSize& size)
     setPropertyChanged(Property::ScrollableAreaSize);
 }
 
-void ScrollingStateScrollingNode::setTotalContentsSize(const FloatSize& totalContentsSize)
+void ScrollingStateScrollingNode::setTotalContentsSize(FloatSize totalContentsSize)
 {
     if (m_totalContentsSize == totalContentsSize)
         return;
@@ -217,7 +217,7 @@ void ScrollingStateScrollingNode::setTotalContentsSize(const FloatSize& totalCon
     setPropertyChanged(Property::TotalContentsSize);
 }
 
-void ScrollingStateScrollingNode::setReachableContentsSize(const FloatSize& reachableContentsSize)
+void ScrollingStateScrollingNode::setReachableContentsSize(FloatSize reachableContentsSize)
 {
     if (m_reachableContentsSize == reachableContentsSize)
         return;
@@ -226,7 +226,7 @@ void ScrollingStateScrollingNode::setReachableContentsSize(const FloatSize& reac
     setPropertyChanged(Property::ReachableContentsSize);
 }
 
-void ScrollingStateScrollingNode::setScrollPosition(const FloatPoint& scrollPosition)
+void ScrollingStateScrollingNode::setScrollPosition(FloatPoint scrollPosition)
 {
     if (m_scrollPosition == scrollPosition)
         return;
@@ -235,7 +235,7 @@ void ScrollingStateScrollingNode::setScrollPosition(const FloatPoint& scrollPosi
     setPropertyChanged(Property::ScrollPosition);
 }
 
-void ScrollingStateScrollingNode::setScrollOrigin(const IntPoint& scrollOrigin)
+void ScrollingStateScrollingNode::setScrollOrigin(IntPoint scrollOrigin)
 {
     if (m_scrollOrigin == scrollOrigin)
         return;
@@ -523,7 +523,7 @@ void ScrollingStateScrollingNode::setMouseIsOverContentArea(bool flag)
     setPropertyChanged(Property::ContentAreaHoverState);
 }
 
-void ScrollingStateScrollingNode::setMouseMovedInContentArea(const MouseLocationState& mouseLocationState)
+void ScrollingStateScrollingNode::setMouseMovedInContentArea(MouseLocationState mouseLocationState)
 {
     m_mouseLocationState = mouseLocationState;
     setPropertyChanged(Property::MouseActivityState);

@@ -73,19 +73,19 @@ public:
     virtual ~ScrollingStateScrollingNode();
 
     const FloatSize& scrollableAreaSize() const LIFETIME_BOUND { return m_scrollableAreaSize; }
-    WEBCORE_EXPORT void setScrollableAreaSize(const FloatSize&);
+    WEBCORE_EXPORT void setScrollableAreaSize(FloatSize);
 
     const FloatSize& totalContentsSize() const LIFETIME_BOUND { return m_totalContentsSize; }
-    WEBCORE_EXPORT void setTotalContentsSize(const FloatSize&);
+    WEBCORE_EXPORT void setTotalContentsSize(FloatSize);
 
     const FloatSize& reachableContentsSize() const LIFETIME_BOUND { return m_reachableContentsSize; }
-    WEBCORE_EXPORT void setReachableContentsSize(const FloatSize&);
+    WEBCORE_EXPORT void setReachableContentsSize(FloatSize);
 
     const FloatPoint& scrollPosition() const LIFETIME_BOUND { return m_scrollPosition; }
-    WEBCORE_EXPORT void setScrollPosition(const FloatPoint&);
+    WEBCORE_EXPORT void setScrollPosition(FloatPoint);
 
     const IntPoint& scrollOrigin() const LIFETIME_BOUND { return m_scrollOrigin; }
-    WEBCORE_EXPORT void setScrollOrigin(const IntPoint&);
+    WEBCORE_EXPORT void setScrollOrigin(IntPoint);
 
     const FloatScrollSnapOffsetsInfo& snapOffsetsInfo() const LIFETIME_BOUND { return m_snapOffsetsInfo; }
     WEBCORE_EXPORT void setSnapOffsetsInfo(const FloatScrollSnapOffsetsInfo& newOffsetsInfo);
@@ -151,7 +151,7 @@ public:
     WEBCORE_EXPORT void setMouseIsOverContentArea(bool);
     bool mouseIsOverContentArea() const { return m_mouseIsOverContentArea; }
 
-    WEBCORE_EXPORT void setMouseMovedInContentArea(const MouseLocationState&);
+    WEBCORE_EXPORT void setMouseMovedInContentArea(MouseLocationState);
     const MouseLocationState& mouseLocationState() const LIFETIME_BOUND { return m_mouseLocationState; }
 
     WEBCORE_EXPORT void setScrollbarLayoutDirection(UserInterfaceLayoutDirection);
