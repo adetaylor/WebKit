@@ -130,6 +130,13 @@ public:
     using AtomData = TrackInfoAtomData;
 #if ENABLE(ENCRYPTED_MEDIA)
     const std::optional<EncryptionDataCollection>& encryptionDataCollection() const LIFETIME_BOUND { return m_data.encryptionData; }
+
+    // encryptionDataCollection()'s fields by value, for Swift, which doesn't import a member returning a reference into the object.
+    std::optional<TrackInfoEncryptionData> encryptionData() const { return m_data.encryptionData ? std::optional { m_data.encryptionData->encryptionData } : std::nullopt; }
+    std::optional<FourCC> encryptionOriginalFormat() const { return m_data.encryptionData ? m_data.encryptionData->encryptionOriginalFormat : std::nullopt; }
+    size_t encryptionInitDataCount() const { return m_data.encryptionData ? m_data.encryptionData->encryptionInitDatas.size() : 0; }
+    FourCC encryptionInitDataFourCC(size_t index) const { return m_data.encryptionData->encryptionInitDatas[index].first; }
+    Ref<SharedBuffer> encryptionInitDataBuffer(size_t index) const { return m_data.encryptionData->encryptionInitDatas[index].second; }
 #endif
 
 protected:
@@ -204,12 +211,12 @@ class VideoInfo : public TrackInfo {
 public:
     static Ref<VideoInfo> create(VideoInfoData&& data) { return adoptRef(*new VideoInfo(WTF::move(data))); }
 
-    const FloatSize& size() const LIFETIME_BOUND { return m_data.size; }
+    FloatSize size() const { return m_data.size; }
     // Size in pixels at which the video is rendered. This is after it has
     // been scaled by its aspect ratio.
-    const FloatSize& displaySize() const LIFETIME_BOUND { return m_data.displaySize; }
+    FloatSize displaySize() const { return m_data.displaySize; }
     uint8_t bitDepth() const { return m_data.bitDepth; }
-    const PlatformVideoColorSpace& colorSpace() const LIFETIME_BOUND { return m_data.colorSpace; }
+    PlatformVideoColorSpace colorSpace() const { return m_data.colorSpace; }
     std::optional<PlatformVideoFieldCount> fieldCount() const { return m_data.fieldCount; }
     std::optional<PlatformVideoFieldDetail> fieldDetail() const { return m_data.fieldDetail; }
     std::optional<uint8_t> reorderQueueMaxSize() const { return m_data.reorderQueueMaxSize; }
@@ -218,6 +225,10 @@ public:
     bool hasSeparateAlphaStream() const { return m_data.hasSeparateAlphaStream; }
 
     const Vector<AtomData>& extensionAtoms() const LIFETIME_BOUND { return m_data.extensionAtoms; }
+    // extensionAtoms() by value, for Swift, which doesn't import a member returning a reference into the object.
+    size_t extensionAtomCount() const { return m_data.extensionAtoms.size(); }
+    FourCC extensionAtomFourCC(size_t index) const { return m_data.extensionAtoms[index].first; }
+    Ref<SharedBuffer> extensionAtomBuffer(size_t index) const { return m_data.extensionAtoms[index].second; }
 
 #if PLATFORM(VISION)
     const std::optional<ImmersiveVideoMetadata>& immersiveVideoMetadata() const LIFETIME_BOUND { return m_data.immersiveVideoMetadata; }
