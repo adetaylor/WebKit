@@ -234,6 +234,9 @@ enum class ScrollingStateNodeProperty : uint64_t {
     FooterLayer                                 = HeaderLayer << 1,
 };
 
+// A name for Swift, which cannot spell a class template specialization.
+using ScrollingStateNodeProperties = OptionSet<ScrollingStateNodeProperty>;
+
 class ScrollingStateNode : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingStateNode> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStateNode, WEBCORE_EXPORT);
 public:

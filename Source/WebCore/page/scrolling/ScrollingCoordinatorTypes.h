@@ -31,6 +31,7 @@
 #include <WebCore/ScrollTypes.h>
 #include <wtf/Markable.h>
 #include <wtf/OptionSet.h>
+#include <wtf/text/TextStream.h>
 
 namespace WebCore {
 
@@ -63,6 +64,10 @@ enum class ScrollingStateTreeAsTextBehavior : uint8_t {
     IncludeNodeIDs          = 1 << 1,
     IncludeLayerPositions   = 1 << 2,
 };
+
+// Names for Swift, which cannot spell a class template specialization.
+using ScrollingStateTreeAsTextBehaviors = OptionSet<ScrollingStateTreeAsTextBehavior>;
+using TextStreamFormattingFlags = OptionSet<WTF::TextStream::Formatting>;
 
 constexpr auto debugScrollingStateTreeAsTextBehaviors = OptionSet<ScrollingStateTreeAsTextBehavior> {
     ScrollingStateTreeAsTextBehavior::IncludeLayerIDs, ScrollingStateTreeAsTextBehavior::IncludeNodeIDs, ScrollingStateTreeAsTextBehavior::IncludeLayerPositions
