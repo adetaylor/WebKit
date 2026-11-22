@@ -81,7 +81,7 @@ void RemoteScrollingCoordinatorProxyMac::cacheWheelEventScrollingAccelerationCur
     m_eventDispatcher->cacheWheelEventScrollingAccelerationCurve(nativeWheelEvent);
 }
 
-void RemoteScrollingCoordinatorProxyMac::handleWheelEvent(Ref<WebWheelEvent>&& wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
+void RemoteScrollingCoordinatorProxyMac::handleWheelEvent(Ref<WebWheelEvent> wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
 {
     m_eventDispatcher->handleWheelEvent(WTF::move(wheelEvent), rubberBandableEdges);
 }

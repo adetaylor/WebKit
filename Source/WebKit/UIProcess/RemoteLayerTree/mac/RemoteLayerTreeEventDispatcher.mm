@@ -231,7 +231,7 @@ void RemoteLayerTreeEventDispatcher::cacheWheelEventScrollingAccelerationCurve(c
 #endif
 }
 
-void RemoteLayerTreeEventDispatcher::willHandleWheelEvent(Ref<WebWheelEvent>&& wheelEvent)
+void RemoteLayerTreeEventDispatcher::willHandleWheelEvent(Ref<WebWheelEvent> wheelEvent)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
     
@@ -239,7 +239,7 @@ void RemoteLayerTreeEventDispatcher::willHandleWheelEvent(Ref<WebWheelEvent>&& w
     m_wheelEventsBeingProcessed.append(WTF::move(wheelEvent));
 }
 
-void RemoteLayerTreeEventDispatcher::handleWheelEvent(Ref<WebWheelEvent>&& wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
+void RemoteLayerTreeEventDispatcher::handleWheelEvent(Ref<WebWheelEvent> wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
 {
     ASSERT(isMainRunLoop());
 

@@ -97,7 +97,7 @@ public:
     
     void cacheWheelEventScrollingAccelerationCurve(const NativeWebWheelEvent&);
 
-    void handleWheelEvent(Ref<WebWheelEvent>&&, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges);
+    void handleWheelEvent(Ref<WebWheelEvent>, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges);
     void wheelEventHandlingCompleted(const WebCore::PlatformWheelEvent&, std::optional<WebCore::FrameIdentifier> defaultHandlingFrameID, std::optional<WebCore::ScrollingNodeID>, std::optional<WebCore::WheelScrollGestureState>, bool wasHandled);
 
     void setScrollingTree(RefPtr<RemoteScrollingTree>&&);
@@ -136,7 +136,7 @@ private:
 
     void wheelEventHysteresisUpdated(PAL::HysteresisState);
 
-    void willHandleWheelEvent(Ref<WebWheelEvent>&&);
+    void willHandleWheelEvent(Ref<WebWheelEvent>);
     void continueWheelEventHandling(WebCore::WheelEventHandlingResult);
     void wheelEventWasHandledByScrollingThread(WebCore::WheelEventHandlingResult);
 

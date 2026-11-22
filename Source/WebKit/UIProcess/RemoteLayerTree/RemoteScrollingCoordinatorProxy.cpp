@@ -262,7 +262,7 @@ void RemoteScrollingCoordinatorProxy::stickyScrollingTreeNodeBeganSticking(Scrol
     protect(webPageProxy())->stickyScrollingTreeNodeBeganSticking();
 }
 
-void RemoteScrollingCoordinatorProxy::handleWheelEvent(Ref<WebWheelEvent>&& wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
+void RemoteScrollingCoordinatorProxy::handleWheelEvent(Ref<WebWheelEvent> wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
 {
 #if !(PLATFORM(MAC) && ENABLE(UI_SIDE_COMPOSITING))
     auto platformWheelEvent = platform(wheelEvent);
@@ -290,7 +290,7 @@ void RemoteScrollingCoordinatorProxy::handleWheelEvent(Ref<WebWheelEvent>&& whee
 #endif
 }
 
-void RemoteScrollingCoordinatorProxy::continueWheelEventHandling(Ref<WebWheelEvent>&& wheelEvent, WheelEventHandlingResult result)
+void RemoteScrollingCoordinatorProxy::continueWheelEventHandling(Ref<WebWheelEvent> wheelEvent, WheelEventHandlingResult result)
 {
     bool willStartSwipe = m_scrollingTree->willWheelEventStartSwipeGesture(platform(wheelEvent));
     protect(webPageProxy())->continueWheelEventHandling(WTF::move(wheelEvent), result, willStartSwipe);
