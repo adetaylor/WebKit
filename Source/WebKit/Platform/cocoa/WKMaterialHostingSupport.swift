@@ -171,11 +171,8 @@ extension CALayer {
 @implementation
 extension WKMaterialHostingSupport {
     class func isMaterialHostingAvailable() -> Bool {
-        guard #_hasSymbol(Material.self) else {
-            return false
-        }
-
-        return true
+        // Material is in SwiftUICore since macOS 12 and iOS 15, which is linked strongly, so it is always there.
+        true
     }
 
     class func hostingLayer() -> CALayer {
