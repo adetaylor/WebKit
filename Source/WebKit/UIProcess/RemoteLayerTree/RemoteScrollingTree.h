@@ -147,7 +147,7 @@ private:
     mutable Lock m_progressBasedTimelineRegistryLock;
     std::unique_ptr<RemoteProgressBasedTimelineRegistry> m_progressBasedTimelineRegistry WTF_GUARDED_BY_LOCK(m_progressBasedTimelineRegistryLock);
 #endif
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

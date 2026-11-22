@@ -257,7 +257,7 @@ protected:
     bool m_waitingForDidScrollReply { false };
     bool m_isInvalidated { false };
     HashSet<WebCore::PlatformLayerIdentifier> m_layersWithScrollingRelations;
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 
