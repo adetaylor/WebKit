@@ -145,7 +145,7 @@ bool PrivateClickMeasurement::isNeitherSameSiteNorCrossSiteTriggeringEvent(const
     return !isCrossSiteTriggeringEvent;
 }
 
-std::expected<PCM::AttributionTriggerData, String> PrivateClickMeasurement::parseAttributionRequestQuery(const URL& redirectURL)
+std::expected<PCM::AttributionTriggerData, String> PrivateClickMeasurement::parseAttributionRequestQuery(URL redirectURL)
 {
     if (!redirectURL.hasQuery())
         return PCM::AttributionTriggerData { };
@@ -194,7 +194,7 @@ std::expected<PCM::AttributionTriggerData, String> PrivateClickMeasurement::pars
     return { WTF::move(attributionTriggerData) };
 }
 
-std::expected<PCM::AttributionTriggerData, String> PrivateClickMeasurement::parseAttributionRequest(const URL& redirectURL)
+std::expected<PCM::AttributionTriggerData, String> PrivateClickMeasurement::parseAttributionRequest(URL redirectURL)
 {
     auto path = StringView(redirectURL.string()).substring(redirectURL.pathStart(), redirectURL.pathEnd() - redirectURL.pathStart());
     if (path.isEmpty() || !path.startsWith(privateClickMeasurementTriggerAttributionPath))
@@ -356,7 +356,7 @@ void PrivateClickMeasurement::setEphemeralSourceNonce(PCM::EphemeralNonce&& nonc
     m_ephemeralSourceNonce = WTF::move(nonce);
 }
 
-std::optional<URL> PrivateClickMeasurement::tokenPublicKeyURL(const RegistrableDomain& registrableDomain)
+std::optional<URL> PrivateClickMeasurement::tokenPublicKeyURL(RegistrableDomain registrableDomain)
 {
     if (registrableDomain.isEmpty())
         return std::nullopt;
@@ -368,7 +368,7 @@ std::optional<URL> PrivateClickMeasurement::tokenPublicKeyURL() const
     return tokenPublicKeyURL(m_sourceSite.registrableDomain);
 }
 
-std::optional<URL> PrivateClickMeasurement::tokenSignatureURL(const RegistrableDomain& registrableDomain)
+std::optional<URL> PrivateClickMeasurement::tokenSignatureURL(RegistrableDomain registrableDomain)
 {
     if (registrableDomain.isEmpty())
         return std::nullopt;
@@ -436,7 +436,7 @@ void PrivateClickMeasurement::setDestinationSecretToken(PCM::DestinationSecretTo
     m_attributionTriggerData->destinationSecretToken = WTF::move(token);
 }
 
-std::optional<uint64_t> PrivateClickMeasurement::appStoreURLAdamID(const URL& url)
+std::optional<uint64_t> PrivateClickMeasurement::appStoreURLAdamID(URL url)
 {
     StringView stringView { url.string() };
     if (!stringView.startsWith(privateClickMeasurementToSKAdNetworkURLPrefix))
