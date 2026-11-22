@@ -364,7 +364,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     // A MediaPlayerPitchCorrectionAlgorithm.
     private var pitchCorrectionAlgorithm: UInt8?
 
-    // The synchronizer is the C++ renderer's; it is borrowed.
+    // The synchronizer is the C++ renderer's; it is borrowed. The renderer's constructor calls this, so it must not call the host.
     @_expose(Cxx)
     init(_ host: WebCore.AudioVideoRendererHost, _ synchronizer: borrowing NSObject?, _ configuration: WebCore.AudioVideoRendererConfiguration) {
         self.host = host

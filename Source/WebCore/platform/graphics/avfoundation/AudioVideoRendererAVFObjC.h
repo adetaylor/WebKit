@@ -283,20 +283,22 @@ private:
     const std::unique_ptr<SharedTimebase> m_sharedTimebase;
 
     struct Core;
-    std::unique_ptr<Core> m_core;
+    // The core is made in the constructor, after the state its init reads; its init must not call the host.
+    const std::unique_ptr<Core> m_core;
     const uint64_t m_swiftToken;
 
     bool m_isShutdown { false };
 
-    Function<void(PlatformMediaError)> m_errorCallback;
-    Function<void()> m_firstFrameAvailableCallback;
-    Function<void(const MediaTime&, double)> m_hasAvailableVideoFrameCallback;
-    Function<void()> m_notifyWhenRequiresFlushToResume;
-    Function<void()> m_renderingModeChangedCallback;
-    Function<void(const MediaTime&, FloatSize)> m_sizeChangedCallback;
-    Function<void(double)> m_effectiveRateChangedCallback;
-    Function<void(const MediaTime&)> m_performTask;
-    Function<void(const MediaTime&)> m_timeObserverCallback;
+    // Unsafe in Swift: a callback can replace or clear its own member while it runs, so Swift must not call one in place.
+    SWIFT_UNSAFE Function<void(PlatformMediaError)> m_errorCallback;
+    SWIFT_UNSAFE Function<void()> m_firstFrameAvailableCallback;
+    SWIFT_UNSAFE Function<void(const MediaTime&, double)> m_hasAvailableVideoFrameCallback;
+    SWIFT_UNSAFE Function<void()> m_notifyWhenRequiresFlushToResume;
+    SWIFT_UNSAFE Function<void()> m_renderingModeChangedCallback;
+    SWIFT_UNSAFE Function<void(const MediaTime&, FloatSize)> m_sizeChangedCallback;
+    SWIFT_UNSAFE Function<void(double)> m_effectiveRateChangedCallback;
+    SWIFT_UNSAFE Function<void(const MediaTime&)> m_performTask;
+    SWIFT_UNSAFE Function<void(const MediaTime&)> m_timeObserverCallback;
     uint64_t m_timeObserverGeneration { 0 };
     HashMap<uint64_t, Function<void(TrackIdentifier, const MediaTime&)>> m_reenqueueCallbacks;
 
