@@ -905,8 +905,9 @@ set(WebKit_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY TRUE)
 # the framework layout. Synthesize a plain module map exposing only what
 # WebBackForwardList.swift names directly (the rest of the WebCore:: types it uses
 # are reachable transitively via WebKit_Internal headers), and the headers of the C++
-# enums the generated serializers name (swift_types.py's CXX_ENUM_TYPES), and put it on
-# the importer's search path below.
+# enums the generated serializers name (swift_types.py's CXX_ENUM_TYPES) and of the WebCore types SwiftCoding.swift
+# codes (ImageBufferFormat, ImageBufferResourceLimits, CaptureConstraints), which both import, and put it on the
+# importer's search path below. With the GPU process off nothing in WebKit_Internal brings them in.
 if (NOT USE_FRAMEWORK_BUNDLES)
     set(WebCore_Private_SWIFT_MODULEMAP_DIR "${CMAKE_BINARY_DIR}/WebKit/SwiftModules/WebCorePrivate")
     file(MAKE_DIRECTORY "${WebCore_Private_SWIFT_MODULEMAP_DIR}")
@@ -925,6 +926,9 @@ if (NOT USE_FRAMEWORK_BUNDLES)
     header \"${WebCore_PRIVATE_HEADERS_DIR}/FEDisplacementMapParameters.h\"
     header \"${WebCore_PRIVATE_HEADERS_DIR}/FEMorphologyParameters.h\"
     header \"${WebCore_PRIVATE_HEADERS_DIR}/FETurbulenceParameters.h\"
+    header \"${WebCore_PRIVATE_HEADERS_DIR}/ImageBufferFormat.h\"
+    header \"${WebCore_PRIVATE_HEADERS_DIR}/ImageBufferResourceLimits.h\"
+    header \"${WebCore_PRIVATE_HEADERS_DIR}/MediaConstraintsEvaluation.h\"
     export *
 }
 ")
@@ -982,25 +986,8 @@ if (NOT APPLE)
     foreach (_dir IN LISTS WebKit_SWIFT_CLANG_INCLUDE_DIRS)
         list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -I${_dir}")
     endforeach ()
-    # VFS overlay: inject module.modulemap files for Linux system libraries
-    # (glib, libsoup, etc.) that do not ship their own modulemaps.  The overlay
-    # makes them appear inside the detected ${GLib_INCLUDE_DIR} /
-    # ${Soup3_INCLUDE_DIR} (which may live under /usr or a jhbuild prefix)
-    # without modifying the real filesystem.  Both the
-    # -typecheck/-emit-clang-header custom command and the per-file Swift
-    # compilation receive the flag via SWIFT_EXTRA_OPTIONS and
-    # target_compile_options respectively.
-    set(_linux_mm_src "${CMAKE_SOURCE_DIR}/Source/cmake/linux-modulemaps")
-    set(_linux_mm_dir "${CMAKE_BINARY_DIR}/linux-modulemaps")
-    file(MAKE_DIRECTORY "${_linux_mm_dir}")
-    configure_file("${_linux_mm_src}/glib.modulemap"    "${_linux_mm_dir}/glib.modulemap"    COPYONLY)
-    configure_file("${_linux_mm_src}/libsoup.modulemap" "${_linux_mm_dir}/libsoup.modulemap" COPYONLY)
-    set(_vfs_glib_modulemap    "${_linux_mm_dir}/glib.modulemap")
-    set(_vfs_libsoup_modulemap "${_linux_mm_dir}/libsoup.modulemap")
-    configure_file("${_linux_mm_src}/vfs-overlay.yaml.in" "${_linux_mm_dir}/vfs-overlay.yaml" @ONLY)
-    set(_vfs_overlay "${_linux_mm_dir}/vfs-overlay.yaml")
-    list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc -ivfsoverlay")
-    list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS "-Xcc ${_vfs_overlay}")
+    # The GLib and libsoup module maps' VFS overlay comes with every Swift target's importer options
+    # (WEBKIT_SWIFT_SYSTEM_MODULE_MAP_FLAGS, WebKitSwiftFlags.cmake).
 
     # Importer flags contributed by the Platform*.cmake file (included above).
     list(APPEND WebKit_SWIFT_CLANG_FLAG_PAIRS ${WebKit_PLATFORM_SWIFT_CLANG_FLAG_PAIRS})
@@ -2049,6 +2036,8 @@ WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebKit WebKitShared
     DIRS DerivedSources)
 
 WEBKIT_FRAMEWORK(WebKit)
+# WebCore's and PAL's Swift are linked into WebKit's image off the Apple ports.
+WEBKIT_LINK_SWIFT_RUNTIME(WebKit TARGETS WebKit WebCore PAL)
 if (USE_APPLE_INTERNAL_SDK)
     WEBKIT_TARGET_USE_PGO(WebKit PROFILE WebKit)
 endif ()

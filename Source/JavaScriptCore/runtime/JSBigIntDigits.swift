@@ -30,6 +30,27 @@ internal import JSCSwiftBoundary
 // uint64_t, which has no invalid values, and nothing else reads a result span during the call.
 // FIXME: Take Span and MutableSpan parameters once a std::span can cross safely (rdar://186723514).
 
+// The digit arithmetic is in UInt64. The C++ spans hold uint64_t, which Swift imports as UInt64 where it is
+// unsigned long long (Darwin, Windows) but, as a span's element, as UInt where it is unsigned long (LP64 Linux): the
+// importer maps the typedef uint64_t to UInt64 only where it names it, not inside a template argument. These view
+// the span's 64-bit elements as UInt64 whichever type they import as.
+// FIXME: Take the spans' elements as UInt64 directly once the importer maps uint64_t to UInt64 inside template
+// arguments too (KIT docs/interop-limitations.md, "uint64_t in a template argument").
+@inline(__always)
+@_lifetime(borrow digits)
+private func digitSpan(_ digits: borrowing JSC.JSBigIntDigits) -> Span<UInt64> {
+    let span = unsafe Span(_unsafeCxxSpan: digits)
+    return unsafe _overrideLifetime(span.bytes._unsafeView(as: UInt64.self), borrowing: digits)
+}
+
+@inline(__always)
+@_lifetime(borrow digits)
+private func mutableDigitSpan(_ digits: borrowing JSC.JSBigIntMutableDigits) -> MutableSpan<UInt64> {
+    var span = unsafe MutableSpan(_unsafeCxxSpan: digits)
+    var bytes = span.mutableBytes
+    return unsafe _overrideLifetime(bytes._unsafeMutableView(as: UInt64.self), borrowing: digits)
+}
+
 /// Multiplies `x` by `y` into `result` and returns the product's length.
 ///
 /// With `isSquare`, `y` is empty and the product is `x * x`. `result` overlaps neither operand.
@@ -40,9 +61,9 @@ func jsBigIntMultiplyDigits(
     _ isSquare: Bool,
     _ result: JSC.JSBigIntMutableDigits
 ) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let y = unsafe Span<UInt64>(_unsafeCxxSpan: y)
-    var result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let y = unsafe digitSpan(y)
+    var result = unsafe mutableDigitSpan(result)
     // One-digit operands skip the size dispatch.
     if x.count == 1 {
         if isSquare {
@@ -60,9 +81,9 @@ func jsBigIntMultiplyDigits(
 /// `result` overlaps neither operand.
 @_expose(Cxx)
 func jsBigIntAddDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let y = unsafe Span<UInt64>(_unsafeCxxSpan: y)
-    var result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let y = unsafe digitSpan(y)
+    var result = unsafe mutableDigitSpan(result)
     // An x of one or two digits and a y no longer than x skip the size dispatch and the call to it, in a path short
     // enough for the C++ caller to inline this entry. A one-digit y has 0 as its second digit.
     if x.count <= 2 && y.count >= 1 && y.count <= x.count {
@@ -86,9 +107,9 @@ func jsBigIntAddDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ resul
 /// `result` overlaps neither operand.
 @_expose(Cxx)
 func jsBigIntSubDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let y = unsafe Span<UInt64>(_unsafeCxxSpan: y)
-    var result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let y = unsafe digitSpan(y)
+    var result = unsafe mutableDigitSpan(result)
     // As in jsBigIntAddDigits. With x >= y, the second digit has no borrow out.
     if x.count <= 2 && y.count >= 1 && y.count <= x.count {
         precondition(result.count >= x.count)
@@ -108,9 +129,9 @@ func jsBigIntSubDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ resul
 /// `result` overlaps neither operand.
 @_expose(Cxx)
 func jsBigIntAndDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let y = unsafe Span<UInt64>(_unsafeCxxSpan: y)
-    let result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let y = unsafe digitSpan(y)
+    let result = unsafe mutableDigitSpan(result)
     assert(result.count >= min(x.count, y.count))
     return absoluteAnd(x, y, result)
 }
@@ -120,9 +141,9 @@ func jsBigIntAndDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ resul
 /// `result` overlaps neither operand.
 @_expose(Cxx)
 func jsBigIntOrDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let y = unsafe Span<UInt64>(_unsafeCxxSpan: y)
-    let result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let y = unsafe digitSpan(y)
+    let result = unsafe mutableDigitSpan(result)
     assert(result.count >= max(x.count, y.count))
     return absoluteOr(x, y, result)
 }
@@ -132,9 +153,9 @@ func jsBigIntOrDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ result
 /// `result` overlaps neither operand.
 @_expose(Cxx)
 func jsBigIntAndNotDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let y = unsafe Span<UInt64>(_unsafeCxxSpan: y)
-    let result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let y = unsafe digitSpan(y)
+    let result = unsafe mutableDigitSpan(result)
     return absoluteAndNot(x, y, result)
 }
 
@@ -143,9 +164,9 @@ func jsBigIntAndNotDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ re
 /// `result` overlaps neither operand.
 @_expose(Cxx)
 func jsBigIntXorDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let y = unsafe Span<UInt64>(_unsafeCxxSpan: y)
-    let result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let y = unsafe digitSpan(y)
+    let result = unsafe mutableDigitSpan(result)
     assert(result.count >= max(x.count, y.count))
     return absoluteXor(x, y, result)
 }
@@ -155,8 +176,8 @@ func jsBigIntXorDigits(_ x: JSC.JSBigIntDigits, _ y: JSC.JSBigIntDigits, _ resul
 /// `result` does not overlap `x`.
 @_expose(Cxx)
 func jsBigIntAddOneDigits(_ x: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let result = unsafe mutableDigitSpan(result)
     return absoluteAddOne(x, result)
 }
 
@@ -165,8 +186,8 @@ func jsBigIntAddOneDigits(_ x: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutable
 /// `result` does not overlap `x`.
 @_expose(Cxx)
 func jsBigIntSubOneDigits(_ x: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let result = unsafe mutableDigitSpan(result)
     return absoluteSubOne(x, result)
 }
 
@@ -176,8 +197,8 @@ func jsBigIntSubOneDigits(_ x: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutable
 /// jsBigIntDivideSingleInPlace.
 @_expose(Cxx)
 func jsBigIntDivideSingle(_ quotient: JSC.JSBigIntMutableDigits, _ a: JSC.JSBigIntDigits, _ divisor: UInt64) -> UInt64 {
-    let quotient = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: quotient)
-    let a = unsafe Span<UInt64>(_unsafeCxxSpan: a)
+    let quotient = unsafe mutableDigitSpan(quotient)
+    let a = unsafe digitSpan(a)
     return divideSingle(quotient, a, divisor)
 }
 
@@ -186,7 +207,7 @@ func jsBigIntDivideSingle(_ quotient: JSC.JSBigIntMutableDigits, _ a: JSC.JSBigI
 /// `digits` is a Vector the caller owns, which nothing else reads or writes during the call.
 @_expose(Cxx)
 func jsBigIntDivideSingleInPlace(_ digits: JSC.JSBigIntMutableDigits, _ divisor: UInt64) -> UInt64 {
-    let digits = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: digits)
+    let digits = unsafe mutableDigitSpan(digits)
     return divideSingleInPlace(digits, divisor)
 }
 
@@ -201,10 +222,10 @@ func jsBigIntDivideDigits(
     _ a: JSC.JSBigIntDigits,
     _ b: JSC.JSBigIntDigits
 ) -> Int {
-    var quotient = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: quotient)
-    var remainder = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: remainder)
-    let a = unsafe Span<UInt64>(_unsafeCxxSpan: a)
-    let b = unsafe Span<UInt64>(_unsafeCxxSpan: b)
+    var quotient = unsafe mutableDigitSpan(quotient)
+    var remainder = unsafe mutableDigitSpan(remainder)
+    let a = unsafe digitSpan(a)
+    let b = unsafe digitSpan(b)
     return divideDigits(&quotient, &remainder, a, b)
 }
 
@@ -220,10 +241,10 @@ func jsBigIntDivideDigitsInto(
     _ a: JSC.JSBigIntDigits,
     _ b: JSC.JSBigIntDigits
 ) -> Int {
-    var quotient = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: quotient)
-    var remainder = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: remainder)
-    let a = unsafe Span<UInt64>(_unsafeCxxSpan: a)
-    let b = unsafe Span<UInt64>(_unsafeCxxSpan: b)
+    var quotient = unsafe mutableDigitSpan(quotient)
+    var remainder = unsafe mutableDigitSpan(remainder)
+    let a = unsafe digitSpan(a)
+    let b = unsafe digitSpan(b)
     let (quotientCount, remainderCount) = divideDigitsInto(&quotient, &remainder, a, b)
     return quotientCount << 32 | remainderCount
 }
@@ -233,8 +254,8 @@ func jsBigIntDivideDigitsInto(
 /// `a` and `b` have the same length, of at least two digits.
 @_expose(Cxx)
 func jsBigIntDivideSameSize(_ a: JSC.JSBigIntDigits, _ b: JSC.JSBigIntDigits) -> UInt64 {
-    let a = unsafe Span<UInt64>(_unsafeCxxSpan: a)
-    let b = unsafe Span<UInt64>(_unsafeCxxSpan: b)
+    let a = unsafe digitSpan(a)
+    let b = unsafe digitSpan(b)
     return divideSameSize(a, b)
 }
 
@@ -247,9 +268,9 @@ func jsBigIntRemainderSameSize(
     _ a: JSC.JSBigIntDigits,
     _ b: JSC.JSBigIntDigits
 ) -> Int {
-    let remainder = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: remainder)
-    let a = unsafe Span<UInt64>(_unsafeCxxSpan: a)
-    let b = unsafe Span<UInt64>(_unsafeCxxSpan: b)
+    let remainder = unsafe mutableDigitSpan(remainder)
+    let a = unsafe digitSpan(a)
+    let b = unsafe digitSpan(b)
     return remainderSameSize(remainder, a, b)
 }
 
@@ -265,17 +286,17 @@ func jsBigIntCachedMod(
     _ foldFactor: UInt64,
     _ inverse: JSC.JSBigIntDigits
 ) -> Int {
-    var remainder = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: remainder)
-    let a = unsafe Span<UInt64>(_unsafeCxxSpan: a)
-    let b = unsafe Span<UInt64>(_unsafeCxxSpan: b)
-    let inverse = unsafe Span<UInt64>(_unsafeCxxSpan: inverse)
+    var remainder = unsafe mutableDigitSpan(remainder)
+    let a = unsafe digitSpan(a)
+    let b = unsafe digitSpan(b)
+    let inverse = unsafe digitSpan(inverse)
     return cachedMod(&remainder, a, b, foldFactor, inverse)
 }
 
 /// Returns the fold factor for the divisor `b`, or 0 if `b` has none.
 @_expose(Cxx)
 func jsBigIntCachedModFoldFactor(_ b: JSC.JSBigIntDigits) -> UInt64 {
-    let b = unsafe Span<UInt64>(_unsafeCxxSpan: b)
+    let b = unsafe digitSpan(b)
     return cachedModFoldFactor(b)
 }
 
@@ -285,8 +306,8 @@ func jsBigIntCachedModFoldFactor(_ b: JSC.JSBigIntDigits) -> UInt64 {
 /// `b`.
 @_expose(Cxx)
 func jsBigIntCachedModMakeInverse(_ b: JSC.JSBigIntDigits, _ inverse: JSC.JSBigIntMutableDigits) {
-    let b = unsafe Span<UInt64>(_unsafeCxxSpan: b)
-    var inverse = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: inverse)
+    let b = unsafe digitSpan(b)
+    var inverse = unsafe mutableDigitSpan(inverse)
     cachedModMakeInverse(b, &inverse)
 }
 
@@ -295,7 +316,7 @@ func jsBigIntCachedModMakeInverse(_ b: JSC.JSBigIntDigits, _ inverse: JSC.JSBigI
 /// `digits` is a Vector the caller owns, which nothing else reads or writes during the call.
 @_expose(Cxx)
 func jsBigIntMultiplyAddInPlace(_ digits: JSC.JSBigIntMutableDigits, _ factor: UInt64, _ summand: UInt64) {
-    var digits = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: digits)
+    var digits = unsafe mutableDigitSpan(digits)
     multiplyAddInPlace(&digits, factor, summand)
 }
 
@@ -309,8 +330,8 @@ func jsBigIntShiftLeftDigits(
     _ bitsShift: Int,
     _ result: JSC.JSBigIntMutableDigits
 ) {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let result = unsafe mutableDigitSpan(result)
     shiftLeftDigits(x, digitShift, bitsShift, result)
 }
 
@@ -325,8 +346,8 @@ func jsBigIntShiftRightDigits(
     _ roundDown: Bool,
     _ result: JSC.JSBigIntMutableDigits
 ) {
-    let x = unsafe Span<UInt64>(_unsafeCxxSpan: x)
-    let result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let x = unsafe digitSpan(x)
+    let result = unsafe mutableDigitSpan(result)
     shiftRightDigits(x, digitShift, bitsShift, roundDown, result)
 }
 
@@ -335,8 +356,8 @@ func jsBigIntShiftRightDigits(
 /// `result` has `value.count + 2` digits and does not overlap `value`.
 @_expose(Cxx)
 func jsBigIntSqrtDigits(_ value: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let value = unsafe Span<UInt64>(_unsafeCxxSpan: value)
-    var result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let value = unsafe digitSpan(value)
+    var result = unsafe mutableDigitSpan(result)
     return sqrtDigits(value, &result)
 }
 
@@ -345,7 +366,7 @@ func jsBigIntSqrtDigits(_ value: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutab
 /// `result` has `value.count + 2` digits and does not overlap `value`.
 @_expose(Cxx)
 func jsBigIntCbrtDigits(_ value: JSC.JSBigIntDigits, _ result: JSC.JSBigIntMutableDigits) -> Int {
-    let value = unsafe Span<UInt64>(_unsafeCxxSpan: value)
-    var result = unsafe MutableSpan<UInt64>(_unsafeCxxSpan: result)
+    let value = unsafe digitSpan(value)
+    var result = unsafe mutableDigitSpan(result)
     return cbrtDigits(value, &result)
 }

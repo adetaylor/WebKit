@@ -86,7 +86,7 @@ class GeneratedSwiftTest(unittest.TestCase):
 
     def test_no_swift_types(self):
         swift = generate_swift('struct WebKit::NotSwift {\n    uint32_t value;\n}\n')
-        self.assertIn('#if ENABLE_SWIFT_IPC_RECEIVERS\n\nimport WebKit_Internal\n\n#endif\n', swift)
+        self.assertIn('#if ENABLE_SWIFT_IPC_RECEIVERS\n\nimport WebCore_Private\nimport WebKit_Internal\n\n#endif\n', swift)
         self.assertNotIn('extension', swift)
 
     def test_same_type_under_exclusive_conditions(self):

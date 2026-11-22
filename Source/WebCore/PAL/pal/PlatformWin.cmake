@@ -12,11 +12,6 @@ list(APPEND PAL_PRIVATE_LIBRARIES
     OpenSSL::Crypto
 )
 
-# TextCodecUTF8.swift imports pal.Core.text.TextCodecUTF8SwiftTypes.
-list(APPEND PAL_PUBLIC_HEADERS module.modulemap)
-# module.modulemap has `umbrella "spi"`, which Clang requires to be a non-empty directory.
-file(MAKE_DIRECTORY "${PAL_HEADERS_DIR}/spi")
-file(WRITE "${PAL_HEADERS_DIR}/spi/pal_spi_stub.h" "")
 # The same amended MSVC STL and WinSDK modulemaps Source/WebKit/PlatformWin.cmake mounts for
 # WebKit's Swift, which is configured after PAL. See that file.
 cmake_path(CONVERT "$ENV{SDKROOT}" TO_CMAKE_PATH_LIST _swift_sdkroot)

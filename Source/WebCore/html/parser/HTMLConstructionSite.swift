@@ -827,17 +827,17 @@ final class HTMLConstructionSite {
     /// Inserts the element for the start tag, or, for a custom element the parser must construct, hands it to the
     /// parser with the token's name and attributes and returns true.
     func insertHTMLElementOrFindCustomElementInterface(_ token: inout AtomHTMLToken) -> Bool {
-        switch createHTMLElementOrFindCustomElementInterface(&token) {
-        case .element(let element):
+        let created = createHTMLElementOrFindCustomElementInterface(&token)
+        if let element = created.element {
             attachLater(currentNode, element)
             openElements.push(HTMLStackItem(element: element))
             return false
-        case .customElement(let elementInterface, let registry):
-            var attributes = token.takeAttributes()
-            attributes.swap(&customElementAttributes)
-            parserForCall!.setCustomElementToConstruct(elementInterface, registry, token.name)
-            return true
         }
+        let (elementInterface, registry) = created.customElement!
+        var attributes = token.takeAttributes()
+        attributes.swap(&customElementAttributes)
+        parserForCall!.setCustomElementToConstruct(elementInterface, registry, token.name)
+        return true
     }
 
     func insertCustomElement(_ element: WebCore.Element) {
@@ -1036,9 +1036,22 @@ final class HTMLConstructionSite {
         return element
     }
 
-    private enum CreatedElement {
-        case element(WebCore.HTMLElement)
-        case customElement(WebCore.JSCustomElementInterface, WebCore.CustomElementRegistry)
+    /// The element for a start tag, or the custom element interface and registry of a custom element the parser must
+    /// construct: one of the two.
+    // FIXME: A struct of two optionals, not an enum of two cases: Swift's copy of an enum with two shared-reference
+    // payloads retains neither (KIT docs/interop-limitations.md, "An enum with two C++ shared-reference payloads"), and
+    // an assertions toolchain stops on it. An optional is a single payload, which Swift copies correctly.
+    private struct CreatedElement {
+        let element: WebCore.HTMLElement?
+        let customElement: (interface: WebCore.JSCustomElementInterface, registry: WebCore.CustomElementRegistry)?
+
+        static func element(_ element: WebCore.HTMLElement) -> CreatedElement {
+            CreatedElement(element: element, customElement: nil)
+        }
+
+        static func customElement(_ interface: WebCore.JSCustomElementInterface, _ registry: WebCore.CustomElementRegistry) -> CreatedElement {
+            CreatedElement(element: nil, customElement: (interface, registry))
+        }
     }
 
     private func createHTMLElementOrFindCustomElementInterface(_ token: inout AtomHTMLToken) -> CreatedElement {
@@ -1111,7 +1124,7 @@ final class HTMLConstructionSite {
     }
 
     private func createHTMLElement(_ token: inout AtomHTMLToken) -> WebCore.HTMLElement {
-        guard case .element(let element) = createHTMLElementOrFindCustomElementInterface(&token) else {
+        guard let element = createHTMLElementOrFindCustomElementInterface(&token).element else {
             fatalError("HTMLConstructionSite.createHTMLElement: a custom element to construct")
         }
         return element

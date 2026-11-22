@@ -133,11 +133,17 @@ enum class SwiftLentStateDispatch : uint8_t { Handled, Declined, Invalid };
 // The element spans of the arrays generated Swift decodes in one call, named so that Swift sees them as MutableSpan.
 using MutableSpanUInt16 = std::span<uint16_t>;
 using MutableSpanUInt32 = std::span<uint32_t>;
-using MutableSpanUInt64 = std::span<uint64_t>;
+// The 64-bit spans name unsigned long long and long long, which Swift imports as UInt64 and Int64 everywhere: where
+// uint64_t is unsigned long (LP64 Linux), std::span<uint64_t> is MutableSpan<UInt>, which SwiftCoding.swift's
+// MutableSpan<UInt64> does not convert to. The elements' size and alignment, and so the bytes decoded, are uint64_t's.
+// FIXME: Name uint64_t and int64_t once the importer does (KIT docs/interop-limitations.md, "`uint64_t` in a template
+// argument imports as `UInt` on LP64 Linux, and `int64_t` as `Int`").
+static_assert(sizeof(unsigned long long) == sizeof(uint64_t) && alignof(unsigned long long) == alignof(uint64_t));
+using MutableSpanUInt64 = std::span<unsigned long long>;
 using MutableSpanInt8 = std::span<int8_t>;
 using MutableSpanInt16 = std::span<int16_t>;
 using MutableSpanInt32 = std::span<int32_t>;
-using MutableSpanInt64 = std::span<int64_t>;
+using MutableSpanInt64 = std::span<long long>;
 using MutableSpanFloat = std::span<float>;
 using MutableSpanDouble = std::span<double>;
 

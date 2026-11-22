@@ -205,6 +205,67 @@ set(WEBKIT_SWIFT_CXX_INTEROP_FLAGS
 # release clang-cl and lld-link: its llvm.coro.id.retcon.once is variadic, theirs is not).
 option(WEBKIT_SWIFT_LTO "Compile Swift to LTO bitcode when LTO_MODE is set" ON)
 
+# For a target whose Swift has SSSE3 paths (HAVE_SSSE3 chooses PSHUFB in SIMDTableLookup.swift, as the xcconfigs
+# set it for x86_64): the code generator must be allowed SSSE3 too, or the (LTO) backend cannot select it. nehalem
+# is x86-64-v2 (SSSE3, SSE4.2).
+set(WEBKIT_SWIFT_X86_64_SIMD_FLAGS "-D HAVE_SSSE3" "-target-cpu nehalem")
+if (CXX_STDLIB_VARIANT STREQUAL "GLIBCXX")
+    # FIXME: With __SSE3__ defined, the importer cannot build libstdc++'s std module: <random> includes <pmmintrin.h>,
+    # whose Clang module (_Builtin_intrinsics) includes <stdlib.h>, which is libstdc++'s and includes <cstdlib>, a
+    # submodule of std ("cyclic dependency in module 'std'"). Undefine the macros nehalem adds to x86-64's for the
+    # importer only, so the headers it reads see one baseline: __SSE3__ alone is not enough, since a header that tests
+    # __SSE4_2__ (simde's, in the wtf module) then uses intrinsics whose submodule the importer has not made visible
+    # ("missing '#include <crc32intrin.h>'"). The code generator keeps nehalem's features.
+    # KIT docs/interop-limitations.md, "SSE3 and libstdc++'s std module".
+    list(APPEND WEBKIT_SWIFT_X86_64_SIMD_FLAGS
+        "-Xcc -U__SSE3__" "-Xcc -U__SSSE3__" "-Xcc -U__SSE4_1__" "-Xcc -U__SSE4_2__")
+endif ()
+
+# GLib's, GIO's and libsoup's headers have no module map. Swift's importer reads WebKit's headers as modules (wtf,
+# pal, WebCore_Private, WebKit's), and a header with no module of its own is part of every module that includes it:
+# wtf/glib's and WebCore's soup headers put GLib in two, whose declarations and include guards then conflict ("typedef
+# redefinition with different types ('enum GTlsDatabaseLookupFlags' vs 'enum GTlsDatabaseLookupFlags')"). The module
+# maps in Source/cmake/linux-modulemaps give each library a module, placed beside its headers by a VFS overlay; every
+# Swift importer gets the overlay, so each library is one module for all of them.
+set(WEBKIT_SWIFT_SYSTEM_MODULE_MAP_FLAGS "")
+if (GLib_INCLUDE_DIR AND NOT APPLE AND NOT WIN32)
+    set(_linux_mm_src "${CMAKE_SOURCE_DIR}/Source/cmake/linux-modulemaps")
+    set(_linux_mm_dir "${CMAKE_BINARY_DIR}/linux-modulemaps")
+    file(MAKE_DIRECTORY "${_linux_mm_dir}")
+    configure_file("${_linux_mm_src}/glib.modulemap" "${_linux_mm_dir}/glib.modulemap" COPYONLY)
+    configure_file("${_linux_mm_src}/libsoup.modulemap" "${_linux_mm_dir}/libsoup.modulemap" COPYONLY)
+    set(_vfs_glib_modulemap "${_linux_mm_dir}/glib.modulemap")
+    set(_vfs_libsoup_modulemap "${_linux_mm_dir}/libsoup.modulemap")
+    configure_file("${_linux_mm_src}/vfs-overlay.yaml.in" "${_linux_mm_dir}/vfs-overlay.yaml" @ONLY)
+    set(WEBKIT_SWIFT_SYSTEM_MODULE_MAP_FLAGS "-Xcc -ivfsoverlay" "-Xcc ${_linux_mm_dir}/vfs-overlay.yaml")
+endif ()
+
+# Skia's PUBLIC definitions (SK_R32_SHIFT, SK_ASSUME_GL_ES, ...) change what its headers declare and what their inline
+# code does, so every C++ file that includes them gets them, and Swift's importer, which reads the same headers through
+# WebCore's and WebKit's, needs them too. Per-target definitions don't reach the importer (the shared -Xcc set of
+# _WEBKIT_COMPUTE_SWIFT_SHARED_CLANG_FLAGS keeps every Swift target on one module cache hash), and Skia is added after
+# JavaScriptCore, whose importer flags are computed first. So they go to every importer in a response file written once
+# the whole tree is configured, from Skia's own INTERFACE_COMPILE_DEFINITIONS; it is empty on the ports without Skia.
+set(WEBKIT_SWIFT_THIRD_PARTY_DEFINES_RESP "${CMAKE_BINARY_DIR}/swift-third-party-defines.resp")
+function(_webkit_write_swift_third_party_defines)
+    set(_content "")
+    if (TARGET Skia)
+        get_target_property(_defs Skia INTERFACE_COMPILE_DEFINITIONS)
+        foreach (_d IN LISTS _defs)
+            # webkit_scope_target_interface_definitions keeps the definitions with a value from swiftc's -D, behind
+            # $<$<NOT:$<COMPILE_LANGUAGE:Swift>>:...>; this file is the importer's C-family view, so take the inside.
+            if (_d MATCHES "^\\$<\\$<NOT:\\$<COMPILE_LANGUAGE:Swift>>:(.+)>$")
+                set(_d "${CMAKE_MATCH_1}")
+            endif ()
+            if (_d)
+                string(APPEND _content "-Xcc\n\"-D${_d}\"\n")
+            endif ()
+        endforeach ()
+    endif ()
+    file(GENERATE OUTPUT "${WEBKIT_SWIFT_THIRD_PARTY_DEFINES_RESP}" CONTENT "${_content}")
+endfunction()
+cmake_language(DEFER DIRECTORY "${CMAKE_SOURCE_DIR}" CALL _webkit_write_swift_third_party_defines)
+
 # Whole-module Swift for every build that is neither Debug nor DEVELOPER_MODE, as Xcode builds
 # WebCore. CMake's default is incremental, which never specializes a call to a generic function in
 # another file. DEVELOPER_MODE keeps incremental rebuilds, as it keeps clang-cl builds from LTO (see

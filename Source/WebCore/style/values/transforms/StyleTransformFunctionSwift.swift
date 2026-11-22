@@ -37,6 +37,11 @@ internal import WebCore_Private.Core.StyleTransformSwiftTypes
 internal import WebCore_Private.Core.TransformationMatrix
 internal import wtf.Core.Stopwatch
 
+// FIXME: A Style.TransformList parameter is not `borrowing`, though it is borrowed: the list is copyable and holds a
+// FixedVector, whose std::unique_ptr storage Swift imports as noncopyable, and `borrowing` such a type stops the
+// move-only checker of an assertions toolchain (KIT docs/interop-limitations.md, "A `borrowing` or
+// `consuming` parameter of a copyable C++ type with a noncopyable field"). A plain parameter has the same borrowed convention.
+
 // The effect of a transform function on a matrix, for TransformList::apply() and the translate, rotate and scale
 // properties.
 
@@ -116,8 +121,8 @@ func styleTransformFunctionEqual(
 // rotations and skews are read in place; matrix(), matrix3d() and perspective() are taken as references.
 @inline(always)
 func equalStyleTransformListFunctions(
-    _ a: borrowing WebCore.Style.TransformList,
-    _ b: borrowing WebCore.Style.TransformList,
+    _ a: WebCore.Style.TransformList,
+    _ b: WebCore.Style.TransformList,
     at index: Int
 ) -> Bool {
     let type = WebCore.Style.styleTransformFunctionTypeAt(a, index)

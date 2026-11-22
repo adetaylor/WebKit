@@ -49,8 +49,9 @@ private:
     void updateFromStateNode(const ScrollingStateScrollingNode&) final;
 #endif
 
-    // ScrollingEffectsControllerClient.
-    bool scrollAnimationEnabled() const final { return m_scrollAnimatorEnabled; }
+    // FIXME: The Swift scroll physics has no animated wheel scroll yet (ScrollingEffectsController's
+    // ENABLE(SMOOTH_SCROLLING) path, ScrollPhysicsController.swift's #error), which is what read this.
+    bool scrollAnimationEnabled() const { return m_scrollAnimatorEnabled; }
 
     bool m_scrollAnimatorEnabled { false };
 #if USE(COORDINATED_GRAPHICS_ASYNC_SCROLLBAR)

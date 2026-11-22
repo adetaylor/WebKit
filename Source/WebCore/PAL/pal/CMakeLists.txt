@@ -95,6 +95,15 @@ if (DEFINED PAL_SWIFT_INTEROP_SOURCES)
     list(APPEND PAL_INTERFACE_LIBRARIES "$<TARGET_OBJECTS:PAL_SwiftInterop>")
 endif ()
 
+if (NOT APPLE)
+    # PAL's Swift imports its underlying module, pal, and TextCodecUTF8.swift imports
+    # pal.Core.text.TextCodecUTF8DecoderTypes; PlatformCocoa.cmake installs module.modulemap for the Apple ports.
+    list(APPEND PAL_PUBLIC_HEADERS module.modulemap)
+    # module.modulemap has `umbrella "spi"`, which Clang requires to be a non-empty directory.
+    file(MAKE_DIRECTORY "${PAL_HEADERS_DIR}/spi")
+    file(WRITE "${PAL_HEADERS_DIR}/spi/pal_spi_stub.h" "")
+endif ()
+
 WEBKIT_COPY_FILES(PAL_CopyHeaders
     DESTINATION ${PAL_HEADERS_DIR}
     FILES ${PAL_PUBLIC_HEADERS}
@@ -149,10 +158,7 @@ if (PAL_SWIFT_SOURCES)
     # SIMDTableLookup.swift's table lookup (PSHUFB with SSSE3) needs the Builtin module, as in PAL.xcconfig.
     webkit_target_add_swift_options(PAL "-enable-experimental-feature BuiltinModule")
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
-        webkit_target_add_swift_options(PAL "-D HAVE_SSSE3")
-        # HAVE_SSSE3 only chooses PSHUFB; the code generator must be allowed SSSE3 too, or the (LTO)
-        # backend cannot select it. nehalem is x86-64-v2 (SSSE3, SSE4.2).
-        webkit_target_add_swift_options(PAL "-target-cpu nehalem")
+        webkit_target_add_swift_options(PAL ${WEBKIT_SWIFT_X86_64_SIMD_FLAGS})
     endif ()
     if (LTO_MODE AND NOT APPLE AND WEBKIT_SWIFT_LTO)
         # Otherwise an LTO build is C++-only: the Swift decoder would be machine code that the LTO

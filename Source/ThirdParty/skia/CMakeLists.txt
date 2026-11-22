@@ -1060,7 +1060,15 @@ target_compile_definitions(Skia PUBLIC
 # be PUBLIC because it changes the ABI so code using Skia must see
 # the attribute.
 #
-if (COMPILER_IS_CLANG)
+# FIXME: Swift won't import a trivial_abi class, and imports a class that
+# holds one but never destroys it (KIT docs/interop-limitations.md, "Swift
+# never destroys a C++ class that holds a trivial_abi member"). WebKit's
+# Swift holds and copies classes that hold an sk_sp (WebCore::ColorSpace),
+# so with the attribute each copy Swift makes would leak its reference.
+# WebKit always builds Swift, so sk_sp keeps the ordinary ABI until the
+# toolchain handles the attribute.
+#
+if (COMPILER_IS_CLANG AND NOT CMAKE_Swift_COMPILER)
     target_compile_definitions(Skia PUBLIC SK_TRIVIAL_ABI=[[clang::trivial_abi]])
 endif ()
 

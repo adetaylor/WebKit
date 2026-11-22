@@ -226,7 +226,10 @@ public import WebCore_Private.Core.CGRendererSwiftBridge
 
 // FEImage's source image (SourceImage): a native image, an image buffer, or neither (an image the GPU process didn't
 // resolve).
-@_spi(WebKitGPU) public enum FilterImageSource {
+// FIXME: `indirect`, so that each image is held in a Swift box: Swift's copy of an enum with two shared-reference
+// payloads retains neither (KIT docs/interop-limitations.md, "An enum with two C++ shared-reference payloads"), and an
+// assertions toolchain stops on this one. One allocation an FEImage description.
+@_spi(WebKitGPU) public indirect enum FilterImageSource {
     case nativeImage(WebCore.NativeImage)
     case imageBuffer(WebCore.ImageBuffer)
     case none

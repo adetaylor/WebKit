@@ -94,7 +94,7 @@ class Checksum {
 public:
     void add(uint64_t value) { m_value = (m_value ^ value) * 0x100000001b3ULL; }
 
-    void add(double number) { add(std::isnan(number) ? 0x7ff8000000000000ULL : std::bit_cast<uint64_t>(number)); }
+    void add(double number) { add(std::isnan(number) ? uint64_t { 0x7ff8000000000000 } : std::bit_cast<uint64_t>(number)); }
 
     void add(StringView string)
     {

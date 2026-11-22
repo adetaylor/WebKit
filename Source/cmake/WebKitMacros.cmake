@@ -1563,6 +1563,7 @@ function(_WEBKIT_SWIFT_SHARED_IMPORTER_OPTIONS _outvar _resp_path _cxx_interop)
     foreach (_f IN LISTS _shared_cc_flags)
         list(APPEND _opts "-Xcc ${_f}")
     endforeach ()
+    list(APPEND _opts ${WEBKIT_SWIFT_SYSTEM_MODULE_MAP_FLAGS} "@${WEBKIT_SWIFT_THIRD_PARTY_DEFINES_RESP}")
     set(${_outvar} ${_opts} PARENT_SCOPE)
 endfunction()
 
@@ -1729,6 +1730,54 @@ function(WEBKIT_QUERY_SWIFT_TARGET_INFO _result _swift_compiler)
         message(FATAL_ERROR "Failed to query Swift target information: ${_swift_target_info_error}")
     endif ()
     set(${_result} "${_swift_target_info}" PARENT_SCOPE)
+endfunction()
+
+# WEBKIT_LINK_SWIFT_RUNTIME(<target> [TARGETS <library>...] [OBJECTS <object>...]): give an ELF image that the C++
+# linker links what swiftc gives an image it links. The image's Swift objects are the Swift objects (*.swift.o) of the
+# TARGETS, which may include <target> itself, and the OBJECTS (a custom command's).
+# - The libraries the objects auto-link. An ELF Swift object names them in .swift1_autolink_entries, which only the
+#   Swift driver reads (with swift-autolink-extract); on COFF and Mach-O the linker reads them itself. A pre-link step
+#   extracts them into a response file that the link reads.
+# - swiftrt.o, whose constructor registers the image's Swift metadata sections with the runtime. Without it a protocol
+#   conformance or a type the image declares is not found at run time.
+# - The runtime's directory as an rpath, as swiftc's -toolchain-stdlib-rpath.
+# The image is linked by the C++ linker (LINKER_LANGUAGE CXX): CMake would otherwise have swiftc link a target with
+# Swift sources, whose driver adds swiftrt.o again ("duplicate symbol: __swift5_reflection_sections"), and WebKit's
+# link flags are the C++ linker's.
+# Nothing on Apple platforms and Windows.
+function(WEBKIT_LINK_SWIFT_RUNTIME _target)
+    if (APPLE OR WIN32)
+        return()
+    endif ()
+    cmake_parse_arguments(PARSE_ARGV 1 _arg "" "" "TARGETS;OBJECTS")
+    string(JSON _swift_target_paths GET "${WEBKIT_SWIFT_TARGET_INFO}" "paths")
+    string(JSON _swift_runtime_library_path GET ${_swift_target_paths} "runtimeLibraryPaths" 0)
+    string(JSON _swift_runtime_resource_path GET ${_swift_target_paths} "runtimeResourcePath")
+    string(JSON _swift_target_arch GET "${WEBKIT_SWIFT_TARGET_INFO}" "target" "arch")
+    set(_swiftrt "${_swift_runtime_library_path}/${_swift_target_arch}/swiftrt.o")
+    if (NOT EXISTS "${_swiftrt}")
+        message(FATAL_ERROR "No swiftrt.o in ${_swift_runtime_library_path}/${_swift_target_arch}")
+    endif ()
+    # The toolchain's bin directory: the resource directory is its usr/lib/swift.
+    find_program(SWIFT_AUTOLINK_EXTRACT swift-autolink-extract
+        HINTS "${_swift_runtime_resource_path}/../../bin" NO_DEFAULT_PATH REQUIRED)
+
+    set(_inputs ${_arg_OBJECTS})
+    foreach (_library IN LISTS _arg_TARGETS)
+        if (TARGET ${_library})
+            list(APPEND _inputs "$<FILTER:$<TARGET_OBJECTS:${_library}>,INCLUDE,\\.swift\\.o$>")
+        endif ()
+    endforeach ()
+    # swiftrt.o has no entries; it keeps the command's input list from being empty.
+    set(_rsp "${CMAKE_CURRENT_BINARY_DIR}/${_target}-swift-autolink.rsp")
+    add_custom_command(TARGET ${_target} PRE_LINK
+        COMMAND "${SWIFT_AUTOLINK_EXTRACT}" "${_swiftrt}" ${_inputs} -o "${_rsp}"
+        COMMENT "Extracting the Swift libraries ${_target} auto-links"
+        COMMAND_EXPAND_LISTS
+        VERBATIM)
+    set_property(TARGET ${_target} PROPERTY LINKER_LANGUAGE CXX)
+    target_link_options(${_target} PRIVATE "${_swiftrt}" "@${_rsp}" "LINKER:-rpath,${_swift_runtime_library_path}")
+    set_property(TARGET ${_target} APPEND PROPERTY LINK_DEPENDS "${_swiftrt}" ${_arg_OBJECTS})
 endfunction()
 
 macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_name _interop_module_path _output_header)

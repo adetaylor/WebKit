@@ -31,6 +31,8 @@
 #include "ScrollerCoordinated.h"
 #include "ScrollingStateFrameScrollingNode.h"
 #include "ScrollingTreeOverflowScrollingNode.h"
+#include "ScrollingTreeScrollPhysicsClient.h"
+#include "ScrollingTreeScrollPhysicsDelegateHolder.h"
 
 namespace WebCore {
 
@@ -54,7 +56,7 @@ ScrollingTreeScrollingNodeDelegateCoordinated::~ScrollingTreeScrollingNodeDelega
 
 void ScrollingTreeScrollingNodeDelegateCoordinated::updateVisibleLengths()
 {
-    m_scrollController.contentsSizeChanged();
+    m_physics->delegate.contentsSizeChanged(ScrollingTreeScrollPhysicsClientState(*this).facade());
 #if USE(COORDINATED_GRAPHICS_ASYNC_SCROLLBAR)
     m_scrollerPair->updateValues();
 #endif
@@ -62,11 +64,7 @@ void ScrollingTreeScrollingNodeDelegateCoordinated::updateVisibleLengths()
 
 bool ScrollingTreeScrollingNodeDelegateCoordinated::handleWheelEvent(const PlatformWheelEvent& wheelEvent)
 {
-    auto deferrer = ScrollingTreeWheelEventTestMonitorCompletionDeferrer { *scrollingTree(), scrollingNode()->scrollingNodeID(), WheelEventTestMonitor::DeferReason::HandlingWheelEvent };
-
-    updateUserScrollInProgressForEvent(wheelEvent);
-
-    return m_scrollController.handleWheelEvent(wheelEvent);
+    return m_physics->delegate.handleWheelEvent(ScrollingTreeScrollPhysicsClientState(*this).facade(), wheelEvent, wheelEvent.timestamp().secondsSinceEpoch().value());
 }
 
 #if USE(COORDINATED_GRAPHICS_ASYNC_SCROLLBAR)

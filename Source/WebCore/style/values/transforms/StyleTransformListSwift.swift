@@ -35,6 +35,11 @@ internal import WebCore_Private.Core.StyleTransformList
 internal import WebCore_Private.Core.TransformationMatrix
 internal import wtf.Core.Stopwatch
 
+// FIXME: A Style.TransformList parameter is not `borrowing`, though it is borrowed: the list is copyable and holds a
+// FixedVector, whose std::unique_ptr storage Swift imports as noncopyable, and `borrowing` such a type stops the
+// move-only checker of an assertions toolchain (KIT docs/interop-limitations.md, "A `borrowing` or
+// `consuming` parameter of a copyable C++ type with a noncopyable field"). A plain parameter has the same borrowed convention.
+
 // Each entry below that takes a TransformList is given the list or lists that a TransformList member (*this, and the
 // other operand of operator==()) or Blending<TransformList> (the from and to keyframe lists) is called with, passed by
 // reference without a copy. A list is owned by a ComputedStyle (its transform), by a PortalTransform (one of its lists,
@@ -51,7 +56,7 @@ internal import wtf.Core.Stopwatch
 // applies it.
 @_expose(Cxx)
 func styleTransformListApply(
-    _ list: borrowing WebCore.Style.TransformList,
+    _ list: WebCore.Style.TransformList,
     _ matrix: inout WebCore.TransformationMatrix,
     _ width: Float,
     _ height: Float,
@@ -62,7 +67,7 @@ func styleTransformListApply(
 }
 
 func applyStyleTransformList(
-    _ list: borrowing WebCore.Style.TransformList,
+    _ list: WebCore.Style.TransformList,
     from start: Int,
     to matrix: inout WebCore.TransformationMatrix,
     _ width: Float,
@@ -104,8 +109,8 @@ func applyStyleTransformList(
 // matrix3d() or perspective() function while it compares it.
 @_expose(Cxx)
 func styleTransformListEqual(
-    _ a: borrowing WebCore.Style.TransformList,
-    _ b: borrowing WebCore.Style.TransformList
+    _ a: WebCore.Style.TransformList,
+    _ b: WebCore.Style.TransformList
 ) -> Bool {
     let count = a.size()
     if count != b.size() {
@@ -121,8 +126,8 @@ func styleTransformListEqual(
 // equal parameters. Translations, scales, rotations and skews are read in place, with no reference taken to them.
 @inline(never)
 func equalStyleTransformListElements(
-    _ a: borrowing WebCore.Style.TransformList,
-    _ b: borrowing WebCore.Style.TransformList,
+    _ a: WebCore.Style.TransformList,
+    _ b: WebCore.Style.TransformList,
     count: Int
 ) -> Bool {
     var index = 0
@@ -141,7 +146,7 @@ func equalStyleTransformListElements(
 // Whether any function of the list is of a 3D type, even one whose values describe an affine transform.
 // Also retains each function while it reads it.
 @_expose(Cxx)
-func styleTransformListHas3DOperation(_ list: borrowing WebCore.Style.TransformList) -> Bool {
+func styleTransformListHas3DOperation(_ list: WebCore.Style.TransformList) -> Bool {
     var index = 0
     while index < list.size() {
         if list[index].value.get().is3DOperation() {
@@ -156,7 +161,7 @@ func styleTransformListHas3DOperation(_ list: borrowing WebCore.Style.TransformL
 // Also calls the downcasts to each function type and each function's parameter reads, and retains each function while
 // it reads it.
 @_expose(Cxx)
-func styleTransformListIsRepresentableIn2D(_ list: borrowing WebCore.Style.TransformList) -> Bool {
+func styleTransformListIsRepresentableIn2D(_ list: WebCore.Style.TransformList) -> Bool {
     var index = 0
     while index < list.size() {
         if !styleTransformFunctionIsRepresentableIn2D(list[index].value.get()) {
@@ -171,7 +176,7 @@ func styleTransformListIsRepresentableIn2D(_ list: borrowing WebCore.Style.Trans
 // Also calls the downcasts to each function type and each function's parameter reads, and retains each function while
 // it reads it.
 @_expose(Cxx)
-func styleTransformListAffectedByTransformOrigin(_ list: borrowing WebCore.Style.TransformList) -> Bool {
+func styleTransformListAffectedByTransformOrigin(_ list: WebCore.Style.TransformList) -> Bool {
     var index = 0
     while index < list.size() {
         if styleTransformFunctionIsAffectedByTransformOrigin(list[index].value.get()) {
@@ -186,7 +191,7 @@ func styleTransformListAffectedByTransformOrigin(_ list: borrowing WebCore.Style
 // Also calls what styleTransformListApply() calls.
 @_expose(Cxx)
 func styleTransformListIsInvertible(
-    _ list: borrowing WebCore.Style.TransformList,
+    _ list: WebCore.Style.TransformList,
     _ width: Float,
     _ height: Float,
     _ zoom: Float
@@ -200,7 +205,7 @@ func styleTransformListIsInvertible(
 // Also calls the downcast to a translation and isPercent() of its lengths, and retains each function it reads.
 @_expose(Cxx)
 func styleTransformListSizeDependencies(
-    _ list: borrowing WebCore.Style.TransformList
+    _ list: WebCore.Style.TransformList
 ) -> WebCore.Style.TransformFunctionSizeDependencies {
     var result = WebCore.Style.TransformFunctionSizeDependencies()
     var index = 0
@@ -222,7 +227,7 @@ func styleTransformListSizeDependencies(
 // Whether the list has a matrix() or matrix3d() function whose matrix, against a reference box of the given width
 // and height, has no inverse.
 func styleTransformListContainsNonInvertibleMatrix(
-    _ list: borrowing WebCore.Style.TransformList,
+    _ list: WebCore.Style.TransformList,
     _ width: Float,
     _ height: Float
 ) -> Bool {
@@ -247,8 +252,8 @@ func styleTransformListContainsNonInvertibleMatrix(
 // Also calls what styleTransformListApply() calls, and retains each function it reads.
 @_expose(Cxx)
 func styleTransformListCanBlend(
-    _ from: borrowing WebCore.Style.TransformList,
-    _ to: borrowing WebCore.Style.TransformList,
+    _ from: WebCore.Style.TransformList,
+    _ to: WebCore.Style.TransformList,
     _ compositeOperation: WebCore.CompositeOperation
 ) -> Bool {
     if compositeOperation == .Replace {
@@ -269,8 +274,8 @@ func styleTransformListCanBlend(
 // reserveCapacity(); a function it takes keeps its list's reference. The result is set on the style after this returns.
 @_expose(Cxx)
 func styleTransformListBlend(
-    _ from: borrowing WebCore.Style.TransformList,
-    _ to: borrowing WebCore.Style.TransformList,
+    _ from: WebCore.Style.TransformList,
+    _ to: WebCore.Style.TransformList,
     _ context: WebCore.BlendingContext,
     _ width: Float,
     _ height: Float,
@@ -361,8 +366,8 @@ func styleTransformListBlend(
 // The functions from start on of each list applied to a matrix, and the matrices interpolated; discretely, with the
 // replace composite operation, when isDiscrete.
 func blendedStyleTransformListMatrix(
-    _ from: borrowing WebCore.Style.TransformList,
-    _ to: borrowing WebCore.Style.TransformList,
+    _ from: WebCore.Style.TransformList,
+    _ to: WebCore.Style.TransformList,
     start: Int,
     _ context: WebCore.BlendingContext,
     _ width: Float,
@@ -389,8 +394,8 @@ func blendedStyleTransformListMatrix(
 // their defaults.
 @inline(always)
 func blendedStyleTransformListFunction(
-    _ from: borrowing WebCore.Style.TransformList,
-    _ to: borrowing WebCore.Style.TransformList,
+    _ from: WebCore.Style.TransformList,
+    _ to: WebCore.Style.TransformList,
     at index: Int,
     _ context: WebCore.BlendingContext
 ) -> WebCore.Style.TransformFunction {

@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <glib-object.h>
 #include <wtf/HashTraits.h>
+#include <wtf/SwiftBridging.h>
 
 extern "C" {
     typedef struct _GDBusConnection GDBusConnection;
@@ -88,7 +89,7 @@ template<typename T, typename GRefPtrRefDerefTraits = GRefPtrDefaultRefDerefTrai
 //
 // **You must include the header containing any specific specializations you need.**
 // Failing to do so will silently cause the default implementation to be used.
-template<typename T, typename _GRefPtrRefDerefTraits = GRefPtrDefaultRefDerefTraits<T>> class GRefPtr {
+template<typename T, typename _GRefPtrRefDerefTraits = GRefPtrDefaultRefDerefTraits<T>> class SWIFT_SELF_CONTAINED GRefPtr {
 public:
     using RefDerefTraits = _GRefPtrRefDerefTraits;
     typedef T ValueType;

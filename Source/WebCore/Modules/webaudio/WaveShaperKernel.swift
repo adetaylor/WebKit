@@ -32,6 +32,7 @@
 // output; the elements have no invalid bit patterns; and no input overlaps an output (an input that is the output comes
 // as an empty span, see inputUnlessOutput).
 
+#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
 internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
 // These imports make the operators JavaScriptCore declares visible before WebCore's C++ operators are
 // (rdar://192229293).
@@ -40,6 +41,7 @@ internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+#endif
 public import WebCore_Private.AudioDSPBoundaryTypes
 internal import wtf.Core.Stopwatch
 
@@ -64,7 +66,10 @@ struct WaveShaperBlockConvolver<let blockSize: Int, let bufferSize: Int>: ~Copya
 
     /// `destination` holds `source.count` frames; a source that is not one block, or a kernel longer than one, does
     /// nothing.
-    @inline(always)
+    // FIXME: Not @inline(always), as the samplers' process functions are: inlined into the down-sampler's, the
+    // history's bounds checks are hoisted above the span they check, and the SIL verifier stops an assertions toolchain
+    // (KIT docs/interop-limitations.md, "BoundsCheckOpts hoists a MutableSpan's bounds check above the span"). One
+    // call a block, to a whole convolution.
     mutating func process(kernel: Span<Float>, source: Span<Float>, destination: inout MutableSpan<Float>) {
         guard source.count == blockSize, kernel.count <= blockSize else {
             return

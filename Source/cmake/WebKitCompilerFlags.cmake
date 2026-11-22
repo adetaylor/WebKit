@@ -327,6 +327,10 @@ if (COMPILER_IS_GCC_OR_CLANG)
 
     # -Wunused-template seems to be outright broken with Clang 23.1. There are way too many false positives.
     WEBKIT_PREPEND_GLOBAL_COMPILER_FLAGS(-Wno-unused-template)
+
+    # Clang 23 gives -Wmissing-designated-field-initializers, under -Wextra, for designated initializers that leave
+    # members to their default member initializers, which Apple's clang does not; CommonBase.xcconfig silences it too.
+    WEBKIT_PREPEND_GLOBAL_COMPILER_FLAGS(-Wno-missing-designated-field-initializers)
 endif ()
 
 if (COMPILER_IS_GCC_OR_CLANG AND NOT MSVC)

@@ -58,7 +58,10 @@ struct _WebKitWebFormManagerPrivate {
 WEBKIT_DEFINE_FINAL_TYPE(WebKitWebFormManager, webkit_web_form_manager, G_TYPE_OBJECT, GObject)
 #else
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN // GTK/WPE Port
+// The type chains no class method, so G_DEFINE_TYPE's parent class pointer is set and never read.
+IGNORE_CLANG_WARNINGS_BEGIN("unused-but-set-global")
 G_DEFINE_TYPE(WebKitWebFormManager, webkit_web_form_manager, G_TYPE_OBJECT)
+IGNORE_CLANG_WARNINGS_END
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
 static void webkit_web_form_manager_init(WebKitWebFormManager*)

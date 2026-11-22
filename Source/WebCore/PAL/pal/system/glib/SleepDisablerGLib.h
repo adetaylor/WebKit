@@ -29,7 +29,7 @@
 
 #if USE(GLIB)
 
-#include "SleepDisabler.h"
+#include <pal/system/SleepDisabler.h>
 
 #include <wtf/glib/GRefPtr.h>
 #include <wtf/glib/GUniquePtr.h>

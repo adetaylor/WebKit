@@ -23,6 +23,7 @@
 
 // swift-format-ignore: AllPublicDeclarationsHaveDocumentation
 
+#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
 internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
 // These imports make the operators JavaScriptCore declares visible before WebCore's C++ operators are
 // (rdar://192229293).
@@ -31,6 +32,7 @@ internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+#endif
 internal import WebCore_Private.AudioDSPBoundaryTypes
 internal import wtf.Core.Stopwatch
 

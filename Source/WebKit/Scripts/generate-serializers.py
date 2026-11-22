@@ -3242,6 +3242,9 @@ def generate_swift(serialized_types, serialized_enums, using_statements):
     result.append('')
     result.append(f'#if {SWIFT_FILE_CONDITION}')
     result.append('')
+    # The serializers extend WebCore's C++ enums (swift_types.py's CXX_ENUM_TYPES), whose cases MemberImportVisibility
+    # makes visible only with the module that declares them imported.
+    result.append('import WebCore_Private')
     result.append('import WebKit_Internal')
     for declaration in declarations:
         if declaration:

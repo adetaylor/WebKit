@@ -1971,7 +1971,8 @@ _WEBKIT_COMPUTE_SWIFT_SHARED_CLANG_FLAGS(_jsc_swift_importer_defines)
 list(TRANSFORM _jsc_swift_importer_defines PREPEND "-Xcc;")
 set(_jsc_swift_flags
     -module-name JSCSwift ${_jsc_swift_shared_flags} ${_jsc_swift_platform_flags}
-    "@${_jsc_swift_importer_resp}" "@${_jsc_swift_platform_resp}" ${_jsc_swift_importer_defines}
+    "@${_jsc_swift_importer_resp}" "@${_jsc_swift_platform_resp}" "@${WEBKIT_SWIFT_THIRD_PARTY_DEFINES_RESP}"
+    ${_jsc_swift_importer_defines}
     -Xcc "-fmodule-map-file=${_jsc_swift_boundary_dir}/module.modulemap"
     -Xcc -fno-exceptions -Xcc -fignore-exceptions
     -enable-experimental-feature ForeignReferenceTypeInheritance -enable-experimental-feature CxxImplementation
@@ -2188,6 +2189,7 @@ WEBKIT_FRAMEWORK(JavaScriptCore)
 if (NOT WIN32)
     target_link_directories(JavaScriptCore PRIVATE "${_jsc_swift_library_path}")
 endif ()
+WEBKIT_LINK_SWIFT_RUNTIME(JavaScriptCore OBJECTS "${_jsc_swift_obj}" "${_jsc_json_swift_obj}")
 
 if (USE_APPLE_INTERNAL_SDK)
     WEBKIT_TARGET_USE_PGO(JavaScriptCore PROFILE JavaScriptCore)

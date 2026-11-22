@@ -3376,6 +3376,11 @@ set(_webcore_webauthn_swift_interop_sources
     Modules/webauthn/cbor/CBORWriter.cpp
     Modules/webauthn/fido/AuthenticatorGetInfoResponse.cpp
     Modules/webauthn/fido/Pin.cpp)
+# MediaConstraintsEvaluation.cpp calls MediaConstraintsEngine.swift, so it compiles in WebCore_SwiftInterop (the Apple
+# ports list it with their own Swift interop sources, below).
+if (ENABLE_MEDIA_STREAM AND NOT APPLE)
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)MediaConstraintsEvaluation\\.cpp( |$)")
+endif ()
 if (ENABLE_WEB_AUTHN)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
         "(^|/)CBORReader\\.cpp( |$)"
@@ -4283,6 +4288,45 @@ else ()
     set(_webcore_swift_modules "")
     set(_webcore_swift_core_submodules)
 
+    # The scrolling thread's scroll delegate (ThreadedScrollingTreeScrollingNodeDelegate), which is Swift: the
+    # coordinated graphics ports' scrolling thread (PlatformEnableGlib.h) and PlayStation's ENABLE_SCROLLING_THREAD.
+    if (ENABLE_SCROLLING_THREAD OR (ENABLE_ASYNC_SCROLLING AND USE_COORDINATED_GRAPHICS))
+        target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.swift
+        )
+        webkit_target_add_swift_options(WebCore "-D ENABLE_SCROLLING_THREAD")
+        if (USE_COORDINATED_GRAPHICS)
+            list(REMOVE_ITEM WebCore_SOURCES page/scrolling/coordinated/ScrollingTreeScrollingNodeDelegateCoordinated.cpp)
+            list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+                page/scrolling/coordinated/ScrollingTreeScrollingNodeDelegateCoordinated.cpp)
+        endif ()
+        string(APPEND _webcore_swift_modules
+            "    explicit module ScrollingTreeScrollPhysicsClient {\n"
+            "        header \"${WEBCORE_DIR}/page/scrolling/ScrollingTreeScrollPhysicsClient.h\"\n"
+            "        requires cplusplus\n"
+            "        export *\n"
+            "    }\n")
+    endif ()
+
+    # The media constraints' fitness distance and settings selection (MediaConstraintsEngine.swift), which
+    # MediaConstraintsEvaluation.cpp calls, the capture sources' size and frame rate decisions
+    # (CaptureSourceDecisions.swift, the @implementation of CaptureSourceDecisions.h), which RealtimeMediaSource.cpp
+    # and the mock sources call, and the mock camera's settings and capabilities (MockVideoSettings.swift, the
+    # @implementation of MockVideoSettings.h), which MockRealtimeVideoSource.cpp calls: there is no C++ for them.
+    if (ENABLE_MEDIA_STREAM)
+        target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/platform/mediastream/CaptureSourceDecisions.swift
+            ${WEBCORE_DIR}/platform/mediastream/MediaConstraintsEngine.swift
+            ${WEBCORE_DIR}/platform/mock/MockVideoSettings.swift
+        )
+        webkit_target_add_swift_options(WebCore "-D ENABLE_MEDIA_STREAM")
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/mediastream/MediaConstraintsEvaluation.cpp)
+        list(APPEND _webcore_swift_core_submodules
+            platform/mediastream/CaptureSourceDecisions.h
+            platform/mediastream/MediaConstraintsSwiftBridge.h
+            platform/mock/MockVideoSettings.h)
+    endif ()
+
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
     string(APPEND _webcore_swift_modules
         "    explicit module HTMLFastPathParserTypes {\n"
@@ -4294,13 +4338,15 @@ else ()
         dom/Attribute.h dom/ContainerNode.h dom/Document.h dom/Element.h html/HTMLElement.h
         ${WebCore_DERIVED_SOURCES_DIR}/HTMLElementFactory.h html/parser/HTMLNameCache.h dom/Node.h
         ${WebCore_DERIVED_SOURCES_DIR}/NodeName.h dom/QualifiedName.h dom/Text.h)
-    if (WIN32)
-        # Document's map of std::unique_ptr<Locale>: with the MSVC standard library the importer instantiates
-        # its destructor, which needs Locale's definition, so the Document submodule has PlatformLocale.h too.
-        set(_webcore_swift_core_submodule_headers_Document platform/text/PlatformLocale.h)
-        # Node's pure virtual serializeNode() returns SerializedNode by value: the importer needs its definition
-        # for the member's thunk (Swift 6.5-dev baff8d0917d3).
-        set(_webcore_swift_core_submodule_headers_Node dom/SerializedNode.h)
+    # Document's map of std::unique_ptr<Locale>: with the MSVC and GNU standard libraries the importer instantiates its
+    # destructor, which needs Locale's definition, so the Document submodule has PlatformLocale.h too.
+    set(_webcore_swift_core_submodule_headers_Document platform/text/PlatformLocale.h)
+    if (USE_COORDINATED_GRAPHICS)
+        # ScrollingStateNode.h includes CoordinatedPlatformLayer.h (PlatformLayer), whose buffers are
+        # std::optional<std::unique_ptr<CoordinatedPlatformLayerBuffer>>: the importer instantiates their destructors
+        # too.
+        set(_webcore_swift_core_submodule_headers_ScrollingStateNode
+            platform/graphics/coordinated/CoordinatedPlatformLayerBuffer.h)
     endif ()
     # The importer emits a call of Node's virtual serializeNode(), which returns a SerializedNode by value.
     set(_webcore_swift_core_submodule_headers_Node dom/SerializedNode.h)
@@ -4591,7 +4637,8 @@ else ()
         platform/network/StoredCredentialsPolicy.h)
     if (USE_CURL)
         list(APPEND _webcore_swift_core_submodules platform/network/curl/ResourceResponse.h)
-    elseif (USE_SOUP)
+    elseif (PORT STREQUAL "GTK" OR PORT STREQUAL "WPE")
+        # USE(SOUP) (PlatformUse.h); their PlatformGTK.cmake and PlatformWPE.cmake include platform/Soup.cmake.
         list(APPEND _webcore_swift_core_submodules platform/network/soup/ResourceResponse.h)
     endif ()
     string(APPEND _webcore_swift_modules
@@ -4689,10 +4736,7 @@ else ()
         webkit_target_add_swift_options(WebCore "-D ENABLE_SMOOTH_SCROLLING")
     endif ()
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
-        # HAVE_SSSE3 chooses PSHUFB in SIMDTableLookup.swift, as WebCore.xcconfig sets it for x86_64. The code
-        # generator must be allowed SSSE3 too, or the (LTO) backend cannot select it. nehalem is x86-64-v2
-        # (SSSE3, SSE4.2).
-        webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3" "-target-cpu nehalem")
+        webkit_target_add_swift_options(WebCore ${WEBKIT_SWIFT_X86_64_SIMD_FLAGS})
     endif ()
     # No -Xcc -I for WebCore's include directories: swiftc gives its -I paths, which CMake sets from
     # them, to the clang importer too, and repeating them overflows Windows' 32K command line.
@@ -4724,6 +4768,16 @@ else ()
         html/parser/HTMLTreeBuilderSwiftSupport.h html/HTMLUnknownElement.h bindings/js/JSCustomElementInterface.h
         dom/ProcessingInstruction.h ${WebCore_DERIVED_SOURCES_DIR}/Settings.h dom/ShadowRoot.h
         style/values/primitives/StylePrimitiveNumericTypes+Blending.h)
+    if (ENABLE_WEB_AUDIO)
+        # The audio DSP's Swift (WebCore_AUDIO_DSP_SWIFT_SOURCES): its boundary types, and BiquadKernel.swift takes
+        # the filter's type.
+        list(APPEND _webcore_swift_core_submodules Modules/webaudio/BiquadFilterType.h)
+        string(APPEND _webcore_swift_modules
+            "    explicit module AudioDSPBoundaryTypes {\n"
+            "        header \"${WEBCORE_DIR}/platform/audio/AudioDSPBoundaryTypes.h\"\n"
+            "        export *\n"
+            "    }\n")
+    endif ()
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
     if (_webcore_swift_core_submodules)
