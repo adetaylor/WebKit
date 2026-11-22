@@ -330,8 +330,6 @@ def strip_optional(type_name):
 
 
 def adapt_argument(expression, declared_type, pointer_type):
-    # CM_SWIFT_SENDING_RETAINED_PARAMETER marks a CF out-parameter `sending` in the pointer type.
-    pointer_type = pointer_type.removeprefix('sending ')
     if declared_type == pointer_type:
         return expression, False
     if declared_type == 'Bool' and pointer_type == 'DarwinBoolean':
@@ -374,8 +372,7 @@ def function_accessor(declaration, typedef, imported, with_pointer=False):
         if local == '_':
             local = f'arg{i}'
             head = f'_ {local}'
-        # The pointer type's `sending` parameter needs a `sending` argument, so the accessor's is too.
-        signature.append(f'{head}: {"sending " if pointer_parameter.startswith("sending ") else ""}{parameter_type}')
+        signature.append(f'{head}: {parameter_type}')
         expression, adapted_unsafely = adapt_argument(local, parameter_type, pointer_parameter)
         if expression is None:
             raise GeneratorError(f'{name}: parameter {i} is {parameter_type}, {pointer_parameter} in the pointer type: no adaptation rule')
@@ -414,6 +411,11 @@ def constant_accessor(declaration, pointee, swift_type=None):
     load = f'unsafe address.load(as: {pointer_type}.Pointee.self)'
     if pointee.endswith('?'):
         load = f'({load})!'
+    is_cf_constant = value_type.startswith('Unmanaged<')
+    if is_cf_constant:
+        # takeUnretainedValue() is unsafe too, so one `unsafe` covers the load and it.
+        value_type = value_type[len('Unmanaged<'):-1]
+        load = f'unsafe address.load(as: {pointer_type}.Pointee.self){"!" if pointee.endswith("?") else ""}.takeUnretainedValue()'
     if value_type == 'NSString':
         value_type = 'String'
         load = f'{load} as String'
@@ -423,11 +425,12 @@ def constant_accessor(declaration, pointee, swift_type=None):
     elif swift_type:
         raise GeneratorError(f'{name}: "as {swift_type}" applies only to NSString constants')
     lines = [f'extension {declaration.framework}SoftLink {{']
-    # A CF constant is an Unmanaged reference, which isn't Sendable; the address it loads from never changes.
-    storage = 'nonisolated(unsafe) static let' if value_type.startswith('Unmanaged<') else 'static let'
+    # A CF constant isn't Sendable; the object it names is immutable and never freed. A getter reads its storage, so
+    # callers make no unsafe reference.
+    storage, stored_name = ('nonisolated(unsafe) private static let', f'storage_{name}') if is_cf_constant else ('static let', name)
     if declaration.may_fail:
         lines += [
-            f'    {storage} {name}: {value_type}? = {{',
+            f'    {storage} {stored_name}: {value_type}? = {{',
             f'        guard let address = unsafe softLinkSymbol(auditedName_{name}) else {{',
             '            return nil',
             '        }',
@@ -436,11 +439,13 @@ def constant_accessor(declaration, pointee, swift_type=None):
         ]
     else:
         lines += [
-            f'    {storage} {name}: {value_type} = {{',
+            f'    {storage} {stored_name}: {value_type} = {{',
             f'        let address = unsafe softLinkRequiredSymbol(auditedName_{name})',
             f'        return {load}',
             '    }()',
         ]
+    if is_cf_constant:
+        lines.append(f'    static var {name}: {value_type}{"?" if declaration.may_fail else ""} {{ unsafe {stored_name} }}')
     lines.append('}')
     return lines
 
