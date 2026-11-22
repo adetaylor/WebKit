@@ -93,7 +93,11 @@ public:
     using OptionalVideoPlaybackQualityMetrics = std::optional<VideoPlaybackQualityMetrics>;
     using VideoFrameRef = RefPtr<VideoFrame>;
 
-    WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
+    // WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL, with ref() and deref() unsafe in Swift.
+    SWIFT_UNSAFE void ref() const final { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::ref(); }
+    SWIFT_UNSAFE void deref() const final { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::deref(); }
+    ThreadSafeWeakPtrControlBlock& controlBlock() const final { return ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::controlBlock(); }
+    uint32_t weakRefCount() const final { return ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::weakRefCount(); }
 
     // The token that finds the Swift core (AudioVideoRendererCore.renderer(forToken:)), for the GPU process's renderer
     // receiver, which becomes its client.

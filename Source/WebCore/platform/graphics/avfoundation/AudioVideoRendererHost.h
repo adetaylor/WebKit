@@ -182,8 +182,8 @@ public:
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
-    void ref() const { ThreadSafeRefCounted<AudioVideoRendererHost>::ref(); }
-    void deref() const { ThreadSafeRefCounted<AudioVideoRendererHost>::deref(); }
+    SWIFT_UNSAFE void ref() const { ThreadSafeRefCounted<AudioVideoRendererHost>::ref(); }
+    SWIFT_UNSAFE void deref() const { ThreadSafeRefCounted<AudioVideoRendererHost>::deref(); }
 #endif
 
 private:
