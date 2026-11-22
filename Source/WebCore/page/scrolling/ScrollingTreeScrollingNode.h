@@ -206,13 +206,14 @@ protected:
     
     bool isLatchedNode() const;
 
+    // Public for the tree's wheel event handling in Swift (ScrollingTreeLatchingController.swift).
+public:
     // If the totalContentsSize changes in the middle of a rubber-band, we still want to use the old totalContentsSize for the sake of
     // computing the stretchAmount(). Using the old value will keep the animation smooth. When there is no rubber-band in progress at
     // all, m_totalContentsSizeForRubberBand should be equivalent to m_totalContentsSize.
+    // Public for the iOS frame node's maximumScrollPosition() in WebKit's Swift, which cannot reach a protected member.
     FloatSize totalContentsSizeForRubberBand() const { return m_totalContentsSizeForRubberBand; }
 
-    // Public for the tree's wheel event handling in Swift (ScrollingTreeLatchingController.swift).
-public:
     bool horizontalOverscrollBehaviorPreventsPropagation() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior != OverscrollBehavior::Auto; }
     bool verticalOverscrollBehaviorPreventsPropagation() const { return m_scrollableAreaParameters.verticalOverscrollBehavior != OverscrollBehavior::Auto; }
 
