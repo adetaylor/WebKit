@@ -84,6 +84,11 @@ private func publicKeyCredentialTypeName(_ type: WebCore.PublicKeyCredentialType
 // The maps below write their keys in `ctapLess` order: integers ascending, then text by length, then by character.
 
 private func writeRpEntity(_ writer: inout CBORWriter, _ rpEntity: borrowing WebCore.PublicKeyCredentialRpEntity) {
+    // FIXME: The copy works around a MoveOnlyChecker assertion in the Swift 6.5 development snapshot ("Attempted to
+    // set out-of-bounds range!") on a `borrowing` C++ struct parameter whose own fields are read, when the struct
+    // derives from another (KIT docs/interop-limitations.md, "A `borrowing` parameter of a derived C++ struct asserts
+    // in the move checker when a field the struct itself declares is read"). Remove it once that is fixed.
+    let rpEntity = copy rpEntity
     let hasID = !rpEntity.id.isEmpty()
     let hasIcon = !rpEntity.icon.isEmpty()
     writer.beginMap(count: 1 + (hasID ? 1 : 0) + (hasIcon ? 1 : 0))
@@ -100,6 +105,8 @@ private func writeRpEntity(_ writer: inout CBORWriter, _ rpEntity: borrowing Web
 }
 
 private func writeUserEntity(_ writer: inout CBORWriter, _ userEntity: borrowing WebCore.PublicKeyCredentialUserEntity) {
+    // FIXME: The copy works around the MoveOnlyChecker assertion described in writeRpEntity.
+    let userEntity = copy userEntity
     let hasIcon = !userEntity.icon.isEmpty()
     writer.beginMap(count: hasIcon ? 4 : 3)
     writer.writeTextString(FidoName.entityID)
