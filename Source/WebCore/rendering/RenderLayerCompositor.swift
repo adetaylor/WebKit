@@ -3870,7 +3870,10 @@ extension WebCore.RenderLayerCompositor {
     @cxx
     @implementation
     public func layerBecameComposited(_ layer: borrowing WebCore.RenderLayer) {
-        if !(WebCore.LayerRef(layer) == WebCore.LayerRef(m_renderView.get().layer())) {
+        // FIXME: Pass the layer itself once SILGen wraps a borrowed shared reference in an optional correctly (KIT
+        // docs/interop-limitations.md, "A borrowed C++ shared reference passed as an optional fails the SIL
+        // verifier"): an assertions toolchain stops on it. The copy is one retain and release.
+        if !(WebCore.LayerRef(copy layer) == WebCore.LayerRef(m_renderView.get().layer())) {
             // An unsigned count, which wraps.
             m_contentLayersCount &+= 1
         }
