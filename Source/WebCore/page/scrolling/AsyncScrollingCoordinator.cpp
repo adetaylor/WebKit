@@ -1251,7 +1251,7 @@ void AsyncScrollingCoordinator::setPositionedNodeConstraints(ScrollingNodeID nod
         positionedNode->updateConstraints(constraints);
 }
 
-void AsyncScrollingCoordinator::setRelatedOverflowScrollingNodes(ScrollingNodeID nodeID, Vector<ScrollingNodeID>&& relatedNodes)
+void AsyncScrollingCoordinator::setRelatedOverflowScrollingNodes(ScrollingNodeID nodeID, Vector<ScrollingNodeID> relatedNodes)
 {
     RefPtr node = stateNodeForNodeID(nodeID);
     if (!node)

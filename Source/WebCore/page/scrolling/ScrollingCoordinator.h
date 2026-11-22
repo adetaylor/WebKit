@@ -168,7 +168,7 @@ public:
     virtual void setFrameScrollingNodeState(ScrollingNodeID, const LocalFrameView&) { }
     virtual void setViewportConstraintedNodeConstraints(ScrollingNodeID, const ViewportConstraints&) { }
     virtual void setPositionedNodeConstraints(ScrollingNodeID, const AbsolutePositionConstraints&) { }
-    virtual void setRelatedOverflowScrollingNodes(ScrollingNodeID, Vector<ScrollingNodeID>&&) { }
+    virtual void setRelatedOverflowScrollingNodes(ScrollingNodeID, Vector<ScrollingNodeID>) { }
     virtual void setSynchronousScrollingReasons(std::optional<ScrollingNodeID>, OptionSet<SynchronousScrollingReason>) { }
     virtual OptionSet<SynchronousScrollingReason> synchronousScrollingReasons(std::optional<ScrollingNodeID>) const { return { }; }
     bool hasSynchronousScrollingReasons(std::optional<ScrollingNodeID> nodeID) const { return !!synchronousScrollingReasons(nodeID); }

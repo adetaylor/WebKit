@@ -159,7 +159,7 @@ private:
     WEBCORE_EXPORT void setFrameScrollingNodeState(ScrollingNodeID, const LocalFrameView&) override;
     WEBCORE_EXPORT void setViewportConstraintedNodeConstraints(ScrollingNodeID, const ViewportConstraints&) override;
     WEBCORE_EXPORT void setPositionedNodeConstraints(ScrollingNodeID, const AbsolutePositionConstraints&) override;
-    WEBCORE_EXPORT void setRelatedOverflowScrollingNodes(ScrollingNodeID, Vector<ScrollingNodeID>&&) override;
+    WEBCORE_EXPORT void setRelatedOverflowScrollingNodes(ScrollingNodeID, Vector<ScrollingNodeID>) override;
 
     void reconcileScrollingState(LocalFrameView&, const FloatPoint&, const std::optional<LayoutViewportOriginOrOverrideRect>&, ScrollType, ViewportRectStability, ScrollingLayerPositionAction);
     void reconcileScrollPosition(LocalFrameView&, ScrollingLayerPositionAction);
