@@ -123,6 +123,6 @@ extension JSC.TemporalCore {
         _ offsetNs: JSC.TemporalOptionalInt64,
         _ precision: JSC.PrecisionData
     ) -> WTF.String {
-        TemporalOperations.instantToString(exactTime, offsetNs.value.map(Int64.init), precision)
+        TemporalOperations.instantToString(exactTime, offsetNs.value.map { Int64($0) }, precision)
     }
 }
