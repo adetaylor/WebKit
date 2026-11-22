@@ -50,7 +50,7 @@ private:
 
     bool commitStateBeforeChildren(const ScrollingStateNode&) override;
 
-    WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting) override;
+    WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting) override;
     void currentScrollPositionChanged(ScrollType, ScrollingLayerPositionAction) override;
     void repositionScrollingLayers() override;
     void repositionRelatedLayers() override;

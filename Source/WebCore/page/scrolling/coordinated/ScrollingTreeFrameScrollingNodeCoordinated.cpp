@@ -85,7 +85,7 @@ bool ScrollingTreeFrameScrollingNodeCoordinated::commitStateBeforeChildren(const
     return true;
 }
 
-WheelEventHandlingResult ScrollingTreeFrameScrollingNodeCoordinated::handleWheelEvent(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting)
+WheelEventHandlingResult ScrollingTreeFrameScrollingNodeCoordinated::handleWheelEvent(PlatformWheelEvent wheelEvent, EventTargeting eventTargeting)
 {
     if (!canHandleWheelEvent(wheelEvent, eventTargeting))
         return WheelEventHandlingResult::unhandled();

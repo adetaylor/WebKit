@@ -74,7 +74,7 @@ public:
     NODELETE SWIFT_UNSAFE void didCompleteCommitForNode() final;
 
     virtual bool canHandleWheelEvent(PlatformWheelEvent, EventTargeting) const;
-    SWIFT_UNSAFE virtual WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting = EventTargeting::Propagate);
+    SWIFT_UNSAFE virtual WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting = EventTargeting::Propagate);
     virtual void handleWheelEventPhase(const PlatformWheelEventPhase) { }
     
     FloatPoint currentScrollPosition() const { return m_currentScrollPosition; }

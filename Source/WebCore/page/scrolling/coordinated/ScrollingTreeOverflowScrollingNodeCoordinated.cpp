@@ -74,7 +74,7 @@ void ScrollingTreeOverflowScrollingNodeCoordinated::repositionScrollingLayers()
     delegate().updateVisibleLengths();
 }
 
-WheelEventHandlingResult ScrollingTreeOverflowScrollingNodeCoordinated::handleWheelEvent(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting)
+WheelEventHandlingResult ScrollingTreeOverflowScrollingNodeCoordinated::handleWheelEvent(PlatformWheelEvent wheelEvent, EventTargeting eventTargeting)
 {
     if (!canHandleWheelEvent(wheelEvent, eventTargeting))
         return WheelEventHandlingResult::unhandled();

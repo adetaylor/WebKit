@@ -74,7 +74,7 @@ bool ScrollingTreeOverflowScrollingNodeMac::commitStateBeforeChildren(const Scro
     return true;
 }
 
-WheelEventHandlingResult ScrollingTreeOverflowScrollingNodeMac::handleWheelEvent(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting)
+WheelEventHandlingResult ScrollingTreeOverflowScrollingNodeMac::handleWheelEvent(PlatformWheelEvent wheelEvent, EventTargeting eventTargeting)
 {
     if (hasNonRepaintSynchronousScrollingReasons() && eventTargeting != EventTargeting::NodeOnly)
         return { { WheelEventProcessingSteps::SynchronousScrolling, WheelEventProcessingSteps::NonBlockingDOMEventDispatch }, false };

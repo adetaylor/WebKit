@@ -59,7 +59,7 @@ protected:
     bool commitStateBeforeChildren(const ScrollingStateNode&) override;
     bool commitStateAfterChildren(const ScrollingStateNode&) override;
 
-    WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting) override;
+    WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting) override;
 
     WEBCORE_EXPORT SWIFT_UNSAFE void repositionRelatedLayers() override;
 

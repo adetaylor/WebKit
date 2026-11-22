@@ -47,7 +47,7 @@ private:
 
     bool commitStateBeforeChildren(const ScrollingStateNode&) override;
     void repositionScrollingLayers() override;
-    WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting) override;
+    WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting) override;
 };
 
 } // namespace WebCore

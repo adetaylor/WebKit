@@ -206,7 +206,7 @@ bool ScrollingTreeScrollingNode::canHandleWheelEvent(PlatformWheelEvent wheelEve
     return eventCanScrollContents(wheelEvent);
 }
 
-WheelEventHandlingResult ScrollingTreeScrollingNode::handleWheelEvent(const PlatformWheelEvent&, EventTargeting)
+WheelEventHandlingResult ScrollingTreeScrollingNode::handleWheelEvent(PlatformWheelEvent, EventTargeting)
 {
     return WheelEventHandlingResult::unhandled();
 }

@@ -55,7 +55,7 @@ public:
 
     void nodeWillBeDestroyed();
 
-    bool handleWheelEvent(const PlatformWheelEvent&);
+    bool handleWheelEvent(PlatformWheelEvent);
 
     void willDoProgrammaticScroll(const FloatPoint&);
     void currentScrollPositionChanged();

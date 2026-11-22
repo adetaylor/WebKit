@@ -141,7 +141,7 @@ bool ScrollingTreeFrameScrollingNodeMac::commitStateAfterChildren(const Scrollin
     return true;
 }
 
-WheelEventHandlingResult ScrollingTreeFrameScrollingNodeMac::handleWheelEvent(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting)
+WheelEventHandlingResult ScrollingTreeFrameScrollingNodeMac::handleWheelEvent(PlatformWheelEvent wheelEvent, EventTargeting eventTargeting)
 {
     if (!canHandleWheelEvent(wheelEvent, eventTargeting))
         return WheelEventHandlingResult::unhandled();

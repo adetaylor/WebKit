@@ -52,7 +52,7 @@ protected:
     SWIFT_UNSAFE void repositionScrollingLayers() override;
     SWIFT_UNSAFE void repositionRelatedLayers() override;
 
-    WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting) override;
+    WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting) override;
 
 private:
     NODELETE ScrollingTreeScrollingNodeDelegateMac& delegate() const;

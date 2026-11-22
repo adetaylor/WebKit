@@ -42,7 +42,7 @@ public:
     virtual ~ScrollingTreeScrollingNodeDelegateCoordinated();
 
     void updateVisibleLengths();
-    bool handleWheelEvent(const PlatformWheelEvent&);
+    bool handleWheelEvent(PlatformWheelEvent);
 
 private:
 #if USE(COORDINATED_GRAPHICS_ASYNC_SCROLLBAR)

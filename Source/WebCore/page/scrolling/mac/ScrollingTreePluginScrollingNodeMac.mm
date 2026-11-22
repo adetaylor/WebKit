@@ -74,7 +74,7 @@ bool ScrollingTreePluginScrollingNodeMac::commitStateBeforeChildren(const Scroll
     return true;
 }
 
-WheelEventHandlingResult ScrollingTreePluginScrollingNodeMac::handleWheelEvent(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting)
+WheelEventHandlingResult ScrollingTreePluginScrollingNodeMac::handleWheelEvent(PlatformWheelEvent wheelEvent, EventTargeting eventTargeting)
 {
     if (hasNonRepaintSynchronousScrollingReasons() && eventTargeting != EventTargeting::NodeOnly)
         return { { WheelEventProcessingSteps::SynchronousScrolling, WheelEventProcessingSteps::NonBlockingDOMEventDispatch }, false };
