@@ -45,7 +45,7 @@ private:
 
     void handleWheelEventPhase(const WebCore::PlatformWheelEventPhase) override;
 
-    void repositionRelatedLayers() override;
+    SWIFT_UNSAFE void repositionRelatedLayers() override;
     
     void viewWillStartLiveResize() override;
     void viewWillEndLiveResize() override;

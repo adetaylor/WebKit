@@ -42,7 +42,7 @@ private:
     ScrollingTreePluginScrollingNodeRemoteMac(WebCore::ScrollingTree&, WebCore::ScrollingNodeID);
 
     void handleWheelEventPhase(const WebCore::PlatformWheelEventPhase) override;
-    void repositionRelatedLayers() override;
+    SWIFT_UNSAFE void repositionRelatedLayers() override;
     String scrollbarStateForOrientation(WebCore::ScrollbarOrientation) const override;
 };
 

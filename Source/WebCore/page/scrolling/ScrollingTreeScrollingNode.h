@@ -196,8 +196,9 @@ protected:
     virtual void updateViewportForCurrentScrollPosition(std::optional<FloatRect> = { }) { }
     virtual bool scrollPositionAndLayoutViewportMatch(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport);
 
-    virtual void repositionScrollingLayers() { }
-    virtual void repositionRelatedLayers() { }
+    // Overrides read the tree's lock-guarded layers and state: callers hold the tree lock.
+    SWIFT_UNSAFE virtual void repositionScrollingLayers() { }
+    SWIFT_UNSAFE virtual void repositionRelatedLayers() { }
 
     void applyLayerPositions() override;
 

@@ -58,8 +58,8 @@ private:
     WebCore::FloatPoint minimumScrollPosition() const override;
     WebCore::FloatPoint maximumScrollPosition() const override;
 
-    void repositionScrollingLayers() override;
-    void repositionRelatedLayers() override;
+    SWIFT_UNSAFE void repositionScrollingLayers() override;
+    SWIFT_UNSAFE void repositionRelatedLayers() override;
 
     RetainPtr<CALayer> m_counterScrollingLayer;
     RetainPtr<CALayer> m_headerLayer;

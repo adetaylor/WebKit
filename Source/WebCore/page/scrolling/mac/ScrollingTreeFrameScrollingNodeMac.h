@@ -61,7 +61,7 @@ protected:
 
     WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting) override;
 
-    WEBCORE_EXPORT void repositionRelatedLayers() override;
+    WEBCORE_EXPORT SWIFT_UNSAFE void repositionRelatedLayers() override;
 
     FloatPoint minimumScrollPosition() const override;
     FloatPoint maximumScrollPosition() const override;

@@ -49,8 +49,8 @@ protected:
     void currentScrollPositionChanged(ScrollType, ScrollingLayerPositionAction) final;
     void willDoProgrammaticScroll(const FloatPoint&) final;
 
-    void repositionScrollingLayers() override;
-    void repositionRelatedLayers() override;
+    SWIFT_UNSAFE void repositionScrollingLayers() override;
+    SWIFT_UNSAFE void repositionRelatedLayers() override;
 
     WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting) override;
 
