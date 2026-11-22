@@ -266,6 +266,11 @@ GCGLExternalImage GraphicsContextGLCocoa::createExternalImage(ExternalImageSourc
         return tex;
     },
     [&](EGLImageSourceMTLSharedTextureHandle&& sharedTexture) -> RetainPtr<id> {
+#if PLATFORM(IOS_FAMILY_SIMULATOR) && !USE(APPLE_INTERNAL_SDK)
+        // The public simulator SDK has no MTLSharedTextureHandle.
+        UNUSED_PARAM(sharedTexture);
+        return nullptr;
+#else
         auto handle = adoptNS([[MTLSharedTextureHandle alloc] initWithMachPort:sharedTexture.handle.sendRight()]);
         if (!handle)
             return nullptr;
@@ -279,6 +284,7 @@ GCGLExternalImage GraphicsContextGLCocoa::createExternalImage(ExternalImageSourc
         RetainPtr<id> texture = adoptNS([mtlDevice newSharedTextureWithHandle:handle.get()]);
         return texture;
         // FIXME: Does the texture have the correct usage mode?
+#endif
     });
 
     if (!texture) {
