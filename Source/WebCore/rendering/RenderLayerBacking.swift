@@ -918,7 +918,7 @@ extension WebCore.RenderLayerBacking {
             scrollingCoordinator.unparentChildrenAndDestroyNode(scrollingNodeIDForRole(.Scrolling))
             m_scrollingNodeID = .init()
 
-            #if os(macOS) // ENABLE(SCROLLING_THREAD)
+            #if os(macOS) || ENABLE_SCROLLING_THREAD // ENABLE(SCROLLING_THREAD)
             scrollContainerLayer()?.setScrollingNodeID(.init())
             layerForHorizontalScrollbar()?.setScrollingNodeID(.init())
             layerForVerticalScrollbar()?.setScrollingNodeID(.init())
@@ -948,7 +948,7 @@ extension WebCore.RenderLayerBacking {
         if roles.contains(.Positioning) && scrollingNodeIDForRole(.Positioning).value != nil {
             scrollingCoordinator.unparentChildrenAndDestroyNode(scrollingNodeIDForRole(.Positioning))
             m_positioningNodeID = .init()
-            #if os(macOS) // ENABLE(SCROLLING_THREAD)
+            #if os(macOS) || ENABLE_SCROLLING_THREAD // ENABLE(SCROLLING_THREAD)
             graphicsLayer()!.setScrollingNodeID(.init())
             #endif
         }
@@ -960,7 +960,7 @@ extension WebCore.RenderLayerBacking {
         switch role {
         case .Scrolling:
             m_scrollingNodeID = .init(nodeID)
-            #if os(macOS) // ENABLE(SCROLLING_THREAD)
+            #if os(macOS) || ENABLE_SCROLLING_THREAD // ENABLE(SCROLLING_THREAD)
             scrollContainerLayer()?.setScrollingNodeID(scrollingNodeIDForRole(.Scrolling))
             layerForHorizontalScrollbar()?.setScrollingNodeID(scrollingNodeIDForRole(.Scrolling))
             layerForVerticalScrollbar()?.setScrollingNodeID(scrollingNodeIDForRole(.Scrolling))
@@ -977,7 +977,7 @@ extension WebCore.RenderLayerBacking {
             m_viewportConstrainedNodeID = .init(nodeID)
         case .Positioning:
             m_positioningNodeID = .init(nodeID)
-            #if os(macOS) // ENABLE(SCROLLING_THREAD)
+            #if os(macOS) || ENABLE_SCROLLING_THREAD // ENABLE(SCROLLING_THREAD)
             graphicsLayer()!.setScrollingNodeID(scrollingNodeIDForRole(.Positioning))
             #endif
         @unknown default:
@@ -1830,6 +1830,9 @@ extension WebCore.RenderLayerBacking {
     @cxx
     @implementation
     public func paintsIntoWindow() -> Bool {
+        #if USE_COORDINATED_GRAPHICS // USE(COORDINATED_GRAPHICS)
+        return false
+        #else
         if m_isFrameLayerWithTiledBacking {
             return false
         }
@@ -1850,6 +1853,7 @@ extension WebCore.RenderLayerBacking {
         }
 
         return false
+        #endif
     }
 
     @cxx
@@ -4124,7 +4128,7 @@ extension WebCore.RenderLayerBacking {
 
 // MARK: - Event regions
 
-#if canImport(Darwin) // ENABLE(ASYNC_SCROLLING)
+#if ENABLE_ASYNC_SCROLLING // ENABLE(ASYNC_SCROLLING)
 extension WebCore.RenderLayerBacking {
     @cxx
     @implementation
