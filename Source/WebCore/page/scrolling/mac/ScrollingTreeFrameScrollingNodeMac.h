@@ -78,7 +78,7 @@ private:
     bool isScrollingTreeFrameScrollingNodeMac() const final { return true; };
 
     void currentScrollPositionChanged(ScrollType, ScrollingLayerPositionAction) final;
-    void repositionScrollingLayers() final WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
+    SWIFT_UNSAFE void repositionScrollingLayers() final WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
 
     RetainPtr<CALayer> m_rootContentsLayer;
     RetainPtr<CALayer> m_counterScrollingLayer;

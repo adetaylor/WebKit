@@ -350,7 +350,7 @@ protected:
 
     NODELETE std::optional<FramesPerSecond> nominalFramesPerSecond();
 
-    WEBCORE_EXPORT virtual void applyLayerPositionsInternal() WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE WEBCORE_EXPORT virtual void applyLayerPositionsInternal() WTF_REQUIRES_LOCK(m_treeLock);
     WEBCORE_EXPORT void removeAllNodes() WTF_REQUIRES_LOCK(m_treeLock);
     void removeFromActiveNodes(ScrollingTreeNode&);
 
@@ -372,7 +372,7 @@ protected:
     mutable Lock m_treeLock; // Protects the scrolling tree.
 
 private:
-    virtual void propagateSynchronousScrollingReasons(const HashSet<ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) { }
+    SWIFT_UNSAFE virtual void propagateSynchronousScrollingReasons(const HashSet<ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) { }
 
     void applyLayerPositionsRecursive(ScrollingTreeNode&) WTF_REQUIRES_LOCK(m_treeLock);
     void notifyRelatedNodesRecursive(ScrollingTreeNode&);

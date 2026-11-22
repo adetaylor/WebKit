@@ -46,7 +46,7 @@ private:
     CALayer *layer() const final { return m_layer.get(); }
 
     bool commitStateBeforeChildren(const ScrollingStateNode&) final;
-    void applyLayerPositions() final WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
+    SWIFT_UNSAFE void applyLayerPositions() final WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
 #if ENABLE(OVERLAY_REGIONS_REMOTE_EFFECT)
     void willBeDestroyed() final;
 #endif

@@ -109,7 +109,7 @@ protected:
 
 private:
     bool isThreadedScrollingTree() const override { return true; }
-    void propagateSynchronousScrollingReasons(const HashSet<ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) override;
+    SWIFT_UNSAFE void propagateSynchronousScrollingReasons(const HashSet<ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) override;
 
     void didCommitTree() final;
     void didCommitTreeOnScrollingThread() WTF_REQUIRES_LOCK(m_treeLock);
