@@ -3055,7 +3055,11 @@ extension WebCore.RenderLayer {
 
         if hasCompositedScrollableOverflow() {
             if contentsScrollingScope().value == nil || contentsScrollingScope().value == boxScrollingScope().value {
-                m_contentsScrollingScope = type(of: m_boxScrollingScope).init(WebCore.RenderLayer.nextScrollingScope())
+                // FIXME: Pass the scope directly once the importer maps uint64_t to UInt64 inside template arguments
+                // too (KIT docs/interop-limitations.md, "uint64_t in a template argument"): Markable<ScrollingScope>
+                // takes a UInt on LP64 Linux.
+                m_contentsScrollingScope = type(of: m_boxScrollingScope).init(
+                    numericCast(WebCore.RenderLayer.nextScrollingScope()))
             }
         } else if contentsScrollingScope().value == nil || contentsScrollingScope().value != boxScrollingScope().value {
             m_contentsScrollingScope = type(of: m_boxScrollingScope).init(boxScrollingScope())
