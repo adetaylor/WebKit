@@ -70,7 +70,11 @@ WK_PRESERVE_MOST_DEFINES_YES_THIN = HAVE_PRESERVE_MOST=1;
 // and wtf/SwiftBridging.h silently drops every Swift annotation (rdar://160275190). Xcode's toolchain
 // already searches it at this position, so there this is a no-op.
 WK_TOOLCHAIN_INCLUDE_FLAGS = -idirafter $(TOOLCHAIN_DIR)/usr/include;
-WK_TOOLCHAIN_INCLUDE_SWIFT_FLAGS = -Xcc -idirafter -Xcc $(TOOLCHAIN_DIR)/usr/include;
+// A swiftc named by path (SWIFT_EXEC) gets its own toolchain's usr/include, as the CMake build does: the toolchain
+// Xcode selected may be another one, and a snapshot's swiftc given Xcode's usr/include, whose module.modulemap
+// defines SwiftBridging again, fails every dependency scan with "redefinition of module 'SwiftBridging'".
+WK_TOOLCHAIN_INCLUDE_SWIFT_FLAGS = -Xcc -idirafter -Xcc $(WK_SWIFT_TOOLCHAIN_INCLUDE_DIR_$(SWIFT_EXEC:identifier):default=$(SWIFT_EXEC:dir)../include);
+WK_SWIFT_TOOLCHAIN_INCLUDE_DIR_swiftc = $(TOOLCHAIN_DIR)/usr/include;
 
 // -fwrapv: Make signed integer overflow two's compliment rather than UB.
 WK_COMMON_OTHER_CFLAGS = -fwrapv $(WK_AVAILABILITY_OVERLAY_FLAGS) $(WK_TOOLCHAIN_INCLUDE_FLAGS) $(WK_SANITIZER_OTHER_CFLAGS) $(WK_COMMON_OTHER_CFLAGS_CLANG_PGO_$(WK_OR_$(WK_ENABLE_CLANG_PGO_USE)_$(ENABLE_LLVM_PROFILE_GENERATION)));
