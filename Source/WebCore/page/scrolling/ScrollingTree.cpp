@@ -939,7 +939,7 @@ RubberBandingBehavior ScrollingTree::clientAllowsMainFrameRubberBandingOnSide(Bo
     return m_swipeState.clientAllowedRubberBandableEdges.at(side);
 }
 
-void ScrollingTree::addPendingScrollUpdateInternal(ScrollUpdate&& update)
+void ScrollingTree::addPendingScrollUpdateInternal(ScrollUpdate update)
 {
     Locker locker { m_pendingScrollUpdatesLock };
     for (auto& existingUpdate : m_pendingScrollUpdates) {
@@ -952,7 +952,7 @@ void ScrollingTree::addPendingScrollUpdateInternal(ScrollUpdate&& update)
     m_pendingScrollUpdates.append(WTF::move(update));
 }
 
-void ScrollingTree::addPendingScrollUpdate(ScrollUpdate&& update)
+void ScrollingTree::addPendingScrollUpdate(ScrollUpdate update)
 {
     addPendingScrollUpdateInternal(WTF::move(update));
     didAddPendingScrollUpdate();

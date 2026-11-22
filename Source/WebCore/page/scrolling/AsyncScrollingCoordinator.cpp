@@ -712,13 +712,13 @@ LocalFrameView* AsyncScrollingCoordinator::frameViewForScrollingNode(std::option
     return nullptr;
 }
 
-void AsyncScrollingCoordinator::applyScrollUpdate(ScrollUpdate&& update, ScrollType scrollType, ViewportRectStability viewportStability)
+void AsyncScrollingCoordinator::applyScrollUpdate(ScrollUpdate update, ScrollType scrollType, ViewportRectStability viewportStability)
 {
     applyPendingScrollUpdates();
     applyScrollPositionUpdate(WTF::move(update), scrollType, viewportStability);
 }
 
-void AsyncScrollingCoordinator::applyScrollPositionUpdate(ScrollUpdate&& update, ScrollType scrollType, ViewportRectStability viewportStability)
+void AsyncScrollingCoordinator::applyScrollPositionUpdate(ScrollUpdate update, ScrollType scrollType, ViewportRectStability viewportStability)
 {
     LOG_WITH_STREAM(Scrolling, stream << "AsyncScrollingCoordinator::applyScrollPositionUpdate " << update);
 

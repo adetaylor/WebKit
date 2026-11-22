@@ -315,7 +315,7 @@ void ThreadedScrollingTree::didAddPendingScrollUpdate()
     });
 }
 
-void ThreadedScrollingTree::addPendingScrollUpdateWithDeferReason(ScrollUpdate&& update, WheelEventTestMonitor::DeferReason deferReason)
+void ThreadedScrollingTree::addPendingScrollUpdateWithDeferReason(ScrollUpdate update, WheelEventTestMonitor::DeferReason deferReason)
 {
     auto nodeID = update.nodeID;
     addPendingScrollUpdateInternal(WTF::move(update));

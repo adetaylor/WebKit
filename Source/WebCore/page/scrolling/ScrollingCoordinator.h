@@ -172,7 +172,7 @@ public:
     virtual void setSynchronousScrollingReasons(std::optional<ScrollingNodeID>, OptionSet<SynchronousScrollingReason>) { }
     virtual OptionSet<SynchronousScrollingReason> synchronousScrollingReasons(std::optional<ScrollingNodeID>) const { return { }; }
     bool hasSynchronousScrollingReasons(std::optional<ScrollingNodeID> nodeID) const { return !!synchronousScrollingReasons(nodeID); }
-    virtual void applyScrollUpdate(ScrollUpdate&&, ScrollType = ScrollType::User, ViewportRectStability = ViewportRectStability::Stable) { }
+    virtual void applyScrollUpdate(ScrollUpdate, ScrollType = ScrollType::User, ViewportRectStability = ViewportRectStability::Stable) { }
 
     virtual void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, LayoutRect, ScrollingLayerPositionAction) { }
     virtual String scrollingStateTreeAsText(OptionSet<ScrollingStateTreeAsTextBehavior> = { }) const;

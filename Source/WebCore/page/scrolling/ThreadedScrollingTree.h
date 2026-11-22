@@ -87,7 +87,7 @@ protected:
     SWIFT_UNSAFE RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, RequestedScrollData) override WTF_REQUIRES_LOCK(m_treeLock);
     SWIFT_UNSAFE bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, RequestedKeyboardScrollData) override WTF_REQUIRES_LOCK(m_treeLock);
 
-    void addPendingScrollUpdateWithDeferReason(ScrollUpdate&&, WheelEventTestMonitor::DeferReason);
+    void addPendingScrollUpdateWithDeferReason(ScrollUpdate, WheelEventTestMonitor::DeferReason);
 
 #if PLATFORM(MAC)
     void handleWheelEventPhase(ScrollingNodeID, PlatformWheelEventPhase) override;

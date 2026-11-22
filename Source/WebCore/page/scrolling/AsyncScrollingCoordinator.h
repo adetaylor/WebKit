@@ -60,7 +60,7 @@ public:
 
     void applyPendingScrollUpdates();
 
-    WEBCORE_EXPORT void applyScrollUpdate(ScrollUpdate&&, ScrollType = ScrollType::User, ViewportRectStability = ViewportRectStability::Stable) override;
+    WEBCORE_EXPORT void applyScrollUpdate(ScrollUpdate, ScrollType = ScrollType::User, ViewportRectStability = ViewportRectStability::Stable) override;
 
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT void handleWheelEventPhase(ScrollingNodeID, PlatformWheelEventPhase) final;
@@ -188,7 +188,7 @@ private:
 
     void updateEventTrackingRegions(FrameIdentifier rootFrameID);
     
-    void applyScrollPositionUpdate(ScrollUpdate&&, ScrollType, ViewportRectStability);
+    void applyScrollPositionUpdate(ScrollUpdate, ScrollType, ViewportRectStability);
     void updateScrollPositionAfterAsyncScroll(ScrollingNodeID, FloatPoint, const std::optional<LayoutViewportOriginOrOverrideRect>&, ScrollingLayerPositionAction, ScrollType, ViewportRectStability, std::optional<ScrollRelativity>);
     void animatedScrollWillStartForNode(ScrollingNodeID);
     void animatedScrollDidEndForNode(ScrollingNodeID);

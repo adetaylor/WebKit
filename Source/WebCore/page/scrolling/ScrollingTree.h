@@ -365,8 +365,8 @@ protected:
     std::optional<FloatSize> mainFrameScrollOffset() const;
 #endif
 
-    void addPendingScrollUpdateInternal(ScrollUpdate&&);
-    WEBCORE_EXPORT void addPendingScrollUpdate(ScrollUpdate&&);
+    void addPendingScrollUpdateInternal(ScrollUpdate);
+    WEBCORE_EXPORT void addPendingScrollUpdate(ScrollUpdate);
     virtual void didAddPendingScrollUpdate() { }
 
     mutable Lock m_treeLock; // Protects the scrolling tree.
