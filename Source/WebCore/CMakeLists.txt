@@ -4291,6 +4291,10 @@ else ()
             ${WEBCORE_DIR}/page/scrolling/ScrollingTreeLatchingController.swift
         )
     endif ()
+    # USE(COORDINATED_GRAPHICS), which the compositing Swift (RenderLayerCompositor, RenderLayerBacking) tests.
+    if (USE_COORDINATED_GRAPHICS)
+        webkit_target_add_swift_options(WebCore "-D USE_COORDINATED_GRAPHICS")
+    endif ()
 
     # C++ sources that include WebCoreSwift-Generated.h.
     set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)

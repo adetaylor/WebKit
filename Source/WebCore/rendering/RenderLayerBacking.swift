@@ -1830,6 +1830,9 @@ extension WebCore.RenderLayerBacking {
     @cxx
     @implementation
     public func paintsIntoWindow() -> Bool {
+        #if USE_COORDINATED_GRAPHICS // USE(COORDINATED_GRAPHICS)
+        return false
+        #else
         if m_isFrameLayerWithTiledBacking {
             return false
         }
@@ -1850,6 +1853,7 @@ extension WebCore.RenderLayerBacking {
         }
 
         return false
+        #endif
     }
 
     @cxx

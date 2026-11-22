@@ -4028,9 +4028,11 @@ extension WebCore.RenderLayerCompositor {
             return true
         }
 
+        #if !USE_COORDINATED_GRAPHICS // !USE(COORDINATED_GRAPHICS)
         if !m_renderView.get().frameView().hasOverlayScrollbarsForSwift() {
             return false
         }
+        #endif
 
         return true
     }
