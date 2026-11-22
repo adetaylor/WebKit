@@ -1372,7 +1372,7 @@ func temporalAdjustDateDurationRecord(
     _ adjusted: inout JSC.ISO8601.Duration,
     _ kind: inout JSC.TemporalErrorKind
 ) -> WTF.String {
-    TemporalOperations.adjustDateDurationRecord(dateDuration, days, weeks.value.map(Int64.init), months.value.map(Int64.init)).store(&adjusted, &kind)
+    TemporalOperations.adjustDateDurationRecord(dateDuration, days, weeks.value.map { Int64($0) }, months.value.map { Int64($0) }).store(&adjusted, &kind)
 }
 
 /// `TemporalCore::nudgeToCalendarUnit`.
