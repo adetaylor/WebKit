@@ -281,7 +281,6 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/BezierUtilitiesTests.cpp
         Tests/WebCore/CARingBufferTest.cpp
         Tests/WebCore/CBORReaderTest.cpp
-        Tests/WebCore/CBORValueTest.cpp
         Tests/WebCore/CBORWriterTest.cpp
         Tests/WebCore/CSSCalcBench.cpp
         Tests/WebCore/CSSConsumersBench.cpp

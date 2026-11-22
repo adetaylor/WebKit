@@ -569,7 +569,6 @@ list(APPEND WebKit_SOURCES
     UIProcess/WebAuthentication/Cocoa/WebAuthenticatorCoordinatorProxy.mm
 
     UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorManager.cpp
-    UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorUtils.mm
     UIProcess/WebAuthentication/Virtual/VirtualHidConnection.cpp
     UIProcess/WebAuthentication/Virtual/VirtualLocalConnection.mm
     UIProcess/WebAuthentication/Virtual/VirtualService.mm
@@ -577,6 +576,11 @@ list(APPEND WebKit_SOURCES
     UIProcess/WebAuthentication/fido/CtapAuthenticator.cpp
     UIProcess/WebAuthentication/fido/CtapCcidDriver.cpp
     UIProcess/WebAuthentication/fido/CtapHidDriver.cpp
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/LocalAuthenticator.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/LocalAuthenticatorKeychain.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/WebAuthenticationPanelCredentials.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorUtils.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Virtual/VirtualHidConnection.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/CtapAuthenticator.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/CtapCcidDriver.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/CtapHidDriver.swift

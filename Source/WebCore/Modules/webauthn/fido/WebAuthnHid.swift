@@ -22,7 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 // ENABLE(WEB_AUTHN) (PlatformEnableCocoa.h): every Cocoa platform but watchOS and Mac Catalyst.
-#if !os(watchOS) && !targetEnvironment(macCatalyst)
+#if !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST
 
 // Without these, no operator in this file type-checks: WebCore's C++ operators name types these modules define.
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -80,33 +80,38 @@ private func acceptsPayload(_ cmd: fido.FidoHidDeviceCommand, _ bytes: Span<UInt
 }
 
 @inline(always)
-private func appendBytes(_ out: inout cbor.CBORValue.BinaryValue, _ bytes: Span<UInt8>, _ range: Range<Int>) {
+private func appendBytes(_ out: inout cbor.Bytes, _ bytes: Span<UInt8>, _ range: Range<Int>) {
     for index in range {
         out.append(consuming: bytes[index])
     }
 }
 
 @inline(always)
-private func readChannelId(_ bytes: Span<UInt8>) -> UInt32 {
+private func readChannelID(_ bytes: Span<UInt8>) -> UInt32 {
     UInt32(bytes[0]) << 24 | UInt32(bytes[1]) << 16 | UInt32(bytes[2]) << 8 | UInt32(bytes[3])
 }
 
 // A packet: its header, the data, then zero padding up to the packet size. More than a packet's data traps, as
 // Vector::grow's release assert does in C++.
-private func makePacket(_ header: borrowing InlineArray<7, UInt8>, _ headerLength: Int, _ bytes: Span<UInt8>, _ range: Range<Int>) -> cbor.CBORValue.BinaryValue {
+private func makePacket(
+    _ header: borrowing InlineArray<7, UInt8>,
+    _ headerLength: Int,
+    _ bytes: Span<UInt8>,
+    _ range: Range<Int>
+) -> cbor.Bytes {
     let length = headerLength + range.count
     var packet = fido.WebAuthnByteSink()
     packet.reserve(max(fido.kHidPacketSize, length))
-    addBytes(&packet, header.span.extracting(0..<headerLength))
-    addBytes(&packet, bytes.extracting(range))
+    packet.append(header.span.extracting(0..<headerLength))
+    packet.append(bytes.extracting(range))
     precondition(length <= fido.kHidPacketSize, "HID packet data longer than the packet")
     let zeros = InlineArray<64, UInt8>(repeating: 0)
-    addBytes(&packet, zeros.span.extracting(0..<(fido.kHidPacketSize - length)))
+    packet.append(zeros.span.extracting(0..<(fido.kHidPacketSize - length)))
     return packet.take()
 }
 
 @inline(always)
-private func storeChannelId(_ header: inout InlineArray<7, UInt8>, _ channelId: UInt32) {
+private func storeChannelID(_ header: inout InlineArray<7, UInt8>, _ channelId: UInt32) {
     header[0] = UInt8(channelId >> 24)
     header[1] = UInt8((channelId >> 16) & 0xff)
     header[2] = UInt8((channelId >> 8) & 0xff)
@@ -114,9 +119,10 @@ private func storeChannelId(_ header: inout InlineArray<7, UInt8>, _ channelId: 
 }
 
 // Init packet: channel id (4), command with the init bit (1), payload length (2, big-endian), data, zero padding.
-private func initPacket(_ channelId: UInt32, _ cmd: UInt8, _ payloadLength: UInt16, _ bytes: Span<UInt8>, _ range: Range<Int>) -> cbor.CBORValue.BinaryValue {
+private func initPacket(_ channelId: UInt32, _ cmd: UInt8, _ payloadLength: UInt16, _ bytes: Span<UInt8>, _ range: Range<Int>) -> cbor.Bytes
+{
     var header = InlineArray<7, UInt8>(repeating: 0)
-    storeChannelId(&header, channelId)
+    storeChannelID(&header, channelId)
     header[4] = cmd | 0x80
     header[5] = UInt8(payloadLength >> 8)
     header[6] = UInt8(payloadLength & 0xff)
@@ -124,9 +130,9 @@ private func initPacket(_ channelId: UInt32, _ cmd: UInt8, _ payloadLength: UInt
 }
 
 // Continuation packet: channel id (4), sequence (1), data, zero padding.
-private func continuationPacket(_ channelId: UInt32, _ sequence: UInt8, _ bytes: Span<UInt8>, _ range: Range<Int>) -> cbor.CBORValue.BinaryValue {
+private func continuationPacket(_ channelId: UInt32, _ sequence: UInt8, _ bytes: Span<UInt8>, _ range: Range<Int>) -> cbor.Bytes {
     var header = InlineArray<7, UInt8>(repeating: 0)
-    storeChannelId(&header, channelId)
+    storeChannelID(&header, channelId)
     header[4] = sequence
     return makePacket(header, fido.kHidContinuationPacketHeader, bytes, range)
 }
@@ -158,15 +164,28 @@ private func readContinuationHeader(_ bytes: Span<UInt8>, _ remainingSize: Int) 
     let remaining = UInt(bitPattern: remainingSize)
     let dataSize = Int(min(remaining, UInt(fido.kHidContinuationPacketDataSize)))
     let start = fido.kHidContinuationPacketHeader
-    return ContinuationHeader(channelId: readChannelId(bytes), sequence: bytes[4], data: start..<(start + dataSize), remainingSize: remaining - UInt(dataSize))
+    return ContinuationHeader(
+        channelId: readChannelID(bytes),
+        sequence: bytes[4],
+        data: start..<(start + dataSize),
+        remainingSize: remaining - UInt(dataSize)
+    )
 }
 
 extension fido.FidoHidMessage {
-    @cxx @implementation public static func serializedPackets(_ channelId: UInt32, _ cmd: fido.FidoHidDeviceCommand, _ data: cbor.CBORValue.BinaryValue) -> fido.ByteVectorVector {
+    /// The HID packets of a message, serialized.
+    @cxx
+    @implementation
+    public static func serializedPackets(_ channelId: UInt32, _ cmd: fido.FidoHidDeviceCommand, _ data: cbor.Bytes) -> fido.ByteVectorVector
+    {
         serializedPacketsBody(channelId, cmd, data)
     }
 
-    private static func serializedPacketsBody(_ channelId: UInt32, _ cmd: fido.FidoHidDeviceCommand, _ data: cbor.CBORValue.BinaryValue) -> fido.ByteVectorVector {
+    private static func serializedPacketsBody(
+        _ channelId: UInt32,
+        _ cmd: fido.FidoHidDeviceCommand,
+        _ data: cbor.Bytes
+    ) -> fido.ByteVectorVector {
         let bytes: Span<UInt8> = data.span()
         var packets = fido.ByteVectorVector()
         if !acceptsPayload(cmd, bytes) {
@@ -187,11 +206,14 @@ extension fido.FidoHidMessage {
         return packets
     }
 
-    @cxx @implementation public static func packetPayloads(_ cmd: fido.FidoHidDeviceCommand, _ data: cbor.CBORValue.BinaryValue) -> fido.ByteVectorVector {
+    /// The payload of each HID packet of a message.
+    @cxx
+    @implementation
+    public static func packetPayloads(_ cmd: fido.FidoHidDeviceCommand, _ data: cbor.Bytes) -> fido.ByteVectorVector {
         packetPayloadsBody(cmd, data)
     }
 
-    private static func packetPayloadsBody(_ cmd: fido.FidoHidDeviceCommand, _ data: cbor.CBORValue.BinaryValue) -> fido.ByteVectorVector {
+    private static func packetPayloadsBody(_ cmd: fido.FidoHidDeviceCommand, _ data: cbor.Bytes) -> fido.ByteVectorVector {
         let bytes: Span<UInt8> = data.span()
         var payloads = fido.ByteVectorVector()
         if !acceptsPayload(cmd, bytes) {
@@ -203,11 +225,14 @@ extension fido.FidoHidMessage {
         return payloads
     }
 
-    @cxx @implementation public static func parseInitPacket(_ serialized: cbor.CBORValue.BinaryValue) -> fido.HidMessageState {
+    /// Parses the first packet of a HID message.
+    @cxx
+    @implementation
+    public static func parseInitPacket(_ serialized: cbor.Bytes) -> fido.HidMessageState {
         parseInitPacketBody(serialized)
     }
 
-    private static func parseInitPacketBody(_ serialized: cbor.CBORValue.BinaryValue) -> fido.HidMessageState {
+    private static func parseInitPacketBody(_ serialized: cbor.Bytes) -> fido.HidMessageState {
         // FidoHidMessage::createFromSerializedData's own bounds (7...64) admit only what this exact size admits.
         var state = fido.HidMessageState()
         if serialized.size() != fido.kHidPacketSize {
@@ -221,18 +246,24 @@ extension fido.FidoHidMessage {
         let payloadSize = Int(bytes[5]) << 8 | Int(bytes[6])
         let dataSize = min(payloadSize, fido.kHidInitPacketDataSize)
         state.valid = true
-        state.channelId = readChannelId(bytes)
-        state.cmd = fido.FidoHidDeviceCommand(rawValue: raw)!
+        state.channelId = readChannelID(bytes)
+        guard let cmd = fido.FidoHidDeviceCommand(rawValue: raw) else {
+            preconditionFailure("an imported C++ enum's init(rawValue:) never fails")
+        }
+        state.cmd = cmd
         state.payload = serialized.subvector(fido.kHidInitPacketHeaderSize, dataSize)
         state.remainingSize = payloadSize - dataSize
         return state
     }
 
-    @cxx @implementation public static func parseContinuationPacket(_ serialized: cbor.CBORValue.BinaryValue, _ remainingSize: Int) -> fido.HidMessageState {
+    /// Parses a continuation packet of a HID message.
+    @cxx
+    @implementation
+    public static func parseContinuationPacket(_ serialized: cbor.Bytes, _ remainingSize: Int) -> fido.HidMessageState {
         parseContinuationPacketBody(serialized, remainingSize)
     }
 
-    private static func parseContinuationPacketBody(_ serialized: cbor.CBORValue.BinaryValue, _ remainingSize: Int) -> fido.HidMessageState {
+    private static func parseContinuationPacketBody(_ serialized: cbor.Bytes, _ remainingSize: Int) -> fido.HidMessageState {
         var state = fido.HidMessageState()
         let bytes: Span<UInt8> = serialized.span()
         guard let header = readContinuationHeader(bytes, remainingSize) else {
@@ -246,13 +277,17 @@ extension fido.FidoHidMessage {
         return state
     }
 
-    // An invalid result (the packet is not whole, or is on another channel) leaves the message as it was.
-    // A packet after the message is complete is accepted and adds nothing; sequence numbers are not checked.
-    @cxx @implementation public static func addContinuation(_ message: fido.HidMessageState, _ serialized: cbor.CBORValue.BinaryValue) -> fido.HidMessageState {
+    /// Adds a continuation packet to a HID message.
+    ///
+    /// An invalid packet (one that is not whole, or is on another channel) leaves the message as it was. A packet after
+    /// the message is complete is accepted and adds nothing; sequence numbers are not checked.
+    @cxx
+    @implementation
+    public static func addContinuation(_ message: fido.HidMessageState, _ serialized: cbor.Bytes) -> fido.HidMessageState {
         addContinuationBody(message, serialized)
     }
 
-    private static func addContinuationBody(_ message: fido.HidMessageState, _ serialized: cbor.CBORValue.BinaryValue) -> fido.HidMessageState {
+    private static func addContinuationBody(_ message: fido.HidMessageState, _ serialized: cbor.Bytes) -> fido.HidMessageState {
         let bytes: Span<UInt8> = serialized.span()
         guard let header = readContinuationHeader(bytes, message.remainingSize), header.channelId == message.channelId else {
             return fido.HidMessageState()
@@ -270,23 +305,39 @@ extension fido.FidoHidMessage {
         return result
     }
 
-    @cxx @implementation public static func serializeInitPacket(_ channelId: UInt32, _ cmd: fido.FidoHidDeviceCommand, _ payloadLength: UInt16, _ data: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    /// Serializes the first packet of a HID message.
+    @cxx
+    @implementation
+    public static func serializeInitPacket(
+        _ channelId: UInt32,
+        _ cmd: fido.FidoHidDeviceCommand,
+        _ payloadLength: UInt16,
+        _ data: cbor.Bytes
+    ) -> cbor.Bytes {
         serializeInitPacketBody(channelId, cmd, payloadLength, data)
     }
 
-    private static func serializeInitPacketBody(_ channelId: UInt32, _ cmd: fido.FidoHidDeviceCommand, _ payloadLength: UInt16, _ data: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    private static func serializeInitPacketBody(
+        _ channelId: UInt32,
+        _ cmd: fido.FidoHidDeviceCommand,
+        _ payloadLength: UInt16,
+        _ data: cbor.Bytes
+    ) -> cbor.Bytes {
         let bytes: Span<UInt8> = data.span()
         return initPacket(channelId, cmd.rawValue, payloadLength, bytes, 0..<bytes.count)
     }
 
-    @cxx @implementation public static func serializeContinuationPacket(_ channelId: UInt32, _ sequence: UInt8, _ data: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    /// Serializes a continuation packet of a HID message.
+    @cxx
+    @implementation
+    public static func serializeContinuationPacket(_ channelId: UInt32, _ sequence: UInt8, _ data: cbor.Bytes) -> cbor.Bytes {
         serializeContinuationPacketBody(channelId, sequence, data)
     }
 
-    private static func serializeContinuationPacketBody(_ channelId: UInt32, _ sequence: UInt8, _ data: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    private static func serializeContinuationPacketBody(_ channelId: UInt32, _ sequence: UInt8, _ data: cbor.Bytes) -> cbor.Bytes {
         let bytes: Span<UInt8> = data.span()
         return continuationPacket(channelId, sequence, bytes, 0..<bytes.count)
     }
 }
 
-#endif // !os(watchOS) && !targetEnvironment(macCatalyst)
+#endif // !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST

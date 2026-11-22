@@ -3372,8 +3372,11 @@ list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)"
 # The WebAuthn sources that forward to the WebAuthn Swift include WebCore-Swift.h, so they compile
 # in WebCore_SwiftInterop, after WebCore's Swift module.
 set(_webcore_webauthn_swift_interop_sources
-    Modules/webauthn/cbor/CBORReader.cpp
-    Modules/webauthn/cbor/CBORWriter.cpp
+    Modules/webauthn/AuthenticationExtensionsClientInputs.cpp
+    Modules/webauthn/AuthenticationExtensionsClientOutputs.cpp
+
+    Modules/webauthn/cbor/CBORBytes.cpp
+
     Modules/webauthn/fido/AuthenticatorGetInfoResponse.cpp
     Modules/webauthn/fido/Pin.cpp)
 # MediaConstraintsEvaluation.cpp calls MediaConstraintsEngine.swift, so it compiles in WebCore_SwiftInterop (the Apple
@@ -3383,8 +3386,9 @@ if (ENABLE_MEDIA_STREAM AND NOT APPLE)
 endif ()
 if (ENABLE_WEB_AUTHN)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
-        "(^|/)CBORReader\\.cpp( |$)"
-        "(^|/)CBORWriter\\.cpp( |$)"
+        "(^|/)AuthenticationExtensionsClientInputs\\.cpp( |$)"
+        "(^|/)AuthenticationExtensionsClientOutputs\\.cpp( |$)"
+        "(^|/)CBORBytes\\.cpp( |$)"
         "(^|/)AuthenticatorGetInfoResponse\\.cpp( |$)"
         "(^|/)Pin\\.cpp( |$)")
 endif ()
@@ -4161,8 +4165,14 @@ if (APPLE)
     # The WebAuthn protocol code (CBOR, CTAP2, U2F, HID framing, PIN, APDU), as in WebCore.xcodeproj.
     if (ENABLE_WEB_AUTHN)
         target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/Modules/webauthn/AuthenticationExtensionsClientCBOR.swift
+            ${WEBCORE_DIR}/Modules/webauthn/AuthenticatorAttestationResponse.swift
+            ${WEBCORE_DIR}/Modules/webauthn/WebAuthenticationUtils.swift
+            ${WEBCORE_DIR}/Modules/webauthn/WebAuthnConversions.swift
             ${WEBCORE_DIR}/Modules/webauthn/apdu/WebAuthnApdu.swift
             ${WEBCORE_DIR}/Modules/webauthn/cbor/WebAuthnCBOR.swift
+            ${WEBCORE_DIR}/Modules/webauthn/cbor/WebAuthnCBORCanonical.swift
+            ${WEBCORE_DIR}/Modules/webauthn/fido/FidoConstants.swift
             ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnCtapRequests.swift
             ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnCtapResponses.swift
             ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnHid.swift

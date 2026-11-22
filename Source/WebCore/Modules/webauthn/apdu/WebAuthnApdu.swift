@@ -22,7 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 // ENABLE(WEB_AUTHN) (PlatformEnableCocoa.h): every Cocoa platform but watchOS and Mac Catalyst.
-#if !os(watchOS) && !targetEnvironment(macCatalyst)
+#if !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST
 
 // Without these, no operator in this file type-checks: WebCore's C++ operators name types these modules define.
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -57,11 +57,14 @@ extension apdu.ApduCommand {
     // Entries that read a span of a by-value C++ parameter forward to a `...Body` helper with the same parameters, here
     // and in the other WebAuthn Swift files: Swift 6.5 rejects a span of an `@cxx @implementation` parameter
     // ("lifetime-dependent value escapes its scope"), while the same span of an ordinary Swift parameter compiles.
-    @cxx @implementation public static func createFromMessage(_ message: cbor.CBORValue.BinaryValue) -> fido.OptionalApduCommand {
+    /// Parses an APDU command from a message.
+    @cxx
+    @implementation
+    public static func createFromMessage(_ message: cbor.Bytes) -> fido.OptionalApduCommand {
         createFromMessageBody(message)
     }
 
-    private static func createFromMessageBody(_ message: cbor.CBORValue.BinaryValue) -> fido.OptionalApduCommand {
+    private static func createFromMessageBody(_ message: cbor.Bytes) -> fido.OptionalApduCommand {
         let size = message.size()
         if size < apduMinHeader || size > apduMaxLength {
             return fido.OptionalApduCommand()
@@ -69,7 +72,7 @@ extension apdu.ApduCommand {
         let bytes: Span<UInt8> = message.span()
 
         var responseLength = 0
-        var data = cbor.CBORValue.BinaryValue()
+        var data = cbor.Bytes()
         switch size {
         case apduMinHeader:
             // No data present; no expected response.
@@ -117,18 +120,35 @@ extension apdu.ApduCommand {
         return fido.OptionalApduCommand(command)
     }
 
-    @cxx @implementation public static func encodeCommand(_ cla: UInt8, _ ins: UInt8, _ p1: UInt8, _ p2: UInt8, _ responseLength: Int, _ data: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    /// The encoding of an APDU command.
+    @cxx
+    @implementation
+    public static func encodeCommand(
+        _ cla: UInt8,
+        _ ins: UInt8,
+        _ p1: UInt8,
+        _ p2: UInt8,
+        _ responseLength: Int,
+        _ data: cbor.Bytes
+    ) -> cbor.Bytes {
         encodeCommandBody(cla, ins, p1, p2, responseLength, data)
     }
 
-    private static func encodeCommandBody(_ cla: UInt8, _ ins: UInt8, _ p1: UInt8, _ p2: UInt8, _ responseLength: Int, _ data: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    private static func encodeCommandBody(
+        _ cla: UInt8,
+        _ ins: UInt8,
+        _ p1: UInt8,
+        _ p2: UInt8,
+        _ responseLength: Int,
+        _ data: cbor.Bytes
+    ) -> cbor.Bytes {
         // size_t in C++: compare and clamp it unsigned.
         encodeApduCommand(cla, ins, p1, p2, UInt(bitPattern: responseLength), data.span())
     }
 }
 
 // ApduCommand::getEncodedCommand, for the C++ and for the U2F commands (WebAuthnU2f.swift).
-func encodeApduCommand(_ cla: UInt8, _ ins: UInt8, _ p1: UInt8, _ p2: UInt8, _ responseLength: UInt, _ data: Span<UInt8>) -> cbor.CBORValue.BinaryValue {
+func encodeApduCommand(_ cla: UInt8, _ ins: UInt8, _ p1: UInt8, _ p2: UInt8, _ responseLength: UInt, _ data: Span<UInt8>) -> cbor.Bytes {
     let dataLength = min(data.count, apduMaxDataLength)
     var sink = fido.WebAuthnByteSink()
     sink.reserve(apduMinHeader + 3 + dataLength + 2)
@@ -147,8 +167,8 @@ func encodeApduCommand(_ cla: UInt8, _ ins: UInt8, _ p1: UInt8, _ p2: UInt8, _ r
     } else if responseLength != 0 {
         headerLength += 1
     }
-    addBytes(&sink, header.span.extracting(0..<headerLength))
-    addBytes(&sink, data.extracting(0..<dataLength))
+    sink.append(header.span.extracting(0..<headerLength))
+    sink.append(data.extracting(0..<dataLength))
     var encoded = sink.take()
 
     if responseLength != 0 {
@@ -161,11 +181,14 @@ func encodeApduCommand(_ cla: UInt8, _ ins: UInt8, _ p1: UInt8, _ p2: UInt8, _ r
 }
 
 extension apdu.ApduResponse {
-    @cxx @implementation public static func createFromMessage(_ data: cbor.CBORValue.BinaryValue) -> fido.OptionalApduResponse {
+    /// Parses an APDU response from a message.
+    @cxx
+    @implementation
+    public static func createFromMessage(_ data: cbor.Bytes) -> fido.OptionalApduResponse {
         createFromMessageBody(data)
     }
 
-    private static func createFromMessageBody(_ data: cbor.CBORValue.BinaryValue) -> fido.OptionalApduResponse {
+    private static func createFromMessageBody(_ data: cbor.Bytes) -> fido.OptionalApduResponse {
         // The data is followed by two status bytes.
         let size = data.size()
         if size < 2 {
@@ -174,13 +197,18 @@ extension apdu.ApduResponse {
         let bytes: Span<UInt8> = data.span()
         let statusBytes = UInt16(bytes[size - 2]) << 8 | UInt16(bytes[size - 1])
         // Any value, as static_cast<Status> takes it.
-        let status = apdu.ApduResponse.Status(rawValue: statusBytes)!
+        guard let status = apdu.ApduResponse.Status(rawValue: statusBytes) else {
+            preconditionFailure("an imported C++ enum's init(rawValue:) never fails")
+        }
         var payload = data
         payload.shrink(size - 2)
         return fido.OptionalApduResponse(apdu.ApduResponse(consuming: payload, status))
     }
 
-    @cxx @implementation public static func encodeResponse(_ data: cbor.CBORValue.BinaryValue, _ status: apdu.ApduResponse.Status) -> cbor.CBORValue.BinaryValue {
+    /// The encoding of an APDU response with a status.
+    @cxx
+    @implementation
+    public static func encodeResponse(_ data: cbor.Bytes, _ status: apdu.ApduResponse.Status) -> cbor.Bytes {
         var encoded = data
         encoded.append(consuming: UInt8(status.rawValue >> 8))
         encoded.append(consuming: UInt8(status.rawValue & 0xff))
@@ -188,4 +216,4 @@ extension apdu.ApduResponse {
     }
 }
 
-#endif // !os(watchOS) && !targetEnvironment(macCatalyst)
+#endif // !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST

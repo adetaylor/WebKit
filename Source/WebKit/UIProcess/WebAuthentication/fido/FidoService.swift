@@ -31,7 +31,7 @@ import wtf
 
 extension WebKit.FidoService {
     @cxx @implementation
-    func continueAfterGetInfo(_ inputDriver: WebKit.CtapDriver, _ response: cbor.CBORValue.BinaryValue) {
+    func continueAfterGetInfo(_ inputDriver: WebKit.CtapDriver, _ response: cbor.Bytes) {
         guard let driver = takeDriver(inputDriver).get() else {
             return
         }

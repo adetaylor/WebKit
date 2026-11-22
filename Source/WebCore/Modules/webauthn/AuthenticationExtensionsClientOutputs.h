@@ -29,8 +29,6 @@
 
 #include <JavaScriptCore/ArrayBuffer.h>
 #include <WebCore/AuthenticationExtensionsClientOutputsJSON.h>
-#include <WebCore/CBORReader.h>
-#include <WebCore/CBORWriter.h>
 #include <WebCore/CredentialPropertiesOutput.h>
 #include <optional>
 

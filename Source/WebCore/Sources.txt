@@ -502,9 +502,7 @@ Modules/webauthn/WebAuthnOperationException.cpp
 Modules/webauthn/WellKnownOriginList.cpp
 Modules/webauthn/apdu/ApduCommand.cpp
 Modules/webauthn/apdu/ApduResponse.cpp
-Modules/webauthn/cbor/CBORReader.cpp
-Modules/webauthn/cbor/CBORValue.cpp
-Modules/webauthn/cbor/CBORWriter.cpp
+Modules/webauthn/cbor/CBORBytes.cpp
 Modules/webauthn/fido/AuthenticatorGetInfoResponse.cpp
 Modules/webauthn/fido/AuthenticatorSupportedOptions.cpp
 Modules/webauthn/fido/FidoHidMessage.cpp

@@ -22,7 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 // ENABLE(WEB_AUTHN) (PlatformEnableCocoa.h): every Cocoa platform but watchOS and Mac Catalyst.
-#if !os(watchOS) && !targetEnvironment(macCatalyst)
+#if !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST
 
 // Without these, no operator in this file type-checks: WebCore's C++ operators name types these modules define.
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -48,48 +48,58 @@ private let pinProtocol1AuthLength = 16
 // SetPin pads the new PIN with zeros to 64 bytes.
 private let pinPaddedLength = 64
 
-@inline(always)
-private func appendBytes(_ out: inout cbor.CBORValue.BinaryValue, _ bytes: Span<UInt8>) {
-    for index in bytes.indices {
-        out.append(consuming: bytes[index])
+/// The value, trapping on null as the C++ does when it dereferences the pointer.
+private func nonNull<T>(_ value: T?) -> T {
+    guard let value else {
+        preconditionFailure("unexpected null pointer")
     }
+    return value
 }
 
-// decodeResponseMap: a success status byte, then a CBOR map.
-private func pinResponseMap(_ buffer: borrowing cbor.CBORValue.BinaryValue) -> CBOR.Map? {
-    let bytes: Span<UInt8> = buffer.span()
-    if bytes.count <= fido.kResponseCodeLength || bytes[0] != fido.CtapDeviceResponseCode.success.rawValue {
-        return nil
-    }
-    return CBOR.read(bytes.extracting(fido.kResponseCodeLength..<bytes.count))?.mapValue
+/// The bytes of `first`, then those of `second`.
+private func concatenation(_ first: borrowing cbor.Bytes, _ second: borrowing cbor.Bytes) -> cbor.Bytes {
+    var sink = fido.WebAuthnByteSink()
+    sink.reserve(first.size() + second.size())
+    sink.append(first.span())
+    sink.append(second.span())
+    return sink.take()
 }
 
-private func decryptForProtocol(_ pinProtocol: fido.PINUVAuthProtocol, _ key: borrowing WebCore.CryptoKeyAES, _ ciphertext: borrowing cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+private func decryptForProtocol(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ key: borrowing WebCore.CryptoKeyAES,
+    _ ciphertext: borrowing cbor.Bytes
+) -> cbor.Bytes {
     if pinProtocol == .pinProtocol2 {
         // Protocol 2: the IV, then the ciphertext.
         let size = ciphertext.size()
         if size < pinIVLength {
-            return cbor.CBORValue.BinaryValue()
+            return cbor.Bytes()
         }
         return fido.pin.pinAESCBCDecrypt(key, ciphertext.subvector(0, pinIVLength), ciphertext.subvector(pinIVLength, size - pinIVLength))
     }
     // Protocol 1: a zero IV.
-    return fido.pin.pinAESCBCDecrypt(key, cbor.CBORValue.BinaryValue(), ciphertext)
+    return fido.pin.pinAESCBCDecrypt(key, cbor.Bytes(), ciphertext)
 }
 
-private func encryptForProtocol(_ pinProtocol: fido.PINUVAuthProtocol, _ key: borrowing WebCore.CryptoKeyAES, _ plaintext: borrowing cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+private func encryptForProtocol(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ key: borrowing WebCore.CryptoKeyAES,
+    _ plaintext: borrowing cbor.Bytes
+) -> cbor.Bytes {
     if pinProtocol == .pinProtocol2 {
         // Protocol 2: a random IV, prepended.
-        var output = fido.pin.pinRandomIV()
-        let ciphertext = fido.pin.pinAESCBCEncrypt(key, output, plaintext)
-        output.reserveCapacity(output.size() + ciphertext.size())
-        appendBytes(&output, ciphertext.span())
-        return output
+        let iv = fido.pin.pinRandomIV()
+        return concatenation(iv, fido.pin.pinAESCBCEncrypt(key, iv, plaintext))
     }
-    return fido.pin.pinAESCBCEncrypt(key, cbor.CBORValue.BinaryValue(), plaintext)
+    return fido.pin.pinAESCBCEncrypt(key, cbor.Bytes(), plaintext)
 }
 
-private func authenticateForProtocol(_ pinProtocol: fido.PINUVAuthProtocol, _ key: borrowing WebCore.CryptoKeyHMAC, _ message: borrowing cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+private func authenticateForProtocol(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ key: borrowing WebCore.CryptoKeyHMAC,
+    _ message: borrowing cbor.Bytes
+) -> cbor.Bytes {
     var signature = fido.pin.pinHMACSign(key, message)
     if pinProtocol == .pinProtocol1 {
         signature.shrink(pinProtocol1AuthLength)
@@ -97,49 +107,52 @@ private func authenticateForProtocol(_ pinProtocol: fido.PINUVAuthProtocol, _ ke
     return signature
 }
 
-private func bytesOf(_ characters: Span<UInt8>, capacity: Int = 0) -> cbor.CBORValue.BinaryValue {
-    var bytes = cbor.CBORValue.BinaryValue()
-    bytes.reserveCapacity(max(capacity, characters.count))
-    for index in characters.indices {
-        bytes.append(consuming: characters[index])
-    }
-    return bytes
-}
-
 // CTAP 2.1 6.5.6 (protocol 1: SHA-256) and 6.5.7 (protocol 2: HKDF-SHA-256 for the HMAC key, then the AES key).
 // Empty when a step fails.
-private func deriveProtocolSharedSecret(_ pinProtocol: fido.PINUVAuthProtocol, _ ecdhResult: borrowing cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+private func deriveProtocolSharedSecret(_ pinProtocol: fido.PINUVAuthProtocol, _ ecdhResult: borrowing cbor.Bytes) -> cbor.Bytes {
     switch pinProtocol {
     case .pinProtocol1:
         return fido.pin.pinSHA256(ecdhResult)
     case .pinProtocol2:
-        var sharedSecret = fido.pin.pinHKDF(ecdhResult, .HMACKey)
-        if sharedSecret.isEmpty() {
-            return sharedSecret
+        let hmacKey = fido.pin.pinHKDF(ecdhResult, .HMACKey)
+        if hmacKey.isEmpty() {
+            return hmacKey
         }
         let aesKey = fido.pin.pinHKDF(ecdhResult, .AESKey)
         if aesKey.isEmpty() {
             return aesKey
         }
-        sharedSecret.reserveCapacity(2 * pinSharedKeyLength)
-        appendBytes(&sharedSecret, aesKey.span())
-        return sharedSecret
+        return concatenation(hmacKey, aesKey)
     default:
-        return cbor.CBORValue.BinaryValue()
+        return cbor.Bytes()
     }
 }
 
-private func importAESKey(_ material: consuming cbor.CBORValue.BinaryValue) -> fido.CryptoKeyAESPtr {
-    WebCore.CryptoKeyAES.importRaw(.AES_CBC, consuming: material, true, WebCore.CryptoKeyUsageBitmap(WebCore.CryptoKeyUsageEncrypt | WebCore.CryptoKeyUsageDecrypt))
+private func importAESKey(_ material: consuming cbor.Bytes) -> fido.CryptoKeyAESPtr {
+    WebCore.CryptoKeyAES.importRaw(
+        .AES_CBC,
+        consuming: material,
+        true,
+        WebCore.CryptoKeyUsageBitmap(WebCore.CryptoKeyUsageEncrypt | WebCore.CryptoKeyUsageDecrypt)
+    )
 }
 
-private func importHMACKey(_ material: consuming cbor.CBORValue.BinaryValue) -> fido.CryptoKeyHMACPtr {
+private func importHMACKey(_ material: consuming cbor.Bytes) -> fido.CryptoKeyHMACPtr {
     let lengthInBits = material.size() * 8
-    return WebCore.CryptoKeyHMAC.importRaw(lengthInBits, .SHA_256, consuming: material, true, WebCore.CryptoKeyUsageBitmap(WebCore.CryptoKeyUsageSign))
+    return WebCore.CryptoKeyHMAC.importRaw(
+        lengthInBits,
+        .SHA_256,
+        consuming: material,
+        true,
+        WebCore.CryptoKeyUsageBitmap(WebCore.CryptoKeyUsageSign)
+    )
 }
 
 // The halves of the shared secret a protocol uses for HMAC and AES keys: protocol 2 splits it, protocol 1 uses it whole.
-private func sharedSecretHalves(_ pinProtocol: fido.PINUVAuthProtocol, _ sharedSecret: borrowing cbor.CBORValue.BinaryValue) -> (hmac: cbor.CBORValue.BinaryValue, aes: cbor.CBORValue.BinaryValue) {
+private func sharedSecretHalves(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ sharedSecret: borrowing cbor.Bytes
+) -> (hmac: cbor.Bytes, aes: cbor.Bytes) {
     if pinProtocol == .pinProtocol2 {
         let size = sharedSecret.size()
         return (sharedSecret.subvector(0, pinSharedKeyLength), sharedSecret.subvector(size - pinSharedKeyLength, pinSharedKeyLength))
@@ -147,62 +160,134 @@ private func sharedSecretHalves(_ pinProtocol: fido.PINUVAuthProtocol, _ sharedS
     return (copy sharedSecret, copy sharedSecret)
 }
 
-// encodePinCommand: the authenticatorClientPin command byte, then the CBOR map of protocol, subcommand and `additional`.
-private func encodePinCommand(_ subcommand: fido.pin.Subcommand, _ pinProtocol: fido.PINUVAuthProtocol, _ additional: (inout CBOR.Map) -> Void = { _ in }) -> cbor.CBORValue.BinaryValue {
-    var map = CBOR.Map()
-    map.insert(.integer(Int64(fido.pin.RequestKey.protocol.rawValue)), .integer(Int64(pinProtocol.rawValue)))
-    map.insert(.integer(Int64(fido.pin.RequestKey.subcommand.rawValue)), .integer(Int64(subcommand.rawValue)))
-    additional(&map)
-
-    // A map this shallow always writes.
-    let serialized = CBOR.write(.map(map))!
-    var request = cbor.CBORValue.BinaryValue()
-    request.reserveCapacity(1 + serialized.count)
-    request.append(consuming: fido.CtapRequestCommand.authenticatorClientPin.rawValue)
-    appendBytes(&request, serialized.span)
-    return request
+// The authenticatorClientPin command byte, then the head of the CBOR map of protocol and subcommand,
+// which `additionalEntries` more entries (with keys above both) follow.
+private func beginPinCommand(
+    _ writer: inout CBORWriter,
+    _ subcommand: fido.pin.Subcommand,
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    additionalEntries: Int
+) {
+    writer.append(byte: fido.CtapRequestCommand.authenticatorClientPin.rawValue)
+    writer.beginMap(count: 2 + additionalEntries)
+    writer.writeInteger(Int64(fido.pin.RequestKey.protocol.rawValue))
+    writer.writeInteger(Int64(pinProtocol.rawValue))
+    writer.writeInteger(Int64(fido.pin.RequestKey.subcommand.rawValue))
+    writer.writeInteger(Int64(subcommand.rawValue))
 }
 
-private func requestKey(_ key: fido.pin.RequestKey) -> CBOR {
-    .integer(Int64(key.rawValue))
+private func writeRequestKey(_ writer: inout CBORWriter, _ key: fido.pin.RequestKey) {
+    writer.writeInteger(Int64(key.rawValue))
 }
 
-private func coseKeyCBOR(_ coseKey: borrowing cbor.CBORValue.MapValue) -> CBOR {
-    var value = cbor.CBORValue.cloneOfMap(coseKey)
-    return CBOR(taking: &value)
+// The COSE key map of its encoding; an empty byte string when it is not one data item.
+private func writeCOSEKey(_ writer: inout CBORWriter, _ coseKey: borrowing cbor.Bytes) {
+    if let item = CBORView(coseKey.span()) {
+        writer.append(encodedItem: item.encoded)
+    } else {
+        writer.writeByteString(Span<UInt8>())
+    }
 }
 
-// KeyAgreementResponse::parseFromCOSE: a P-256 ECDH COSE key (RFC 8152 7.1, 13.1.1).
-private func parseKeyAgreementCOSE(_ coseKey: CBOR.Map) -> fido.CryptoKeyECPtr {
-    if coseKey[COSE.kty]?.integerValue != COSE.EC2 || coseKey[COSE.alg]?.integerValue != COSE.ECDH256 || coseKey[COSE.crv]?.integerValue != COSE.P_256 {
+// A P-256 ECDH COSE key (RFC 8152 7.1, 13.1.1).
+private func parseKeyAgreementCOSE(_ coseKey: CBORView) -> fido.CryptoKeyECPtr {
+    guard let kty = coseKey.value(forKey: COSE.kty), kty.integer == COSE.EC2,
+        let alg = coseKey.value(forKey: COSE.alg), alg.integer == COSE.ECDH256,
+        let crv = coseKey.value(forKey: COSE.crv), crv.integer == COSE.P_256
+    else {
         return fido.CryptoKeyECPtr()
     }
-    guard let x = coseKey[COSE.x]?.byteStringValue, let y = coseKey[COSE.y]?.byteStringValue else {
+    guard let xItem = coseKey.value(forKey: COSE.x), let x = xItem.byteString,
+        let yItem = coseKey.value(forKey: COSE.y), let y = yItem.byteString
+    else {
         return fido.CryptoKeyECPtr()
     }
     let rawPublicKey = WebCore.encodeRawPublicKey(makeByteVector(x), makeByteVector(y))
-    return WebCore.CryptoKeyEC.importRaw(.ECDH, makeWTFString("P-256"), consuming: rawPublicKey, true, WebCore.CryptoKeyUsageBitmap(WebCore.CryptoKeyUsageDeriveBits))
+    return WebCore.CryptoKeyEC.importRaw(
+        .ECDH,
+        makeWTFString("P-256"),
+        consuming: rawPublicKey,
+        true,
+        WebCore.CryptoKeyUsageBitmap(WebCore.CryptoKeyUsageDeriveBits)
+    )
+}
+
+private func readRetriesResponse(_ buffer: borrowing cbor.Bytes) -> fido.pin.RetriesParseResult {
+    var result = fido.pin.RetriesParseResult()
+    let bytes: Span<UInt8> = buffer.span()
+    guard let map = decodeResponseMap(bytes) else {
+        return result
+    }
+    guard let item = map.value(forKey: Int64(fido.pin.ResponseKey.retries.rawValue)), let retries = item.unsigned else {
+        return result
+    }
+    // Non-negative: unsigned holds only CBOR unsigned integers.
+    result.retries = UInt64(retries)
+    result.valid = true
+    return result
+}
+
+private func readKeyAgreementResponse(_ buffer: borrowing cbor.Bytes) -> fido.CryptoKeyECPtr {
+    let bytes: Span<UInt8> = buffer.span()
+    guard let map = decodeResponseMap(bytes) else {
+        return fido.CryptoKeyECPtr()
+    }
+    guard let coseKey = map.value(forKey: Int64(fido.pin.ResponseKey.keyAgreement.rawValue)), coseKey.isMap else {
+        return fido.CryptoKeyECPtr()
+    }
+    return parseKeyAgreementCOSE(coseKey)
+}
+
+private func readTokenResponse(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ sharedKey: borrowing WebCore.CryptoKeyAES,
+    _ buffer: borrowing cbor.Bytes
+) -> fido.CryptoKeyHMACPtr {
+    let bytes: Span<UInt8> = buffer.span()
+    guard let map = decodeResponseMap(bytes) else {
+        return fido.CryptoKeyHMACPtr()
+    }
+    guard let item = map.value(forKey: Int64(fido.pin.ResponseKey.pinToken.rawValue)), let encryptedToken = item.byteString else {
+        return fido.CryptoKeyHMACPtr()
+    }
+    let token = decryptForProtocol(pinProtocol, sharedKey, makeByteVector(encryptedToken))
+    if token.isEmpty() {
+        return fido.CryptoKeyHMACPtr()
+    }
+    return importHMACKey(token)
 }
 
 extension fido.pin {
-    @cxx @implementation public static func encodeCOSEPublicKey(_ key: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.MapValue {
+    /// The COSE encoding of a public key.
+    @cxx
+    @implementation
+    public static func encodeCOSEPublicKey(_ key: cbor.Bytes) -> cbor.Bytes {
         encodeCOSEPublicKeyBody(key)
     }
 
-    private static func encodeCOSEPublicKeyBody(_ key: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.MapValue {
+    private static func encodeCOSEPublicKeyBody(_ key: cbor.Bytes) -> cbor.Bytes {
         // The key is 65 bytes; a shorter one traps reading x or y.
         let bytes: Span<UInt8> = key.span()
         let fieldLength = WebCore.ES256FieldElementLength
-        var map = CBOR.Map()
-        map.set(COSE.kty, .integer(COSE.EC2))
-        map.set(COSE.alg, .integer(COSE.ECDH256))
-        map.set(COSE.crv, .integer(COSE.P_256))
-        map.set(COSE.x, .byteString(makeByteArray(bytes.extracting(1..<(1 + fieldLength)))))
-        map.set(COSE.y, .byteString(makeByteArray(bytes.extracting((1 + fieldLength)..<(1 + 2 * fieldLength)))))
-        return CBOR.map(map).makeMapValue()
+        var writer = CBORWriter(reservingCapacity: 24 + 2 * fieldLength)
+        writer.beginMap(count: 5)
+        writer.writeInteger(COSE.kty)
+        writer.writeInteger(COSE.EC2)
+        writer.writeInteger(COSE.alg)
+        writer.writeInteger(COSE.ECDH256)
+        writer.writeInteger(COSE.crv)
+        writer.writeInteger(COSE.P_256)
+        writer.writeInteger(COSE.x)
+        writer.writeByteString(bytes.extracting(1..<(1 + fieldLength)))
+        writer.writeInteger(COSE.y)
+        writer.writeByteString(bytes.extracting((1 + fieldLength)..<(1 + 2 * fieldLength)))
+        return writer.takeVector()
     }
 
-    @cxx @implementation public static func validatePinAsUTF8(_ pin: WTF.String) -> WTF.UTF8CString {
+    /// The PIN as UTF-8, or empty when it is too short or too long.
+    @cxx
+    @implementation
+    public static func validatePinAsUTF8(_ pin: WTF.String) -> WTF.UTF8CString {
         // The CTAP2 four-character minimum, counted in UTF-16 code units.
         if pin.length() < 4 {
             return WTF.UTF8CString()
@@ -215,70 +300,87 @@ extension fido.pin {
         return utf8
     }
 
-    @cxx @implementation public static func parseRetriesResponse(_ buffer: cbor.CBORValue.BinaryValue) -> fido.pin.RetriesParseResult {
-        var result = fido.pin.RetriesParseResult()
-        guard let retries = pinResponseMap(buffer)?[Int64(fido.pin.ResponseKey.retries.rawValue)]?.unsignedValue else {
-            return result
-        }
-        // Non-negative: unsignedValue holds only CBOR unsigned integers.
-        result.retries = UInt64(retries)
-        result.valid = true
-        return result
+    /// Parses the response to a retries request.
+    @cxx
+    @implementation
+    public static func parseRetriesResponse(_ buffer: cbor.Bytes) -> fido.pin.RetriesParseResult {
+        readRetriesResponse(buffer)
     }
 
-    @cxx @implementation public static func parseKeyAgreementResponse(_ buffer: cbor.CBORValue.BinaryValue) -> fido.CryptoKeyECPtr {
-        guard let coseKey = pinResponseMap(buffer)?[Int64(fido.pin.ResponseKey.keyAgreement.rawValue)]?.mapValue else {
-            return fido.CryptoKeyECPtr()
-        }
-        return parseKeyAgreementCOSE(coseKey)
+    /// Parses the response to a key agreement request.
+    @cxx
+    @implementation
+    public static func parseKeyAgreementResponse(_ buffer: cbor.Bytes) -> fido.CryptoKeyECPtr {
+        readKeyAgreementResponse(buffer)
     }
 
-    @cxx @implementation public static func parseTokenResponse(_ pinProtocol: fido.PINUVAuthProtocol, _ sharedKey: borrowing WebCore.CryptoKeyAES, _ buffer: cbor.CBORValue.BinaryValue) -> fido.CryptoKeyHMACPtr {
-        guard let encryptedToken = pinResponseMap(buffer)?[Int64(fido.pin.ResponseKey.pinToken.rawValue)]?.byteStringValue else {
-            return fido.CryptoKeyHMACPtr()
-        }
-        let token = decryptForProtocol(pinProtocol, sharedKey, makeByteVector(encryptedToken))
-        if token.isEmpty() {
-            return fido.CryptoKeyHMACPtr()
-        }
-        return importHMACKey(token)
+    /// Parses the response to a token request.
+    @cxx
+    @implementation
+    public static func parseTokenResponse(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ sharedKey: borrowing WebCore.CryptoKeyAES,
+        _ buffer: cbor.Bytes
+    ) -> fido.CryptoKeyHMACPtr {
+        readTokenResponse(pinProtocol, sharedKey, buffer)
     }
 
-    @cxx @implementation public static func tokenPinAuth(_ pinProtocol: fido.PINUVAuthProtocol, _ token: borrowing WebCore.CryptoKeyHMAC, _ clientDataHash: cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+    /// The pinUvAuthParam of a client data hash for a token.
+    @cxx
+    @implementation
+    public static func tokenPinAuth(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ token: borrowing WebCore.CryptoKeyHMAC,
+        _ clientDataHash: cbor.Bytes
+    ) -> cbor.Bytes {
         authenticateForProtocol(pinProtocol, token, clientDataHash)
     }
 
-    @cxx @implementation public static func encodeAsCBOR(_ request: fido.pin.RetriesRequest) -> cbor.CBORValue.BinaryValue {
-        encodePinCommand(.getRetries, request.`protocol`)
+    /// The CBOR of a retries request.
+    @cxx
+    @implementation
+    public static func encodeAsCBOR(_ request: fido.pin.RetriesRequest) -> cbor.Bytes {
+        var writer = CBORWriter(reservingCapacity: 8)
+        beginPinCommand(&writer, .getRetries, request.`protocol`, additionalEntries: 0)
+        return writer.takeVector()
     }
 
-    @cxx @implementation public static func encodeAsCBOR(_ request: fido.pin.KeyAgreementRequest) -> cbor.CBORValue.BinaryValue {
-        encodePinCommand(.getKeyAgreement, request.`protocol`)
+    /// The CBOR of a key agreement request.
+    @cxx
+    @implementation
+    public static func encodeAsCBOR(_ request: fido.pin.KeyAgreementRequest) -> cbor.Bytes {
+        var writer = CBORWriter(reservingCapacity: 8)
+        beginPinCommand(&writer, .getKeyAgreement, request.`protocol`, additionalEntries: 0)
+        return writer.takeVector()
     }
 }
 
 // What a PIN request is made of, before the C++ request object (a move-only optional) or its encoding is made of it.
 private struct SetPinInputs {
     var sharedKey: fido.CryptoKeyAESPtr
-    var rawPublicKey: cbor.CBORValue.BinaryValue
-    var newPinEnc: cbor.CBORValue.BinaryValue
-    var pinUvAuthParam: cbor.CBORValue.BinaryValue
+    var rawPublicKey: cbor.Bytes
+    var newPinEnc: cbor.Bytes
+    var pinUvAuthParam: cbor.Bytes
 }
 
 private struct TokenInputs {
     var sharedKey: fido.CryptoKeyAESPtr
-    var rawPublicKey: cbor.CBORValue.BinaryValue
-    var pinHash: cbor.CBORValue.BinaryValue
+    var rawPublicKey: cbor.Bytes
+    var pinHash: cbor.Bytes
 }
 
 private struct HmacSecretInputs {
     var sharedKey: fido.CryptoKeyAESPtr
-    var rawPublicKey: cbor.CBORValue.BinaryValue
-    var saltEnc: cbor.CBORValue.BinaryValue
-    var saltAuth: cbor.CBORValue.BinaryValue
+    var rawPublicKey: cbor.Bytes
+    var saltEnc: cbor.Bytes
+    var saltAuth: cbor.Bytes
 }
 
-private func setPinInputs(_ pinProtocol: fido.PINUVAuthProtocol, _ newPin: WTF.String, _ peerKey: borrowing WebCore.CryptoKeyEC) -> SetPinInputs? {
+private func setPinInputs(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ newPin: WTF.String,
+    _ peerKey: borrowing WebCore.CryptoKeyEC
+) -> SetPinInputs? {
     let validated = fido.pin.validatePinAsUTF8(newPin)
     if fido.utf8CStringLength(validated) == 0 {
         return nil
@@ -296,21 +398,29 @@ private func setPinInputs(_ pinProtocol: fido.PINUVAuthProtocol, _ newPin: WTF.S
     }
     let halves = sharedSecretHalves(pinProtocol, sharedSecret)
     let sharedKeyPtr = importAESKey(halves.aes)
-    let sharedKey = sharedKeyPtr.get()!
+    let sharedKey = nonNull(sharedKeyPtr.get())
     precondition(agreement.exported, "P-256 public key export failed")
 
-    var paddedPin = bytesOf(validated.span(), capacity: pinPaddedLength)
-    while paddedPin.size() < pinPaddedLength {
-        paddedPin.append(consuming: UInt8(0))
+    let pinBytes: Span<UInt8> = validated.span()
+    var paddedPinSink = fido.WebAuthnByteSink()
+    paddedPinSink.reserve(max(pinPaddedLength, pinBytes.count))
+    paddedPinSink.append(pinBytes)
+    for _ in pinBytes.count..<max(pinPaddedLength, pinBytes.count) {
+        paddedPinSink.addByte(0)
     }
+    let paddedPin = paddedPinSink.take()
 
-    let hmacKey = importHMACKey(halves.hmac).get()!
+    let hmacKey = nonNull(importHMACKey(halves.hmac).get())
     let newPinEnc = encryptForProtocol(pinProtocol, sharedKey, paddedPin)
     let pinUvAuthParam = authenticateForProtocol(pinProtocol, hmacKey, newPinEnc)
     return SetPinInputs(sharedKey: sharedKeyPtr, rawPublicKey: agreement.rawPublicKey, newPinEnc: newPinEnc, pinUvAuthParam: pinUvAuthParam)
 }
 
-private func tokenInputs(_ pinProtocol: fido.PINUVAuthProtocol, _ pin: WTF.UTF8CString, _ peerKey: borrowing WebCore.CryptoKeyEC) -> TokenInputs? {
+private func tokenInputs(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ pin: WTF.UTF8CString,
+    _ peerKey: borrowing WebCore.CryptoKeyEC
+) -> TokenInputs? {
     // CTAP2 5.5.4, as above.
     let agreement = fido.pin.pinKeyAgreement(peerKey)
     precondition(agreement.generated, "P-256 key pair generation failed")
@@ -322,16 +432,21 @@ private func tokenInputs(_ pinProtocol: fido.PINUVAuthProtocol, _ pin: WTF.UTF8C
         return nil
     }
     let sharedKeyPtr = importAESKey(sharedSecretHalves(pinProtocol, sharedSecret).aes)
-    _ = sharedKeyPtr.get()!
+    _ = nonNull(sharedKeyPtr.get())
     precondition(agreement.exported, "P-256 public key export failed")
 
     // The left 16 bytes of the PIN's SHA-256.
-    var pinHash = fido.pin.pinSHA256(bytesOf(pin.span()))
+    var pinHash = fido.pin.pinSHA256(makeByteVector(pin.span()))
     pinHash.shrink(pinProtocol1AuthLength)
     return TokenInputs(sharedKey: sharedKeyPtr, rawPublicKey: agreement.rawPublicKey, pinHash: pinHash)
 }
 
-private func hmacSecretInputs(_ pinProtocol: fido.PINUVAuthProtocol, _ salt1: cbor.CBORValue.BinaryValue, _ salt2: fido.OptionalByteVector, _ peerKey: fido.CryptoKeyECPtr) -> HmacSecretInputs? {
+private func hmacSecretInputs(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ salt1: cbor.Bytes,
+    _ salt2: fido.OptionalByteVector,
+    _ peerKey: fido.CryptoKeyECPtr
+) -> HmacSecretInputs? {
     let secondSalt = Optional(fromCxx: salt2)
     if salt1.size() != pinSharedKeyLength {
         return nil
@@ -340,7 +455,7 @@ private func hmacSecretInputs(_ pinProtocol: fido.PINUVAuthProtocol, _ salt1: cb
         return nil
     }
 
-    let agreement = fido.pin.pinKeyAgreement(peerKey.get()!)
+    let agreement = fido.pin.pinKeyAgreement(nonNull(peerKey.get()))
     if !agreement.generated || !agreement.derived {
         return nil
     }
@@ -354,11 +469,7 @@ private func hmacSecretInputs(_ pinProtocol: fido.PINUVAuthProtocol, _ salt1: cb
         return nil
     }
 
-    var salts = salt1
-    if let secondSalt {
-        salts.reserveCapacity(salts.size() + secondSalt.size())
-        appendBytes(&salts, secondSalt.span())
-    }
+    let salts = secondSalt.map { concatenation(salt1, $0) } ?? salt1
     let saltEnc = encryptForProtocol(pinProtocol, sharedKey, salts)
     guard let hmacKey = importHMACKey(halves.hmac).get() else {
         return nil
@@ -367,85 +478,174 @@ private func hmacSecretInputs(_ pinProtocol: fido.PINUVAuthProtocol, _ salt1: cb
     return HmacSecretInputs(sharedKey: sharedKeyPtr, rawPublicKey: agreement.rawPublicKey, saltEnc: saltEnc, saltAuth: saltAuth)
 }
 
-private func encodeTokenCommand(_ pinProtocol: fido.PINUVAuthProtocol, _ sharedKey: borrowing WebCore.CryptoKeyAES, _ coseKey: CBOR, _ pinHash: borrowing cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
+private func encodeTokenCommand(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ sharedKey: borrowing WebCore.CryptoKeyAES,
+    _ coseKey: borrowing cbor.Bytes,
+    _ pinHash: borrowing cbor.Bytes
+) -> cbor.Bytes {
     let encryptedPin = encryptForProtocol(pinProtocol, sharedKey, pinHash)
-    return encodePinCommand(.getPinToken, pinProtocol) { map in
-        map.insert(requestKey(.keyAgreement), coseKey)
-        map.insert(requestKey(.pinHashEnc), .byteString(makeByteArray(encryptedPin)))
-    }
+    var writer = CBORWriter(reservingCapacity: 16 + coseKey.size() + encryptedPin.size())
+    beginPinCommand(&writer, .getPinToken, pinProtocol, additionalEntries: 2)
+    writeRequestKey(&writer, .keyAgreement)
+    writeCOSEKey(&writer, coseKey)
+    writeRequestKey(&writer, .pinHashEnc)
+    writer.writeByteString(encryptedPin.span())
+    return writer.takeVector()
 }
 
-private func encodeSetPinCommand(_ pinProtocol: fido.PINUVAuthProtocol, _ coseKey: CBOR, _ newPinEnc: borrowing cbor.CBORValue.BinaryValue, _ pinUvAuthParam: borrowing cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue {
-    let newPinEnc = makeByteArray(newPinEnc)
-    let pinUvAuthParam = makeByteArray(pinUvAuthParam)
-    return encodePinCommand(.setPin, pinProtocol) { map in
-        map.insert(requestKey(.keyAgreement), coseKey)
-        map.insert(requestKey(.newPinEnc), .byteString(newPinEnc))
-        map.insert(requestKey(.pinAuth), .byteString(pinUvAuthParam))
-    }
+private func encodeSetPinCommand(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ coseKey: borrowing cbor.Bytes,
+    _ newPinEnc: borrowing cbor.Bytes,
+    _ pinUvAuthParam: borrowing cbor.Bytes
+) -> cbor.Bytes {
+    var writer = CBORWriter(reservingCapacity: 24 + coseKey.size() + newPinEnc.size() + pinUvAuthParam.size())
+    beginPinCommand(&writer, .setPin, pinProtocol, additionalEntries: 3)
+    writeRequestKey(&writer, .keyAgreement)
+    writeCOSEKey(&writer, coseKey)
+    writeRequestKey(&writer, .pinAuth)
+    writer.writeByteString(pinUvAuthParam.span())
+    writeRequestKey(&writer, .newPinEnc)
+    writer.writeByteString(newPinEnc.span())
+    return writer.takeVector()
 }
 
 extension fido.pin.SetPinRequest {
-    @cxx @implementation public static func tryCreate(_ pinProtocol: fido.PINUVAuthProtocol, _ newPin: WTF.String, _ peerKey: borrowing WebCore.CryptoKeyEC) -> fido.OptionalSetPinRequest {
+    /// Creates a set-PIN request, if the new PIN is valid.
+    @cxx
+    @implementation
+    public static func tryCreate(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ newPin: WTF.String,
+        _ peerKey: borrowing WebCore.CryptoKeyEC
+    ) -> fido.OptionalSetPinRequest {
         guard let inputs = setPinInputs(pinProtocol, newPin, peerKey) else {
             return fido.OptionalSetPinRequest()
         }
-        return fido.pin.SetPinRequest.makeOptional(inputs.sharedKey.get()!, consuming: fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey), consuming: inputs.newPinEnc, consuming: inputs.pinUvAuthParam, pinProtocol)
+        return fido.pin.SetPinRequest.makeOptional(
+            nonNull(inputs.sharedKey.get()),
+            consuming: fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey),
+            consuming: inputs.newPinEnc,
+            consuming: inputs.pinUvAuthParam,
+            pinProtocol
+        )
     }
 }
 
 extension fido.pin.TokenRequest {
-    @cxx @implementation public static func tryCreate(_ pinProtocol: fido.PINUVAuthProtocol, _ pin: WTF.UTF8CString, _ peerKey: borrowing WebCore.CryptoKeyEC) -> fido.OptionalTokenRequest {
+    /// Creates a token request, if the PIN is valid.
+    @cxx
+    @implementation
+    public static func tryCreate(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ pin: WTF.UTF8CString,
+        _ peerKey: borrowing WebCore.CryptoKeyEC
+    ) -> fido.OptionalTokenRequest {
         tryCreateBody(pinProtocol, pin, peerKey)
     }
 
-    private static func tryCreateBody(_ pinProtocol: fido.PINUVAuthProtocol, _ pin: WTF.UTF8CString, _ peerKey: borrowing WebCore.CryptoKeyEC) -> fido.OptionalTokenRequest {
+    private static func tryCreateBody(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ pin: WTF.UTF8CString,
+        _ peerKey: borrowing WebCore.CryptoKeyEC
+    ) -> fido.OptionalTokenRequest {
         guard let inputs = tokenInputs(pinProtocol, pin, peerKey) else {
             return fido.OptionalTokenRequest()
         }
-        return fido.pin.TokenRequest.makeOptional(inputs.sharedKey.get()!, consuming: fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey), consuming: inputs.pinHash, pinProtocol)
+        return fido.pin.TokenRequest.makeOptional(
+            nonNull(inputs.sharedKey.get()),
+            consuming: fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey),
+            consuming: inputs.pinHash,
+            pinProtocol
+        )
     }
 }
 
 extension fido.pin.HmacSecretRequest {
-    @cxx @implementation public static func create(_ pinProtocol: fido.PINUVAuthProtocol, _ salt1: cbor.CBORValue.BinaryValue, _ salt2: fido.OptionalByteVector, _ peerKey: fido.CryptoKeyECPtr) -> fido.OptionalHmacSecretRequest {
+    /// Creates an hmac-secret request.
+    @cxx
+    @implementation
+    public static func create(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ salt1: cbor.Bytes,
+        _ salt2: fido.OptionalByteVector,
+        _ peerKey: fido.CryptoKeyECPtr
+    ) -> fido.OptionalHmacSecretRequest {
         guard let inputs = hmacSecretInputs(pinProtocol, salt1, salt2, peerKey) else {
             return fido.OptionalHmacSecretRequest()
         }
-        return fido.pin.HmacSecretRequest.makeOptional(inputs.sharedKey.get()!, consuming: fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey), consuming: inputs.saltEnc, consuming: inputs.saltAuth, pinProtocol)
+        return fido.pin.HmacSecretRequest.makeOptional(
+            nonNull(inputs.sharedKey.get()),
+            consuming: fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey),
+            consuming: inputs.saltEnc,
+            consuming: inputs.saltAuth,
+            pinProtocol
+        )
     }
 }
 
 // The PIN requests as WebKit's Swift needs them: the CBOR command and what the C++ request holds on to, in plain types.
 extension fido.pin {
-    @cxx @implementation public static func tokenRequestParts(_ pinProtocol: fido.PINUVAuthProtocol, _ pin: WTF.UTF8CString, _ peerKey: borrowing WebCore.CryptoKeyEC) -> fido.pin.TokenRequestParts {
+    /// The parts of a token request.
+    @cxx
+    @implementation
+    public static func tokenRequestParts(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ pin: WTF.UTF8CString,
+        _ peerKey: borrowing WebCore.CryptoKeyEC
+    ) -> fido.pin.TokenRequestParts {
         var parts = fido.pin.TokenRequestParts()
         guard let inputs = tokenInputs(pinProtocol, pin, peerKey) else {
             return parts
         }
-        parts.command = encodeTokenCommand(pinProtocol, inputs.sharedKey.get()!, coseKeyCBOR(fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey)), inputs.pinHash)
+        parts.command = encodeTokenCommand(
+            pinProtocol,
+            nonNull(inputs.sharedKey.get()),
+            fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey),
+            inputs.pinHash
+        )
         parts.sharedKey = inputs.sharedKey
         return parts
     }
 
-    @cxx @implementation public static func setPinRequestParts(_ pinProtocol: fido.PINUVAuthProtocol, _ newPin: WTF.String, _ peerKey: borrowing WebCore.CryptoKeyEC) -> fido.pin.SetPinRequestParts {
+    /// The parts of a set-PIN request.
+    @cxx
+    @implementation
+    public static func setPinRequestParts(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ newPin: WTF.String,
+        _ peerKey: borrowing WebCore.CryptoKeyEC
+    ) -> fido.pin.SetPinRequestParts {
         var parts = fido.pin.SetPinRequestParts()
         guard let inputs = setPinInputs(pinProtocol, newPin, peerKey) else {
             return parts
         }
-        parts.command = encodeSetPinCommand(pinProtocol, coseKeyCBOR(fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey)), inputs.newPinEnc, inputs.pinUvAuthParam)
+        parts.command = encodeSetPinCommand(
+            pinProtocol,
+            fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey),
+            inputs.newPinEnc,
+            inputs.pinUvAuthParam
+        )
         parts.pinAuth = inputs.pinUvAuthParam
         parts.valid = true
         return parts
     }
 
-    @cxx @implementation public static func hmacSecretRequestParts(_ pinProtocol: fido.PINUVAuthProtocol, _ salt1: cbor.CBORValue.BinaryValue, _ salt2: fido.OptionalByteVector, _ peerKey: fido.CryptoKeyECPtr) -> fido.pin.HmacSecretRequestParts {
+    /// The parts of an hmac-secret request.
+    @cxx
+    @implementation
+    public static func hmacSecretRequestParts(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ salt1: cbor.Bytes,
+        _ salt2: fido.OptionalByteVector,
+        _ peerKey: fido.CryptoKeyECPtr
+    ) -> fido.pin.HmacSecretRequestParts {
         var parts = fido.pin.HmacSecretRequestParts()
         guard let inputs = hmacSecretInputs(pinProtocol, salt1, salt2, peerKey) else {
             return parts
         }
-        // A COSE key map is two levels at most, so the write cannot fail.
-        parts.parameters.keyAgreement = makeByteVector(CBOR.write(coseKeyCBOR(fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey)))!)
+        parts.parameters.keyAgreement = fido.pin.encodeCOSEPublicKey(inputs.rawPublicKey)
         parts.parameters.saltEnc = inputs.saltEnc
         parts.parameters.saltAuth = inputs.saltAuth
         parts.parameters.`protocol` = Int32(pinProtocol.rawValue)
@@ -456,8 +656,12 @@ extension fido.pin {
     }
 }
 
-// HmacSecretResponse::parse's body: the decrypted output, or nil where parse gives nullopt.
-private func decryptHmacSecretOutput(_ pinProtocol: fido.PINUVAuthProtocol, _ sharedKey: borrowing WebCore.CryptoKeyAES, _ encryptedOutput: borrowing cbor.CBORValue.BinaryValue) -> cbor.CBORValue.BinaryValue? {
+// The decrypted hmac-secret output, or nil when it is not one or two outputs.
+private func decryptHmacSecretOutput(
+    _ pinProtocol: fido.PINUVAuthProtocol,
+    _ sharedKey: borrowing WebCore.CryptoKeyAES,
+    _ encryptedOutput: borrowing cbor.Bytes
+) -> cbor.Bytes? {
     let output = decryptForProtocol(pinProtocol, sharedKey, encryptedOutput)
     let size = output.size()
     // One or two 32-byte outputs.
@@ -468,12 +672,20 @@ private func decryptHmacSecretOutput(_ pinProtocol: fido.PINUVAuthProtocol, _ sh
 }
 
 /// The hmac-secret extension output for the CTAP response converters, as `HmacSecretResponse::parse` gives it.
-func hmacSecretOutput(_ pinProtocol: fido.PINUVAuthProtocol, _ sharedKey: WebCore.CryptoKeyAES, _ encryptedOutput: [UInt8]) -> [UInt8]? {
+func hmacSecretOutput(_ pinProtocol: fido.PINUVAuthProtocol, _ sharedKey: WebCore.CryptoKeyAES, _ encryptedOutput: Span<UInt8>) -> [UInt8]?
+{
     decryptHmacSecretOutput(pinProtocol, sharedKey, makeByteVector(encryptedOutput)).map { makeByteArray($0) }
 }
 
 extension fido.pin.HmacSecretResponse {
-    @cxx @implementation public static func parse(_ pinProtocol: fido.PINUVAuthProtocol, _ sharedKey: borrowing WebCore.CryptoKeyAES, _ encryptedOutput: cbor.CBORValue.BinaryValue) -> fido.OptionalHmacSecretResponse {
+    /// Parses an hmac-secret response.
+    @cxx
+    @implementation
+    public static func parse(
+        _ pinProtocol: fido.PINUVAuthProtocol,
+        _ sharedKey: borrowing WebCore.CryptoKeyAES,
+        _ encryptedOutput: cbor.Bytes
+    ) -> fido.OptionalHmacSecretResponse {
         guard let output = decryptHmacSecretOutput(pinProtocol, sharedKey, encryptedOutput) else {
             return fido.OptionalHmacSecretResponse()
         }
@@ -483,10 +695,11 @@ extension fido.pin.HmacSecretResponse {
 
 /// The definition of `fido::pin::KeyAgreementResponse::parseFromCOSE`, which forwards here.
 ///
-/// `coseKey` is owned by the caller and only read here.
+/// `coseKey` is `parseFromCOSE`'s by-value parameter, moved in; it is only read here, and the one C++ call made while
+/// it lives is `CryptoKeyEC::importRaw`, which reaches nothing of it.
 @_expose(Cxx)
-func parseKeyAgreementFromCOSE(_ coseKey: borrowing cbor.CBORValue.MapValue) -> fido.CryptoKeyECPtr {
-    guard let map = coseKeyCBOR(coseKey).mapValue else {
+func parseKeyAgreementFromCOSE(_ coseKey: cbor.Bytes) -> fido.CryptoKeyECPtr {
+    guard let map = CBORView(coseKey.span()), map.isMap else {
         return fido.CryptoKeyECPtr()
     }
     return parseKeyAgreementCOSE(map)
@@ -494,36 +707,32 @@ func parseKeyAgreementFromCOSE(_ coseKey: borrowing cbor.CBORValue.MapValue) -> 
 
 /// The body of `fido::pin::encodeAsCBOR(const TokenRequest&)`, which forwards here.
 ///
-/// `request` is owned by the caller of `encodeAsCBOR`, which keeps it alive and unchanged for the call; it arrives by
-/// `const&` and is passed on as one. It is read through `sharedKey()`, `cbor::CBORValue::cloneOfMap(m_coseKey)` and
-/// `m_pinHash`. The other C++ functions called while it is live, `pinRandomIV` and `pinAESCBCEncrypt`, take the key
-/// and copied bytes and reach nothing else. `encodeAsCBOR` clears `m_coseKey` after this function returns.
+/// `request` is the caller's `const&`, alive and unchanged for the call. The C++ called while it lives, `pinRandomIV`
+/// and `pinAESCBCEncrypt`, takes the key and copied bytes. `encodeAsCBOR` then replaces `m_coseKey` with `{0xa0}`.
 @_expose(Cxx)
-func encodeTokenRequestAsCBOR(_ request: borrowing fido.pin.TokenRequest) -> cbor.CBORValue.BinaryValue {
+func encodeTokenRequestAsCBOR(_ request: borrowing fido.pin.TokenRequest) -> cbor.Bytes {
     request.encodedAsCBOR()
 }
 
 // SWIFT_PRIVATE_FILEID opens the private members to extensions in this file only.
 extension fido.pin.TokenRequest {
-    fileprivate func encodedAsCBOR() -> cbor.CBORValue.BinaryValue {
-        encodeTokenCommand(m_protocol, sharedKey(), coseKeyCBOR(m_coseKey), m_pinHash)
+    fileprivate func encodedAsCBOR() -> cbor.Bytes {
+        encodeTokenCommand(m_protocol, sharedKey(), m_coseKey, m_pinHash)
     }
 }
 
 /// The body of `fido::pin::encodeAsCBOR(SetPinRequest)`, which forwards here.
 ///
-/// `request` is `encodeAsCBOR`'s by-value parameter, which it owns and keeps alive for the call; it is passed on by
-/// `const&`. It is read through `cbor::CBORValue::cloneOfMap(m_coseKey)` and its byte-vector members, which are copied.
-/// No other C++ function is called while it is live.
+/// `request` is `encodeAsCBOR`'s by-value parameter, alive and unchanged for the call; no C++ is called while it lives.
 @_expose(Cxx)
-func encodeSetPinRequestAsCBOR(_ request: borrowing fido.pin.SetPinRequest) -> cbor.CBORValue.BinaryValue {
+func encodeSetPinRequestAsCBOR(_ request: borrowing fido.pin.SetPinRequest) -> cbor.Bytes {
     request.encodedAsCBOR()
 }
 
 extension fido.pin.SetPinRequest {
-    fileprivate func encodedAsCBOR() -> cbor.CBORValue.BinaryValue {
-        encodeSetPinCommand(m_protocol, coseKeyCBOR(m_coseKey), m_newPinEnc, m_pinUvAuthParam)
+    fileprivate func encodedAsCBOR() -> cbor.Bytes {
+        encodeSetPinCommand(m_protocol, m_coseKey, m_newPinEnc, m_pinUvAuthParam)
     }
 }
 
-#endif // !os(watchOS) && !targetEnvironment(macCatalyst)
+#endif // !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST

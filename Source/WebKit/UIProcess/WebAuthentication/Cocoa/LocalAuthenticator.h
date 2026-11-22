@@ -29,9 +29,14 @@
 
 #include "Authenticator.h"
 #include "LocalConnection.h"
+#include <wtf/SwiftBridging.h>
 #include <wtf/UniqueRef.h>
 
 OBJC_CLASS LAContext;
+
+namespace JSC {
+class ArrayBuffer;
+}
 
 namespace WebCore {
 class AuthenticatorAttestationResponse;
@@ -41,8 +46,14 @@ class AuthenticatorAssertionResponse;
 namespace WebKit {
 
 BOOL shouldUseAlternateKeychainAttribute();
+// For LocalAuthenticator.swift and WebAuthenticationPanelCredentials.swift, which do not reach AuthenticationServicesCore
+// through its soft link.
+bool shouldUpdateQuery();
+CFDataRef copyEnterpriseAttestationIdentityPersistentReference(const String& rpId) CF_RETURNS_RETAINED;
+// For LocalAuthenticator.swift, which cannot hold an LAContext: adds the response's to the Keychain query.
+void addAuthenticationContext(const WebCore::AuthenticatorAssertionResponse&, CFMutableDictionaryRef query);
 
-class LocalAuthenticator final : public Authenticator {
+class SWIFT_PRIVATE_FILEID("WebKit/LocalAuthenticator.swift") LocalAuthenticator final : public Authenticator {
 public:
     // Here is the FSM.
     // MakeCredential: Init => RequestReceived => PolicyDecided => UserVerified => (Attested) => End
@@ -61,35 +72,42 @@ public:
         return adoptRef(*new LocalAuthenticator(WTF::move(connection)));
     }
 
+    ~LocalAuthenticator(); // Out of line so the vtable is emitted here: the other virtual members are defined in Swift.
+
     static void clearAllCredentials();
 
 private:
     explicit LocalAuthenticator(Ref<LocalConnection>&&);
 
-    std::optional<WebCore::ExceptionData> processClientExtensions(Variant<Ref<WebCore::AuthenticatorAttestationResponse>, Ref<WebCore::AuthenticatorAssertionResponse>>);
-
     void makeCredential() final;
+    void requestLAContextForUserVerification();
     void continueMakeCredentialAfterReceivingLAContext(LAContext *);
     void continueMakeCredentialAfterUserVerification(SecAccessControlRef, LocalConnection::UserVerification, LAContext *);
-    void finishMakeCredential(Vector<uint8_t>&& credentialId, Vector<uint8_t>&& attestationObject, std::optional<WebCore::ExceptionData>);
+    // The halves of makeCredential that Swift implements around the C++ steps that hold the LAContext.
+    Vector<uint8_t> userEntityTag() const;
+    void continueMakeCredentialAfterCreatingPrivateKey(CFDataRef publicKey, LocalConnection::UserVerification);
 
     void getAssertion() final;
+    // Indices into m_existingCredentials, which Swift reads through existingCredential().
+    using CredentialIndices = Vector<size_t>;
+    void selectAssertionResponseFromObserver(const CredentialIndices&);
     void continueGetAssertionAfterResponseSelected(Ref<WebCore::AuthenticatorAssertionResponse>&&);
-    void continueGetAssertionAfterUserVerification(Ref<WebCore::AuthenticatorAssertionResponse>&&, LocalConnection::UserVerification, LAContext *);
+    void continueGetAssertionAfterUserVerification(WebCore::AuthenticatorAssertionResponse&, LocalConnection::UserVerification);
+    RefPtr<JSC::ArrayBuffer> alternateBlobIfNecessary() const;
 
-    void receiveException(WebCore::ExceptionData&&, WebAuthenticationStatus = WebAuthenticationStatus::LAError) const;
-    void deleteDuplicateCredential() const;
+    // By value: an @cxx member cannot take an rvalue reference.
+    void receiveException(WebCore::ExceptionData, WebAuthenticationStatus = WebAuthenticationStatus::LAError) const;
     bool validateUserVerification(LocalConnection::UserVerification) const;
 
-    std::optional<WebCore::ExceptionData> processLargeBlobExtension(const WebCore::PublicKeyCredentialCreationOptions&, WebCore::AuthenticationExtensionsClientOutputs& extensionOutputs);
-    std::optional<WebCore::ExceptionData> processLargeBlobExtension(const WebCore::PublicKeyCredentialRequestOptions&, WebCore::AuthenticationExtensionsClientOutputs& extensionOutputs, const Ref<WebCore::AuthenticatorAssertionResponse>&);
-
-    std::optional<Vector<Ref<WebCore::AuthenticatorAssertionResponse>>> getExistingCredentials(const String& rpId);
+    // For LocalAuthenticator.swift: Vector<Ref<AuthenticatorAssertionResponse>> imports as unsafe.
+    void appendExistingCredential(WebCore::AuthenticatorAssertionResponse& credential) { m_existingCredentials.append(credential); }
+    size_t existingCredentialCount() const { return m_existingCredentials.size(); }
+    Ref<WebCore::AuthenticatorAssertionResponse> existingCredential(size_t index) const { return m_existingCredentials[index]; }
 
     State m_state { State::Init };
     const Ref<LocalConnection> m_connection;
     Vector<Ref<WebCore::AuthenticatorAssertionResponse>> m_existingCredentials;
-    RetainPtr<NSData> m_provisionalCredentialId;
+    Vector<uint8_t> m_provisionalCredentialId;
 };
 
 } // namespace WebKit

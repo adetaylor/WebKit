@@ -257,6 +257,29 @@ TEST(U2fCommandConstructorTest, TestCreateSignWithIncorrectKeyHandle)
     EXPECT_FALSE(invalidSignCommand);
 }
 
+TEST(U2fCommandConstructorTest, TestCreateCheckOnlySignWithKeyHandleLengths)
+{
+    auto makeCredentialParam = constructMakeCredentialRequest();
+
+    // The key handle's length is one byte of the command, after the 7-byte header, the challenge and the application
+    // parameter.
+    Vector<uint8_t> keyHandle(FillWith { }, kMaxKeyHandleLength, 0xff);
+    auto credentialDescriptor = PublicKeyCredentialDescriptor {
+        .type = PublicKeyCredentialType::PublicKey,
+        .id = WebCore::toBufferSource(keyHandle.span()),
+        .transports = { },
+    };
+    const auto validCheckOnlySign = convertToU2fCheckOnlySignCommand(std::span { TestData::kClientDataHash }, makeCredentialParam, credentialDescriptor);
+    ASSERT_TRUE(validCheckOnlySign);
+    ASSERT_GT(validCheckOnlySign->size(), 71u);
+    EXPECT_EQ((*validCheckOnlySign)[71], kMaxKeyHandleLength);
+
+    keyHandle.append(0xff);
+    credentialDescriptor.id = WebCore::toBufferSource(keyHandle.span());
+    const auto invalidCheckOnlySign = convertToU2fCheckOnlySignCommand(std::span { TestData::kClientDataHash }, makeCredentialParam, credentialDescriptor);
+    EXPECT_FALSE(invalidCheckOnlySign);
+}
+
 TEST(U2fCommandConstructorTest, TestConstructBogusU2fRegistrationCommand)
 {
     EXPECT_EQ(constructBogusU2fRegistrationCommand(), Vector<uint8_t> { TestData::kU2fFakeRegisterCommand });

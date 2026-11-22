@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,21 +23,28 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #pragma once
+
+#import <wtf/Platform.h>
 
 #if ENABLE(WEB_AUTHN)
 
-#include "VirtualAuthenticatorConfiguration.h"
+#import <WebKit/_WKWebAuthenticationPanel.h>
 
-namespace WebKit {
+NS_HEADER_AUDIT_BEGIN(nullability, sendability)
 
-NODELETE uint8_t flagsForConfig(const VirtualAuthenticatorConfiguration&);
-RetainPtr<SecKeyRef> createPrivateKey();
-std::pair<Vector<uint8_t>, Vector<uint8_t>> credentialIdAndCosePubKeyForPrivateKey(RetainPtr<SecKeyRef> privateKey);
-String base64PrivateKey(RetainPtr<SecKeyRef> privateKey);
-RetainPtr<SecKeyRef> privateKeyFromBase64(const String& base64PrivateKey);
-Vector<uint8_t> signatureForPrivateKey(RetainPtr<SecKeyRef> privateKey, const Vector<uint8_t>& authData, const Vector<uint8_t>& clientDataHash);
+// The local authenticator's credentials in the Keychain, which WebAuthenticationPanelCredentials.swift implements.
+@interface _WKWebAuthenticationPanel (WKLocalAuthenticatorCredentials)
 
-} // namespace WebKit
++ (nullable NSMutableArray<NSMutableDictionary *> *)localAuthenticatorCredentialsInAccessGroup:(nullable NSString *)accessGroup relyingPartyID:(nullable NSString *)rpID credentialID:(nullable NSData *)credentialID;
++ (void)setLocalAuthenticatorCredentialName:(nullable NSString *)name group:(nullable NSString *)group credentialID:(nullable NSData *)credentialID;
++ (void)setLocalAuthenticatorCredentialDisplayName:(nullable NSString *)displayName group:(nullable NSString *)group credentialID:(nullable NSData *)credentialID;
++ (nullable NSData *)importLocalAuthenticatorCredential:(NSData *)credentialBlob accessGroup:(nullable NSString *)accessGroup error:(NSError **)error;
++ (nullable NSData *)exportLocalAuthenticatorCredential:(nullable NSData *)credentialID group:(nullable NSString *)group error:(NSError **)error;
+
+@end
+
+NS_HEADER_AUDIT_END(nullability, sendability)
 
 #endif // ENABLE(WEB_AUTHN)

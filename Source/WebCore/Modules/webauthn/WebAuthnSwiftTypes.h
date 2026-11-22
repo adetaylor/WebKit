@@ -29,10 +29,11 @@
 
 #include <WebCore/ApduCommand.h>
 #include <WebCore/ApduResponse.h>
+#include <WebCore/AuthenticationExtensionsClientInputs.h>
+#include <WebCore/AuthenticationExtensionsClientOutputs.h>
 #include <WebCore/AuthenticatorGetInfoResponse.h>
 #include <WebCore/BufferSource.h>
-#include <WebCore/CBORReader.h>
-#include <WebCore/CBORWriter.h>
+#include <WebCore/CBORBytes.h>
 #include <WebCore/CryptoKeyAES.h>
 #include <WebCore/CryptoKeyEC.h>
 #include <WebCore/CryptoKeyHMAC.h>
@@ -78,6 +79,8 @@ using OptionalHmacSecretResponse = std::optional<pin::HmacSecretResponse>;
 using OptionalApduCommand = std::optional<apdu::ApduCommand>;
 using OptionalApduResponse = std::optional<apdu::ApduResponse>;
 using OptionalClientOutputs = std::optional<WebCore::AuthenticationExtensionsClientOutputs>;
+using OptionalClientInputs = std::optional<WebCore::AuthenticationExtensionsClientInputs>;
+using ArrayBufferPtr = RefPtr<JSC::ArrayBuffer>;
 // PublicKeyCredentialType has one enumerator, which Swift imports with no cases.
 inline WebCore::PublicKeyCredentialType publicKeyCredentialTypePublicKey() { return WebCore::PublicKeyCredentialType::PublicKey; }
 // WTF::emptyString() by value: Swift imports its const String& result as a pointer.
@@ -99,6 +102,46 @@ struct WebAuthnByteSink {
     Vector<uint8_t> take() { return std::exchange(bytes, { }); }
     Vector<uint8_t> bytes;
 };
+// Build the extension inputs and outputs that the CBOR codecs read. Swift cannot construct their nested optionals,
+// or their Ref and RefPtr members, field by field. A largeBlob setter follows beginLargeBlob.
+struct WebAuthnClientInputsBuilder {
+    void setAppid(const String& appid) { inputs.appid = appid; }
+    void setCredProps(bool credProps) { inputs.credProps = credProps; }
+    void setCrossDeviceFallbackURL(const String& url) { inputs.crossDeviceFallbackURL = url; }
+    void beginLargeBlob() { inputs.largeBlob = WebCore::AuthenticationExtensionsClientInputs::LargeBlobInputs { }; }
+    void setLargeBlobSupport(const String& support) { inputs.largeBlob->support = support; }
+    void setLargeBlobRead(bool read) { inputs.largeBlob->read = read; }
+    void setLargeBlobWrite(const Vector<uint8_t>& write) { inputs.largeBlob->write = WebCore::BufferSource(JSC::ArrayBuffer::create(write.span())); }
+    std::optional<WebCore::AuthenticationExtensionsClientInputs> take() { return std::exchange(inputs, { }); }
+    WebCore::AuthenticationExtensionsClientInputs inputs;
+};
+
+struct WebAuthnClientOutputsBuilder {
+    void setAppid(bool appid) { outputs.appid = appid; }
+    void setCredPropsRk(bool rk) { outputs.credProps = WebCore::CredentialPropertiesOutput { rk }; }
+    void beginLargeBlob() { outputs.largeBlob = WebCore::AuthenticationExtensionsClientOutputs::LargeBlobOutputs { }; }
+    void setLargeBlobSupported(bool supported) { outputs.largeBlob->supported = supported; }
+    void setLargeBlobBlob(const Vector<uint8_t>& blob) { outputs.largeBlob->blob = JSC::ArrayBuffer::create(blob.span()); }
+    void setLargeBlobWritten(bool written) { outputs.largeBlob->written = written; }
+    std::optional<WebCore::AuthenticationExtensionsClientOutputs> take() { return std::exchange(outputs, { }); }
+    WebCore::AuthenticationExtensionsClientOutputs outputs;
+};
+
+// The bytes of the large blob output's blob, or nullopt when it has none.
+inline std::optional<Vector<uint8_t>> largeBlobOutputBytes(const WebCore::AuthenticationExtensionsClientOutputs::LargeBlobOutputs& largeBlob)
+{
+    if (RefPtr blob = largeBlob.blob)
+        return blob->toVector();
+    return std::nullopt;
+}
+
+// ArrayBuffer::tryCreate of a span: Swift gets a Span overload only for a noescape std::span parameter, which
+// ArrayBuffer.h gives create() alone.
+inline ArrayBufferPtr tryCreateArrayBuffer([[clang::noescape]] std::span<const uint8_t> bytes) { return JSC::ArrayBuffer::tryCreate(bytes); }
+// CryptoKeyEC::exportSpki()'s value, which stops on an exception: Swift does not import ExceptionOr's returnValue(),
+// and imports releaseReturnValue() as unsafe.
+inline Vector<uint8_t> exportSpki(const WebCore::CryptoKeyEC& key) { return key.exportSpki().releaseReturnValue(); }
+
 inline String base64EncodeBytes(const Vector<uint8_t>& bytes) { return base64EncodeToString(bytes.span()); }
 inline String base64URLEncodeBytes(const Vector<uint8_t>& bytes) { return base64URLEncodeToString(bytes.span()); }
 

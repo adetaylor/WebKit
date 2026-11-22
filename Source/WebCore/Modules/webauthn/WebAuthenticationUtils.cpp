@@ -28,12 +28,8 @@
 
 #if ENABLE(WEB_AUTHN)
 
-#include "CBORReader.h"
-#include "CBORWriter.h"
-#include "FidoConstants.h"
 #include "WebAuthenticationConstants.h"
 #include <pal/crypto/CryptoDigest.h>
-#include <wtf/Borrow.h>
 #include <wtf/JSONValues.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/URL.h>
@@ -41,117 +37,6 @@
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
-
-Vector<uint8_t> produceRpIdHash(const String& rpId)
-{
-    auto crypto = PAL::Crypto::CryptoDigest::create(PAL::Crypto::CryptoDigest::Algorithm::SHA_256);
-    auto rpIdUTF8 = rpId.utf8();
-    crypto->addBytes(std::as_bytes(rpIdUTF8.span()));
-    return crypto->computeHash();
-}
-
-Vector<uint8_t> encodeES256PublicKeyAsCBOR(Vector<uint8_t>&& x, Vector<uint8_t>&& y)
-{
-    cbor::CBORValue::MapValue publicKeyMap;
-    publicKeyMap[cbor::CBORValue(COSE::kty)] = cbor::CBORValue(COSE::EC2);
-    publicKeyMap[cbor::CBORValue(COSE::alg)] = cbor::CBORValue(COSE::ES256);
-    publicKeyMap[cbor::CBORValue(COSE::crv)] = cbor::CBORValue(COSE::P_256);
-    publicKeyMap[cbor::CBORValue(COSE::x)] = cbor::CBORValue(WTF::move(x));
-    publicKeyMap[cbor::CBORValue(COSE::y)] = cbor::CBORValue(WTF::move(y));
-
-    auto cosePublicKey = cbor::CBORWriter::write(cbor::CBORValue(WTF::move(publicKeyMap)));
-    ASSERT(cosePublicKey);
-    return *cosePublicKey;
-}
-
-Vector<uint8_t> buildAttestedCredentialData(const Vector<uint8_t>& aaguid, const Vector<uint8_t>& credentialId, const Vector<uint8_t>& coseKey)
-{
-    Vector<uint8_t> attestedCredentialData(ReserveCapacityTag { }, aaguidLength + credentialIdLengthLength + credentialId.size() + coseKey.size());
-
-    // aaguid
-    ASSERT(aaguid.size() == aaguidLength);
-    attestedCredentialData.appendVector(aaguid);
-
-    // credentialIdLength
-    ASSERT(credentialId.size() <= std::numeric_limits<uint16_t>::max());
-    attestedCredentialData.append(credentialId.size() >> 8 & 0xff);
-    attestedCredentialData.append(credentialId.size() & 0xff);
-
-    // credentialId
-    attestedCredentialData.appendVector(credentialId);
-
-    // credentialPublicKey
-    attestedCredentialData.appendVector(coseKey);
-
-    return attestedCredentialData;
-}
-
-cbor::CBORValue::MapValue buildUserEntityMap(const Vector<uint8_t>& userId, const String& name, const String& displayName)
-{
-    cbor::CBORValue::MapValue userEntityMap;
-    userEntityMap[cbor::CBORValue(fido::kEntityIdMapKey)] = cbor::CBORValue(userId);
-    userEntityMap[cbor::CBORValue(fido::kEntityNameMapKey)] = cbor::CBORValue(name);
-    userEntityMap[cbor::CBORValue(fido::kDisplayNameMapKey)] = cbor::CBORValue(displayName);
-    return userEntityMap;
-}
-
-cbor::CBORValue::MapValue buildCredentialDescriptor(const Vector<uint8_t>& credentialId)
-{
-    cbor::CBORValue::MapValue credential;
-    credential[cbor::CBORValue("id")] = cbor::CBORValue(credentialId);
-    return credential;
-}
-
-Vector<uint8_t> buildAuthData(const String& rpId, const uint8_t flags, const uint32_t counter, const Vector<uint8_t>& optionalAttestedCredentialData)
-{
-    Vector<uint8_t> authData(ReserveCapacityTag { }, rpIdHashLength + flagsLength + signCounterLength + optionalAttestedCredentialData.size());
-
-    // RP ID hash
-    authData.appendVector(produceRpIdHash(rpId));
-
-    // FLAGS
-    authData.append(flags);
-
-    // COUNTER
-    authData.append(counter >> 24 & 0xff);
-    authData.append(counter >> 16 & 0xff);
-    authData.append(counter >> 8 & 0xff);
-    authData.append(counter & 0xff);
-
-    // ATTESTED CRED. DATA
-    authData.appendVector(optionalAttestedCredentialData);
-
-    return authData;
-}
-
-cbor::CBORValue::MapValue buildAttestationMap(Vector<uint8_t>&& authData, String&& format, cbor::CBORValue::MapValue&& statementMap, const AttestationConveyancePreference& attestation, ShouldZeroAAGUID shouldZero)
-{
-    cbor::CBORValue::MapValue attestationObjectMap;
-    // The following implements Step 20 with regard to AttestationConveyancePreference
-    // of https://www.w3.org/TR/webauthn/#createCredential as of 4 March 2019.
-    // None attestation is always returned if it is requested to keep consistency, and therefore skip the
-    // step to return self attestation.
-    if (attestation == AttestationConveyancePreference::None) {
-        const size_t aaguidOffset = rpIdHashLength + flagsLength + signCounterLength;
-        if (authData.size() >= aaguidOffset + aaguidLength && shouldZero == ShouldZeroAAGUID::Yes)
-            zeroSpan(borrow(authData)->mutableSpan().subspan(aaguidOffset, aaguidLength));
-        format = String::fromLatin1(noneAttestationValue);
-        statementMap.clear();
-    }
-    attestationObjectMap[cbor::CBORValue("authData")] = cbor::CBORValue(WTF::move(authData));
-    attestationObjectMap[cbor::CBORValue("fmt")] = cbor::CBORValue(WTF::move(format));
-    attestationObjectMap[cbor::CBORValue("attStmt")] = cbor::CBORValue(WTF::move(statementMap));
-    return attestationObjectMap;
-}
-
-Vector<uint8_t> buildAttestationObject(Vector<uint8_t>&& authData, String&& format, cbor::CBORValue::MapValue&& statementMap, const AttestationConveyancePreference& attestation, ShouldZeroAAGUID shouldZero)
-{
-    cbor::CBORValue::MapValue attestationObjectMap = buildAttestationMap(WTF::move(authData), WTF::move(format), WTF::move(statementMap), attestation, shouldZero);
-
-    auto attestationObject = cbor::CBORWriter::write(cbor::CBORValue(WTF::move(attestationObjectMap)));
-    ASSERT(attestationObject);
-    return *attestationObject;
-}
 
 Ref<ArrayBuffer> buildClientDataJson(ClientDataType type, const BufferSource& challenge, const SecurityOrigin& origin, WebAuthn::Scope scope, const String& topOrigin)
 {

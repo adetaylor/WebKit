@@ -32,6 +32,7 @@
 #import "Logging.h"
 #import "WKError.h"
 #import "WebAuthenticationPanelClient.h"
+#import "WebAuthenticationPanelCredentials.h"
 #import "_WKAuthenticationExtensionsClientInputs.h"
 #import "_WKAuthenticationExtensionsClientOutputsInternal.h"
 #import "_WKAuthenticatorAssertionResponseInternal.h"
@@ -49,8 +50,6 @@
 #import <WebCore/AuthenticatorResponseData.h>
 #import <WebCore/AuthenticatorSelectionCriteria.h>
 #import <WebCore/BufferSource.h>
-#import <WebCore/CBORReader.h>
-#import <WebCore/CBORWriter.h>
 #import <WebCore/CredentialRequestOptions.h>
 #import <WebCore/DeviceRequestConverter.h>
 #import <WebCore/FidoConstants.h>
@@ -72,40 +71,9 @@
 
 #import "AuthenticationServicesCoreSoftLink.h"
 
-#define kWKLocalAuthenticatorCredentialGroupKey @"_WKLocalAuthenticatorCredentialGroupKey"
-#define kWKLocalAuthenticatorCredentialSynchronizableKey @"_WKLocalAuthenticatorCredentialSynchronizableKey"
-
 #if ENABLE(WEB_AUTHN)
 
-static bool shouldUpdateQuery()
-{
-#if ENABLE(SYNCED_CREDENTIALS)
-    if (WebKit::getASCWebKitSPISupportClassSingleton())
-        return [WebKit::getASCWebKitSPISupportClassSingleton() shouldUseAlternateCredentialStore];
-#endif
-
-    return false;
-}
-
-static void updateQueryIfNecessary(NSMutableDictionary *dictionary)
-{
-    if (!shouldUpdateQuery())
-        return;
-
-    [dictionary setObject:@YES forKey:(__bridge id)kSecAttrSynchronizable];
-}
-
 #define kSecAttrSharingGroup @"ggrp"
-
-static inline void updateCredentialIfNecessary(NSMutableDictionary *credential, NSDictionary *attributes)
-{
-    if ([[attributes allKeys] containsObject:bridge_cast(kSecAttrSynchronizable)])
-        [credential setObject:attributes[bridge_cast(kSecAttrSynchronizable)] forKey:kWKLocalAuthenticatorCredentialSynchronizableKey];
-#if ENABLE(ONGOING_CREDENTIAL_SHARING_WEBKIT_SPI)
-    if ([[attributes allKeys] containsObject:kSecAttrSharingGroup])
-        [credential setObject:attributes[kSecAttrSharingGroup] forKey:kWKLocalAuthenticatorCredentialGroupKey];
-#endif // ENABLE(ONGOING_CREDENTIAL_SHARING_WEBKIT_SPI)
-}
 
 static inline void updateQueryForGroupIfNecessary(NSMutableDictionary *dictionary, NSString *group)
 {
@@ -283,90 +251,10 @@ NODELETE static fido::AuthenticatorSupportedOptions::UserVerificationAvailabilit
 }
 #endif // ENABLE(WEB_AUTHN)
 
-#if ENABLE(WEB_AUTHN)
-static RetainPtr<NSArray> getAllLocalAuthenticatorCredentialsImpl(NSString *accessGroup, NSString *byRpId, NSData *byCredentialId)
-{
-    BOOL useAlternateKeychainAttribute = WebKit::shouldUseAlternateKeychainAttribute();
-    auto query = adoptNS([[NSMutableDictionary alloc] init]);
-    [query setDictionary:@{
-        (__bridge id)kSecClass: bridge_id_cast(kSecClassKey),
-        (__bridge id)kSecAttrAccessGroup: accessGroup,
-        (__bridge id)kSecReturnAttributes: @YES,
-        (__bridge id)kSecMatchLimit: bridge_id_cast(kSecMatchLimitAll),
-        (__bridge id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-        (__bridge id)kSecUseDataProtectionKeychain: @YES
-    }];
-    if (byRpId)
-        [query setObject:byRpId forKey:bridge_cast(kSecAttrLabel)];
-    if (byCredentialId) {
-        CFStringRef credentialIdKey = useAlternateKeychainAttribute ? kSecAttrAlias : kSecAttrApplicationLabel;
-        [query setObject:byCredentialId forKey:bridge_cast(credentialIdKey)];
-    }
-
-    CFTypeRef attributesArrayRef = nullptr;
-    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query.get(), &attributesArrayRef);
-    if (byCredentialId && useAlternateKeychainAttribute && status == errSecItemNotFound) {
-        [query removeObjectForKey:bridge_cast(kSecAttrAlias)];
-        [query setObject:byCredentialId forKey:bridge_cast(kSecAttrApplicationLabel)];
-        status = SecItemCopyMatching((__bridge CFDictionaryRef)query.get(), &attributesArrayRef);
-    }
-
-    if (status && status != errSecItemNotFound)
-        return nullptr;
-
-    auto retainAttributesArray = adoptCF(attributesArrayRef);
-
-    auto result = adoptNS([[NSMutableArray alloc] init]);
-    for (NSDictionary *attributes in (NSArray *)attributesArrayRef) {
-        auto decodedResponse = cbor::CBORReader::read(makeVector(protect(dynamic_objc_cast<NSData>(attributes[bridge_id_cast(kSecAttrApplicationTag)]))));
-        if (!decodedResponse || !decodedResponse->isMap()) {
-            ASSERT_NOT_REACHED();
-            return nullptr;
-        }
-        auto& responseMap = decodedResponse->getMap();
-
-        auto it = responseMap.find(cbor::CBORValue(fido::kEntityNameMapKey));
-        if (it == responseMap.end() || !it->second.isString()) {
-            ASSERT_NOT_REACHED();
-            return nullptr;
-        }
-        auto& username = it->second.getString();
-
-        RetainPtr<id> credentialID = attributes[bridge_cast(kSecAttrAlias)];
-        if (!credentialID)
-            credentialID = attributes[bridge_cast(kSecAttrApplicationLabel)];
-        auto credential = adoptNS([[NSMutableDictionary alloc] initWithObjectsAndKeys:
-            username.createNSString().get(), _WKLocalAuthenticatorCredentialNameKey,
-            credentialID.get(), _WKLocalAuthenticatorCredentialIDKey,
-            retainPtr(attributes[bridge_cast(kSecAttrLabel)]).get(), _WKLocalAuthenticatorCredentialRelyingPartyIDKey,
-            retainPtr(attributes[bridge_cast(kSecAttrModificationDate)]).get(), _WKLocalAuthenticatorCredentialLastModificationDateKey,
-            retainPtr(attributes[bridge_cast(kSecAttrCreationDate)]).get(), _WKLocalAuthenticatorCredentialCreationDateKey,
-            nil
-        ]);
-        it = responseMap.find(cbor::CBORValue(fido::kEntityIdMapKey));
-        if (it != responseMap.end() && it->second.isByteString()) {
-            auto& userHandle = it->second.getByteString();
-            [credential setObject:toNSData(borrow(userHandle)->span()).get() forKey:_WKLocalAuthenticatorCredentialUserHandleKey];
-        } else
-            [credential setObject:[NSNull null] forKey:_WKLocalAuthenticatorCredentialUserHandleKey];
-
-        updateCredentialIfNecessary(credential.get(), attributes);
-
-        it = responseMap.find(cbor::CBORValue(fido::kDisplayNameMapKey));
-        if (it != responseMap.end() && it->second.isString())
-            [credential setObject:it->second.getString().createNSString().get() forKey:_WKLocalAuthenticatorCredentialDisplayNameKey];
-
-        [result addObject:credential.get()];
-    }
-
-    return result;
-}
-#endif
-
 + (NSArray<NSDictionary *> *)getAllLocalAuthenticatorCredentials
 {
 #if ENABLE(WEB_AUTHN)
-    return getAllLocalAuthenticatorCredentialsImpl(WebCore::LocalAuthenticatorAccessGroup, nil, nil).autorelease();
+    return [self localAuthenticatorCredentialsInAccessGroup:WebCore::LocalAuthenticatorAccessGroup relyingPartyID:nil credentialID:nil];
 #else
     return nullptr;
 #endif
@@ -375,7 +263,7 @@ static RetainPtr<NSArray> getAllLocalAuthenticatorCredentialsImpl(NSString *acce
 + (NSArray<NSDictionary *> *)getAllLocalAuthenticatorCredentialsWithAccessGroup:(NSString *)accessGroup
 {
 #if ENABLE(WEB_AUTHN)
-    return getAllLocalAuthenticatorCredentialsImpl(accessGroup, nil, nil).autorelease();
+    return [self localAuthenticatorCredentialsInAccessGroup:accessGroup relyingPartyID:nil credentialID:nil];
 #else
     return nullptr;
 #endif
@@ -384,7 +272,7 @@ static RetainPtr<NSArray> getAllLocalAuthenticatorCredentialsImpl(NSString *acce
 + (NSArray<NSDictionary *> *)getAllLocalAuthenticatorCredentialsWithRPID:(NSString *)rpID
 {
 #if ENABLE(WEB_AUTHN)
-    return getAllLocalAuthenticatorCredentialsImpl(WebCore::LocalAuthenticatorAccessGroup, rpID, nil).autorelease();
+    return [self localAuthenticatorCredentialsInAccessGroup:WebCore::LocalAuthenticatorAccessGroup relyingPartyID:rpID credentialID:nil];
 #else
     return nullptr;
 #endif
@@ -393,7 +281,7 @@ static RetainPtr<NSArray> getAllLocalAuthenticatorCredentialsImpl(NSString *acce
 + (NSArray<NSDictionary *> *)getAllLocalAuthenticatorCredentialsWithCredentialID:(NSData *)credentialID
 {
 #if ENABLE(WEB_AUTHN)
-    return getAllLocalAuthenticatorCredentialsImpl(WebCore::LocalAuthenticatorAccessGroup, nil, credentialID).autorelease();
+    return [self localAuthenticatorCredentialsInAccessGroup:WebCore::LocalAuthenticatorAccessGroup relyingPartyID:nil credentialID:credentialID];
 #else
     return nullptr;
 #endif
@@ -402,7 +290,7 @@ static RetainPtr<NSArray> getAllLocalAuthenticatorCredentialsImpl(NSString *acce
 + (NSArray<NSDictionary *> *)getAllLocalAuthenticatorCredentialsWithRPIDAndAccessGroup:(NSString *)accessGroup rpID:(NSString *)rpID
 {
 #if ENABLE(WEB_AUTHN)
-    return getAllLocalAuthenticatorCredentialsImpl(accessGroup, rpID, nil).autorelease();
+    return [self localAuthenticatorCredentialsInAccessGroup:accessGroup relyingPartyID:rpID credentialID:nil];
 #else
     return nullptr;
 #endif
@@ -411,7 +299,7 @@ static RetainPtr<NSArray> getAllLocalAuthenticatorCredentialsImpl(NSString *acce
 + (NSArray<NSDictionary *> *)getAllLocalAuthenticatorCredentialsWithCredentialIDAndAccessGroup:(NSString *)accessGroup credentialID:(NSData *)credentialID
 {
 #if ENABLE(WEB_AUTHN)
-    return getAllLocalAuthenticatorCredentialsImpl(accessGroup, nil, credentialID).autorelease();
+    return [self localAuthenticatorCredentialsInAccessGroup:accessGroup relyingPartyID:nil credentialID:credentialID];
 #else
     return nullptr;
 #endif
@@ -458,155 +346,16 @@ static RetainPtr<NSArray> getAllLocalAuthenticatorCredentialsImpl(NSString *acce
 + (void)setDisplayNameForLocalCredentialWithGroupAndID:(NSString *)group credential:(NSData *)credentialID displayName: (NSString *)displayName
 {
 #if ENABLE(WEB_AUTHN)
-    BOOL useAlternateKeychainAttribute = WebKit::shouldUseAlternateKeychainAttribute();
-    auto query = adoptNS([[NSMutableDictionary alloc] init]);
-    [query setDictionary:@{
-        (__bridge id)kSecClass: bridge_id_cast(kSecClassKey),
-        (__bridge id)kSecReturnAttributes: @YES,
-        (__bridge id)kSecReturnPersistentRef : bridge_id_cast(kCFBooleanTrue),
-        (__bridge id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-        (__bridge id)kSecUseDataProtectionKeychain: @YES
-    }];
-    updateQueryForGroupIfNecessary(query.get(), group);
-
-    CFStringRef credentialIdKey = useAlternateKeychainAttribute ? kSecAttrAlias : kSecAttrApplicationLabel;
-    [query setObject:credentialID forKey:(__bridge id)credentialIdKey];
-
-    CFTypeRef attributesArrayRef = nullptr;
-    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query.get(), &attributesArrayRef);
-    if (useAlternateKeychainAttribute && status == errSecItemNotFound) {
-        [query removeObjectForKey:bridge_cast(kSecAttrAlias)];
-        [query setObject:credentialID forKey:bridge_cast(kSecAttrApplicationLabel)];
-        status = SecItemCopyMatching((__bridge CFDictionaryRef)query.get(), &attributesArrayRef);
-    }
-
-    if (status && status != errSecItemNotFound) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
-
-    auto attributes = adoptNS((__bridge NSDictionary *)attributesArrayRef);
-    auto decodedResponse = cbor::CBORReader::read(makeVector(protect(dynamic_objc_cast<NSData>(attributes.get()[bridge_id_cast(kSecAttrApplicationTag)]))));
-    if (!decodedResponse || !decodedResponse->isMap()) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
-    auto& previousUserMap = decodedResponse->getMap();
-
-    bool nameSet = false;
-    cbor::CBORValue::MapValue updatedUserMap;
-    for (auto it = previousUserMap.begin(); it != previousUserMap.end(); ++it) {
-        if (it->first.isString() && it->first.getString() == fido::kDisplayNameMapKey) {
-            if (displayName)
-                updatedUserMap[it->first.clone()] = cbor::CBORValue(String(displayName));
-            nameSet = true;
-        } else
-            updatedUserMap[it->first.clone()] = it->second.clone();
-    }
-    if (!nameSet && displayName)
-        updatedUserMap[cbor::CBORValue(fido::kDisplayNameMapKey)] = cbor::CBORValue(String(displayName));
-    const auto updatedTag = cbor::CBORWriter::write(cbor::CBORValue(WTF::move(updatedUserMap)));
-
-    RetainPtr secAttrApplicationTag = toNSData(updatedTag->span());
-
-    NSDictionary *updateParams = @{
-        (__bridge id)kSecAttrApplicationTag: secAttrApplicationTag.get(),
-    };
-
-    [query setDictionary:@{
-        (__bridge id)kSecValuePersistentRef: [attributes objectForKey:bridge_id_cast(kSecValuePersistentRef)],
-        (__bridge id)kSecClass: bridge_id_cast(kSecClassKey),
-        (__bridge id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-    }];
-    updateQueryForGroupIfNecessary(query.get(), group);
-
-    status = SecItemUpdate((__bridge CFDictionaryRef)query.get(), (__bridge CFDictionaryRef)updateParams);
-    if (status && status != errSecItemNotFound) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
+    [self setLocalAuthenticatorCredentialDisplayName:displayName group:group credentialID:credentialID];
 #endif
 }
 
 + (void)setNameForLocalCredentialWithGroupAndID:(NSString *)group credential:(NSData *)credentialID name:(NSString *)name
 {
 #if ENABLE(WEB_AUTHN)
-    BOOL useAlternateKeychainAttribute = WebKit::shouldUseAlternateKeychainAttribute();
-    auto query = adoptNS([[NSMutableDictionary alloc] init]);
-    [query setDictionary:@{
-        (__bridge id)kSecClass: bridge_id_cast(kSecClassKey),
-        (__bridge id)kSecReturnAttributes: @YES,
-        (__bridge id)kSecReturnPersistentRef : bridge_id_cast(kCFBooleanTrue),
-        (__bridge id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-        (__bridge id)kSecUseDataProtectionKeychain: @YES
-    }];
-    updateQueryForGroupIfNecessary(query.get(), group);
-
-    CFStringRef credentialIdKey = useAlternateKeychainAttribute ? kSecAttrAlias : kSecAttrApplicationLabel;
-    [query setObject:credentialID forKey:(__bridge id)credentialIdKey];
-
-    CFTypeRef attributesArrayRef = nullptr;
-    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query.get(), &attributesArrayRef);
-    if (useAlternateKeychainAttribute && status == errSecItemNotFound) {
-        [query removeObjectForKey:(__bridge id)kSecAttrAlias];
-        [query setObject:credentialID forKey:(__bridge id)kSecAttrApplicationLabel];
-        status = SecItemCopyMatching((__bridge CFDictionaryRef)query.get(), &attributesArrayRef);
-    }
-
-    if (status && status != errSecItemNotFound) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
-    auto attributes = adoptNS((__bridge NSDictionary *)attributesArrayRef);
-    auto decodedResponse = cbor::CBORReader::read(makeVector(protect(dynamic_objc_cast<NSData>(attributes.get()[bridge_id_cast(kSecAttrApplicationTag)]))));
-    if (!decodedResponse || !decodedResponse->isMap()) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
-    auto& previousUserMap = decodedResponse->getMap();
-
-    bool nameSet = false;
-    cbor::CBORValue::MapValue updatedUserMap;
-    for (auto it = previousUserMap.begin(); it != previousUserMap.end(); ++it) {
-        if (it->first.isString() && it->first.getString() == fido::kEntityNameMapKey) {
-            if (name)
-                updatedUserMap[it->first.clone()] = cbor::CBORValue(String(name));
-            nameSet = true;
-        } else
-            updatedUserMap[it->first.clone()] = it->second.clone();
-    }
-    if (!nameSet && name)
-        updatedUserMap[cbor::CBORValue(fido::kEntityNameMapKey)] = cbor::CBORValue(String(name));
-    const auto updatedTag = cbor::CBORWriter::write(cbor::CBORValue(WTF::move(updatedUserMap)));
-
-    RetainPtr secAttrApplicationTag = toNSData(updatedTag->span());
-
-    NSDictionary *updateParams = @{
-        (__bridge id)kSecAttrApplicationTag: secAttrApplicationTag.get(),
-    };
-
-    [query setDictionary:@{
-        (__bridge id)kSecValuePersistentRef: [attributes objectForKey:bridge_id_cast(kSecValuePersistentRef)],
-        (__bridge id)kSecClass: bridge_id_cast(kSecClassKey),
-        (__bridge id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-    }];
-    updateQueryForGroupIfNecessary(query.get(), group);
-
-    status = SecItemUpdate((__bridge CFDictionaryRef)query.get(), (__bridge CFDictionaryRef)updateParams);
-    if (status && status != errSecItemNotFound) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
+    [self setLocalAuthenticatorCredentialName:name group:group credentialID:credentialID];
 #endif
 }
-
-#if ENABLE(WEB_AUTHN)
-static void createNSErrorFromWKErrorIfNecessary(NSError **error, WKErrorCode errorCode)
-{
-    if (error)
-        *error = [NSError errorWithDomain:WKErrorDomain code: errorCode userInfo:nil];
-}
-#endif // ENABLE(WEB_AUTHN)
 
 + (NSData *)importLocalAuthenticatorCredential:(NSData *)credentialBlob error:(NSError **)error
 {
@@ -616,130 +365,7 @@ static void createNSErrorFromWKErrorIfNecessary(NSError **error, WKErrorCode err
 + (NSData *)importLocalAuthenticatorWithAccessGroup:(NSString *)accessGroup credential:(NSData *)credentialBlob error:(NSError **)error
 {
 #if ENABLE(WEB_AUTHN)
-    auto credential = cbor::CBORReader::read(makeVector(credentialBlob));
-    if (!credential || !credential->isMap()) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-
-    auto& credentialMap = credential->getMap();
-    auto it = credentialMap.find(cbor::CBORValue(WebCore::privateKeyKey));
-    if (it == credentialMap.end() || !it->second.isByteString()) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-    RetainPtr privateKey = toNSData(borrow(it->second.getByteString())->span());
-
-    it = credentialMap.find(cbor::CBORValue(WebCore::keyTypeKey));
-    if (it == credentialMap.end() || !it->second.isInteger()) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-    auto keyType = it->second.getInteger();
-
-    it = credentialMap.find(cbor::CBORValue(WebCore::keySizeKey));
-    if (it == credentialMap.end() || !it->second.isInteger()) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-    auto keySize = it->second.getInteger();
-
-    it = credentialMap.find(cbor::CBORValue(WebCore::relyingPartyKey));
-    if (it == credentialMap.end() || !it->second.isString()) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-    auto rp = it->second.getString();
-
-    it = credentialMap.find(cbor::CBORValue(WebCore::applicationTagKey));
-    if (it == credentialMap.end() || !it->second.isMap()) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-    const auto keyTag = cbor::CBORWriter::write(cbor::CBORValue(it->second.getMap()));
-
-    RetainPtr options = @{
-        // Key type values are string values of numbers, stored as kCFNumberSInt64Type in attributes, but must be passed as string here
-        (id)kSecAttrKeyType: (id)adoptNS([[NSString alloc] initWithFormat:@"%i", (int)keyType]).get(),
-        (id)kSecAttrKeyClass: (id)kSecAttrKeyClassPrivate,
-        (id)kSecAttrKeySizeInBits: @(keySize),
-    };
-    CFErrorRef errorRef = nullptr;
-    auto key = adoptCF(SecKeyCreateWithData(
-        bridge_cast(privateKey.get()),
-        bridge_cast(options.get()),
-        &errorRef
-    ));
-    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
-    SUPPRESS_RETAINPTR_CTOR_ADOPT if (RetainPtr adoptedErrorRef = adoptCF(errorRef)) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-
-    auto publicKey = adoptCF(SecKeyCopyPublicKey(key.get()));
-    RetainPtr nsPublicKeyData = bridge_cast(adoptCF(SecKeyCopyExternalRepresentation(publicKey.get(), &errorRef)));
-    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
-    SUPPRESS_RETAINPTR_CTOR_ADOPT if (RetainPtr adoptedErrorRef = adoptCF(errorRef)) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-
-    auto digest = PAL::Crypto::CryptoDigest::create(PAL::Crypto::CryptoDigest::Algorithm::SHA_1);
-    digest->addBytes(span(nsPublicKeyData.get()));
-    const Vector credentialId = digest->computeHash();
-    RetainPtr nsCredentialId = toNSData(credentialId.span());
-
-    BOOL useAlternateKeychainAttribute = WebKit::shouldUseAlternateKeychainAttribute();
-    auto query = adoptNS([[NSMutableDictionary alloc] initWithObjectsAndKeys:
-        (id)kSecClassKey, (id)kSecClass,
-        (id)rp.createNSString().get(), (id)kSecAttrLabel,
-        @YES, (id)kSecUseDataProtectionKeychain,
-        nil
-    ]);
-    updateQueryIfNecessary(query.get());
-
-    CFStringRef credentialIdKey = useAlternateKeychainAttribute ? kSecAttrAlias : kSecAttrApplicationLabel;
-    [query setObject:nsCredentialId.get() forKey:(id)credentialIdKey];
-
-    if (accessGroup != nil)
-        [query setObject:accessGroup forKey:(__bridge id)kSecAttrAccessGroup];
-
-    OSStatus status = SecItemCopyMatching(bridge_cast(query.get()), nullptr);
-    if (useAlternateKeychainAttribute && status == errSecItemNotFound) {
-        [query removeObjectForKey:(id)kSecAttrAlias];
-        [query setObject:nsCredentialId.get() forKey:(id)kSecAttrApplicationLabel];
-        status = SecItemCopyMatching(bridge_cast(query.get()), nullptr);
-    }
-
-    if (!status) {
-        // Credential with same id already exists, duplicate key.
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorDuplicateCredential);
-        return nullptr;
-    }
-
-    RetainPtr secAttrApplicationTag = toNSData(keyTag->span());
-
-    auto addQuery = adoptNS([[NSMutableDictionary alloc] initWithObjectsAndKeys:
-        (id)key.get(), (id)kSecValueRef,
-        (id)kSecAttrKeyClassPrivate, (id)kSecAttrKeyClass,
-        (id)rp.createNSString().get(), (id)kSecAttrLabel,
-        secAttrApplicationTag.get(), (id)kSecAttrApplicationTag,
-        @YES, (id)kSecUseDataProtectionKeychain,
-        (id)kSecAttrAccessibleAfterFirstUnlock, (id)kSecAttrAccessible,
-        nil
-    ]);
-    updateQueryIfNecessary(addQuery.get());
-
-    if (accessGroup != nil)
-        [addQuery setObject:accessGroup forKey:(__bridge id)kSecAttrAccessGroup];
-
-    status = SecItemAdd(bridge_cast(addQuery.get()), NULL);
-    if (status) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorUnknown);
-        return nullptr;
-    }
-
-    return nsCredentialId.autorelease();
+    return [self importLocalAuthenticatorCredential:credentialBlob accessGroup:accessGroup error:error];
 #else
     return nullptr;
 #endif // ENABLE(WEB_AUTHN)
@@ -753,74 +379,7 @@ static void createNSErrorFromWKErrorIfNecessary(NSError **error, WKErrorCode err
 + (NSData *)exportLocalAuthenticatorCredentialWithGroupAndID:(NSString *)group credential:(NSData *)credentialID error:(NSError **)error
 {
 #if ENABLE(WEB_AUTHN)
-    BOOL useAlternateKeychainAttribute = WebKit::shouldUseAlternateKeychainAttribute();
-    auto query = adoptNS([[NSMutableDictionary alloc] initWithObjectsAndKeys:
-        (id)kSecClassKey, (id)kSecClass,
-        @YES, (id)kSecReturnRef,
-        @YES, (id)kSecUseDataProtectionKeychain,
-        (id)kSecAttrSynchronizableAny, (id)kSecAttrSynchronizable,
-        nil
-    ]);
-    updateQueryForGroupIfNecessary(query.get(), group);
-
-    CFStringRef credentialIdKey = useAlternateKeychainAttribute ? kSecAttrAlias : kSecAttrApplicationLabel;
-    [query setObject:credentialID forKey:(id)credentialIdKey];
-
-    CFTypeRef privateKeyRef = nullptr;
-    OSStatus status = SecItemCopyMatching(bridge_cast(query.get()), &privateKeyRef);
-    if (useAlternateKeychainAttribute && status == errSecItemNotFound) {
-        [query removeObjectForKey:bridge_cast(kSecAttrAlias)];
-        [query setObject:credentialID forKey:bridge_cast(kSecAttrApplicationLabel)];
-        status = SecItemCopyMatching(bridge_cast(query.get()), &privateKeyRef);
-    }
-
-    if (status && status != errSecItemNotFound) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorCredentialNotFound);
-        return nullptr;
-    }
-
-    auto privateKey = adoptCF(privateKeyRef);
-    CFErrorRef errorRef = nullptr;
-    auto privateKeyRep = adoptCF(SecKeyCopyExternalRepresentation((__bridge SecKeyRef)((id)privateKeyRef), &errorRef));
-    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
-    SUPPRESS_RETAINPTR_CTOR_ADOPT if (RetainPtr adoptedErrorRef = adoptCF(errorRef)) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorCredentialNotFound);
-        return nullptr;
-    }
-
-    [query removeObjectForKey:(id)kSecReturnRef];
-    [query setObject: @YES forKey:(id)kSecReturnAttributes];
-    CFTypeRef attributesArrayRef = nullptr;
-    status = SecItemCopyMatching(bridge_cast(query.get()), &attributesArrayRef);
-    if (status && status != errSecItemNotFound) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorCredentialNotFound);
-        return nullptr;
-    }
-    auto attributes = adoptNS((__bridge NSDictionary *)attributesArrayRef);
-
-    int64_t keyType, keySize;
-    if (!CFNumberGetValue((__bridge CFNumberRef)retainPtr(attributes.get()[bridge_id_cast(kSecAttrKeyType)]).get(), kCFNumberSInt64Type, &keyType)) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-    if (!CFNumberGetValue((__bridge CFNumberRef)retainPtr(attributes.get()[bridge_id_cast(kSecAttrKeySizeInBits)]).get(), kCFNumberSInt64Type, &keySize)) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-    
-    cbor::CBORValue::MapValue credentialMap;
-    credentialMap[cbor::CBORValue(WebCore::privateKeyKey)] = cbor::CBORValue(WebCore::toBufferSource(bridge_cast(privateKeyRep.get())));
-    credentialMap[cbor::CBORValue(WebCore::keyTypeKey)] = cbor::CBORValue(keyType);
-    credentialMap[cbor::CBORValue(WebCore::keySizeKey)] = cbor::CBORValue(keySize);
-    credentialMap[cbor::CBORValue(WebCore::relyingPartyKey)] = cbor::CBORValue(String(dynamic_objc_cast<NSString>(attributes.get()[bridge_id_cast(kSecAttrLabel)])));
-    auto decodedResponse = cbor::CBORReader::read(makeVector(protect(dynamic_objc_cast<NSData>(attributes.get()[bridge_id_cast(kSecAttrApplicationTag)]))));
-    if (!decodedResponse || !decodedResponse->isMap()) {
-        createNSErrorFromWKErrorIfNecessary(error, WKErrorMalformedCredential);
-        return nullptr;
-    }
-    credentialMap[cbor::CBORValue(WebCore::applicationTagKey)] = cbor::CBORValue(WTF::move(*decodedResponse));
-    const auto serializedCredential = cbor::CBORWriter::write(cbor::CBORValue(WTF::move(credentialMap)));
-    return toNSData(serializedCredential->span()).autorelease();
+    return [self exportLocalAuthenticatorCredential:credentialID group:group error:error];
 #else
     return nullptr;
 #endif // ENABLE(WEB_AUTHN)

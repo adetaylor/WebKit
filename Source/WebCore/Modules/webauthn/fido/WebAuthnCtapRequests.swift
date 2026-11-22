@@ -22,7 +22,7 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 // ENABLE(WEB_AUTHN) (PlatformEnableCocoa.h): every Cocoa platform but watchOS and Mac Catalyst.
-#if !os(watchOS) && !targetEnvironment(macCatalyst)
+#if !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST
 
 // Without these, no operator in this file type-checks: WebCore's C++ operators name types these modules define.
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -39,36 +39,8 @@ internal import WebCore_Private.Core.WebAuthnSwiftTypes
 
 // CTAP2 request encoding (authenticatorMakeCredential, authenticatorGetAssertion, authenticatorGetInfo).
 
-// FidoConstants.h's string constants (ASCIILiteral, which does not import). Each literal is pinned by a static_assert in
-// AuthenticatorGetInfoResponse.cpp.
-enum FidoName {
-    static let residentKey = "rk" // kResidentKeyMapKey
-    static let userVerification = "uv" // kUserVerificationMapKey
-    static let userPresence = "up" // kUserPresenceMapKey
-    static let clientPin = "clientPin" // kClientPinMapKey
-    static let platformDevice = "plat" // kPlatformDeviceMapKey
-    static let entityId = "id" // kEntityIdMapKey
-    static let entityName = "name" // kEntityNameMapKey
-    static let displayName = "displayName" // kDisplayNameMapKey
-    static let iconUrl = "icon" // kIconUrlMapKey
-    static let credentialTypeMap = "type" // kCredentialTypeMapKey
-    static let credentialAlgorithm = "alg" // kCredentialAlgorithmMapKey
-    static let credentialId = "id" // kCredentialIdKey
-    static let credentialType = "type" // kCredentialTypeKey
-    static let publicKey = "public-key" // kPublicKey
-    static let ctap2Version = "FIDO_2_0" // kCtap2Version
-    static let ctap21Version = "FIDO_2_1" // kCtap21Version
-    static let ctap21PreVersion = "FIDO_2_1_PRE" // kCtap21PreVersion
-    static let u2fVersion = "U2F_V2" // kU2fVersion
-    static let format = "fmt" // kFormatKey
-    static let attestationStatement = "attStmt" // kAttestationStatementKey
-    static let authData = "authData" // kAuthDataKey
-    static let extensionHmacSecret = "hmac-secret" // kExtensionHmacSecret
-    static let extensionHmacSecretMc = "hmac-secret-mc" // kExtensionHmacSecretMc
-}
-
 /// Whether `a` and `b` have the same code units (WTF `String` equality; Swift's `==` compares canonical equivalence).
-func sameCodeUnits(_ a: Swift.String, _ b: Swift.String) -> Bool {
+public func sameCodeUnits(_ a: Swift.String, _ b: Swift.String) -> Bool {
     let aUTF8 = a.utf8
     let bUTF8 = b.utf8
     let aBytes: Span<UInt8> = aUTF8.span
@@ -82,19 +54,19 @@ func sameCodeUnits(_ a: Swift.String, _ b: Swift.String) -> Bool {
     return true
 }
 
-/// `Vector<String>::contains`.
-func containsString(_ strings: [Swift.String], _ string: Swift.String) -> Bool {
+/// Whether `strings` has a string with the code units of `string`.
+private func containsString(_ strings: [Swift.String], _ string: Swift.String) -> Bool {
     strings.contains { sameCodeUnits($0, string) }
 }
 
-/// The bytes of a `BufferSource` (`CBORValue(const BufferSource&)`).
-func bufferSourceBytes(_ source: borrowing WebCore.BufferSource) -> [UInt8] {
+/// A byte string of the bytes of `source`.
+private func writeByteString(_ writer: inout CBORWriter, _ source: borrowing WebCore.BufferSource) {
     let bytes: Span<UInt8> = source.span()
-    return makeByteArray(bytes)
+    writer.writeByteString(bytes)
 }
 
 /// The Swift strings of a `Vector<String>`.
-func makeSwiftStrings(_ strings: borrowing fido.StringVector) -> [Swift.String] {
+private func makeSwiftStrings(_ strings: borrowing fido.StringVector) -> [Swift.String] {
     var result: [Swift.String] = []
     let count = strings.size()
     result.reserveCapacity(count)
@@ -109,27 +81,37 @@ private func publicKeyCredentialTypeName(_ type: WebCore.PublicKeyCredentialType
     FidoName.publicKey
 }
 
-private func convertRpEntityToCBOR(_ rpEntity: borrowing WebCore.PublicKeyCredentialRpEntity) -> CBOR {
-    var rpMap = CBOR.Map(minimumCapacity: 3)
-    rpMap.insert(.string(FidoName.entityName), .string(makeSwiftString(rpEntity.name)))
-    if !rpEntity.icon.isEmpty() {
-        rpMap.insert(.string(FidoName.iconUrl), .string(makeSwiftString(rpEntity.icon)))
+// The maps below write their keys in `ctapLess` order: integers ascending, then text by length, then by character.
+
+private func writeRpEntity(_ writer: inout CBORWriter, _ rpEntity: borrowing WebCore.PublicKeyCredentialRpEntity) {
+    let hasID = !rpEntity.id.isEmpty()
+    let hasIcon = !rpEntity.icon.isEmpty()
+    writer.beginMap(count: 1 + (hasID ? 1 : 0) + (hasIcon ? 1 : 0))
+    if hasID {
+        writer.writeTextString(FidoName.entityID)
+        writer.writeTextString(rpEntity.id)
     }
-    if !rpEntity.id.isEmpty() {
-        rpMap.insert(.string(FidoName.entityId), .string(makeSwiftString(rpEntity.id)))
+    if hasIcon {
+        writer.writeTextString(FidoName.iconURL)
+        writer.writeTextString(rpEntity.icon)
     }
-    return .map(rpMap)
+    writer.writeTextString(FidoName.entityName)
+    writer.writeTextString(rpEntity.name)
 }
 
-private func convertUserEntityToCBOR(_ userEntity: borrowing WebCore.PublicKeyCredentialUserEntity) -> CBOR {
-    var userMap = CBOR.Map(minimumCapacity: 4)
-    userMap.insert(.string(FidoName.entityName), .string(makeSwiftString(userEntity.name)))
-    if !userEntity.icon.isEmpty() {
-        userMap.insert(.string(FidoName.iconUrl), .string(makeSwiftString(userEntity.icon)))
+private func writeUserEntity(_ writer: inout CBORWriter, _ userEntity: borrowing WebCore.PublicKeyCredentialUserEntity) {
+    let hasIcon = !userEntity.icon.isEmpty()
+    writer.beginMap(count: hasIcon ? 4 : 3)
+    writer.writeTextString(FidoName.entityID)
+    writeByteString(&writer, userEntity.id)
+    if hasIcon {
+        writer.writeTextString(FidoName.iconURL)
+        writer.writeTextString(userEntity.icon)
     }
-    userMap.insert(.string(FidoName.entityId), .byteString(bufferSourceBytes(userEntity.id)))
-    userMap.insert(.string(FidoName.displayName), .string(makeSwiftString(userEntity.displayName)))
-    return .map(userMap)
+    writer.writeTextString(FidoName.entityName)
+    writer.writeTextString(userEntity.name)
+    writer.writeTextString(FidoName.displayName)
+    writer.writeTextString(userEntity.displayName)
 }
 
 /// A credential parameter as plain values.
@@ -148,36 +130,37 @@ private func credentialParameters(_ parameters: borrowing fido.CredentialParamet
     return result
 }
 
-private func convertParametersToCBOR(_ parameters: [CredentialParameter]) -> CBOR {
-    var array: [CBOR] = []
-    array.reserveCapacity(parameters.count)
+private func writeParameters(_ writer: inout CBORWriter, _ parameters: [CredentialParameter]) {
+    writer.beginArray(count: parameters.count)
     for credential in parameters {
-        var credentialMap = CBOR.Map(minimumCapacity: 2)
-        credentialMap.insert(.string(FidoName.credentialTypeMap), .string(publicKeyCredentialTypeName(credential.type)))
-        credentialMap.insert(.string(FidoName.credentialAlgorithm), .integer(credential.alg))
-        array.append(.map(credentialMap))
+        writer.beginMap(count: 2)
+        writer.writeTextString(FidoName.credentialAlgorithm)
+        writer.writeInteger(credential.alg)
+        writer.writeTextString(FidoName.credentialTypeMap)
+        writer.writeTextString(publicKeyCredentialTypeName(credential.type))
     }
-    return .array(array)
 }
 
-private func convertDescriptorToCBOR(_ descriptor: borrowing WebCore.PublicKeyCredentialDescriptor) -> CBOR {
-    var descriptorMap = CBOR.Map(minimumCapacity: 2)
-    descriptorMap.set(.string(FidoName.credentialType), .string(publicKeyCredentialTypeName(descriptor.type)))
-    descriptorMap.set(.string(FidoName.credentialId), .byteString(bufferSourceBytes(descriptor.id)))
-    return .map(descriptorMap)
+private func writeDescriptor(_ writer: inout CBORWriter, _ descriptor: borrowing WebCore.PublicKeyCredentialDescriptor) {
+    writer.beginMap(count: 2)
+    writer.writeTextString(FidoName.credentialID)
+    writeByteString(&writer, descriptor.id)
+    writer.writeTextString(FidoName.credentialType)
+    writer.writeTextString(publicKeyCredentialTypeName(descriptor.type))
 }
 
-private func convertDescriptorsToCBOR(_ descriptors: borrowing fido.CredentialDescriptorVector) -> CBOR {
-    var array: [CBOR] = []
+private func writeDescriptors(_ writer: inout CBORWriter, _ descriptors: borrowing fido.CredentialDescriptorVector) {
     let count = descriptors.size()
-    array.reserveCapacity(count)
+    writer.beginArray(count: count)
     for index in 0..<count {
-        array.append(convertDescriptorToCBOR(descriptors[index]))
+        writeDescriptor(&writer, descriptors[index])
     }
-    return .array(array)
 }
 
-private func trimmedParameters(_ parameters: [CredentialParameter], _ authenticatorSupportedParameters: fido.OptionalCredentialParametersVector) -> [CredentialParameter] {
+private func trimmedParameters(
+    _ parameters: [CredentialParameter],
+    _ authenticatorSupportedParameters: fido.OptionalCredentialParametersVector
+) -> [CredentialParameter] {
     // HashSet<int64_t> (its hash table marks empty and deleted slots apart from the keys, so every value is a key).
     var authenticatorSupportedAlgorithms = Set<Int64>()
     if let supported = Optional(fromCxx: authenticatorSupportedParameters) {
@@ -207,21 +190,28 @@ private func trimmedParameters(_ parameters: [CredentialParameter], _ authentica
 }
 
 /// The hmac-secret / hmac-secret-mc extension input map.
-private func hmacSecretMap(_ parameters: borrowing fido.HmacSecretParameters) -> CBOR {
+private func writeHmacSecret(_ writer: inout CBORWriter, _ parameters: borrowing fido.HmacSecretParameters) {
     // keyAgreement is the platform COSE key map that CBORWriter encoded; embed the map itself.
-    guard let keyAgreement = CBOR.read(makeByteArray(parameters.keyAgreement)) else {
+    let keyAgreementBytes: Span<UInt8> = parameters.keyAgreement.span()
+    guard let keyAgreement = CBORView(keyAgreementBytes) else {
         preconditionFailure("HmacSecretParameters.keyAgreement is CBORWriter output")
     }
-    var map = CBOR.Map(minimumCapacity: 4)
-    map.set(.integer(fido.kHmacSecretKeyAgreementKey), keyAgreement)
-    map.set(.integer(fido.kHmacSecretSaltEncKey), .byteString(makeByteArray(parameters.saltEnc)))
-    map.set(.integer(fido.kHmacSecretSaltAuthKey), .byteString(makeByteArray(parameters.saltAuth)))
-    map.set(.integer(fido.kHmacSecretPinUvAuthProtocolKey), .integer(Int64(parameters.protocol)))
-    return .map(map)
+    writer.beginMap(count: 4)
+    writer.writeInteger(fido.kHmacSecretKeyAgreementKey)
+    writer.append(encodedItem: keyAgreement.encoded)
+    writer.writeInteger(fido.kHmacSecretSaltEncKey)
+    writer.writeByteString(parameters.saltEnc.span())
+    writer.writeInteger(fido.kHmacSecretSaltAuthKey)
+    writer.writeByteString(parameters.saltAuth.span())
+    writer.writeInteger(fido.kHmacSecretPinUvAuthProtocolKey)
+    writer.writeInteger(Int64(parameters.protocol))
 }
 
 /// Whether user verification is requested, from the effective requirement and the authenticator's capability.
-private func requiresUserVerification(_ effectiveUVRequirement: WebCore.UserVerificationRequirement, _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability) -> Bool {
+private func requiresUserVerification(
+    _ effectiveUVRequirement: WebCore.UserVerificationRequirement,
+    _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability
+) -> Bool {
     switch effectiveUVRequirement {
     case .Required, .Preferred:
         return uvCapability == .supportedAndConfigured
@@ -230,277 +220,518 @@ private func requiresUserVerification(_ effectiveUVRequirement: WebCore.UserVeri
     }
 }
 
-/// The command byte, then the CBOR of `map` (`CBORWriter::write`, which cannot fail at this depth).
-private func encodeRequest(_ command: fido.CtapRequestCommand, _ map: CBOR.Map) -> cbor.CBORValue.BinaryValue {
-    guard let request = CBOR.write(.map(map), prefix: command.rawValue, reservingCapacity: 256) else {
-        preconditionFailure("CTAP request maps nest less than the writer's limit")
+/// The command byte, which the map of the request's parameters follows.
+private func beginRequest(_ command: fido.CtapRequestCommand) -> CBORWriter {
+    var writer = CBORWriter(reservingCapacity: 256)
+    writer.append(byte: command.rawValue)
+    return writer
+}
+
+/// The pinUvAuthParam and pinUvAuthProtocol entries, at `authKey` and the key after it.
+private func writePinParameters(_ writer: inout CBORWriter, _ pin: borrowing fido.PinParameters, authKey: Int64, protocolKey: Int64) {
+    writer.writeInteger(authKey)
+    writer.writeByteString(pin.auth.span())
+    writer.writeInteger(protocolKey)
+    writer.writeInteger(Int64(pin.protocol))
+}
+
+private func makeCredentialRequest(
+    hash: borrowing cbor.Bytes,
+    options: WebCore.PublicKeyCredentialCreationOptions,
+    uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability,
+    effectiveUVRequirement: WebCore.UserVerificationRequirement,
+    residentKeyAvailability: fido.AuthenticatorSupportedOptions.ResidentKeyAvailability,
+    authenticatorSupportedExtensions: fido.StringVector,
+    pin: fido.OptionalPinParameters,
+    overrideParameters: fido.OptionalCredentialParametersVector,
+    overrideExcludeCredentials: fido.OptionalCredentialDescriptorVector,
+    hmacSecret: fido.OptionalHmacSecretParameters
+) -> cbor.Bytes {
+    let supportedExtensions = makeSwiftStrings(authenticatorSupportedExtensions)
+    let pinParameters = Optional(fromCxx: pin)
+
+    let excludeCredentials = Optional(fromCxx: overrideExcludeCredentials)
+    let writesExcludeList = excludeCredentials.map { !$0.isEmpty() } ?? !options.excludeCredentials.isEmpty()
+
+    let extensions = Optional(fromCxx: options.extensions)
+    let hmacSecretParameters = Optional(fromCxx: hmacSecret)
+    var largeBlobInputs: WebCore.AuthenticationExtensionsClientInputs.LargeBlobInputs?
+    var writesPrf = false
+    if let extensions {
+        if containsString(supportedExtensions, "largeBlob") {
+            largeBlobInputs = Optional(fromCxx: extensions.largeBlob)
+        }
+        // Convert prf extension to hmac-secret: true for makeCredential
+        writesPrf = extensions.prf.hasValue && containsString(supportedExtensions, FidoName.extensionHmacSecret)
     }
-    return makeByteVector(request)
+    // Add hmac-secret-mc extension with encrypted parameters
+    let writesHmacSecretMc = hmacSecretParameters != nil && containsString(supportedExtensions, FidoName.extensionHmacSecretMc)
+    let extensionCount = (largeBlobInputs != nil ? 1 : 0) + (writesPrf ? 1 : 0) + (writesHmacSecretMc ? 1 : 0)
+
+    var writesResidentKey = false
+    var writesUserVerification = false
+    if let authenticatorSelection = Optional(fromCxx: options.authenticatorSelection) {
+        // Resident keys are not supported by default.
+        if let residentKey = Optional(fromCxx: authenticatorSelection.residentKey) {
+            writesResidentKey = residentKey == .Required || (residentKey == .Preferred && residentKeyAvailability == .supported)
+        } else {
+            writesResidentKey = authenticatorSelection.requireResidentKey
+        }
+        // User verification is not required by default.
+        writesUserVerification = requiresUserVerification(effectiveUVRequirement, uvCapability)
+    }
+    let optionCount = (writesResidentKey ? 1 : 0) + (writesUserVerification ? 1 : 0)
+
+    var writer = beginRequest(.authenticatorMakeCredential)
+    writer.beginMap(
+        count: 4 + (writesExcludeList ? 1 : 0) + (extensionCount > 0 ? 1 : 0) + (optionCount > 0 ? 1 : 0) + (pinParameters != nil ? 2 : 0)
+    )
+    writer.writeInteger(fido.kCtapMakeCredentialClientDataHashKey)
+    writer.writeByteString(hash.span())
+    writer.writeInteger(fido.kCtapMakeCredentialRpKey)
+    writeRpEntity(&writer, options.rp)
+    writer.writeInteger(fido.kCtapMakeCredentialUserKey)
+    writeUserEntity(&writer, options.user)
+    writer.writeInteger(fido.kCtapMakeCredentialPubKeyCredParamsKey)
+    writeParameters(&writer, trimmedParameters(credentialParameters(options.pubKeyCredParams), overrideParameters))
+    if writesExcludeList {
+        writer.writeInteger(fido.kCtapMakeCredentialExcludeListKey)
+        if let excludeCredentials {
+            writeDescriptors(&writer, excludeCredentials)
+        } else {
+            writeDescriptors(&writer, options.excludeCredentials)
+        }
+    }
+    if extensionCount > 0 {
+        writer.writeInteger(fido.kCtapMakeCredentialExtensionsKey)
+        writer.beginMap(count: extensionCount)
+        if let largeBlobInputs {
+            let writesSupport = !largeBlobInputs.support.isNull()
+            writer.writeTextString("largeBlob")
+            writer.beginMap(count: writesSupport ? 1 : 0)
+            if writesSupport {
+                writer.writeTextString("support")
+                writer.writeTextString(largeBlobInputs.support)
+            }
+        }
+        if writesPrf {
+            writer.writeTextString(FidoName.extensionHmacSecret)
+            writer.writeBool(true)
+        }
+        if writesHmacSecretMc, let hmacSecretParameters {
+            writer.writeTextString(FidoName.extensionHmacSecretMc)
+            writeHmacSecret(&writer, hmacSecretParameters)
+        }
+    }
+    if optionCount > 0 {
+        writer.writeInteger(fido.kCtapMakeCredentialRequestOptionsKey)
+        writer.beginMap(count: optionCount)
+        if writesResidentKey {
+            writer.writeTextString(FidoName.residentKey)
+            writer.writeBool(true)
+        }
+        if writesUserVerification {
+            writer.writeTextString(FidoName.userVerification)
+            writer.writeBool(true)
+        }
+    }
+    if let pinParameters {
+        writePinParameters(
+            &writer,
+            pinParameters,
+            authKey: fido.kCtapMakeCredentialPinUvAuthParamKey,
+            protocolKey: fido.kCtapMakeCredentialPinUvAuthProtocolKey
+        )
+    }
+    return writer.takeVector()
+}
+
+private func getAssertionRequest(
+    hash: borrowing cbor.Bytes,
+    options: WebCore.PublicKeyCredentialRequestOptions,
+    uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability,
+    effectiveUVRequirement: WebCore.UserVerificationRequirement,
+    authenticatorSupportedExtensions: fido.StringVector,
+    pin: fido.OptionalPinParameters,
+    overrideAllowCredentials: fido.OptionalCredentialDescriptorVector,
+    hmacSecret: fido.OptionalHmacSecretParameters
+) -> cbor.Bytes {
+    let supportedExtensions = makeSwiftStrings(authenticatorSupportedExtensions)
+    let pinParameters = Optional(fromCxx: pin)
+
+    let allowCredentials = Optional(fromCxx: overrideAllowCredentials)
+    let writesAllowList = allowCredentials != nil || !options.allowCredentials.isEmpty()
+
+    let extensions = Optional(fromCxx: options.extensions)
+    let hmacSecretParameters = Optional(fromCxx: hmacSecret)
+    var largeBlobInputs: WebCore.AuthenticationExtensionsClientInputs.LargeBlobInputs?
+    if let extensions, containsString(supportedExtensions, "largeBlob") {
+        largeBlobInputs = Optional(fromCxx: extensions.largeBlob)
+    }
+    // Add hmac-secret extension with encrypted salt parameters
+    let writesHmacSecret = hmacSecretParameters != nil && containsString(supportedExtensions, FidoName.extensionHmacSecret)
+    let extensionCount = (largeBlobInputs != nil ? 1 : 0) + (writesHmacSecret ? 1 : 0)
+
+    // User verification is not required by default.
+    let writesUserVerification = requiresUserVerification(effectiveUVRequirement, uvCapability)
+
+    var writer = beginRequest(.authenticatorGetAssertion)
+    writer.beginMap(count: 3 + (writesAllowList ? 1 : 0) + (extensionCount > 0 ? 1 : 0) + (pinParameters != nil ? 2 : 0))
+    writer.writeInteger(fido.kCtapGetAssertionRpIdKey)
+    writer.writeTextString(options.rpId)
+    writer.writeInteger(fido.kCtapGetAssertionClientDataHashKey)
+    writer.writeByteString(hash.span())
+    if writesAllowList {
+        writer.writeInteger(fido.kCtapGetAssertionAllowListKey)
+        if let allowCredentials {
+            writeDescriptors(&writer, allowCredentials)
+        } else {
+            writeDescriptors(&writer, options.allowCredentials)
+        }
+    }
+    if extensionCount > 0 {
+        writer.writeInteger(fido.kCtapGetAssertionExtensionsKey)
+        writer.beginMap(count: extensionCount)
+        if let largeBlobInputs {
+            let read = Optional(fromCxx: largeBlobInputs.read)
+            let write = Optional(fromCxx: largeBlobInputs.write)
+            writer.writeTextString("largeBlob")
+            writer.beginMap(count: (read != nil ? 1 : 0) + (write != nil ? 1 : 0))
+            if let read {
+                writer.writeTextString("read")
+                writer.writeBool(read)
+            }
+            if let write {
+                writer.writeTextString("write")
+                writeByteString(&writer, write)
+            }
+        }
+        if writesHmacSecret, let hmacSecretParameters {
+            writer.writeTextString(FidoName.extensionHmacSecret)
+            writeHmacSecret(&writer, hmacSecretParameters)
+        }
+    }
+    writer.writeInteger(fido.kCtapGetAssertionRequestOptionsKey)
+    writer.beginMap(count: writesUserVerification ? 2 : 1)
+    writer.writeTextString(FidoName.userPresence)
+    writer.writeBool(true)
+    if writesUserVerification {
+        writer.writeTextString(FidoName.userVerification)
+        writer.writeBool(true)
+    }
+    if let pinParameters {
+        writePinParameters(
+            &writer,
+            pinParameters,
+            authKey: fido.kCtapGetAssertionPinUvAuthParamKey,
+            protocolKey: fido.kCtapGetAssertionPinUvAuthProtocolKey
+        )
+    }
+    return writer.takeVector()
+}
+
+private func silentGetAssertionRequest(
+    _ rpId: WTF.String,
+    _ hash: borrowing cbor.Bytes,
+    _ credentials: fido.CredentialDescriptorVector,
+    _ pin: fido.OptionalPinParameters
+) -> cbor.Bytes {
+    let pinParameters = Optional(fromCxx: pin)
+    var writer = beginRequest(.authenticatorGetAssertion)
+    writer.beginMap(count: 4 + (pinParameters != nil ? 2 : 0))
+    writer.writeInteger(fido.kCtapGetAssertionRpIdKey)
+    writer.writeTextString(rpId)
+    writer.writeInteger(fido.kCtapGetAssertionClientDataHashKey)
+    writer.writeByteString(hash.span())
+    writer.writeInteger(fido.kCtapGetAssertionAllowListKey)
+    writeDescriptors(&writer, credentials)
+    writer.writeInteger(fido.kCtapGetAssertionRequestOptionsKey)
+    writer.beginMap(count: 1)
+    writer.writeTextString(FidoName.userPresence)
+    writer.writeBool(false)
+    if let pinParameters {
+        writePinParameters(
+            &writer,
+            pinParameters,
+            authKey: fido.kCtapGetAssertionPinUvAuthParamKey,
+            protocolKey: fido.kCtapGetAssertionPinUvAuthProtocolKey
+        )
+    }
+    return writer.takeVector()
 }
 
 extension fido {
-    // Entries with no hmac-secret parameters.
-    @cxx @implementation public static func encodeMakeCredentialRequestAsCBORForTesting(_ hash: cbor.CBORValue.BinaryValue, _ options: WebCore.PublicKeyCredentialCreationOptions, _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability, _ effectiveUVRequirement: WebCore.UserVerificationRequirement, _ residentKeyAvailability: fido.AuthenticatorSupportedOptions.ResidentKeyAvailability, _ authenticatorSupportedExtensions: fido.StringVector, _ pin: fido.OptionalPinParameters, _ overrideParameters: fido.OptionalCredentialParametersVector, _ overrideExcludeCredentials: fido.OptionalCredentialDescriptorVector) -> cbor.CBORValue.BinaryValue {
-        encodeMakeCredentialRequestAsCBOR(hash, options, uvCapability, effectiveUVRequirement, residentKeyAvailability, authenticatorSupportedExtensions, pin, overrideParameters, overrideExcludeCredentials, fido.OptionalHmacSecretParameters())
+    /// The CTAP makeCredential request, encoded for tests, with no hmac-secret parameters.
+    @cxx
+    @implementation
+    public static func encodeMakeCredentialRequestAsCBORForTesting(
+        _ hash: cbor.Bytes,
+        _ options: WebCore.PublicKeyCredentialCreationOptions,
+        _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability,
+        _ effectiveUVRequirement: WebCore.UserVerificationRequirement,
+        _ residentKeyAvailability: fido.AuthenticatorSupportedOptions.ResidentKeyAvailability,
+        _ authenticatorSupportedExtensions: fido.StringVector,
+        _ pin: fido.OptionalPinParameters,
+        _ overrideParameters: fido.OptionalCredentialParametersVector,
+        _ overrideExcludeCredentials: fido.OptionalCredentialDescriptorVector
+    ) -> cbor.Bytes {
+        encodeMakeCredentialRequestAsCBOR(
+            hash,
+            options,
+            uvCapability,
+            effectiveUVRequirement,
+            residentKeyAvailability,
+            authenticatorSupportedExtensions,
+            pin,
+            overrideParameters,
+            overrideExcludeCredentials,
+            fido.OptionalHmacSecretParameters()
+        )
     }
 
-    @cxx @implementation public static func encodeGetAssertionRequestAsCBORForTesting(_ hash: cbor.CBORValue.BinaryValue, _ options: WebCore.PublicKeyCredentialRequestOptions, _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability, _ effectiveUVRequirement: WebCore.UserVerificationRequirement, _ authenticatorSupportedExtensions: fido.StringVector, _ pin: fido.OptionalPinParameters, _ overrideAllowCredentials: fido.OptionalCredentialDescriptorVector) -> cbor.CBORValue.BinaryValue {
-        encodeGetAssertionRequestAsCBOR(hash, options, uvCapability, effectiveUVRequirement, authenticatorSupportedExtensions, pin, overrideAllowCredentials, fido.OptionalHmacSecretParameters())
+    /// The CTAP getAssertion request, encoded for tests, with no hmac-secret parameters.
+    @cxx
+    @implementation
+    public static func encodeGetAssertionRequestAsCBORForTesting(
+        _ hash: cbor.Bytes,
+        _ options: WebCore.PublicKeyCredentialRequestOptions,
+        _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability,
+        _ effectiveUVRequirement: WebCore.UserVerificationRequirement,
+        _ authenticatorSupportedExtensions: fido.StringVector,
+        _ pin: fido.OptionalPinParameters,
+        _ overrideAllowCredentials: fido.OptionalCredentialDescriptorVector
+    ) -> cbor.Bytes {
+        encodeGetAssertionRequestAsCBOR(
+            hash,
+            options,
+            uvCapability,
+            effectiveUVRequirement,
+            authenticatorSupportedExtensions,
+            pin,
+            overrideAllowCredentials,
+            fido.OptionalHmacSecretParameters()
+        )
     }
 
-    @cxx @implementation public static func encodeMakeCredentialRequestAsCBOR(_ hash: cbor.CBORValue.BinaryValue, _ options: WebCore.PublicKeyCredentialCreationOptions, _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability, _ effectiveUVRequirement: WebCore.UserVerificationRequirement, _ residentKeyAvailability: fido.AuthenticatorSupportedOptions.ResidentKeyAvailability, _ authenticatorSupportedExtensions: fido.StringVector, _ pin: fido.OptionalPinParameters, _ overrideParameters: fido.OptionalCredentialParametersVector, _ overrideExcludeCredentials: fido.OptionalCredentialDescriptorVector, _ hmacSecret: fido.OptionalHmacSecretParameters) -> cbor.CBORValue.BinaryValue {
-        let supportedExtensions = makeSwiftStrings(authenticatorSupportedExtensions)
-        var cborMap = CBOR.Map(minimumCapacity: 9)
-        cborMap.set(fido.kCtapMakeCredentialClientDataHashKey, .byteString(makeByteArray(hash)))
-        cborMap.set(fido.kCtapMakeCredentialRpKey, convertRpEntityToCBOR(options.rp))
-        cborMap.set(fido.kCtapMakeCredentialUserKey, convertUserEntityToCBOR(options.user))
-        cborMap.set(fido.kCtapMakeCredentialPubKeyCredParamsKey, convertParametersToCBOR(trimmedParameters(credentialParameters(options.pubKeyCredParams), overrideParameters)))
-        if let excludeCredentials = Optional(fromCxx: overrideExcludeCredentials) {
-            if !excludeCredentials.isEmpty() {
-                cborMap.set(fido.kCtapMakeCredentialExcludeListKey, convertDescriptorsToCBOR(excludeCredentials))
-            }
-        } else if !options.excludeCredentials.isEmpty() {
-            cborMap.set(fido.kCtapMakeCredentialExcludeListKey, convertDescriptorsToCBOR(options.excludeCredentials))
-        }
-
-        let extensions = Optional(fromCxx: options.extensions)
-        let hmacSecretParameters = Optional(fromCxx: hmacSecret)
-        if (!supportedExtensions.isEmpty && extensions != nil) || hmacSecretParameters != nil {
-            var extensionsMap = CBOR.Map(minimumCapacity: 3)
-
-            if let extensions {
-                if let largeBlobInputs = Optional(fromCxx: extensions.largeBlob), containsString(supportedExtensions, "largeBlob") {
-                    var largeBlobMap = CBOR.Map(minimumCapacity: 2)
-                    if !largeBlobInputs.support.isNull() {
-                        largeBlobMap.set(.string("support"), .string(makeSwiftString(largeBlobInputs.support)))
-                    }
-                    extensionsMap.set(.string("largeBlob"), .map(largeBlobMap))
-                }
-
-                // Convert prf extension to hmac-secret: true for makeCredential
-                if extensions.prf.hasValue && containsString(supportedExtensions, FidoName.extensionHmacSecret) {
-                    extensionsMap.set(.string(FidoName.extensionHmacSecret), .bool(true))
-                }
-            }
-
-            // Add hmac-secret-mc extension with encrypted parameters
-            if let hmacSecretParameters, containsString(supportedExtensions, FidoName.extensionHmacSecretMc) {
-                extensionsMap.set(.string(FidoName.extensionHmacSecretMc), hmacSecretMap(hmacSecretParameters))
-            }
-
-            if !extensionsMap.isEmpty {
-                cborMap.set(fido.kCtapMakeCredentialExtensionsKey, .map(extensionsMap))
-            }
-        }
-
-        var optionMap = CBOR.Map(minimumCapacity: 3)
-        if let authenticatorSelection = Optional(fromCxx: options.authenticatorSelection) {
-            // Resident keys are not supported by default.
-            if let residentKey = Optional(fromCxx: authenticatorSelection.residentKey) {
-                if residentKey == .Required || (residentKey == .Preferred && residentKeyAvailability == .supported) {
-                    optionMap.set(.string(FidoName.residentKey), .bool(true))
-                }
-            } else if authenticatorSelection.requireResidentKey {
-                optionMap.set(.string(FidoName.residentKey), .bool(true))
-            }
-
-            // User verification is not required by default.
-            if requiresUserVerification(effectiveUVRequirement, uvCapability) {
-                optionMap.set(.string(FidoName.userVerification), .bool(true))
-            }
-        }
-        if !optionMap.isEmpty {
-            cborMap.set(fido.kCtapMakeCredentialRequestOptionsKey, .map(optionMap))
-        }
-
-        if let pin = Optional(fromCxx: pin) {
-            cborMap.set(fido.kCtapMakeCredentialPinUvAuthParamKey, .byteString(makeByteArray(pin.auth)))
-            cborMap.set(fido.kCtapMakeCredentialPinUvAuthProtocolKey, .integer(Int64(pin.protocol)))
-        }
-
-        return encodeRequest(.authenticatorMakeCredential, cborMap)
+    /// The CTAP makeCredential request, encoded.
+    @cxx
+    @implementation
+    public static func encodeMakeCredentialRequestAsCBOR(
+        _ hash: cbor.Bytes,
+        _ options: WebCore.PublicKeyCredentialCreationOptions,
+        _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability,
+        _ effectiveUVRequirement: WebCore.UserVerificationRequirement,
+        _ residentKeyAvailability: fido.AuthenticatorSupportedOptions.ResidentKeyAvailability,
+        _ authenticatorSupportedExtensions: fido.StringVector,
+        _ pin: fido.OptionalPinParameters,
+        _ overrideParameters: fido.OptionalCredentialParametersVector,
+        _ overrideExcludeCredentials: fido.OptionalCredentialDescriptorVector,
+        _ hmacSecret: fido.OptionalHmacSecretParameters
+    ) -> cbor.Bytes {
+        makeCredentialRequest(
+            hash: hash,
+            options: options,
+            uvCapability: uvCapability,
+            effectiveUVRequirement: effectiveUVRequirement,
+            residentKeyAvailability: residentKeyAvailability,
+            authenticatorSupportedExtensions: authenticatorSupportedExtensions,
+            pin: pin,
+            overrideParameters: overrideParameters,
+            overrideExcludeCredentials: overrideExcludeCredentials,
+            hmacSecret: hmacSecret
+        )
     }
 
-    @cxx @implementation public static func encodeGetAssertionRequestAsCBOR(_ hash: cbor.CBORValue.BinaryValue, _ options: WebCore.PublicKeyCredentialRequestOptions, _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability, _ effectiveUVRequirement: WebCore.UserVerificationRequirement, _ authenticatorSupportedExtensions: fido.StringVector, _ pin: fido.OptionalPinParameters, _ overrideAllowCredentials: fido.OptionalCredentialDescriptorVector, _ hmacSecret: fido.OptionalHmacSecretParameters) -> cbor.CBORValue.BinaryValue {
-        let supportedExtensions = makeSwiftStrings(authenticatorSupportedExtensions)
-        var cborMap = CBOR.Map(minimumCapacity: 9)
-        cborMap.set(fido.kCtapGetAssertionRpIdKey, .string(makeSwiftString(options.rpId)))
-        cborMap.set(fido.kCtapGetAssertionClientDataHashKey, .byteString(makeByteArray(hash)))
-        if let allowCredentials = Optional(fromCxx: overrideAllowCredentials) {
-            cborMap.set(fido.kCtapGetAssertionAllowListKey, convertDescriptorsToCBOR(allowCredentials))
-        } else if !options.allowCredentials.isEmpty() {
-            cborMap.set(fido.kCtapGetAssertionAllowListKey, convertDescriptorsToCBOR(options.allowCredentials))
-        }
-
-        let extensions = Optional(fromCxx: options.extensions)
-        let hmacSecretParameters = Optional(fromCxx: hmacSecret)
-        if (!supportedExtensions.isEmpty && extensions != nil) || hmacSecretParameters != nil {
-            var extensionsMap = CBOR.Map(minimumCapacity: 3)
-
-            if let extensions {
-                if let largeBlobInputs = Optional(fromCxx: extensions.largeBlob), containsString(supportedExtensions, "largeBlob") {
-                    var largeBlobMap = CBOR.Map(minimumCapacity: 2)
-                    if let read = Optional(fromCxx: largeBlobInputs.read) {
-                        largeBlobMap.set(.string("read"), .bool(read))
-                    }
-                    if let write = Optional(fromCxx: largeBlobInputs.write) {
-                        largeBlobMap.set(.string("write"), .byteString(bufferSourceBytes(write)))
-                    }
-                    extensionsMap.set(.string("largeBlob"), .map(largeBlobMap))
-                }
-            }
-
-            // Add hmac-secret extension with encrypted salt parameters
-            if let hmacSecretParameters, containsString(supportedExtensions, FidoName.extensionHmacSecret) {
-                extensionsMap.set(.string(FidoName.extensionHmacSecret), hmacSecretMap(hmacSecretParameters))
-            }
-
-            if !extensionsMap.isEmpty {
-                cborMap.set(fido.kCtapGetAssertionExtensionsKey, .map(extensionsMap))
-            }
-        }
-
-        var optionMap = CBOR.Map(minimumCapacity: 3)
-        // User verification is not required by default.
-        if requiresUserVerification(effectiveUVRequirement, uvCapability) {
-            optionMap.set(.string(FidoName.userVerification), .bool(true))
-        }
-        optionMap.set(.string(FidoName.userPresence), .bool(true))
-        cborMap.set(fido.kCtapGetAssertionRequestOptionsKey, .map(optionMap))
-
-        if let pin = Optional(fromCxx: pin) {
-            cborMap.set(fido.kCtapGetAssertionPinUvAuthParamKey, .byteString(makeByteArray(pin.auth)))
-            cborMap.set(fido.kCtapGetAssertionPinUvAuthProtocolKey, .integer(Int64(pin.protocol)))
-        }
-
-        return encodeRequest(.authenticatorGetAssertion, cborMap)
+    /// The CTAP getAssertion request, encoded.
+    @cxx
+    @implementation
+    public static func encodeGetAssertionRequestAsCBOR(
+        _ hash: cbor.Bytes,
+        _ options: WebCore.PublicKeyCredentialRequestOptions,
+        _ uvCapability: fido.AuthenticatorSupportedOptions.UserVerificationAvailability,
+        _ effectiveUVRequirement: WebCore.UserVerificationRequirement,
+        _ authenticatorSupportedExtensions: fido.StringVector,
+        _ pin: fido.OptionalPinParameters,
+        _ overrideAllowCredentials: fido.OptionalCredentialDescriptorVector,
+        _ hmacSecret: fido.OptionalHmacSecretParameters
+    ) -> cbor.Bytes {
+        getAssertionRequest(
+            hash: hash,
+            options: options,
+            uvCapability: uvCapability,
+            effectiveUVRequirement: effectiveUVRequirement,
+            authenticatorSupportedExtensions: authenticatorSupportedExtensions,
+            pin: pin,
+            overrideAllowCredentials: overrideAllowCredentials,
+            hmacSecret: hmacSecret
+        )
     }
 
-    @cxx @implementation public static func encodeBogusRequestForAuthenticatorSelection() -> cbor.CBORValue.BinaryValue {
-        var cborMap = CBOR.Map(minimumCapacity: 9)
+    /// A request that only lets the user pick an authenticator.
+    @cxx
+    @implementation
+    public static func encodeBogusRequestForAuthenticatorSelection() -> cbor.Bytes {
+        var writer = beginRequest(.authenticatorMakeCredential)
+        writer.beginMap(count: 6)
         // Vector<uint8_t>(FillWith { }, 0, 32) is size 0 filled with 32s: an empty hash.
-        cborMap.set(fido.kCtapMakeCredentialClientDataHashKey, .byteString([]))
-        var rpMap = CBOR.Map(minimumCapacity: 3)
-        rpMap.insert(.string(FidoName.entityName), .string("notarealwebsite.com"))
-        rpMap.insert(.string(FidoName.entityId), .string("notarealwebsite.com"))
-        cborMap.set(fido.kCtapMakeCredentialRpKey, .map(rpMap))
+        writer.writeInteger(fido.kCtapMakeCredentialClientDataHashKey)
+        writer.writeByteString(Span<UInt8>())
+        writer.writeInteger(fido.kCtapMakeCredentialRpKey)
+        writer.beginMap(count: 2)
+        writer.writeTextString(FidoName.entityID)
+        writer.writeTextString("notarealwebsite.com")
+        writer.writeTextString(FidoName.entityName)
+        writer.writeTextString("notarealwebsite.com")
 
-        var userMap = CBOR.Map(minimumCapacity: 4)
-        userMap.insert(.string(FidoName.entityName), .string("bogus"))
-        userMap.insert(.string(FidoName.entityId), .byteString([0]))
-        userMap.insert(.string(FidoName.displayName), .string("bogus"))
-        cborMap.set(fido.kCtapMakeCredentialUserKey, .map(userMap))
+        writer.writeInteger(fido.kCtapMakeCredentialUserKey)
+        writer.beginMap(count: 3)
+        writer.writeTextString(FidoName.entityID)
+        let zeroByte: [UInt8] = [0]
+        writer.writeByteString(zeroByte.span)
+        writer.writeTextString(FidoName.entityName)
+        writer.writeTextString("bogus")
+        writer.writeTextString(FidoName.displayName)
+        writer.writeTextString("bogus")
 
-        cborMap.set(fido.kCtapMakeCredentialPubKeyCredParamsKey, convertParametersToCBOR([CredentialParameter(type: fido.publicKeyCredentialTypePublicKey(), alg: COSE.ES256)]))
-        cborMap.set(fido.kCtapMakeCredentialPinUvAuthParamKey, .byteString([]))
-        cborMap.set(fido.kCtapMakeCredentialPinUvAuthProtocolKey, .integer(pin.kProtocolVersion))
-
-        return encodeRequest(.authenticatorMakeCredential, cborMap)
+        writer.writeInteger(fido.kCtapMakeCredentialPubKeyCredParamsKey)
+        writeParameters(&writer, [CredentialParameter(type: fido.publicKeyCredentialTypePublicKey(), alg: COSE.ES256)])
+        writer.writeInteger(fido.kCtapMakeCredentialPinUvAuthParamKey)
+        writer.writeByteString(Span<UInt8>())
+        writer.writeInteger(fido.kCtapMakeCredentialPinUvAuthProtocolKey)
+        writer.writeInteger(pin.kProtocolVersion)
+        return writer.takeVector()
     }
 
-    @cxx @implementation public static func encodeSilentGetAssertion(_ rpId: WTF.String, _ hash: cbor.CBORValue.BinaryValue, _ credentials: fido.CredentialDescriptorVector, _ pin: fido.OptionalPinParameters) -> cbor.CBORValue.BinaryValue {
-        var cborMap = CBOR.Map(minimumCapacity: 9)
-        cborMap.set(fido.kCtapGetAssertionRpIdKey, .string(makeSwiftString(rpId)))
-        cborMap.set(fido.kCtapGetAssertionClientDataHashKey, .byteString(makeByteArray(hash)))
-        cborMap.set(fido.kCtapGetAssertionAllowListKey, convertDescriptorsToCBOR(credentials))
-
-        if let pin = Optional(fromCxx: pin) {
-            cborMap.set(fido.kCtapGetAssertionPinUvAuthParamKey, .byteString(makeByteArray(pin.auth)))
-            cborMap.set(fido.kCtapGetAssertionPinUvAuthProtocolKey, .integer(Int64(pin.protocol)))
-        }
-
-        var optionMap = CBOR.Map(minimumCapacity: 3)
-        optionMap.set(.string(FidoName.userPresence), .bool(false))
-        cborMap.set(fido.kCtapGetAssertionRequestOptionsKey, .map(optionMap))
-
-        return encodeRequest(.authenticatorGetAssertion, cborMap)
+    /// A silent getAssertion request, encoded.
+    @cxx
+    @implementation
+    public static func encodeSilentGetAssertion(
+        _ rpId: WTF.String,
+        _ hash: cbor.Bytes,
+        _ credentials: fido.CredentialDescriptorVector,
+        _ pin: fido.OptionalPinParameters
+    ) -> cbor.Bytes {
+        silentGetAssertionRequest(rpId, hash, credentials, pin)
     }
 
-    @cxx @implementation public static func encodeEmptyAuthenticatorRequest(_ cmd: fido.CtapRequestCommand) -> cbor.CBORValue.BinaryValue {
+    /// A request that is only a command byte.
+    @cxx
+    @implementation
+    public static func encodeEmptyAuthenticatorRequest(_ cmd: fido.CtapRequestCommand) -> cbor.Bytes {
         makeByteVector([cmd.rawValue])
     }
 }
 
 /// The body of `fido::encodeAsCBOR(AuthenticatorGetInfoResponse)`, which forwards here.
 ///
-/// `response` is owned by the caller and only read here.
+/// `response` is the caller's, alive and unchanged for the call; only its fields are read.
 @_expose(Cxx)
-func encodeGetInfoResponseAsCBOR(_ response: borrowing fido.AuthenticatorGetInfoResponse) -> cbor.CBORValue.BinaryValue {
+func encodeGetInfoResponseAsCBOR(_ response: borrowing fido.AuthenticatorGetInfoResponse) -> cbor.Bytes {
     let fields = fido.getInfoResponseFields(response)
-    var deviceInfoMap = CBOR.Map(minimumCapacity: 4)
+    let extensions = Optional(fromCxx: fields.extensions)
+    let maxMsgSize = Optional(fromCxx: fields.maxMsgSize)
+    let pinProtocols = Optional(fromCxx: fields.pinProtocols)
+    let transports = Optional(fromCxx: fields.transports)
+    let remaining = Optional(fromCxx: fields.remainingDiscoverableCredentials)
+    let minPINLength = Optional(fromCxx: fields.minPINLength)
+    let maxCredentialCountInList = Optional(fromCxx: fields.maxCredentialCountInList)
+    let maxCredentialIDLength = Optional(fromCxx: fields.maxCredentialIDLength)
 
-    var versionArray: [CBOR] = []
+    var writer = CBORWriter(reservingCapacity: 128)
+    writer.beginMap(
+        count: 3 + (extensions != nil ? 1 : 0) + (maxMsgSize != nil ? 1 : 0) + (pinProtocols != nil ? 1 : 0)
+            + (transports != nil ? 1 : 0) + (remaining != nil ? 1 : 0) + (minPINLength != nil ? 1 : 0)
+            + (maxCredentialCountInList != nil ? 1 : 0) + (maxCredentialIDLength != nil ? 1 : 0)
+    )
+
+    writer.writeInteger(fido.kCtapAuthenticatorGetInfoVersionsKey)
+    writer.beginArray(count: fields.versions.size())
     for index in 0..<fields.versions.size() {
-        versionArray.append(.string(protocolVersionName(fields.versions[index])))
-    }
-    deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoVersionsKey), .array(versionArray))
-
-    if let extensions = Optional(fromCxx: fields.extensions) {
-        deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoExtensionsKey), .array(makeSwiftStrings(extensions).map { .string($0) }))
+        writer.writeTextString(fields.versions[index].name)
     }
 
-    deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoAAGUIDKey), .byteString(makeByteArray(fields.aaguid)))
+    if let extensions {
+        writer.writeInteger(fido.kCtapAuthenticatorGetInfoExtensionsKey)
+        writer.beginArray(count: extensions.size())
+        for index in 0..<extensions.size() {
+            writer.writeTextString(extensions[index])
+        }
+    }
+
+    writer.writeInteger(fido.kCtapAuthenticatorGetInfoAAGUIDKey)
+    writer.writeByteString(fields.aaguid.span())
 
     // The options map.
-    var optionMap = CBOR.Map(minimumCapacity: 3)
-    optionMap.insert(.string(FidoName.residentKey), .bool(fields.residentKeyAvailability == .supported))
-    optionMap.insert(.string(FidoName.userPresence), .bool(fields.userPresenceRequired))
-    optionMap.insert(.string(FidoName.platformDevice), .bool(fields.isPlatformDevice))
+    let userVerification: Bool?
     switch fields.userVerificationAvailability {
     case .supportedAndConfigured:
-        optionMap.insert(.string(FidoName.userVerification), .bool(true))
+        userVerification = true
     case .supportedButNotConfigured:
-        optionMap.insert(.string(FidoName.userVerification), .bool(false))
+        userVerification = false
     default:
-        break
+        userVerification = nil
     }
+    let clientPin: Bool?
     switch fields.clientPinAvailability {
     case .supportedAndPinSet:
-        optionMap.insert(.string(FidoName.clientPin), .bool(true))
+        clientPin = true
     case .supportedButPinNotSet:
-        optionMap.insert(.string(FidoName.clientPin), .bool(false))
+        clientPin = false
     default:
-        break
+        clientPin = nil
     }
-    deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoOptionsKey), .map(optionMap))
-
-    if let maxMsgSize = Optional(fromCxx: fields.maxMsgSize) {
-        deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoMaxMsgSizeKey), .integer(Int64(maxMsgSize)))
+    writer.writeInteger(fido.kCtapAuthenticatorGetInfoOptionsKey)
+    writer.beginMap(count: 3 + (userVerification != nil ? 1 : 0) + (clientPin != nil ? 1 : 0))
+    writer.writeTextString(FidoName.residentKey)
+    writer.writeBool(fields.residentKeyAvailability == .supported)
+    writer.writeTextString(FidoName.userPresence)
+    writer.writeBool(fields.userPresenceRequired)
+    if let userVerification {
+        writer.writeTextString(FidoName.userVerification)
+        writer.writeBool(userVerification)
+    }
+    writer.writeTextString(FidoName.platformDevice)
+    writer.writeBool(fields.isPlatformDevice)
+    if let clientPin {
+        writer.writeTextString(FidoName.clientPin)
+        writer.writeBool(clientPin)
     }
 
-    if let pinProtocols = Optional(fromCxx: fields.pinProtocols) {
-        var protocols: [CBOR] = []
+    if let maxMsgSize {
+        writer.writeInteger(fido.kCtapAuthenticatorGetInfoMaxMsgSizeKey)
+        writer.writeInteger(Int64(maxMsgSize))
+    }
+    if let pinProtocols {
+        writer.writeInteger(fido.kCtapAuthenticatorGetInfoPinUVAuthProtocolsKey)
+        writer.beginArray(count: pinProtocols.size())
         for index in 0..<pinProtocols.size() {
-            protocols.append(.integer(Int64(pinProtocols[index].rawValue)))
+            writer.writeInteger(Int64(pinProtocols[index].rawValue))
         }
-        deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoPinUVAuthProtocolsKey), .array(protocols))
     }
-
-    if let infoTransports = Optional(fromCxx: fields.transports) {
-        var transports: [CBOR] = []
-        for index in 0..<infoTransports.size() {
-            transports.append(.string(makeSwiftString(WebCore.toString(infoTransports[index]))))
+    if let maxCredentialCountInList {
+        writer.writeInteger(fido.kCtapAuthenticatorGetInfoMaxCredentialCountInListKey)
+        writer.writeInteger(Int64(maxCredentialCountInList))
+    }
+    if let maxCredentialIDLength {
+        writer.writeInteger(fido.kCtapAuthenticatorGetInfoMaxCredentialIdLengthKey)
+        writer.writeInteger(Int64(maxCredentialIDLength))
+    }
+    if let transports {
+        writer.writeInteger(fido.kCtapAuthenticatorGetInfoTransportsKey)
+        writer.beginArray(count: transports.size())
+        for index in 0..<transports.size() {
+            writer.writeTextString(WebCore.toString(transports[index]))
         }
-        deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoTransportsKey), .array(transports))
     }
-
-    if let remaining = Optional(fromCxx: fields.remainingDiscoverableCredentials) {
-        deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoRemainingDiscoverableCredentialsKey), .integer(Int64(remaining)))
+    if let minPINLength {
+        writer.writeInteger(fido.kCtapAuthenticatorGetInfoMinPINLengthKey)
+        writer.writeInteger(Int64(minPINLength))
     }
-    if let minPINLength = Optional(fromCxx: fields.minPINLength) {
-        deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoMinPINLengthKey), .integer(Int64(minPINLength)))
+    if let remaining {
+        writer.writeInteger(fido.kCtapAuthenticatorGetInfoRemainingDiscoverableCredentialsKey)
+        writer.writeInteger(Int64(remaining))
     }
-    if let count = Optional(fromCxx: fields.maxCredentialCountInList) {
-        deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoMaxCredentialCountInListKey), .integer(Int64(count)))
-    }
-    if let length = Optional(fromCxx: fields.maxCredentialIDLength) {
-        deviceInfoMap.insert(.integer(fido.kCtapAuthenticatorGetInfoMaxCredentialIdLengthKey), .integer(Int64(length)))
-    }
-
-    guard let encodedBytes = CBOR.write(.map(deviceInfoMap)) else {
-        preconditionFailure("a GetInfo map nests two levels")
-    }
-    return makeByteVector(encodedBytes)
+    return writer.takeVector()
 }
 
-#endif // !os(watchOS) && !targetEnvironment(macCatalyst)
+#endif // !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST

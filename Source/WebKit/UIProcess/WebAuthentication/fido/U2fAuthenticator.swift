@@ -23,6 +23,7 @@
 
 #if ENABLE_WEB_AUTHN
 
+internal import WebCore
 import WebCore_Private
 import WebKit_Internal
 import wtf
@@ -71,7 +72,7 @@ extension WebKit.U2fAuthenticator {
     }
 
     @cxx @implementation
-    func issueCommand(_ command: cbor.CBORValue.BinaryValue, _ type: WebKit.U2fAuthenticator.CommandType) {
+    func issueCommand(_ command: cbor.Bytes, _ type: WebKit.U2fAuthenticator.CommandType) {
         WebKit.LogChannel.WebAuthn().releaseLog.log(
             "[transport=\(self.transportName().description)] - U2fAuthenticator::issueCommand: Sending \(fido.base64EncodeBytes(command).description)"
         )
@@ -85,7 +86,7 @@ extension WebKit.U2fAuthenticator {
             : isCheckOnly ? .checkOnly
             : isBogusExcludeMatch ? .bogusExcludeCredentialsMatch
             : isBogusNoCredentials ? .bogusNoCredentials : .sign
-        let callback = WebKit.CtapDriver.ResponseCallback { (data: cbor.CBORValue.BinaryValue) in
+        let callback = WebKit.CtapDriver.ResponseCallback { (data: cbor.Bytes) in
             precondition(WTF.RunLoop.isMain())
             if let authenticator = weakThis.get() {
                 authenticator.responseReceived(data, step)
@@ -176,7 +177,7 @@ extension WebKit.U2fAuthenticator {
         issueNewCommand(command, .sign)
     }
 
-    private func issueNewCommand(_ command: cbor.CBORValue.BinaryValue, _ step: U2fStep) {
+    private func issueNewCommand(_ command: cbor.Bytes, _ step: U2fStep) {
         WebKit.LogChannel.WebAuthn().releaseLog.log(
             "[transport=\(self.transportName().description)] - U2fAuthenticator::issueNewCommand, type=\(step.commandTypeNumber)"
         )
@@ -191,12 +192,12 @@ extension WebKit.U2fAuthenticator {
         issueCommand(m_lastCommand, m_lastCommandType)
     }
 
-    fileprivate func responseReceived(_ response: cbor.CBORValue.BinaryValue, _ step: U2fStep) {
+    fileprivate func responseReceived(_ response: cbor.Bytes, _ step: U2fStep) {
         guard let apduResponse = Optional(fromCxx: apdu.ApduResponse.createFromMessage(response)) else {
             WebKit.LogChannel.WebAuthn().releaseLog.log(
                 "[transport=\(self.transportName().description)] - U2fAuthenticator::responseReceived: Failed to parse response."
             )
-            respondWithError(.UnknownError, webAuthnString("Couldn't parse the APDU response."))
+            respondWithError(.UnknownError, makeWTFString("Couldn't parse the APDU response."))
             return
         }
         WebKit.LogChannel.WebAuthn().releaseLog.log(
@@ -220,7 +221,7 @@ extension WebKit.U2fAuthenticator {
     private func respondWithUnknownStatus(_ apduResponse: apdu.ApduResponse) {
         respondWithError(
             .UnknownError,
-            webAuthnString("Unknown internal error. Error code: \(UInt32(apduResponse.status().rawValue))")
+            makeWTFString("Unknown internal error. Error code: \(UInt32(apduResponse.status().rawValue))")
         )
     }
 
@@ -243,7 +244,7 @@ extension WebKit.U2fAuthenticator {
                 options.rp.id, fido.apduResponseData(apduResponse), .CrossPlatform, transports, options.attestation
             )
             guard let response = response.get() else {
-                respondWithError(.UnknownError, webAuthnString("Couldn't parse the U2F register response."))
+                respondWithError(.UnknownError, makeWTFString("Couldn't parse the U2F register response."))
                 return
             }
             respondWithResponse(response)
@@ -277,7 +278,7 @@ extension WebKit.U2fAuthenticator {
         case .SW_NO_ERROR:
             respondWithError(
                 .InvalidStateError,
-                webAuthnString(
+                makeWTFString(
                     "At least one credential matches an entry of the excludeCredentials list in the authenticator."
                 )
             )
@@ -298,7 +299,7 @@ extension WebKit.U2fAuthenticator {
             updateObserverStatus(.NoCredentialsFound)
             respondWithError(
                 .NotAllowedError,
-                webAuthnString("No credentials from the allowCredentials list is found in the authenticator.")
+                makeWTFString("No credentials from the allowCredentials list is found in the authenticator.")
             )
         case .SW_CONDITIONS_NOT_SATISFIED:
             // Polling is required during test of user presence.
@@ -343,7 +344,7 @@ extension WebKit.U2fAuthenticator {
                 WebKit.LogChannel.WebAuthn().releaseLog.log(
                     "[transport=\(self.transportName().description)] - U2fAuthenticator::continueSignCommandAfterResponseReceived: Couldn't parse the U2F sign response."
                 )
-                respondWithError(.UnknownError, webAuthnString("Couldn't parse the U2F sign response."))
+                respondWithError(.UnknownError, makeWTFString("Couldn't parse the U2F sign response."))
                 return
             }
             if m_isAppId {

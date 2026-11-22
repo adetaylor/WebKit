@@ -23,6 +23,7 @@
 
 #if ENABLE_WEB_AUTHN
 
+internal import WebCore
 import WebCore_Private
 import WebKit_Internal
 import wtf
@@ -49,19 +50,13 @@ extension WebKit.FidoAuthenticator {
 
 // Helpers the authenticators share.
 
-// A WTF.String with the characters of `text` and no terminating NUL.
-func webAuthnString(_ text: Swift.String) -> WTF.String {
-    let units = Array(text.utf16)
-    return WTF.String(units.span)
-}
-
-// base64EncodeToString, for logs.
-func base64String(_ bytes: cbor.CBORValue.BinaryValue) -> Swift.String {
+// The base64 encoding of `bytes`.
+func base64String(_ bytes: cbor.Bytes) -> Swift.String {
     fido.base64EncodeBytes(bytes).description
 }
 
-// base64URLEncodeToString.
-func base64URLString(_ bytes: cbor.CBORValue.BinaryValue) -> Swift.String {
+// The base64url encoding of `bytes`.
+func base64URLString(_ bytes: cbor.Bytes) -> Swift.String {
     fido.base64URLEncodeBytes(bytes).description
 }
 
