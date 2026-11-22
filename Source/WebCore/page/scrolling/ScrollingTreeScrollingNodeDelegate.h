@@ -29,13 +29,16 @@
 
 #include <WebCore/RubberbandingState.h>
 #include <WebCore/ScrollingTreeScrollingNode.h>
+#include <wtf/CheckedRef.h>
 #include <wtf/EnumSet.h>
 #include <wtf/TZoneMalloc.h>
 
 namespace WebCore {
 
-class ScrollingTreeScrollingNodeDelegate {
+// The node creates its delegate on the main thread, and the scrolling thread and the event dispatcher queue use it.
+class ScrollingTreeScrollingNodeDelegate : public CanMakeThreadSafeCheckedPtr<ScrollingTreeScrollingNodeDelegate> {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreeScrollingNodeDelegate);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ScrollingTreeScrollingNodeDelegate);
 public:
     WEBCORE_EXPORT explicit ScrollingTreeScrollingNodeDelegate(ScrollingTreeScrollingNode&);
     WEBCORE_EXPORT virtual ~ScrollingTreeScrollingNodeDelegate();
@@ -97,7 +100,7 @@ protected:
 
 private:
     ThreadSafeWeakRef<ScrollingTreeScrollingNode> m_scrollingNode;
-};
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 } // namespace WebCore
 

@@ -78,7 +78,7 @@ protected:
     std::optional<LayoutScrollSnapOffsetsInfo> m_snapOffsetsInfo;
     std::unique_ptr<ScrollingEffectsControllerTimer> m_discreteSnapTransitionTimer;
     std::unique_ptr<ScrollingEffectsControllerTimer> m_discreteScrollendTimer;
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_PRIVATE_FILEID("WebCore/ThreadedScrollingTreeScrollingNodeDelegate.swift");
 
 } // namespace WebCore
 

@@ -48,6 +48,7 @@ class ScrollingTree;
 
 class ScrollingTreeScrollingNodeDelegateMac final : public ThreadedScrollingTreeScrollingNodeDelegate {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreeScrollingNodeDelegateMac);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ScrollingTreeScrollingNodeDelegateMac);
 public:
     explicit ScrollingTreeScrollingNodeDelegateMac(ScrollingTreeScrollingNode&);
     virtual ~ScrollingTreeScrollingNodeDelegateMac();
@@ -87,7 +88,7 @@ private:
 #if HAVE(RUBBER_BANDING)
     std::optional<RubberbandingState> m_pendingRubberbandingState;
 #endif
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 } // namespace WebCore
 

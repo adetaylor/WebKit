@@ -36,6 +36,7 @@ namespace WebCore {
 class ScrollerPairCoordinated;
 
 class ScrollingTreeScrollingNodeDelegateCoordinated final : public ThreadedScrollingTreeScrollingNodeDelegate {
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ScrollingTreeScrollingNodeDelegateCoordinated);
 public:
     explicit ScrollingTreeScrollingNodeDelegateCoordinated(ScrollingTreeScrollingNode&, bool scrollAnimatorEnabled);
     virtual ~ScrollingTreeScrollingNodeDelegateCoordinated();
