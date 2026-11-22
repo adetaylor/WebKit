@@ -44,8 +44,8 @@ class ScrollingTreeStickyNode : public ScrollingTreeViewportConstrainedNode {
 public:
     virtual ~ScrollingTreeStickyNode();
 
-    FloatSize scrollDeltaSinceLastCommit() const;
-    WEBCORE_EXPORT bool isCurrentlySticking() const;
+    SWIFT_UNSAFE FloatSize scrollDeltaSinceLastCommit() const;
+    SWIFT_UNSAFE WEBCORE_EXPORT bool isCurrentlySticking() const;
 
 protected:
     ScrollingTreeStickyNode(ScrollingTree&, ScrollingNodeID);

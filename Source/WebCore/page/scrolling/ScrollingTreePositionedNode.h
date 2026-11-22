@@ -41,7 +41,7 @@ public:
 
     const Vector<ScrollingNodeID>& relatedOverflowScrollingNodes() const LIFETIME_BOUND { return m_relatedOverflowScrollingNodes; }
 
-    FloatSize scrollDeltaSinceLastCommit() const;
+    SWIFT_UNSAFE FloatSize scrollDeltaSinceLastCommit() const;
 
     virtual ScrollingPlatformLayer* layer() const = 0;
 

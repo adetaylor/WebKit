@@ -42,7 +42,7 @@ public:
 
     virtual ScrollingPlatformLayer* layer() const = 0;
 
-    FloatSize scrollDeltaSinceLastCommit() const;
+    SWIFT_UNSAFE FloatSize scrollDeltaSinceLastCommit() const;
 
 protected:
     WEBCORE_EXPORT ScrollingTreeOverflowScrollProxyNode(ScrollingTree&, ScrollingNodeID);
