@@ -772,7 +772,7 @@ static RetainPtr<NSURL> createUniqueWebDataURL();
 #if !PLATFORM(IOS_FAMILY)
         WebCore::LocalFrameView::scrollRectToVisible(WebCore::enclosingIntRect(rangeRect), *renderer, insideFixed, { WebCore::SelectionRevealMode::Reveal, WebCore::ScrollAlignment::alignToEdgeIfNeeded, WebCore::ScrollAlignment::alignToEdgeIfNeeded, WebCore::ShouldAllowCrossOriginScrolling::Yes });
 #else
-        if (auto* layer = renderer->enclosingLayer()) {
+        if (renderer->enclosingLayer()) {
             WebCore::LocalFrameView::scrollRectToVisible(WebCore::enclosingIntRect(rangeRect), *renderer, insideFixed, { WebCore::SelectionRevealMode::Reveal, WebCore::ScrollAlignment::alignToEdgeIfNeeded, WebCore::ScrollAlignment::alignToEdgeIfNeeded, WebCore::ShouldAllowCrossOriginScrolling::Yes });
             CheckedRef selection = _private->coreFrame->selection();
             selection->setCaretRectNeedsUpdate();
@@ -790,7 +790,7 @@ static RetainPtr<NSURL> createUniqueWebDataURL();
     RefPtr startNode = core([range startContainer]);
 
     if (CheckedPtr renderer = startNode ? startNode->renderer() : nullptr) {
-        if (auto* layer = renderer->enclosingLayer()) {
+        if (renderer->enclosingLayer()) {
             WebCore::LocalFrameView::scrollRectToVisible(WebCore::enclosingIntRect(rangeRect), *renderer, insideFixed, { WebCore::SelectionRevealMode::Reveal, WebCore::ScrollAlignment::alignToEdgeIfNeeded, WebCore::ScrollAlignment::alignToEdgeIfNeeded, WebCore::ShouldAllowCrossOriginScrolling::Yes });
 
             if (RefPtr coreFrame = core(self)) {
