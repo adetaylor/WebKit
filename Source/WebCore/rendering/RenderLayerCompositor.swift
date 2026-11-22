@@ -869,7 +869,7 @@ extension WebCore.RenderLayerCompositor {
     @cxx
     @implementation
     public func updateEventRegionsRecursive(_ layer: WebCore.RenderLayer) {
-        #if canImport(Darwin) // ENABLE(ASYNC_SCROLLING)
+        #if ENABLE_ASYNC_SCROLLING // ENABLE(ASYNC_SCROLLING)
         if layer.isComposited() {
             layer.backing()!.updateEventRegion()
         }
@@ -4973,7 +4973,7 @@ extension WebCore.RenderLayerCompositor {
     @cxx
     @implementation
     public func removeFromScrollCoordinatedLayers(_ backing: WebCore.RenderLayerBacking) {
-        #if !os(macOS) // PLATFORM(IOS_FAMILY)
+        #if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS) // PLATFORM(IOS_FAMILY)
         removeFromLegacyScrollingLayerCoordinator(backing)
         #endif
 
@@ -5067,7 +5067,7 @@ extension WebCore.RenderLayerCompositor {
     ) -> WebCore.ScrollingNodeID? {
         let roles = coordinatedScrollingRolesForLayer(layer, compositingAncestor)
 
-        #if !os(macOS) // PLATFORM(IOS_FAMILY)
+        #if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS) // PLATFORM(IOS_FAMILY)
         updateLegacyViewportConstrainedLayer(layer, roles.contains(.ViewportConstrained))
         #endif
 
@@ -5187,7 +5187,7 @@ extension WebCore.RenderLayerCompositor {
 
         backing.setScrollingNodeIDForRole(nodeID, role)
 
-        #if os(macOS) // ENABLE(SCROLLING_THREAD)
+        #if os(macOS) || ENABLE_SCROLLING_THREAD // ENABLE(SCROLLING_THREAD)
         if nodeType == .Subframe {
             clipLayer()!.setScrollingNodeID(.init(nodeID))
         }
@@ -5491,7 +5491,7 @@ extension WebCore.RenderLayerCompositor {
             }
             backing.setAncestorClippingStackProxyNodeIDForSwift(index, proxyNodeID)
             addScrollingNodeLayerForSwift(proxyNodeID, layer)
-            #if os(macOS) // ENABLE(SCROLLING_THREAD)
+            #if os(macOS) || ENABLE_SCROLLING_THREAD // ENABLE(SCROLLING_THREAD)
             if let scrollingLayer = backing.ancestorClippingStackScrollingLayerForSwift(index) {
                 scrollingLayer.setScrollingNodeID(.init(proxyNodeID))
             }

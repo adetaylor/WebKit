@@ -3419,7 +3419,21 @@ set(_webcore_swift_interop_sources_all_ports
     platform/ScrollAnimator.cpp
     platform/ScrollView.cpp
     platform/ScrollableArea.cpp
-    platform/ScrollingEffectsController.cpp)
+    platform/ScrollingEffectsController.cpp
+    rendering/RenderLayerOwnership.cpp)
+# The RenderLayer subsystem is Swift on every port (its C++ is deleted), as in WebCore.xcodeproj; the sources are added
+# to WebCore below.
+set(WebCore_RENDER_LAYER_SWIFT_SOURCES
+    rendering/RenderElementLayers.swift
+    rendering/RenderLayerAncestorWalks.swift
+    rendering/RenderLayerBacking.swift
+    rendering/RenderLayerCompositor.swift
+    rendering/RenderLayerModelObjectLayer.swift
+    rendering/RenderLayerOwners.swift
+    rendering/RenderLayerPaintOrderLists.swift
+    rendering/RenderLayerTree.swift
+    rendering/UniqueOwner.swift
+)
 # The audio DSP is Swift on every port with Web Audio (there is no C++ for it). Its interop .cpp files include
 # WebCoreSwift-Generated.h, so they build in WebCore_SwiftInterop, like the other ports' above; the Swift
 # sources are added to WebCore below.
@@ -4014,18 +4028,6 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/network/ResourceResponseBase.swift
         ${WEBCORE_DIR}/platform/network/TimingAllowOrigin.swift
     )
-    # The RenderLayer subsystem, as in WebCore.xcodeproj.
-    target_sources(WebCore PRIVATE
-        ${WEBCORE_DIR}/rendering/RenderLayerTree.swift
-        ${WEBCORE_DIR}/rendering/RenderElementLayers.swift
-        ${WEBCORE_DIR}/rendering/RenderLayerModelObjectLayer.swift
-        ${WEBCORE_DIR}/rendering/RenderLayerCompositor.swift
-        ${WEBCORE_DIR}/rendering/RenderLayerBacking.swift
-        ${WEBCORE_DIR}/rendering/RenderLayerOwners.swift
-        ${WEBCORE_DIR}/rendering/RenderLayerAncestorWalks.swift
-        ${WEBCORE_DIR}/rendering/RenderLayerPaintOrderLists.swift
-        ${WEBCORE_DIR}/rendering/UniqueOwner.swift
-    )
 
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
@@ -4181,7 +4183,6 @@ if (APPLE)
         )
         list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_webauthn_swift_interop_sources})
     endif ()
-    list(APPEND WebCore_SWIFT_INTEROP_SOURCES rendering/RenderLayerOwnership.cpp)
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"
@@ -4788,6 +4789,14 @@ else ()
             "        export *\n"
             "    }\n")
     endif ()
+    # The RenderLayer subsystem's Swift imports WebCore_Private whole, as the Apple ports' umbrella has every private
+    # header: here the headers it needs are one non-explicit submodule, which `internal import WebCore_Private` sees.
+    string(APPEND _webcore_swift_modules
+        "    module RenderLayerSwiftImports {\n"
+        "        header \"${WEBCORE_DIR}/rendering/RenderLayerSwiftImports.h\"\n"
+        "        requires cplusplus\n"
+        "        export *\n"
+        "    }\n")
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
     if (_webcore_swift_core_submodules)
@@ -4866,6 +4875,9 @@ else ()
         target_link_options(WebCore PRIVATE "${_swift_sdk_lib_dir}/swiftrt.obj")
     endif ()
 endif ()
+
+list(TRANSFORM WebCore_RENDER_LAYER_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")
+target_sources(WebCore PRIVATE ${WebCore_RENDER_LAYER_SWIFT_SOURCES})
 
 if (ENABLE_WEB_AUDIO)
     list(TRANSFORM WebCore_AUDIO_DSP_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")
