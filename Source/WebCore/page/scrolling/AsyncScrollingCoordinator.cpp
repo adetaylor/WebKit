@@ -1079,7 +1079,7 @@ Vector<ScrollingNodeID> AsyncScrollingCoordinator::childrenOfNode(ScrollingNodeI
     });
 }
 
-void AsyncScrollingCoordinator::reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID> scrollingNodeID, const LayoutRect& viewportRect, ScrollingLayerPositionAction action)
+void AsyncScrollingCoordinator::reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID> scrollingNodeID, LayoutRect viewportRect, ScrollingLayerPositionAction action)
 {
     LOG_WITH_STREAM(Scrolling, stream << getCurrentProcessID() << " AsyncScrollingCoordinator::reconcileViewportConstrainedLayerPositions for viewport rect " << viewportRect << " and node " << scrollingNodeID);
     if (CheckedPtr stateTree = stateTreeForNodeID(scrollingNodeID))
@@ -1240,7 +1240,7 @@ void AsyncScrollingCoordinator::setViewportConstraintedNodeConstraints(Scrolling
     }
 }
 
-void AsyncScrollingCoordinator::setPositionedNodeConstraints(ScrollingNodeID nodeID, const AbsolutePositionConstraints& constraints)
+void AsyncScrollingCoordinator::setPositionedNodeConstraints(ScrollingNodeID nodeID, AbsolutePositionConstraints constraints)
 {
     RefPtr node = stateNodeForNodeID(nodeID);
     if (!node)

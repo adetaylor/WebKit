@@ -32,6 +32,7 @@
 #include <WebCore/PlatformWheelEvent.h>
 #include <WebCore/ScrollSnapOffsetsInfo.h>
 #include <WebCore/ScrollTypes.h>
+#include <WebCore/ScrollingConstraints.h>
 #include <WebCore/ScrollingCoordinatorTypes.h>
 #include <WebCore/UserInterfaceLayoutDirection.h>
 #include <WebCore/WheelEventTestMonitor.h>
@@ -46,7 +47,6 @@ class TextStream;
 
 namespace WebCore {
 
-class AbsolutePositionConstraints;
 class Color;
 class Document;
 class GraphicsLayer;
@@ -167,14 +167,14 @@ public:
     virtual void setScrollingNodeScrollableAreaGeometry(std::optional<ScrollingNodeID>, ScrollableArea&) { }
     virtual void setFrameScrollingNodeState(ScrollingNodeID, const LocalFrameView&) { }
     virtual void setViewportConstraintedNodeConstraints(ScrollingNodeID, const ViewportConstraints&) { }
-    virtual void setPositionedNodeConstraints(ScrollingNodeID, const AbsolutePositionConstraints&) { }
+    virtual void setPositionedNodeConstraints(ScrollingNodeID, AbsolutePositionConstraints) { }
     virtual void setRelatedOverflowScrollingNodes(ScrollingNodeID, Vector<ScrollingNodeID>) { }
     virtual void setSynchronousScrollingReasons(std::optional<ScrollingNodeID>, OptionSet<SynchronousScrollingReason>) { }
     virtual OptionSet<SynchronousScrollingReason> synchronousScrollingReasons(std::optional<ScrollingNodeID>) const { return { }; }
     bool hasSynchronousScrollingReasons(std::optional<ScrollingNodeID> nodeID) const { return !!synchronousScrollingReasons(nodeID); }
     virtual void applyScrollUpdate(ScrollUpdate&&, ScrollType = ScrollType::User, ViewportRectStability = ViewportRectStability::Stable) { }
 
-    virtual void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, const LayoutRect&, ScrollingLayerPositionAction) { }
+    virtual void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, LayoutRect, ScrollingLayerPositionAction) { }
     virtual String scrollingStateTreeAsText(OptionSet<ScrollingStateTreeAsTextBehavior> = { }) const;
     virtual String scrollingTreeAsText(OptionSet<ScrollingStateTreeAsTextBehavior> = { }) const;
     virtual bool haveScrollingTree() const { return false; }

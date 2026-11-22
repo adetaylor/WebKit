@@ -192,7 +192,7 @@ void ThreadedScrollingTree::didCommitTreeOnScrollingThread()
     }
 }
 
-RequestsScrollHandling ThreadedScrollingTree::scrollingTreeNodeRequestsScroll(ScrollingNodeID nodeID, const RequestedScrollData& request)
+RequestsScrollHandling ThreadedScrollingTree::scrollingTreeNodeRequestsScroll(ScrollingNodeID nodeID, RequestedScrollData request)
 {
     if (isAnimatedUpdate(request.requestType)) {
         m_nodesWithPendingScrollAnimations.set(nodeID, request);
@@ -201,7 +201,7 @@ RequestsScrollHandling ThreadedScrollingTree::scrollingTreeNodeRequestsScroll(Sc
     return RequestsScrollHandling::Unhandled;
 }
 
-bool ThreadedScrollingTree::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID nodeID, const RequestedKeyboardScrollData& request)
+bool ThreadedScrollingTree::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID nodeID, RequestedKeyboardScrollData request)
 {
     m_nodesWithPendingKeyboardScrollAnimations.set(nodeID, request);
     return true;

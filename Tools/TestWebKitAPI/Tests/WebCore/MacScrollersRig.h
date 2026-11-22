@@ -243,7 +243,7 @@ private:
     void receivedWheelEventWithPhases(PlatformWheelEventPhase phase, PlatformWheelEventPhase momentumPhase) final { m_digest.u(static_cast<uint8_t>(TreeCall::ReceivedPhases)).u(static_cast<uint8_t>(phase)).u(static_cast<uint8_t>(momentumPhase)); }
 
     // As ThreadedScrollingTree: animated scrolls and keyboard scrolls start after the commit.
-    RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID id, const RequestedScrollData& request) final
+    RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID id, RequestedScrollData request) final
     {
         record(TreeCall::ScrollRequest, id).u(static_cast<uint8_t>(request.requestType));
         if (!isAnimatedUpdate(request.requestType))
@@ -258,7 +258,7 @@ private:
         return RequestsScrollHandling::Handled;
     }
 
-    bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID id, const RequestedKeyboardScrollData& request) final
+    bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID id, RequestedKeyboardScrollData request) final
     {
         record(TreeCall::KeyboardScrollRequest, id).u(static_cast<uint8_t>(request.action));
         for (auto& pending : m_pendingKeyboardScrolls) {

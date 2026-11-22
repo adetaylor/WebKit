@@ -158,8 +158,8 @@ public:
     virtual void scrollingTreeNodeDidStopWheelEventScroll(ScrollingTreeScrollingNode&) { }
 
     // Called for requested scroll position updates. Returns true if handled.
-    SWIFT_UNSAFE virtual RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, const RequestedScrollData&) { return RequestsScrollHandling::Unhandled; }
-    SWIFT_UNSAFE virtual bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, const RequestedKeyboardScrollData&) { return false; }
+    SWIFT_UNSAFE virtual RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, RequestedScrollData) { return RequestsScrollHandling::Unhandled; }
+    SWIFT_UNSAFE virtual bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, RequestedKeyboardScrollData) { return false; }
 
     virtual void didHandleScrollRequestForNode(ScrollingNodeID, ScrollRequestType, FloatPoint, ShouldFireScrollEnd, Markable<ScrollRequestIdentifier>) { }
 

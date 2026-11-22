@@ -91,13 +91,13 @@ void RemoteScrollingCoordinatorProxyMac::wheelEventHandlingCompleted(const Platf
     m_eventDispatcher->wheelEventHandlingCompleted(wheelEvent, defaultHandlingFrameID, scrollingNodeID, gestureState, wasHandled);
 }
 
-RequestsScrollHandling RemoteScrollingCoordinatorProxyMac::scrollingTreeNodeRequestsScroll(ScrollingNodeID, const RequestedScrollData&)
+RequestsScrollHandling RemoteScrollingCoordinatorProxyMac::scrollingTreeNodeRequestsScroll(ScrollingNodeID, RequestedScrollData)
 {
     // Unlike iOS, we handle scrolling requests for the main frame in the same way we handle them for subscrollers.
     return RequestsScrollHandling::Unhandled;
 }
 
-bool RemoteScrollingCoordinatorProxyMac::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, const RequestedKeyboardScrollData&)
+bool RemoteScrollingCoordinatorProxyMac::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, RequestedKeyboardScrollData)
 {
     // Unlike iOS, we handle scrolling requests for the main frame in the same way we handle them for subscrollers.
     return false;

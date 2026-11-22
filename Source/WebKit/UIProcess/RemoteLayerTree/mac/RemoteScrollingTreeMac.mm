@@ -277,7 +277,7 @@ void RemoteScrollingTreeMac::didAddPendingScrollUpdate()
     });
 }
 
-RequestsScrollHandling RemoteScrollingTreeMac::scrollingTreeNodeRequestsScroll(ScrollingNodeID nodeID, const RequestedScrollData& request)
+RequestsScrollHandling RemoteScrollingTreeMac::scrollingTreeNodeRequestsScroll(ScrollingNodeID nodeID, RequestedScrollData request)
 {
     if (isAnimatedUpdate(request.requestType)) {
         ASSERT_WITH_SECURITY_IMPLICATION(m_treeLock.isLocked());
@@ -287,7 +287,7 @@ RequestsScrollHandling RemoteScrollingTreeMac::scrollingTreeNodeRequestsScroll(S
     return RequestsScrollHandling::Unhandled;
 }
 
-bool RemoteScrollingTreeMac::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID nodeID, const RequestedKeyboardScrollData& request)
+bool RemoteScrollingTreeMac::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID nodeID, RequestedKeyboardScrollData request)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(m_treeLock.isLocked());
     m_nodesWithPendingKeyboardScrollAnimations.set(nodeID, request);

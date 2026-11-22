@@ -84,8 +84,8 @@ protected:
     void scrollingTreeNodeDidStopWheelEventScroll(ScrollingTreeScrollingNode&) override;
     void didHandleScrollRequestForNode(ScrollingNodeID, ScrollRequestType, FloatPoint, ShouldFireScrollEnd, Markable<ScrollRequestIdentifier>) override;
 
-    SWIFT_UNSAFE RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, const RequestedScrollData&) override WTF_REQUIRES_LOCK(m_treeLock);
-    SWIFT_UNSAFE bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, const RequestedKeyboardScrollData&) override WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, RequestedScrollData) override WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, RequestedKeyboardScrollData) override WTF_REQUIRES_LOCK(m_treeLock);
 
     void addPendingScrollUpdateWithDeferReason(ScrollUpdate&&, WheelEventTestMonitor::DeferReason);
 

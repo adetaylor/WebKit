@@ -158,7 +158,7 @@ private:
     WEBCORE_EXPORT void setScrollingNodeScrollableAreaGeometry(std::optional<ScrollingNodeID>, ScrollableArea&) override;
     WEBCORE_EXPORT void setFrameScrollingNodeState(ScrollingNodeID, const LocalFrameView&) override;
     WEBCORE_EXPORT void setViewportConstraintedNodeConstraints(ScrollingNodeID, const ViewportConstraints&) override;
-    WEBCORE_EXPORT void setPositionedNodeConstraints(ScrollingNodeID, const AbsolutePositionConstraints&) override;
+    WEBCORE_EXPORT void setPositionedNodeConstraints(ScrollingNodeID, AbsolutePositionConstraints) override;
     WEBCORE_EXPORT void setRelatedOverflowScrollingNodes(ScrollingNodeID, Vector<ScrollingNodeID>) override;
 
     void reconcileScrollingState(LocalFrameView&, const FloatPoint&, const std::optional<LayoutViewportOriginOrOverrideRect>&, ScrollType, ViewportRectStability, ScrollingLayerPositionAction);
@@ -172,7 +172,7 @@ private:
 
     WEBCORE_EXPORT void setScrollPinningBehavior(ScrollPinningBehavior) override;
 
-    WEBCORE_EXPORT void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, const LayoutRect& viewportRect, ScrollingLayerPositionAction) override;
+    WEBCORE_EXPORT void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, LayoutRect viewportRect, ScrollingLayerPositionAction) override;
     WEBCORE_EXPORT void scrollableAreaScrollbarLayerDidChange(ScrollableArea&, ScrollbarOrientation) override;
 
     WEBCORE_EXPORT void setSynchronousScrollingReasons(std::optional<ScrollingNodeID>, OptionSet<SynchronousScrollingReason>) final;

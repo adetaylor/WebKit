@@ -83,7 +83,7 @@ public:
     LayerRepresentation::Type preferredLayerRepresentation() const { return m_preferredLayerRepresentation; }
     void setPreferredLayerRepresentation(LayerRepresentation::Type representation) { m_preferredLayerRepresentation = representation; }
 
-    void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, const LayoutRect& viewportRect, ScrollingLayerPositionAction);
+    void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, LayoutRect viewportRect, ScrollingLayerPositionAction);
 
     void scrollingNodeAdded()
     {

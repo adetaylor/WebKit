@@ -490,7 +490,7 @@ static void reconcileLayerPositionsRecursive(ScrollingStateNode& currentNode, co
     }
 }
 
-void ScrollingStateTree::reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID> scrollingNodeID, const LayoutRect& layoutViewport, ScrollingLayerPositionAction action)
+void ScrollingStateTree::reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID> scrollingNodeID, LayoutRect layoutViewport, ScrollingLayerPositionAction action)
 {
     if (auto scrollingNode = stateNodeForID(scrollingNodeID))
         reconcileLayerPositionsRecursive(*scrollingNode, layoutViewport, action);

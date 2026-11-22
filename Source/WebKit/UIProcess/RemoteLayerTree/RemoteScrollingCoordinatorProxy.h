@@ -94,8 +94,8 @@ public:
     }
 
     // Inform the web process that the scroll position changed (called from the scrolling tree)
-    virtual WebCore::RequestsScrollHandling scrollingTreeNodeRequestsScroll(WebCore::ScrollingNodeID, const WebCore::RequestedScrollData&);
-    virtual bool scrollingTreeNodeRequestsKeyboardScroll(WebCore::ScrollingNodeID, const WebCore::RequestedKeyboardScrollData&);
+    virtual WebCore::RequestsScrollHandling scrollingTreeNodeRequestsScroll(WebCore::ScrollingNodeID, WebCore::RequestedScrollData);
+    virtual bool scrollingTreeNodeRequestsKeyboardScroll(WebCore::ScrollingNodeID, WebCore::RequestedKeyboardScrollData);
 
     void scrollingThreadAddedPendingUpdate();
 
@@ -105,7 +105,7 @@ public:
     bool isPointInScrollbar(WebCore::FloatPoint);
 
     // Called externally when native views move around.
-    void viewportChangedViaDelegatedScrolling(const WebCore::FloatPoint& scrollPosition, const WebCore::FloatRect& layoutViewport, double scale);
+    void viewportChangedViaDelegatedScrolling(WebCore::FloatPoint scrollPosition, WebCore::FloatRect layoutViewport, double scale);
 
     virtual void applyScrollingTreeLayerPositionsAfterCommit();
     virtual void flushMainThreadTransactionIfNeeded() { }
