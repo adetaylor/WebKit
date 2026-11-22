@@ -106,6 +106,20 @@ void ensureOnMainThreadWithBlock(void (^ _Nonnull block)(void))
     });
 }
 
+void callOnMainRunLoopWithBlock(void (^ _Nonnull block)(void))
+{
+    callOnMainRunLoop([block = makeBlockPtr(block)] {
+        block();
+    });
+}
+
+void ensureOnMainRunLoopWithBlock(void (^ _Nonnull block)(void))
+{
+    ensureOnMainRunLoop([block = makeBlockPtr(block)] {
+        block();
+    });
+}
+
 #if USE(WEB_THREAD)
 
 static bool webThreadIsUninitializedOrLockedOrDisabled()
