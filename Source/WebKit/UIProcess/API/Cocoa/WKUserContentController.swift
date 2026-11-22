@@ -42,7 +42,7 @@ extension WKUserContentController {
     public func addBuffer(_ buffer: RawSpan, name: Swift.String, to contentWorld: WKContentWorld) {
         // Safety: This is safe because it's just the pre-API version of the safe `Span(viewing:)` API in Swift 6.4.
         // FIXME: (rdar://181879532) Adopt `Span(viewing:)` initializer instead of `Span(_bytes:)` in `WKUserContentController/addBuffer` implementation.
-        let typedSpan = unsafe Span<UInt8>(_bytes: buffer)
+        let typedSpan = unsafe Span<UInt8>(_unsafeBytes: buffer)
 
         // This use of unsafe is necessary to wrap the RawSpan for immediate processing by WebKit,
         // acknowledging that the safety of the RawSpan passed in by the client cannot be guaranteed.
