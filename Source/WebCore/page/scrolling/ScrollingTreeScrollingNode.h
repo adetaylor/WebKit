@@ -146,6 +146,9 @@ public:
 
     const LayerRepresentation& scrollContainerLayer() const LIFETIME_BOUND { return m_scrollContainerLayer; }
     const LayerRepresentation& scrolledContentsLayer() const LIFETIME_BOUND { return m_scrolledContentsLayer; }
+    // By value, for Swift, which imports neither the references above nor LayerRepresentation's explicit conversion.
+    // Out of line: Swift compiles an inline body again under ARC, and ThinLTO then miscompiles it into an over-release.
+    ScrollingPlatformLayer* scrollContainerPlatformLayer() const;
     
     OverscrollBehavior horizontalOverscrollBehavior() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior; }
     OverscrollBehavior verticalOverscrollBehavior() const { return m_scrollableAreaParameters.verticalOverscrollBehavior; }

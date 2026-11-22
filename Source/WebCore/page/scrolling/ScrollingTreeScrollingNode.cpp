@@ -596,6 +596,11 @@ bool ScrollingTreeScrollingNode::allowsVerticalScrolling() const
     return m_scrollableAreaParameters.allowsVerticalScrolling;
 }
 
+ScrollingPlatformLayer* ScrollingTreeScrollingNode::scrollContainerPlatformLayer() const
+{
+    return static_cast<ScrollingPlatformLayer*>(m_scrollContainerLayer);
+}
+
 } // namespace WebCore
 
 #endif // ENABLE(ASYNC_SCROLLING)
