@@ -115,7 +115,7 @@ public:
     std::span<const uint8_t> bytes() const LIFETIME_BOUND { return m_bytes; }
 
 private:
-    PixelBufferSourceView(const PixelBufferFormat& format, const IntSize& size, std::span<const uint8_t> bytes)
+    PixelBufferSourceView(const PixelBufferFormat& format, const IntSize& size, std::span<const uint8_t> bytes LIFETIME_BOUND)
         : m_format(format)
         , m_size(size)
         , m_bytes(bytes)
