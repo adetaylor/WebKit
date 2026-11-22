@@ -184,6 +184,20 @@ class SwiftReceiverTest(unittest.TestCase):
         self.assertRegex(swift, r'private final class ConditionalMessageInvocation \{(.|\n)*\n    \}\n    #endif\n\}\n')
         self.assertNotRegex(swift, r'#if[^\n]*\n    @used\n    func dispatchMessage\(')
 
+    def test_only_cxx_decoded_arguments_have_no_do_block(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
+    OnlyCxxDecoded([CxxDecoded] std::optional<WebCore::SharedMemory::Handle> handle)
+    SwiftAndCxxDecoded(uint32_t value, [CxxDecoded] std::optional<WebCore::SharedMemory::Handle> handle)
+""")
+        swift = messages.generate_swift_message_handler(receiver)
+        dispatch = swift.index('func dispatchOnlyCxxDecoded(')
+        only_cxx_decoding = swift[dispatch:swift.index('        handle = decodedHandle\n', dispatch)]
+        self.assertIn('guard let decodedHandle', only_cxx_decoding)
+        self.assertNotIn('do {', only_cxx_decoding)
+        self.assertNotIn('} catch {\n            return false', swift[dispatch:swift.index('func dispatchSwiftAndCxxDecoded(')])
+        swift_and_cxx = swift[swift.index('func dispatchSwiftAndCxxDecoded('):]
+        self.assertRegex(swift_and_cxx, r'        do \{\n            value = try ')
+
     def test_error_message_condition_swift_cannot_evaluate(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
 #if defined(SOME_MACRO)
