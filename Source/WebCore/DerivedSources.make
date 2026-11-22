@@ -2986,9 +2986,14 @@ SOFT_LINK_ACCESSOR_PATTERNS = $(subst .swift,%swift, $(subst .h,%h, $(subst .mod
 
 all : $(SOFT_LINK_ACCESSOR_FILES)
 
+# A swiftc named by path (SWIFT_EXEC) compiles the accessors, so its own toolchain's swift-synthesize-interface gives
+# their signatures: another toolchain's interface may leave out the `@unsafe` that this swiftc's strict memory safety
+# then requires.
+SOFT_LINK_ACCESSOR_SYNTHESIZE_INTERFACE = $(if $(and $(filter /%,$(SWIFT_EXEC)),$(wildcard $(dir $(SWIFT_EXEC))swift-synthesize-interface)),$(dir $(SWIFT_EXEC))swift-synthesize-interface,$(shell xcrun --sdk $(SDK_NAME) -f swift-synthesize-interface))
+
 $(SOFT_LINK_ACCESSOR_PATTERNS) : $(WebCore)/Scripts/generate-soft-link-accessors.py $(WebCore)/platform/cocoa/SoftLinkAccessors.in $(SOFT_LINK_ACCESSOR_PAL_FILES)
 	@echo Generating the soft-link accessors
 	$(PYTHON) $(WebCore)/Scripts/generate-soft-link-accessors.py --manifest $(WebCore)/platform/cocoa/SoftLinkAccessors.in \
 	    $(addprefix --framework , $(SOFT_LINK_ACCESSOR_FRAMEWORKS)) $(addprefix --stub-framework , $(SOFT_LINK_ACCESSOR_STUB_FRAMEWORKS)) $(addprefix --pal-header , $(filter %.h, $(SOFT_LINK_ACCESSOR_PAL_FILES))) \
 	    --output-dir SoftLinkAccessors --sdk $(SDKROOT) --target $(WK_CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX) \
-	    --synthesize-interface $(shell xcrun --sdk $(SDK_NAME) -f swift-synthesize-interface) $(SOFT_LINK_ACCESSOR_SYNTHESIZE_ARGUMENTS)
+	    --synthesize-interface $(SOFT_LINK_ACCESSOR_SYNTHESIZE_INTERFACE) $(SOFT_LINK_ACCESSOR_SYNTHESIZE_ARGUMENTS)
