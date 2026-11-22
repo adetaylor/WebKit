@@ -31,6 +31,7 @@
 #include <WebCore/ScrollTypes.h>
 #include <wtf/Markable.h>
 #include <wtf/OptionSet.h>
+#include <wtf/RefPtr.h>
 #include <wtf/text/TextStream.h>
 
 namespace WebCore {
@@ -68,6 +69,17 @@ enum class ScrollingStateTreeAsTextBehavior : uint8_t {
 // Names for Swift, which cannot spell a class template specialization.
 using ScrollingStateTreeAsTextBehaviors = OptionSet<ScrollingStateTreeAsTextBehavior>;
 using TextStreamFormattingFlags = OptionSet<WTF::TextStream::Formatting>;
+enum class RenderingUpdateStep : uint32_t;
+enum class LayoutOptions : uint8_t;
+enum class WheelEventTestMonitorDeferReason : uint16_t;
+class GraphicsLayer;
+using SynchronousScrollingReasons = OptionSet<SynchronousScrollingReason>;
+using RenderingUpdateSteps = OptionSet<RenderingUpdateStep>;
+using LayoutOptionSet = OptionSet<LayoutOptions>;
+using WheelEventTestMonitorDeferReasons = OptionSet<WheelEventTestMonitorDeferReason>;
+using OptionalFramesPerSecond = std::optional<unsigned>;
+using OptionalScrollbarColor = std::optional<ScrollbarColor>;
+using RefPtrGraphicsLayer = RefPtr<GraphicsLayer>;
 
 constexpr auto debugScrollingStateTreeAsTextBehaviors = OptionSet<ScrollingStateTreeAsTextBehavior> {
     ScrollingStateTreeAsTextBehavior::IncludeLayerIDs, ScrollingStateTreeAsTextBehavior::IncludeNodeIDs, ScrollingStateTreeAsTextBehavior::IncludeLayerPositions

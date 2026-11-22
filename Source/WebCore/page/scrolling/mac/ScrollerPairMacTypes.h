@@ -65,9 +65,6 @@ enum class ScrollbarPartFeature : uint8_t {
 
 using ScrollerPairMacWeakPtr = ThreadSafeWeakPtr<ScrollerPairMac>;
 
-// The scrollbar color ScrollingTreeScrollingNodeDelegateMac::updateFromStateNode() passes to the Swift scroll delegate.
-using OptionalScrollbarColor = std::optional<ScrollbarColor>;
-
 } // namespace WebCore
 
 #endif // PLATFORM(MAC)
