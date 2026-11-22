@@ -45,7 +45,7 @@ public:
 
     static std::optional<ScrollingAccelerationCurve> fromNativeWheelEvent(const NativeWebWheelEvent&);
 
-    static ScrollingAccelerationCurve interpolate(const ScrollingAccelerationCurve& from, const ScrollingAccelerationCurve& to, float amount);
+    static ScrollingAccelerationCurve interpolate(ScrollingAccelerationCurve from, ScrollingAccelerationCurve to, float amount);
 
     float gainLinear() const { return m_parameters.gainLinear; }
     float gainParabolic() const { return m_parameters.gainParabolic; }

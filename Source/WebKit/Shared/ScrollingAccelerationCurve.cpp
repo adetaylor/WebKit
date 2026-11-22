@@ -33,7 +33,7 @@
 
 namespace WebKit {
 
-ScrollingAccelerationCurve ScrollingAccelerationCurve::interpolate(const ScrollingAccelerationCurve& from, const ScrollingAccelerationCurve& to, float amount)
+ScrollingAccelerationCurve ScrollingAccelerationCurve::interpolate(ScrollingAccelerationCurve from, ScrollingAccelerationCurve to, float amount)
 {
     auto interpolate = [&] (float a, float b) -> float {
         return a + amount * (b - a);
