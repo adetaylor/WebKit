@@ -178,7 +178,7 @@ void ThreadedScrollingTreeScrollingNodeDelegate::discreteSnapTransitionTimerFire
     m_physics->delegate.discreteSnapTransitionTimerFired(state.facade());
 }
 
-FloatPoint ThreadedScrollingTreeScrollingNodeDelegate::adjustedScrollPosition(const FloatPoint& position) const
+FloatPoint ThreadedScrollingTreeScrollingNodeDelegate::adjustedScrollPosition(FloatPoint position) const
 {
     return { roundf(position.x()), roundf(position.y()) };
 }

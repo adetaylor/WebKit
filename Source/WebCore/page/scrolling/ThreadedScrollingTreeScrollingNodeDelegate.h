@@ -66,7 +66,7 @@ protected:
     std::unique_ptr<ScrollingEffectsControllerTimer> createTimer(Function<void()>&&);
     void destroyTimer(std::unique_ptr<ScrollingEffectsControllerTimer>);
 
-    FloatPoint adjustedScrollPosition(const FloatPoint&) const override;
+    FloatPoint adjustedScrollPosition(FloatPoint) const override;
 
     void handleKeyboardScrollRequest(const RequestedKeyboardScrollData&) override;
 

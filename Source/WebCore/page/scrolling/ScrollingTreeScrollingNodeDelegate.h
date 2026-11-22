@@ -66,7 +66,7 @@ public:
 
     virtual void handleKeyboardScrollRequest(const RequestedKeyboardScrollData&) { }
 
-    virtual FloatPoint adjustedScrollPosition(const FloatPoint& scrollPosition) const { return scrollPosition; }
+    virtual FloatPoint adjustedScrollPosition(FloatPoint scrollPosition) const { return scrollPosition; }
     virtual String scrollbarStateForOrientation(ScrollbarOrientation) const { return ""_s; }
 
     virtual Vector<PlatformLayerContainer, 2> hitTestableScrollbarLayers() const { return { }; }
