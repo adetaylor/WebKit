@@ -224,7 +224,7 @@ void RemoteScrollingCoordinatorProxy::establishLayerTreeScrollingRelations(IPC::
 }
 
 
-void RemoteScrollingCoordinatorProxy::adjustMainFrameDelegatedScrollPosition(ScrollRequestData&& requestData)
+void RemoteScrollingCoordinatorProxy::adjustMainFrameDelegatedScrollPosition(ScrollRequestData requestData)
 {
     // Note that this comes from the scrolling tree, and is not updated live when -requestScroll is called below.
     auto scrollPosition = currentMainFrameScrollPosition();

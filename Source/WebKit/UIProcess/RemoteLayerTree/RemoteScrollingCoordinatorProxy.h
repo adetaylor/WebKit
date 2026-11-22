@@ -131,7 +131,7 @@ public:
 #endif
 
     WebCore::ScrollRequestData commitScrollingTreeState(IPC::Connection&, const RemoteScrollingCoordinatorTransaction&, std::optional<WebCore::LayerHostingContextIdentifier> = std::nullopt);
-    void adjustMainFrameDelegatedScrollPosition(WebCore::ScrollRequestData&&);
+    void adjustMainFrameDelegatedScrollPosition(WebCore::ScrollRequestData);
 
     bool hasFixedOrSticky() const;
     bool hasScrollableMainFrame() const;
