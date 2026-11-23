@@ -73,7 +73,7 @@ void ScrollLatchingController::clear()
 }
 
 // FIXME: This logic is different from ScrollingTreeLatchingController, which simply lets the latching state elapse after 100ms.
-void ScrollLatchingController::clearOrScheduleClearIfNeeded(const PlatformWheelEvent& wheelEvent)
+void ScrollLatchingController::clearOrScheduleClearIfNeeded(PlatformWheelEvent wheelEvent)
 {
     if (wheelEvent.shouldResetLatching() || wheelEvent.isNonGestureEvent()) {
         clear();
@@ -106,7 +106,7 @@ void ScrollLatchingController::clearTimerFired()
     clear();
 }
 
-void ScrollLatchingController::receivedWheelEvent(const PlatformWheelEvent& wheelEvent)
+void ScrollLatchingController::receivedWheelEvent(PlatformWheelEvent wheelEvent)
 {
     clearOrScheduleClearIfNeeded(wheelEvent);
 

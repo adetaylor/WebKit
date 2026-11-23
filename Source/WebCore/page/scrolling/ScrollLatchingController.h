@@ -60,7 +60,7 @@ public:
     NODELETE SWIFT_UNSAFE void ref() const;
     SWIFT_UNSAFE void deref() const;
 
-    void receivedWheelEvent(const PlatformWheelEvent&);
+    void receivedWheelEvent(PlatformWheelEvent);
     FloatSize cumulativeEventDelta() const { return m_cumulativeEventDelta; }
 
     // Frame containing latched scroller (may be the frame or some sub-scroller).
@@ -86,7 +86,7 @@ private:
         bool isOverWidget { false };
     };
 
-    void clearOrScheduleClearIfNeeded(const PlatformWheelEvent&);
+    void clearOrScheduleClearIfNeeded(PlatformWheelEvent);
     void clearTimerFired();
 
     NODELETE bool hasStateForFrame(const LocalFrame&) const;
