@@ -29,7 +29,7 @@ import WebKit_Internal
 final class TestWithSwiftUntrustedWeakRef: @unchecked Sendable {
     private weak var target: TestWithSwiftUntrustedTarget?
     @_expose(!Cxx)
-    init(target: TestWithSwiftUntrustedTarget) {
+    fileprivate init(target: TestWithSwiftUntrustedTarget) {
         self.target = target
     }
 
@@ -354,5 +354,18 @@ extension WebKit.TestWithSwiftUntrustedMessageForwarder {
                 Unmanaged.passRetained(weakRefContainer).toOpaque()
             )
         )
+    }
+}
+
+extension TestWithSwiftUntrustedTarget {
+    @_expose(!Cxx)
+    nonisolated func withMainActorTarget(_ body: @MainActor @Sendable (TestWithSwiftUntrustedTarget) -> Void) {
+        let weakRefContainer = TestWithSwiftUntrustedWeakRef(target: self)
+        MainActor.assumeIsolated {
+            guard weakRefContainer.hasMessageTarget() else {
+                return
+            }
+            body(weakRefContainer.messageTarget())
+        }
     }
 }

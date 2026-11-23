@@ -28,7 +28,7 @@ import WebKit_Internal
 @_expose(Cxx)
 final class TestWithSwiftWeakRef: @unchecked Sendable {
     private weak var target: TestWithSwift?
-    init(target: TestWithSwift) {
+    fileprivate init(target: TestWithSwift) {
         self.target = target
     }
 
@@ -403,5 +403,18 @@ extension WebKit.TestWithSwiftMessageForwarder {
                 Unmanaged.passRetained(weakRefContainer).toOpaque()
             )
         )
+    }
+}
+
+extension TestWithSwift {
+    @_expose(!Cxx)
+    nonisolated func withMainActorTarget(_ body: @MainActor @Sendable (TestWithSwift) -> Void) {
+        let weakRefContainer = TestWithSwiftWeakRef(target: self)
+        MainActor.assumeIsolated {
+            guard weakRefContainer.hasMessageTarget() else {
+                return
+            }
+            body(weakRefContainer.messageTarget())
+        }
     }
 }

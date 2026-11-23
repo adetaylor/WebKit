@@ -327,7 +327,7 @@ messages -> TestReceiver WorkQueue {
         swift = messages.generate_swift_message_handler(receiver)
         self.assertIn('    private let target: TestReceiver\n', swift)
         self.assertEqual(swift.count('        target.assumeIsolated { target in\n'), 4)
-        self.assertIn('    @_expose(!Cxx)\n    init(target: TestReceiver) {\n', swift)
+        self.assertIn('    @_expose(!Cxx)\n    fileprivate init(target: TestReceiver) {\n', swift)
         self.assertIn('        connection: sending IPC.Connection,\n', swift)
         self.assertIn('        nonisolated(unsafe) let dataLent = decoder.lentBytes(dataPosition)\n', swift)
         self.assertIn('                try unsafe mayThrowInvalidMessage(\n', swift)

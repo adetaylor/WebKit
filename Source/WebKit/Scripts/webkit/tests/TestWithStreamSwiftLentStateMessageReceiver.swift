@@ -27,7 +27,7 @@ import WebKit_Internal
 @_expose(Cxx)
 final class TestWithStreamSwiftLentStateWeakRef {
     private let target: TestWithStreamSwiftLentState
-    init(target: TestWithStreamSwiftLentState) {
+    fileprivate init(target: TestWithStreamSwiftLentState) {
         self.target = target
     }
 

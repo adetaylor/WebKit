@@ -3337,7 +3337,9 @@ def generate_swift_message_handler(receiver):
         if receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE) or receiver.swift_target:
             # Only Swift makes it, and the C++ header can't take an actor, or a target that a C++ class's name hides.
             result.append('    @_expose(!Cxx)\n')
-        result.append('    init(target: %s) {\n' % (class_name))
+        # Only this file makes one (create(target:), withMainActorTarget(_:)): a main-thread box hands out its target
+        # without a check, so a box made elsewhere could carry the target to another thread.
+        result.append('    fileprivate init(target: %s) {\n' % (class_name))
         result.append('        self.target = target\n')
         result.append('    }\n')
         # @used ensures these are retained even with -O -wmo: rdar://179098545
@@ -3760,6 +3762,8 @@ def generate_swift_message_handler(receiver):
 
     if not implementation:
         append_message_forwarder_creation(result, message_forwarder_class, ref_message_forwarder_class, class_name, weak_ref_class)
+        if not swift_receiver_runs_on_work_queue(receiver) and not receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE):
+            append_main_actor_target_access(result, class_name, weak_ref_class)
     if receiver.has_swift_receiver_owner():
         append_swift_receiver_owner_start(result, message_forwarder_class, class_name, receiver.swift_receiver_owner_provider)
     if receiver.is_recordable():
@@ -3793,6 +3797,24 @@ def append_swift_receiver_owner_start(result, message_forwarder_class, class_nam
     else:
         result.append('    func startReceiving(on owner: IPC.SwiftReceiverOwner) {\n')
         result.append('        IPC.startSwiftReceiver(owner, WebKit.%s.create(target: self))\n' % message_forwarder_class)
+    result.append('    }\n')
+    result.append('}\n')
+
+
+# A main-thread receiver reached on the main actor from a nonisolated member, as message dispatch reaches it: the
+# receiver goes through its weak box, and assumeIsolated traps off the main thread before the box's target is loaded.
+def append_main_actor_target_access(result, class_name, weak_ref_class):
+    result.append('\n')
+    result.append('extension %s {\n' % class_name)
+    result.append('    @_expose(!Cxx)\n')
+    result.append('    nonisolated func withMainActorTarget(_ body: @MainActor @Sendable (%s) -> Void) {\n' % class_name)
+    result.append('        let weakRefContainer = %s(target: self)\n' % weak_ref_class)
+    result.append('        MainActor.assumeIsolated {\n')
+    result.append('            guard weakRefContainer.hasMessageTarget() else {\n')
+    result.append('                return\n')
+    result.append('            }\n')
+    result.append('            body(weakRefContainer.messageTarget())\n')
+    result.append('        }\n')
     result.append('    }\n')
     result.append('}\n')
 

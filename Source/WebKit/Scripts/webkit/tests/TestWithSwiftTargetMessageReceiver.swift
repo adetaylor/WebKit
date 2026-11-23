@@ -28,7 +28,7 @@ import WebKit_Internal
 final class TestWithSwiftTargetWeakRef {
     private let target: TestWithSwiftTargetState
     @_expose(!Cxx)
-    init(target: TestWithSwiftTargetState) {
+    fileprivate init(target: TestWithSwiftTargetState) {
         self.target = target
     }
 

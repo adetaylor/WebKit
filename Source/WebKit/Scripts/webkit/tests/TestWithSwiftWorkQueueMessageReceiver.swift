@@ -27,7 +27,7 @@ import WebKit_Internal
 @_expose(Cxx)
 final class TestWithSwiftWorkQueueWeakRef {
     private let target: TestWithSwiftWorkQueue
-    init(target: TestWithSwiftWorkQueue) {
+    fileprivate init(target: TestWithSwiftWorkQueue) {
         self.target = target
     }
 

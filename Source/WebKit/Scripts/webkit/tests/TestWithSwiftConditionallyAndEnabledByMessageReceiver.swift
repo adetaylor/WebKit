@@ -31,7 +31,7 @@ import WebKit_Internal
 @_expose(Cxx)
 final class TestWithSwiftConditionallyAndEnabledByWeakRef: @unchecked Sendable {
     private weak var target: TestWithSwiftConditionallyAndEnabledBy?
-    init(target: TestWithSwiftConditionallyAndEnabledBy) {
+    fileprivate init(target: TestWithSwiftConditionallyAndEnabledBy) {
         self.target = target
     }
 
@@ -182,6 +182,19 @@ extension WebKit.TestWithSwiftConditionallyAndEnabledByMessageForwarder {
                 Unmanaged.passRetained(weakRefContainer).toOpaque()
             )
         )
+    }
+}
+
+extension TestWithSwiftConditionallyAndEnabledBy {
+    @_expose(!Cxx)
+    nonisolated func withMainActorTarget(_ body: @MainActor @Sendable (TestWithSwiftConditionallyAndEnabledBy) -> Void) {
+        let weakRefContainer = TestWithSwiftConditionallyAndEnabledByWeakRef(target: self)
+        MainActor.assumeIsolated {
+            guard weakRefContainer.hasMessageTarget() else {
+                return
+            }
+            body(weakRefContainer.messageTarget())
+        }
     }
 }
 #endif
