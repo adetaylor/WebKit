@@ -390,6 +390,101 @@ final class TestWithSwiftWeakRef: @unchecked Sendable {
             }
         }
     }
+
+    @used
+    func dispatchTestMessageWithCompletionHandler(
+        connection: sending IPC.Connection,
+        param: sending UInt32,
+        completionHandler: sending CompletionHandlers.TestWithSwift.TestMessageWithCompletionHandlerCompletionHandler
+    ) {
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            Task.immediateOnMainActor {
+                await TestMessageWithCompletionHandlerInvocation(
+                    target: target,
+                    connection: connection,
+                    param: param,
+                    completionHandler: TestWithSwiftTestMessageWithCompletionHandlerReply(completionHandler)
+                )
+                .run()
+            }
+        }
+    }
+
+    private final class TestMessageWithCompletionHandlerInvocation {
+        private let target: TestWithSwift
+        private let connection: IPC.Connection
+        private let param: UInt32
+        private let completionHandler: TestWithSwiftTestMessageWithCompletionHandlerReply
+
+        init(
+            target: TestWithSwift,
+            connection: IPC.Connection,
+            param: UInt32,
+            completionHandler: TestWithSwiftTestMessageWithCompletionHandlerReply
+        ) {
+            self.target = target
+            self.connection = connection
+            self.param = param
+            self.completionHandler = completionHandler
+        }
+
+        @MainActor
+        func run() async {
+            do {
+                try await mayThrowInvalidMessage(
+                    target.testMessageWithCompletionHandler(
+                        connection: connection,
+                        param: param,
+                        completionHandler: completionHandler
+                    )
+                )
+            } catch {
+                markMessageInvalid(error, on: connection)
+                completionHandler.completeIfPending(failing: error)
+            }
+        }
+    }
+}
+
+@MainActor
+final class TestWithSwiftTestMessageWithCompletionHandlerReply {
+    private var completionHandler: CompletionHandlers.TestWithSwift.TestMessageWithCompletionHandlerCompletionHandler?
+
+    fileprivate init(_ completionHandler: CompletionHandlers.TestWithSwift.TestMessageWithCompletionHandlerCompletionHandler) {
+        self.completionHandler = completionHandler
+    }
+
+    // Sends the reply, once: a second call traps.
+    func callAsFunction(_ reply: UInt8) {
+        guard let completionHandler = completionHandler.take() else {
+            preconditionFailure("TestWithSwift.TestMessageWithCompletionHandler replied twice")
+        }
+        CompletionHandlers.TestWithSwift.complete(completionHandler, reply)
+    }
+
+    // Drops the completion handler without replying, as C++ that assigns over a completion handler it has not
+    // called: the sender gets no reply. A later call traps, as after a reply.
+    func dropWithoutReplying() {
+        guard let completionHandler = completionHandler.take() else {
+            preconditionFailure("TestWithSwift.TestMessageWithCompletionHandler replied twice")
+        }
+        CompletionHandlers.TestWithSwift.dropWithoutReply(completionHandler)
+    }
+
+    // Dispatch's reply to a message its handler found invalid, unless the handler has replied.
+    fileprivate func completeIfPending(failing error: InvalidMessage) {
+        guard let completionHandler = completionHandler.take() else {
+            return
+        }
+        if let reply = error.reply(as: UInt8.self) {
+            CompletionHandlers.TestWithSwift.complete(completionHandler, reply)
+        } else {
+            CompletionHandlers.TestWithSwift.completeWithDefaultReply(completionHandler)
+        }
+    }
 }
 
 extension WebKit.TestWithSwiftMessageForwarder {

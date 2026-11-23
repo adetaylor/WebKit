@@ -144,6 +144,11 @@ void completeWithDefaultReply(TestAsyncMessageCompletionHandler& completionHandl
     IPC::Connection::cancelReply<Messages::TestWithSwiftConditionallyAndEnabledBy::TestAsyncMessage>(*completionHandler);
 }
 
+void dropWithoutReply(TestAsyncMessageCompletionHandler& completionHandler)
+{
+    *completionHandler = { };
+}
+
 void complete(TestAsyncMessageCompletionHandler& completionHandler, uint8_t reply)
 {
     (*completionHandler)(reply);

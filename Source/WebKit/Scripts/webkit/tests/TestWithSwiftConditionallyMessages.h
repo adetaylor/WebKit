@@ -165,6 +165,7 @@ using TestAsyncMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSw
 using TestSyncMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftConditionally::TestSyncMessage::Reply>;
 
 void completeWithDefaultReply(TestAsyncMessageCompletionHandler&);
+void dropWithoutReply(TestAsyncMessageCompletionHandler&);
 
 void complete(TestAsyncMessageCompletionHandler&, uint8_t);
 } // namespace TestWithSwiftConditionally

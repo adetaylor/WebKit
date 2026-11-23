@@ -116,9 +116,19 @@ void completeWithDefaultReply(UntrustedOriginCompletionHandler& completionHandle
     IPC::Connection::cancelReply<Messages::TestWithSwiftUntrusted::UntrustedOrigin>(*completionHandler);
 }
 
+void dropWithoutReply(UntrustedOriginCompletionHandler& completionHandler)
+{
+    *completionHandler = { };
+}
+
 void completeWithDefaultReply(UntrustedOptionalOriginCompletionHandler& completionHandler)
 {
     IPC::Connection::cancelReply<Messages::TestWithSwiftUntrusted::UntrustedOptionalOrigin>(*completionHandler);
+}
+
+void dropWithoutReply(UntrustedOptionalOriginCompletionHandler& completionHandler)
+{
+    *completionHandler = { };
 }
 
 void completeWithDefaultReply(UntrustedOriginWithRepliesCompletionHandler& completionHandler)
@@ -126,9 +136,19 @@ void completeWithDefaultReply(UntrustedOriginWithRepliesCompletionHandler& compl
     IPC::Connection::cancelReply<Messages::TestWithSwiftUntrusted::UntrustedOriginWithReplies>(*completionHandler);
 }
 
+void dropWithoutReply(UntrustedOriginWithRepliesCompletionHandler& completionHandler)
+{
+    *completionHandler = { };
+}
+
 void completeWithDefaultReply(UntrustedOriginWithUnnamedReplyCompletionHandler& completionHandler)
 {
     IPC::Connection::cancelReply<Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReply>(*completionHandler);
+}
+
+void dropWithoutReply(UntrustedOriginWithUnnamedReplyCompletionHandler& completionHandler)
+{
+    *completionHandler = { };
 }
 
 void complete(UntrustedOriginCompletionHandler& completionHandler, bool reply)

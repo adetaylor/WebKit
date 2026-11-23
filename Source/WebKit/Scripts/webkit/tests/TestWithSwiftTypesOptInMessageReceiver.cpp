@@ -178,6 +178,11 @@ void completeWithDefaultReply(CxxTypedMessageCompletionHandler& completionHandle
     IPC::Connection::cancelReply<Messages::TestWithSwiftTypesOptIn::CxxTypedMessage>(*completionHandler);
 }
 
+void dropWithoutReply(CxxTypedMessageCompletionHandler& completionHandler)
+{
+    *completionHandler = { };
+}
+
 void complete(CxxTypedMessageCompletionHandler& completionHandler, uint8_t reply)
 {
     (*completionHandler)(reply);

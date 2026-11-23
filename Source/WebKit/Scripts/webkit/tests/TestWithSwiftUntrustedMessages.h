@@ -366,12 +366,16 @@ using UntrustedOriginWithRepliesCompletionHandler = WTF::RefCountable<Messages::
 using UntrustedOriginWithUnnamedReplyCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReply::Reply>;
 
 void completeWithDefaultReply(UntrustedOriginCompletionHandler&);
+void dropWithoutReply(UntrustedOriginCompletionHandler&);
 
 void completeWithDefaultReply(UntrustedOptionalOriginCompletionHandler&);
+void dropWithoutReply(UntrustedOptionalOriginCompletionHandler&);
 
 void completeWithDefaultReply(UntrustedOriginWithRepliesCompletionHandler&);
+void dropWithoutReply(UntrustedOriginWithRepliesCompletionHandler&);
 
 void completeWithDefaultReply(UntrustedOriginWithUnnamedReplyCompletionHandler&);
+void dropWithoutReply(UntrustedOriginWithUnnamedReplyCompletionHandler&);
 
 void complete(UntrustedOriginCompletionHandler&, bool);
 

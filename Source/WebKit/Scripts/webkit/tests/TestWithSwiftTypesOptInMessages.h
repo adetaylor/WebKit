@@ -284,6 +284,7 @@ using CxxTypedMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSwi
 using CxxTypedSynchronousMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftTypesOptIn::CxxTypedSynchronousMessage::Reply>;
 
 void completeWithDefaultReply(CxxTypedMessageCompletionHandler&);
+void dropWithoutReply(CxxTypedMessageCompletionHandler&);
 
 void complete(CxxTypedMessageCompletionHandler&, uint8_t);
 } // namespace TestWithSwiftTypesOptIn

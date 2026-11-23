@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_SENDERS_ATTRIBUTE, NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, SWIFT_DESTINATION_ID_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_SENDERS_ATTRIBUTE, NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, SWIFT_COMPLETION_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, SWIFT_DESTINATION_ID_ATTRIBUTE, MessageReceiver, Message
 
 # The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
 LENT_BYTES_CODER = 'IPC.LentBytes'
@@ -1102,6 +1102,21 @@ def message_to_complete_with_default_reply_definition(receiver, message):
     ])
 
 
+# Drops a completion handler without calling it, as C++ that assigns over a completion handler it has not called: the
+# sender gets no reply, and the completion handler's destructor does not assert, since it no longer holds a function.
+def message_to_drop_without_reply_declaration(receiver, message):
+    return 'void dropWithoutReply(%sCompletionHandler&);' % message.name
+
+
+def message_to_drop_without_reply_definition(receiver, message):
+    return '\n'.join([
+        'void dropWithoutReply(%sCompletionHandler& completionHandler)' % message.name,
+        '{',
+        '    *completionHandler = { };',
+        '}',
+    ])
+
+
 # The C++ type of a message's reply if it is a single primitive, which Swift passes through complete().
 def swift_primitive_reply_type(message):
     reply_parameters = message.reply_parameters or []
@@ -1610,7 +1625,7 @@ def generate_messages_header(receiver):
         result.append('\n')
         if reply_messages:
             result.append('\n')
-            result.append('\n\n'.join([render_for_reply_types(receiver, x, lambda m: message_to_complete_with_default_reply_declaration(receiver, m)) for x in messages_with_distinct_reply_types(receiver)]))
+            result.append('\n\n'.join([render_for_reply_types(receiver, x, lambda m: message_to_complete_with_default_reply_declaration(receiver, m) + '\n' + message_to_drop_without_reply_declaration(receiver, m)) for x in messages_with_distinct_reply_types(receiver)]))
             result.append('\n')
             for message in messages_with_distinct_primitive_reply_types(receiver):
                 result.append('\n%s\n' % render_for_reply_types(receiver, message, lambda m: message_to_complete_declaration(receiver, m)))
@@ -1831,6 +1846,62 @@ def swift_failed_check_reply_statements(receiver, message):
         '    %s' % default_reply,
         '}',
     ]
+
+
+# The reply object a SwiftCompletionHandler message's handler is given: it holds the C++ completion handler, which the
+# handler cannot reach, and is isolated to the main actor, where dispatch makes it and C++ constructed the completion
+# handler. Calling it sends the reply, once: the call takes the completion handler out, and a second call traps rather
+# than call a completion handler that has been called. Dispatch's catch of a failed check replies only if the handler
+# has not.
+def swift_completion_handler_reply_class(receiver, message, reply_class):
+    reply_parameters = message.reply_parameters or []
+    try:
+        reply_types = [swift_type_name(parameter.type) for parameter in reply_parameters]
+    except UnmappableSwiftType as error:
+        raise Exception("ERROR: Message %s.%s has '%s', whose reply types must have Swift names: %s" % (receiver.name, message.name, SWIFT_COMPLETION_HANDLER_ATTRIBUTE, error))
+    if not reply_types:
+        reply_parameter = ''
+    elif len(reply_types) == 1:
+        reply_parameter = '_ reply: %s' % reply_types[0]
+    else:
+        reply_parameter = '_ reply: (%s)' % ', '.join(reply_types)
+    completion_handler_type = 'CompletionHandlers.%s.%sCompletionHandler' % (receiver.name, message.name)
+    result = []
+    result.append('@MainActor\n')
+    result.append('final class %s {\n' % reply_class)
+    result.append('    private var completionHandler: %s?\n' % completion_handler_type)
+    result.append('\n')
+    result.append('    fileprivate init(_ completionHandler: %s) {\n' % completion_handler_type)
+    result.append('        self.completionHandler = completionHandler\n')
+    result.append('    }\n')
+    result.append('\n')
+    result.append('    // Sends the reply, once: a second call traps.\n')
+    result.append('    func callAsFunction(%s) {\n' % reply_parameter)
+    result.append('        guard let completionHandler = completionHandler.take() else {\n')
+    result.append('            preconditionFailure("%s.%s replied twice")\n' % (receiver.name, message.name))
+    result.append('        }\n')
+    result.append('        %s\n' % swift_reply_completion_call(receiver, message, 'reply'))
+    result.append('    }\n')
+    result.append('\n')
+    result.append('    // Drops the completion handler without replying, as C++ that assigns over a completion handler it has not\n')
+    result.append('    // called: the sender gets no reply. A later call traps, as after a reply.\n')
+    result.append('    func dropWithoutReplying() {\n')
+    result.append('        guard let completionHandler = completionHandler.take() else {\n')
+    result.append('            preconditionFailure("%s.%s replied twice")\n' % (receiver.name, message.name))
+    result.append('        }\n')
+    result.append('        CompletionHandlers.%s.dropWithoutReply(completionHandler)\n' % receiver.name)
+    result.append('    }\n')
+    result.append('\n')
+    result.append('    // Dispatch\'s reply to a message its handler found invalid, unless the handler has replied.\n')
+    result.append('    fileprivate func completeIfPending(failing error: InvalidMessage) {\n')
+    result.append('        guard let completionHandler = completionHandler.take() else {\n')
+    result.append('            return\n')
+    result.append('        }\n')
+    for statement in swift_failed_check_reply_statements(receiver, message):
+        result.append('        %s\n' % statement)
+    result.append('    }\n')
+    result.append('}\n')
+    return result
 
 
 # Whether a message's Swift handler is given its reply as a value rather than returning it.
@@ -3119,7 +3190,7 @@ def generate_message_handler(receiver):
             return
         result.append('\n')
         result.append('namespace CompletionHandlers {\nnamespace %s {\n\n' % receiver.name)
-        result.append('\n\n'.join([render_for_reply_types(receiver, x, lambda m: message_to_complete_with_default_reply_definition(receiver, m)) for x in messages_with_distinct_reply_types(receiver)]))
+        result.append('\n\n'.join([render_for_reply_types(receiver, x, lambda m: message_to_complete_with_default_reply_definition(receiver, m) + '\n\n' + message_to_drop_without_reply_definition(receiver, m)) for x in messages_with_distinct_reply_types(receiver)]))
         for message in messages_with_distinct_primitive_reply_types(receiver):
             result.append('\n\n%s' % render_for_reply_types(receiver, message, lambda m: message_to_complete_definition(receiver, m)))
         result.append('\n\n')
@@ -3375,6 +3446,7 @@ def generate_swift_message_handler(receiver):
             result.append('    }\n')
 
     stream_reply_values = []
+    completion_handler_replies = []
 
     # A Swift handler cannot throw across the C++ boundary - swiftc will not represent a throwing
     # function in C++ at all - so IPC dispatch is pointed at one of these instead. Each catches a
@@ -3467,8 +3539,11 @@ def generate_swift_message_handler(receiver):
         # there instead of entering an actor. A WorkQueue receiver's handler is called directly too, on
         # the queue its forwarder is registered with, which only that registration determines, or, with
         # 'SwiftActor', inside its actor, whose executor must be that queue.
+        # A SwiftCompletionHandler handler is given the message's generated reply object, which holds the completion
+        # handler and sends the reply when the handler calls it, and dispatch sends no reply of its own.
         is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
         runs_on_work_queue = swift_receiver_runs_on_work_queue(receiver)
+        gives_completion_handler = message.has_attribute(SWIFT_COMPLETION_HANDLER_ATTRIBUTE)
         sync_handler = message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) or runs_on_work_queue
         # FIXME(rdar://189495426): store arguments in an Invocation class to work around Windows tail
         # call problem.
@@ -3481,6 +3556,15 @@ def generate_swift_message_handler(receiver):
         else:
             stored = ['target: %s' % class_name] + [p.replace(': sending ', ': ') for p in parameters]
         stored_names = [p.split(':')[0] for p in stored]
+        # The Invocation of a SwiftCompletionHandler message keeps the reply object rather than the completion handler,
+        # which dispatch hands to the reply object as it makes the Invocation, on the main actor.
+        stored_values = dict((name, name) for name in stored_names)
+        completion_handler_reply_class = None
+        if gives_completion_handler:
+            completion_handler_reply_class = '%s%sReply' % (receiver.name, message.name)
+            stored = [('completionHandler: %s' % completion_handler_reply_class) if p.startswith('completionHandler: ') else p for p in stored]
+            stored_values['completionHandler'] = '%s(completionHandler)' % completion_handler_reply_class
+            completion_handler_replies.append((message, completion_handler_reply_class))
 
         result.append('\n')
         if implementation:
@@ -3573,13 +3657,18 @@ def generate_swift_message_handler(receiver):
         elif has_reply:
             reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]
             cancel_statements = swift_failed_check_reply_statements(receiver, message)
+            if gives_completion_handler:
+                # The handler replies through the reply object; a failed check replies only if it has not.
+                arguments.append('completionHandler: completionHandler')
+                reply_statements = []
+                cancel_statements = ['completionHandler.completeIfPending(failing: error)']
 
         def append_handler_call(base, await_keyword, typed_do, lends_inside=True, unsafe_keyword=''):
             if lends_inside:
                 for name in lent_parameters:
                     result.append('%slet %s = decoder.lentBytes(%sPosition)\n' % (base, name, name))
             result.append('%sdo%s {\n' % (base, ' throws(InvalidMessage)' if typed_do else ''))
-            assignment = 'let reply = ' if message.reply_parameters and not reply_value_type else ''
+            assignment = 'let reply = ' if message.reply_parameters and not reply_value_type and not gives_completion_handler else ''
             call = ['%stry %s%smayThrowInvalidMessage(' % (assignment, unsafe_keyword, await_keyword)]
             if arguments:
                 call.append('    target.%s(' % handler_function_name(message))
@@ -3651,7 +3740,7 @@ def generate_swift_message_handler(receiver):
         # Without the guard, the Task would be the closure's result, and so the unused result of assumeIsolated.
         result.append('            %sTask.immediateOnMainActor {\n' % ('_ = ' if implementation else ''))
         result.append('                await %s(\n' % invocation_class)
-        result.append(',\n'.join(['                    %s: %s' % (name, name) for name in stored_names]))
+        result.append(',\n'.join(['                    %s: %s' % (name, stored_values[name]) for name in stored_names]))
         result.append('\n                )\n')
         result.append('                .run()\n')
         result.append('            }\n')
@@ -3757,6 +3846,14 @@ def generate_swift_message_handler(receiver):
         result.append('        replyEncoder.cancel()\n')
         result.append('    }\n')
         result.append('}\n')
+        if message.condition:
+            result.append('#endif\n')
+
+    for message, reply_class in completion_handler_replies:
+        result.append('\n')
+        if message.condition:
+            result.append('#if %s\n' % swift_types.swift_condition(message.condition))
+        result += swift_completion_handler_reply_class(receiver, message, reply_class)
         if message.condition:
             result.append('#endif\n')
 

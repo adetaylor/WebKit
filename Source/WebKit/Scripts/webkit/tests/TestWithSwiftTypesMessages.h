@@ -910,6 +910,7 @@ using MessageWithCxxTypesCompletionHandler = WTF::RefCountable<Messages::TestWit
 using SyncHandlerMessageWithCxxTypesCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftTypes::SyncHandlerMessageWithCxxTypes::Reply>;
 
 void completeWithDefaultReply(MessageWithCxxTypesCompletionHandler&);
+void dropWithoutReply(MessageWithCxxTypesCompletionHandler&);
 
 void complete(MessageWithCxxTypesCompletionHandler&, uint8_t);
 } // namespace TestWithSwiftTypes

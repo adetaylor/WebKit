@@ -502,6 +502,7 @@ using SendCxxStringSyncCompletionHandler = WTF::RefCountable<Messages::TestWithS
 using SendCxxStringAsyncCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftWorkQueue::SendCxxStringAsync::Reply>;
 
 void completeWithDefaultReply(SendCxxStringSyncCompletionHandler&);
+void dropWithoutReply(SendCxxStringSyncCompletionHandler&);
 
 void complete(SendCxxStringSyncCompletionHandler&, uint64_t);
 } // namespace TestWithSwiftWorkQueue
