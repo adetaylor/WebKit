@@ -25,6 +25,7 @@
 
 #include "config.h"
 #include "MockCcidService.h"
+#include "WKMockWebAuthenticationObjects.h"
 
 #if ENABLE(WEB_AUTHN)
 
@@ -35,20 +36,16 @@
 #include <wtf/StdLibExtras.h>
 #include <wtf/cocoa/VectorCocoa.h>
 
-@interface _WKMockTKSmartCard : TKSmartCard
-- (instancetype)initWithService:(WeakPtr<WebKit::MockCcidService>&&)service;
-@end
-
 @implementation _WKMockTKSmartCard {
     WeakPtr<WebKit::MockCcidService> m_service;
 }
 
-- (instancetype)initWithService:(WeakPtr<WebKit::MockCcidService>&&)service
+- (instancetype)initWithService:(WebKit::MockCcidService&)service
 {
     if (!(self = [super init]))
         return nil;
 
-    m_service = WTF::move(service);
+    m_service = service;
 
     return self;
 }
@@ -93,7 +90,7 @@ MockCcidService::MockCcidService(AuthenticatorTransportServiceObserver& observer
 void MockCcidService::platformStartDiscovery()
 {
     if (!!m_configuration.ccid) {
-        auto card = adoptNS([[_WKMockTKSmartCard alloc] initWithService:this]);
+        RetainPtr card = adoptNS([[_WKMockTKSmartCard alloc] initWithService:*this]);
         onValidCard(WTF::move(card), nullptr);
         return;
     }

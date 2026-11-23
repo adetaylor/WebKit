@@ -6817,6 +6817,8 @@
 		570DAAC12303730300E8FC04 /* NfcConnection.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NfcConnection.mm; sourceTree = "<group>"; };
 		133B4CB7209CEAC25C96B84F /* MainRunLoopDestroyedHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MainRunLoopDestroyedHandler.h; sourceTree = "<group>"; };
 		570DAAC423037F7E00E8FC04 /* WKNFReaderSessionDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKNFReaderSessionDelegate.h; sourceTree = "<group>"; };
+		F1B7DC2BEB3F6F48097DEA8F /* WKSmartCardObservers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKSmartCardObservers.h; sourceTree = "<group>"; };
+		F345359A05E0F9B97D299997 /* WKMockWebAuthenticationObjects.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKMockWebAuthenticationObjects.h; sourceTree = "<group>"; };
 		570DAAC523037F7E00E8FC04 /* WKNFReaderSessionDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WKNFReaderSessionDelegate.mm; sourceTree = "<group>"; };
 		570DAAC8230385FD00E8FC04 /* CtapNfcDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CtapNfcDriver.h; sourceTree = "<group>"; };
 		570DAAC9230385FD00E8FC04 /* CtapNfcDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CtapNfcDriver.cpp; sourceTree = "<group>"; };
@@ -15449,6 +15451,7 @@
 				577739942580388F0059348B /* WKASCAuthorizationPresenterDelegate.mm */,
 				570DAAC423037F7E00E8FC04 /* WKNFReaderSessionDelegate.h */,
 				570DAAC523037F7E00E8FC04 /* WKNFReaderSessionDelegate.mm */,
+				F1B7DC2BEB3F6F48097DEA8F /* WKSmartCardObservers.h */,
 			);
 			path = Cocoa;
 			sourceTree = "<group>";
@@ -15470,6 +15473,7 @@
 				57DCEDC2214F114C0016B847 /* MockLocalService.mm */,
 				57B8264A230603C100B72EB0 /* MockNfcService.h */,
 				57B8264B230603C100B72EB0 /* MockNfcService.mm */,
+				F345359A05E0F9B97D299997 /* WKMockWebAuthenticationObjects.h */,
 			);
 			path = Mock;
 			sourceTree = "<group>";

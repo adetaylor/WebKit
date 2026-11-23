@@ -30,6 +30,7 @@
 #import "CtapNfcDriver.h"
 #import "NearFieldSPI.h"
 #import "NfcConnection.h"
+#import "WKMockWebAuthenticationObjects.h"
 #import <WebCore/FidoConstants.h>
 #import <objc/runtime.h>
 #import <wtf/BlockPtr.h>
@@ -49,13 +50,6 @@ uint8_t tagID2[] = { 0x02 };
 }
 
 #if HAVE(NEAR_FIELD)
-
-@interface WKMockNFTag : NSObject <NFTag>
-
-- (instancetype)initWithType:(NFTagType)type;
-- (instancetype)initWithType:(NFTagType)type tagID:(NSData *)tagID;
-
-@end
 
 @implementation WKMockNFTag {
     NFTagType _type;

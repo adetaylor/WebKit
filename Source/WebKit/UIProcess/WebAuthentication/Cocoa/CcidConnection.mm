@@ -30,6 +30,7 @@
 #import "CcidService.h"
 #import "Logging.h"
 #import "MainRunLoopDestroyedHandler.h"
+#import "WKSmartCardObservers.h"
 #import <CryptoTokenKit/TKSmartCard.h>
 #import <WebCore/FidoConstants.h>
 #import <wtf/BlockPtr.h>
@@ -45,21 +46,17 @@
 - (BOOL)simulateCardReinsertionWithError:(NSError **)error;
 @end
 
-@interface WKSmartCardObserver : NSObject
-- (instancetype)initWithCard:(TKSmartCard *)card invalidationHandler:(Function<void()>&&)handler;
-@end
-
 @implementation WKSmartCardObserver {
     RetainPtr<TKSmartCard> _card;
-    Function<void()> _invalidationHandler;
+    BlockPtr<void()> _invalidationHandler;
 }
 
-- (instancetype)initWithCard:(TKSmartCard *)card invalidationHandler:(Function<void()>&&)handler
+- (instancetype)initWithCard:(TKSmartCard *)card invalidationHandler:(void (^)(void))handler
 {
     if (!(self = [super init]))
         return nil;
     _card = card;
-    _invalidationHandler = WTF::move(handler);
+    _invalidationHandler = makeBlockPtr(handler);
     [protect(_card) addObserver:self forKeyPath:@"valid" options:NSKeyValueObservingOptionNew context:nil];
     return self;
 }
@@ -104,7 +101,7 @@ CcidConnection::CcidConnection(RetainPtr<TKSmartCard>&& smartCard, RetainPtr<TKS
 
     lazyInitialize(m_observer, adoptNS([[WKSmartCardObserver alloc]
         initWithCard:m_smartCard.get()
-        invalidationHandler:[weakThis = ThreadSafeWeakPtr { *this }] {
+        invalidationHandler:makeBlockPtr([weakThis = ThreadSafeWeakPtr { *this }] {
             if (RefPtr protectedThis = weakThis.get()) {
                 RELEASE_LOG(WebAuthn, "%p - CcidConnection::invalidationHandler fired, m_hasSession=%d, m_sessionPending=%d", protectedThis.get(), protectedThis->m_hasSession, protectedThis->m_sessionPending);
                 protectedThis->m_sessionPending = false;
@@ -114,7 +111,7 @@ CcidConnection::CcidConnection(RetainPtr<TKSmartCard>&& smartCard, RetainPtr<TKS
                     protectedThis->m_hasSession = false;
                 }
             }
-        }]));
+        }).get()]));
 
     startPolling();
 }
