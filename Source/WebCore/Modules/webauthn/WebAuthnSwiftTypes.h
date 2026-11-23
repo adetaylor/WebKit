@@ -127,7 +127,8 @@ struct WebAuthnClientInputsBuilder {
     void beginPRFEvalByCredential() { inputs.prf->evalByCredential = Vector<KeyValuePair<String, WebCore::AuthenticationExtensionsClientInputs::PRFValues>> { }; }
     void addPRFEvalByCredential(const String& credentialID, const Vector<uint8_t>& first) { inputs.prf->evalByCredential->append({ credentialID, WebCore::AuthenticationExtensionsClientInputs::PRFValues { bufferSourceFromBytes(first), std::nullopt } }); }
     void setLastPRFEvalByCredentialSecond(const Vector<uint8_t>& second) { inputs.prf->evalByCredential->last().value.second = bufferSourceFromBytes(second); }
-    std::optional<WebCore::AuthenticationExtensionsClientInputs> take() { return std::exchange(inputs, { }); }
+    // The builder is used once: take moves the inputs out.
+    std::optional<WebCore::AuthenticationExtensionsClientInputs> take() { return WTF::move(inputs); }
     WebCore::AuthenticationExtensionsClientInputs inputs;
 };
 
