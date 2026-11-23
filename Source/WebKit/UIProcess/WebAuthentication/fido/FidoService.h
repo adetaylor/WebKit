@@ -39,8 +39,8 @@ namespace WebKit {
 class SWIFT_PRIVATE_FILEID("WebKit/FidoService.swift") FidoService : public AuthenticatorTransportService, public RefCounted<FidoService> {
     WTF_MAKE_TZONE_ALLOCATED(FidoService);
 public:
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
+    SWIFT_UNSAFE void ref() const final { RefCounted::ref(); }
+    SWIFT_UNSAFE void deref() const final { RefCounted::deref(); }
 
 protected:
     explicit FidoService(AuthenticatorTransportServiceObserver&);
