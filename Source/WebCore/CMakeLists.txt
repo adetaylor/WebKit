@@ -3396,6 +3396,9 @@ endif ()
 # The C++ of WebCore's Swift ports that includes WebCore-Swift.h compiles in WebCore_SwiftInterop, after WebCore's
 # Swift module, on every port.
 set(_webcore_swift_interop_sources_all_ports
+    Modules/indexeddb/server/IDBBackingStoreFactories.cpp
+    Modules/indexeddb/server/IDBSerialization.cpp
+    Modules/indexeddb/server/SwiftIDBBackingStore.cpp
     html/parser/HTMLDocumentParserFastPath.cpp
     html/parser/HTMLTokenizer.cpp
     html/track/WebVTTTokenizer.cpp
@@ -3964,6 +3967,20 @@ if (APPLE)
         ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsFont.swift
         ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/css/typedom/CSSNumericValueSwift.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBSerialization.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBCursor.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBDatabaseState.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBIndex.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBKey.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBKeyTable.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBObjectStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBRecords.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBTransaction.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIndexValueStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStoreCursor.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStoreTransaction.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SwiftIDBStore.swift
         ${WEBCORE_DIR}/html/parser/HTMLConstructionSite.swift
         ${WEBCORE_DIR}/html/parser/HTMLElementStack.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
@@ -4262,6 +4279,20 @@ else ()
         ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsFont.swift
         ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/css/typedom/CSSNumericValueSwift.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBSerialization.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBCursor.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBDatabaseState.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBIndex.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBKey.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBKeyTable.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBObjectStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBRecords.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBTransaction.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIndexValueStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStoreCursor.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStoreTransaction.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SwiftIDBStore.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
@@ -4459,6 +4490,30 @@ else ()
         page/scrolling/ScrollingTreeOverflowScrollProxyNode.h
         page/scrolling/ScrollingTreeScrollingNode.h
         platform/animation/TimingFunction.h)
+    # The IndexedDB backing stores' Swift.
+    list(APPEND _webcore_swift_core_submodules
+        Modules/indexeddb/IDBGetAllResult.h
+        Modules/indexeddb/IDBGetResult.h
+        Modules/indexeddb/IDBKeyData.h
+        Modules/indexeddb/IDBKeyRangeData.h
+        Modules/indexeddb/IDBTransactionDurability.h
+        Modules/indexeddb/IDBTransactionMode.h
+        Modules/indexeddb/IDBValue.h
+        Modules/indexeddb/IndexedDB.h
+        Modules/indexeddb/server/SQLiteIDBStoreTypes.h
+        Modules/indexeddb/server/SwiftIDBTypes.h
+        Modules/indexeddb/shared/IDBCursorInfo.h
+        Modules/indexeddb/shared/IDBDatabaseInfo.h
+        Modules/indexeddb/shared/IDBError.h
+        Modules/indexeddb/shared/IDBIndexInfo.h
+        Modules/indexeddb/shared/IDBObjectStoreInfo.h
+        Modules/indexeddb/shared/IDBResourceIdentifier.h
+        Modules/indexeddb/shared/IDBTransactionInfo.h
+        Modules/indexeddb/shared/IndexKey.h
+        platform/ThreadSafeDataBuffer.h
+        platform/sql/SQLiteDatabase.h
+        platform/sql/SQLiteStatement.h
+        platform/sql/SQLiteTransaction.h)
     string(APPEND _webcore_swift_modules
         "    explicit module ScrollPhysicsTypes {\n"
         "        header \"${WEBCORE_DIR}/platform/ScrollPhysicsTypes.h\"\n"

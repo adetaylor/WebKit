@@ -28,9 +28,11 @@
 #include "IDBBackingStoreFactories.h"
 
 #include "IDBBackingStore.h"
-#include "MemoryIDBBackingStore.h"
-#include "SQLiteIDBBackingStore.h"
-#include "SQLiteMemoryIDBBackingStore.h"
+#include "IDBDatabaseNameAndVersion.h"
+#include "SQLiteIDBStoreTypes.h"
+#include "SwiftIDBBackingStore.h"
+#include "SwiftIDBTypes.h"
+#include "WebCore-Swift.h"
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
@@ -38,42 +40,46 @@ namespace IDBServer {
 
 std::unique_ptr<IDBBackingStore> makeSQLiteIDBBackingStore(const IDBDatabaseIdentifier& identifier, const String& databaseDirectory)
 {
-    return makeUnique<SQLiteIDBBackingStore>(identifier, databaseDirectory);
+    return makeUnique<SwiftSQLiteIDBBackingStore>(identifier, databaseDirectory, false);
 }
 
 std::unique_ptr<IDBBackingStore> makeSQLiteMemoryIDBBackingStore(const IDBDatabaseIdentifier& identifier)
 {
-    return makeUnique<SQLiteMemoryIDBBackingStore>(identifier);
+    return makeUnique<SwiftSQLiteIDBBackingStore>(identifier, emptyString(), true);
 }
 
 std::unique_ptr<IDBBackingStore> makeMemoryIDBBackingStore(const IDBDatabaseIdentifier& identifier)
 {
-    return makeUnique<MemoryIDBBackingStore>(identifier);
+    return makeUnique<SwiftIDBBackingStore>(identifier);
 }
 
 String fullDatabasePathForDirectory(const String& databaseDirectory)
 {
-    return SQLiteIDBBackingStore::fullDatabasePathForDirectory(databaseDirectory);
+    return SQLiteIDBStore::fullDatabasePathForDirectory(databaseDirectory);
 }
 
 std::optional<IDBDatabaseNameAndVersion> databaseNameAndVersionFromFile(const String& databasePath)
 {
-    return SQLiteIDBBackingStore::databaseNameAndVersionFromFile(databasePath);
+    // A database file at version 0 has no name and version.
+    auto nameAndVersion = SQLiteIDBStore::nameAndVersionFromFile(databasePath);
+    if (!nameAndVersion.version)
+        return std::nullopt;
+    return nameAndVersion;
 }
 
 uint64_t databasesSizeForDirectory(const String& directory)
 {
-    return SQLiteIDBBackingStore::databasesSizeForDirectory(directory);
+    return SQLiteIDBStore::databasesSizeForDirectory(directory);
 }
 
 String encodeDatabaseName(const String& databaseName)
 {
-    return SQLiteIDBBackingStore::encodeDatabaseName(databaseName);
+    return SQLiteIDBStore::encodeDatabaseName(databaseName);
 }
 
 String decodeDatabaseName(const String& encodedDatabaseName)
 {
-    return SQLiteIDBBackingStore::decodeDatabaseName(encodedDatabaseName);
+    return SQLiteIDBStore::decodeDatabaseName(encodedDatabaseName);
 }
 
 } // namespace IDBServer

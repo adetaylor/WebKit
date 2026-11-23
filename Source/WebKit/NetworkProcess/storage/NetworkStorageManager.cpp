@@ -2295,7 +2295,7 @@ void NetworkStorageManager::putOrAdd(IPC::Connection& connection, const WebCore:
 {
     assertIsCurrent(workQueue());
     // keyData is used as a key in IDBKeyData-keyed containers (e.g. the
-    // MemoryObjectStore key/value HashMap). A null or Invalid variant would
+    // in-memory backing store's records). A null or Invalid variant would
     // collide with IDBKeyDataHashTraits's empty-value sentinel. Placeholders
     // are the legitimate exception: IDBTransaction::putOrAdd sends a
     // placeholder (nullptr_t + isPlaceholder=true) for auto-generated keys,

@@ -3248,7 +3248,7 @@ IndexedDBSQLiteMemoryBackingStoreEnabled:
   status: stable
   category: dom
   humanReadableName: "IndexedDB SQLite Memory Backing Store"
-  humanReadableDescription: "Use SQLite in-memory database for ephemeral IndexedDB instead of MemoryIDBBackingStore"
+  humanReadableDescription: "Use SQLite in-memory database for ephemeral IndexedDB instead of the in-memory backing store"
   defaultValue: true
   sharedPreferenceForWebProcess: true
 

@@ -216,21 +216,9 @@ Modules/indexeddb/client/TransactionOperation.cpp
 Modules/indexeddb/server/IDBConnectionToClient.cpp
 Modules/indexeddb/server/IDBSerialization.cpp
 Modules/indexeddb/server/IDBServer.cpp
-Modules/indexeddb/server/IndexValueEntry.cpp
-Modules/indexeddb/server/IndexValueStore.cpp
-Modules/indexeddb/server/MemoryBackingStoreTransaction.cpp
-Modules/indexeddb/server/MemoryCursor.cpp
-Modules/indexeddb/server/MemoryIDBBackingStore.cpp
-Modules/indexeddb/server/MemoryIndex.cpp
-Modules/indexeddb/server/MemoryIndexCursor.cpp
-Modules/indexeddb/server/MemoryObjectStore.cpp @cost:3
-Modules/indexeddb/server/MemoryObjectStoreCursor.cpp
 Modules/indexeddb/server/IDBBackingStoreFactories.cpp
-Modules/indexeddb/server/SQLiteIDBBackingStore.cpp @cost:5
-Modules/indexeddb/server/SQLiteMemoryIDBBackingStore.cpp
-Modules/indexeddb/server/SQLiteIDBCursor.cpp
-Modules/indexeddb/server/SQLiteIDBTransaction.cpp
 Modules/indexeddb/server/ServerOpenDBRequest.cpp
+Modules/indexeddb/server/SwiftIDBBackingStore.cpp
 Modules/indexeddb/server/UniqueIDBDatabase.cpp
 Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp
 Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp
