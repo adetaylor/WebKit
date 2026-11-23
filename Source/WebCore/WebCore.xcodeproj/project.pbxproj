@@ -5100,7 +5100,7 @@
 		AEBAFFAD2D65D459008311A5 /* UnknownCredentialOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = AEBAFFAC2D65D459008311A5 /* UnknownCredentialOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AEBAFFB02D65D478008311A5 /* AllAcceptedCredentialsOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = AEBAFFAF2D65D478008311A5 /* AllAcceptedCredentialsOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AEBAFFB52D65D537008311A5 /* CurrentUserDetailsOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = AEBAFFB42D65D537008311A5 /* CurrentUserDetailsOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		AED243472C8BC27700E8649D /* PublicKeyCredentialCreationOptionsJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243462C8BC26000E8649D /* PublicKeyCredentialCreationOptionsJSON.h */; };
+		AED243472C8BC27700E8649D /* PublicKeyCredentialCreationOptionsJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243462C8BC26000E8649D /* PublicKeyCredentialCreationOptionsJSON.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AED2434A2C8BCCD600E8649D /* AuthenticatorSelectionCriteria.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243492C8BC80100E8649D /* AuthenticatorSelectionCriteria.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AED2434D2C8F905700E8649D /* PublicKeyCredentialEntity.h in Headers */ = {isa = PBXBuildFile; fileRef = AED2434C2C8F905700E8649D /* PublicKeyCredentialEntity.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AED243512C8F931700E8649D /* PublicKeyCredentialUserEntity.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243502C8F931700E8649D /* PublicKeyCredentialUserEntity.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -5108,7 +5108,7 @@
 		AED243552C8FA2C000E8649D /* PublicKeyCredentialParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243542C8FA2C000E8649D /* PublicKeyCredentialParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AED243592C90355600E8649D /* AuthenticationExtensionsClientInputsJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243582C90355600E8649D /* AuthenticationExtensionsClientInputsJSON.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AED2435B2C90367C00E8649D /* AuthenticationExtensionsClientOutputsJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED2435A2C90367C00E8649D /* AuthenticationExtensionsClientOutputsJSON.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		AED2435F2C90DE3E00E8649D /* PublicKeyCredentialRequestOptionsJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED2435E2C90DE3E00E8649D /* PublicKeyCredentialRequestOptionsJSON.h */; };
+		AED2435F2C90DE3E00E8649D /* PublicKeyCredentialRequestOptionsJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED2435E2C90DE3E00E8649D /* PublicKeyCredentialRequestOptionsJSON.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AED243622C90DE9100E8649D /* PublicKeyCredentialDescriptorJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243612C90DE9100E8649D /* PublicKeyCredentialDescriptorJSON.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AED243642C90F54A00E8649D /* PublicKeyCredentialUserEntityJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243632C90F54A00E8649D /* PublicKeyCredentialUserEntityJSON.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		AED243672C939A5900E8649D /* RegistrationResponseJSON.h in Headers */ = {isa = PBXBuildFile; fileRef = AED243662C939A5900E8649D /* RegistrationResponseJSON.h */; settings = {ATTRIBUTES = (Private, ); }; };
