@@ -62,6 +62,11 @@ static bool shouldUseAlternateAttributes()
     return false;
 }
 
+LAContext *createWebAuthnLAContext()
+{
+    return [allocLAContextInstance() init];
+}
+
 WTF_MAKE_TZONE_ALLOCATED_IMPL(LocalConnection);
 
 Ref<LocalConnection> LocalConnection::create()
