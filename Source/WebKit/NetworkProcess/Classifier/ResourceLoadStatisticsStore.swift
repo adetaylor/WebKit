@@ -966,10 +966,7 @@ extension WebKit.ResourceLoadStatisticsStore {
                 let currentIsScheduledForAllButCookieDataRemoval =
                     current.columnInt(ObservedDomainsColumn.IsScheduledForAllButCookieDataRemoval.rawValue) != 0
 
-                assert(
-                    current.columnText(ObservedDomainsColumn.RegistrableDomain.rawValue).description
-                        == Self.string(registrableDomain).description
-                )
+                assert(current.columnText(ObservedDomainsColumn.RegistrableDomain.rawValue) == Self.string(registrableDomain))
 
                 if currentLastSeen < lastSeen.secondsSinceEpoch().value() {
                     updateLastSeenRecord(registrableDomain, lastSeen.secondsSinceEpoch().value())
