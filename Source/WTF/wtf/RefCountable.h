@@ -27,6 +27,7 @@
 
 #include <optional>
 #include <wtf/Assertions.h>
+#include <wtf/CompletionHandler.h>
 #include <wtf/Lock.h>
 #include <wtf/Ref.h>
 #include <wtf/SwiftBridging.h>
@@ -155,7 +156,52 @@ template<typename T> struct RemoveMoveOnlyArgument<MoveOnlyArgument<T>> {
     using Type = T;
 };
 
+// Holds a CompletionHandler for Swift to keep and call later, possibly from another thread. Call it, or drop the last
+// reference, on the thread the handler expects; only the handler's assertion checks that. A second call crashes.
+template<typename> class CompletionHandlerBox;
+template<typename Out, typename... In>
+class SWIFT_UNCHECKED_SENDABLE CompletionHandlerBox<Out(In...)> final : public ThreadSafeRefCounted<CompletionHandlerBox<Out(In...)>> {
+public:
+    SWIFT_UNAVAILABLE_IN_SWIFT static Ref<CompletionHandlerBox> create(CompletionHandler<Out(In...)>&& completionHandler)
+    {
+        return adoptRef(*new CompletionHandlerBox(WTF::move(completionHandler)));
+    }
+
+#ifdef __swift__
+    SWIFT_UNSAFE void ref() const
+    {
+        ThreadSafeRefCounted<CompletionHandlerBox<Out(In...)>>::ref();
+    }
+
+    SWIFT_UNSAFE void deref() const
+    {
+        ThreadSafeRefCounted<CompletionHandlerBox<Out(In...)>>::deref();
+    }
+#endif
+
+    SWIFT_UNSAFE Out operator()(In... in)
+    {
+        CompletionHandler<Out(In...)> completionHandler;
+        {
+            Locker locker { m_lock };
+            RELEASE_ASSERT(m_completionHandler);
+            completionHandler = WTF::move(m_completionHandler);
+        }
+        return completionHandler(std::forward<In>(in)...);
+    }
+
+private:
+    explicit CompletionHandlerBox(CompletionHandler<Out(In...)>&& completionHandler)
+        : m_completionHandler(WTF::move(completionHandler))
+    {
+    }
+
+    Lock m_lock;
+    CompletionHandler<Out(In...)> m_completionHandler WTF_GUARDED_BY_LOCK(m_lock);
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
 } // namespace WTF
 
+using WTF::CompletionHandlerBox;
 using WTF::MoveOnlyArgument;
 using WTF::MoveOnlyBox;

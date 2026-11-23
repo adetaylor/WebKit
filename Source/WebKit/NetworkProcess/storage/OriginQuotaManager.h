@@ -29,6 +29,7 @@
 #include <wtf/CompletionHandler.h>
 #include <wtf/Deque.h>
 #include <wtf/Markable.h>
+#include <wtf/RefCountable.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
@@ -51,7 +52,9 @@ public:
     uint64_t usage();
     enum class Decision : bool { Deny, Grant };
     using RequestCallback = CompletionHandler<void(Decision)>;
-    void requestSpace(uint64_t spaceRequested, RequestCallback&&);
+    using RequestCallbackBox = CompletionHandlerBox<void(Decision)>;
+    void requestSpace(uint64_t spaceRequested, RequestCallback&& callback);
+    SWIFT_UNSAFE void requestSpace(uint64_t spaceRequested, RequestCallbackBox& callbackBox);
     void didIncreaseQuota(QuotaIncreaseRequestIdentifier, std::optional<uint64_t> newQuota);
 
     NODELETE void resetQuotaUpdatedBasedOnUsageForTesting();

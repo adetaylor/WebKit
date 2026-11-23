@@ -27,6 +27,7 @@
 
 #include "Helpers/Test.h"
 #include <wtf/CompletionHandler.h>
+#include <wtf/RefCountable.h>
 #include <wtf/Threading.h>
 #include <wtf/threads/BinarySemaphore.h>
 
@@ -203,6 +204,69 @@ TEST(CompletionHandlerDeathTest, MAYBE_ASSERT_ENABLED_DEATH_TEST(ConstructionThr
             ch1(); // This should assert.
         })->waitForCompletion();
     }, "ASSERTION FAILED: threadLikeAssertion.isCurrent\\(\\)");
+}
+
+TEST_F(CompletionHandlerTest, BoxCallsHandler)
+{
+    int calls = 0;
+    RefPtr box = CompletionHandlerBox<void(int)>::create([&calls](int value) {
+        EXPECT_EQ(7, value);
+        ++calls;
+    });
+    (*box)(7);
+    EXPECT_EQ(1, calls);
+}
+
+TEST_F(CompletionHandlerTest, CalledBoxCanBeReleasedOffThread)
+{
+    bool didCall = false;
+    RefPtr box = CompletionHandlerBox<void()>::create([&didCall] {
+        didCall = true;
+    });
+    (*box)();
+    EXPECT_TRUE(didCall);
+
+    Thread::create("CalledBoxCanBeReleasedOffThread"_s, [box = WTF::move(box)] mutable {
+        box = nullptr;
+    })->waitForCompletion();
+}
+
+TEST(CompletionHandlerDeathTest, BoxCalledTwiceCrashes)
+{
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_DEATH_IF_SUPPORTED({
+        WTF::initializeMainThread();
+        RefPtr box = CompletionHandlerBox<void()>::create([] { });
+        (*box)();
+        (*box)();
+    },
+#if ASSERT_ENABLED
+        "ASSERTION FAILED: m_completionHandler"
+#else
+        ""
+#endif
+    );
+}
+
+TEST(CompletionHandlerDeathTest, MAYBE_ASSERT_ENABLED_DEATH_TEST(BoxCalledOnThreadAsserts))
+{
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_DEATH_IF_SUPPORTED({
+        WTF::initializeMainThread();
+        RefPtr box = CompletionHandlerBox<void()>::create([] { });
+        Thread::create("BoxCalledOnThreadAsserts"_s, [&] {
+            (*box)(); // This should assert.
+        })->waitForCompletion();
+    }, "ASSERTION FAILED: threadLikeAssertion.isCurrent\\(\\)");
+}
+
+TEST(CompletionHandlerDeathTest, MAYBE_ASSERT_ENABLED_DEATH_TEST(UncalledBoxAsserts))
+{
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+    ASSERT_DEATH_IF_SUPPORTED({
+        WTF::initializeMainThread();
+        RefPtr box = CompletionHandlerBox<void()>::create([] { });
+    }, "ASSERTION FAILED: Completion handler should always be called");
 }
 
 }

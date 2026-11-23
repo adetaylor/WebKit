@@ -36,8 +36,10 @@ struct CacheStorageRecord;
 class CacheStorageStore : public ThreadSafeRefCounted<CacheStorageStore> {
 public:
     virtual ~CacheStorageStore() = default;
-    using ReadAllRecordInfosCallback = CompletionHandler<void(Vector<CacheStorageRecordInformation>&&)>;
-    using ReadRecordsCallback = CompletionHandler<void(Vector<std::optional<CacheStorageRecord>>&&)>;
+    using RecordInformationVector = Vector<CacheStorageRecordInformation>;
+    using ReadAllRecordInfosCallback = CompletionHandler<void(RecordInformationVector&&)>;
+    using ReadRecordsResult = Vector<std::optional<CacheStorageRecord>>;
+    using ReadRecordsCallback = CompletionHandler<void(ReadRecordsResult&&)>;
     using WriteRecordsCallback = CompletionHandler<void(bool)>;
     virtual void readAllRecordInfos(ReadAllRecordInfosCallback&&) = 0;
     virtual void readRecords(const Vector<CacheStorageRecordInformation>&, ReadRecordsCallback&&) = 0;

@@ -123,12 +123,13 @@ private:
 
             static_assert(!std::is_lvalue_reference_v<DeclaredArgument>);
 
-            if constexpr (std::is_copy_constructible_v<ArgumentType>) {
-                static_assert(!std::is_rvalue_reference_v<DeclaredArgument>);
+            // An argument taken by rvalue reference is moved out for Swift to take, even when its type has a copy
+            // constructor, as WTF::Vector always does.
+            if constexpr (!std::is_rvalue_reference_v<DeclaredArgument>) {
+                static_assert(std::is_copy_constructible_v<ArgumentType>);
 
                 invoke(context, std::addressof(arguments)...);
             } else {
-                static_assert(std::is_rvalue_reference_v<DeclaredArgument>);
                 static_assert(!std::is_trivially_destructible_v<ArgumentType>);
 
                 AlignedStorage<ArgumentType> storage;

@@ -585,7 +585,7 @@ static void queryCaches(Vector<Ref<CacheStorageCache>>&& caches, size_t index, W
     });
 }
 
-void CacheStorageManager::query(WebCore::RetrieveRecordsOptions&& options, String&& cacheName, CompletionHandler<void(std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&&)>&& callback)
+void CacheStorageManager::query(WebCore::RetrieveRecordsOptions&& options, String&& cacheName, QueryCallback&& callback)
 {
     if (!initializeCaches()) {
         callback({ });
@@ -604,6 +604,13 @@ void CacheStorageManager::query(WebCore::RetrieveRecordsOptions&& options, Strin
     }
 
     queryCaches(Vector<Ref<CacheStorageCache>> { m_caches }, index, WTF::move(options), cacheName.isEmpty(), WTF::move(callback));
+}
+
+void CacheStorageManager::query(WebCore::RetrieveRecordsOptions&& options, String&& cacheName, QueryCallbackBox& callbackBox)
+{
+    query(WTF::move(options), WTF::move(cacheName), [callbackBox = Ref { callbackBox }](std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&& record) {
+        callbackBox.get()(WTF::move(record));
+    });
 }
 
 } // namespace WebKit

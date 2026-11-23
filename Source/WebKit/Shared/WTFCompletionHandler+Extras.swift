@@ -25,6 +25,7 @@
 
 #if compiler(>=6.4)
 
+import WebKit_Internal
 import wtf.Core.CompletionHandler
 
 /// The machinery shared by ``CxxCompletionHandler``, ``CxxConsumingCompletionHandler``, and
@@ -322,6 +323,14 @@ extension WTF.VoidCompletionHandler: @unsafe CxxVoidCompletionHandler {}
 
 extension WTF.BoolCompletionHandler: @unsafe CxxCompletionHandler {
     typealias Argument = Bool
+}
+
+extension WebKit.CacheStorageStore.ReadAllRecordInfosCallback: @unsafe CxxConsumingCompletionHandler {
+    typealias Argument = WebKit.CacheStorageStore.RecordInformationVector
+}
+
+extension WebKit.CacheStorageStore.ReadRecordsCallback: @unsafe CxxConsumingCompletionHandler {
+    typealias Argument = WebKit.CacheStorageStore.ReadRecordsResult
 }
 
 #endif // compiler(>=6.4)
