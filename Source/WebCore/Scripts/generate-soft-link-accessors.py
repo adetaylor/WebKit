@@ -304,13 +304,16 @@ def find_declaration(interfaces, name):
 ERASED_RESULTS = ('CVBuffer', 'CVImageBuffer', 'CVPixelBuffer')
 
 
-def declaration_from_typedef(typedef):
+def declaration_from_typedef(name, typedef):
     pointer_parameters, pointer_result, _ = typedef
     m = re.fullmatch(r'Unmanaged<(.*)>(\??)', pointer_result)
     result = m.group(1) + m.group(2) if m else pointer_result
     if m and m.group(1) in ERASED_RESULTS:
         result = 'CFTypeRef' + m.group(2)
-    return [f'_ arg{i}: {parameter}' for i, parameter in enumerate(pointer_parameters)], result
+    parameters = [re.sub(r'^(Unsafe(?:Mutable)?Pointer)<Unmanaged<(\w+)>\?>', r'\1<\2?>', parameter) for parameter in pointer_parameters]
+    if parameters != pointer_parameters and not follows_create_rule(name):
+        raise GeneratorError(f'{name}: an Unmanaged out-parameter is rewritten as retained, but the name does not follow the Create rule')
+    return [f'_ arg{i}: {parameter}' for i, parameter in enumerate(parameters)], result
 
 
 def find_function_typedef(text, name):
@@ -334,13 +337,13 @@ def adapt_argument(expression, declared_type, pointer_type):
         return expression, False
     if declared_type == 'Bool' and pointer_type == 'DarwinBoolean':
         return f'DarwinBoolean({expression})', False
-    declared = re.fullmatch(r'Unsafe(Mutable)?Pointer<(\w+)\?>', declared_type)
-    pointer = re.fullmatch(r'Unsafe(Mutable)?Pointer<Unmanaged<(\w+)>\?>', pointer_type)
-    if declared and pointer and declared.group(1) == pointer.group(1) and declared.group(2) == pointer.group(2):
+    declared = re.fullmatch(r'Unsafe(Mutable)?Pointer<(\w+)\?>(\??)', declared_type)
+    pointer = re.fullmatch(r'Unsafe(Mutable)?Pointer<Unmanaged<(\w+)>\?>(\??)', pointer_type)
+    if declared and pointer and declared.groups()[::2] == pointer.groups()[::2] and declared.group(2) == pointer.group(2):
         # A CF out-parameter. Optional<T> and Optional<Unmanaged<T>> have the same layout, and the callee stores a +1
         # reference that the caller's Optional<T> then owns, as with the imported declaration.
         mutable = declared.group(1) or ''
-        return f'Unsafe{mutable}RawPointer({expression}).assumingMemoryBound(to: Unmanaged<{pointer.group(2)}>?.self)', True
+        return f'Unsafe{mutable}RawPointer({expression}){declared.group(3)}.assumingMemoryBound(to: Unmanaged<{pointer.group(2)}>?.self)', True
     return None, False
 
 
@@ -816,7 +819,7 @@ def accessors_file(framework, entries, declarations, typedefs, interfaces_for, h
         declaration = declarations.symbols[name]
         if kind == 'function':
             typedef = find_function_typedef(typedefs, f'PALSoftLink_{name}_t')
-            imported = declaration_from_typedef(typedef) if typedef and swift_type == 'refined' else find_declaration(interfaces_for(framework), name)
+            imported = declaration_from_typedef(name, typedef) if typedef and swift_type == 'refined' else find_declaration(interfaces_for(framework), name)
             if not typedef or not imported:
                 raise GeneratorError(f'{name}: no typedef or imported declaration found')
             w += function_accessor(declaration, typedef, imported, swift_type == 'pointer')

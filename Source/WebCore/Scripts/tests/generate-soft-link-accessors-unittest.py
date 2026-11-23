@@ -195,14 +195,20 @@ public typealias PALSoftLink_MediaMake_t = @convention(c) (Int64, Int32) -> Medi
         self.assertIsNone(generator.find_declaration([self.INTERFACE], 'MediaMissing'))
 
     def test_declaration_from_typedef(self):
-        self.assertEqual(generator.declaration_from_typedef((['__MediaGroup', 'CFIndex'], 'Unmanaged<CVPixelBuffer>?', True)), (['_ arg0: __MediaGroup', '_ arg1: CFIndex'], 'CFTypeRef?'))
-        self.assertEqual(generator.declaration_from_typedef((['CMSampleBuffer'], 'Unmanaged<__MediaGroup>?', True)), (['_ arg0: CMSampleBuffer'], '__MediaGroup?'))
-        self.assertEqual(generator.declaration_from_typedef((['__MediaGroup'], 'CMItemCount', False)), (['_ arg0: __MediaGroup'], 'CMItemCount'))
+        self.assertEqual(generator.declaration_from_typedef('MediaGroupGetPixelBufferAtIndex', (['__MediaGroup', 'CFIndex'], 'Unmanaged<CVPixelBuffer>?', True)), (['_ arg0: __MediaGroup', '_ arg1: CFIndex'], 'CFTypeRef?'))
+        self.assertEqual(generator.declaration_from_typedef('MediaGroupGet', (['CMSampleBuffer'], 'Unmanaged<__MediaGroup>?', True)), (['_ arg0: CMSampleBuffer'], '__MediaGroup?'))
+        self.assertEqual(generator.declaration_from_typedef('MediaGroupGetCount', (['__MediaGroup'], 'CMItemCount', False)), (['_ arg0: __MediaGroup'], 'CMItemCount'))
+
+    def test_refined_out_parameter(self):
+        typedef = (['CFAllocator?', 'UnsafeMutablePointer<Unmanaged<__MediaGroup>?>'], 'OSStatus', True)
+        self.assertEqual(generator.declaration_from_typedef('MediaGroupCreate', typedef), (['_ arg0: CFAllocator?', '_ arg1: UnsafeMutablePointer<__MediaGroup?>'], 'OSStatus'))
+        with self.assertRaises(generator.GeneratorError):
+            generator.declaration_from_typedef('MediaGroupGet', typedef)
 
     def test_refined_function_accessor(self):
         typedef = (['__MediaGroup', 'CFIndex'], 'Unmanaged<CVPixelBuffer>?', True)
         declaration = generator.Declaration('function', 'Media', 'MediaGroupGetPixelBufferAtIndex', False)
-        lines = generator.function_accessor(declaration, typedef, generator.declaration_from_typedef(typedef))
+        lines = generator.function_accessor(declaration, typedef, generator.declaration_from_typedef('MediaGroupGetPixelBufferAtIndex', typedef))
         self.assertEqual(lines[-1], 'func MediaGroupGetPixelBufferAtIndex(_ arg0: __MediaGroup, _ arg1: CFIndex) -> CFTypeRef? { unsafe softLink_MediaGroupGetPixelBufferAtIndex(arg0, arg1)?.takeUnretainedValue() }')
 
     def test_typedefs(self):
