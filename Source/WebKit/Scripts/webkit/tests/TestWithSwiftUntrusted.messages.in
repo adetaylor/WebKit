@@ -34,4 +34,7 @@ messages -> TestWithSwiftUntrusted {
     UntrustedOrigin(IPC::Untrusted<WebCore::SecurityOriginData> origin) -> (bool result)
     UntrustedOptionalOrigin(WebCore::FrameIdentifier frameID, IPC::Untrusted<std::optional<WebCore::SecurityOriginData>> parentOrigin) -> (struct WebCore::ExceptionData exception)
     UntrustedOriginWithoutReply(IPC::Untrusted<WebCore::SecurityOriginData> origin)
+    # A failed check's reply of several values, and one whose type has no Swift name, which is always the default reply.
+    UntrustedOriginWithReplies(IPC::Untrusted<WebCore::SecurityOriginData> origin) -> (WebCore::FrameIdentifier frameID, struct WebCore::ExceptionData exception)
+    UntrustedOriginWithUnnamedReply(IPC::Untrusted<WebCore::SecurityOriginData> origin) -> (std::pair<uint32_t, String> pair)
 }

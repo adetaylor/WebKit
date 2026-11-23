@@ -261,6 +261,8 @@ enum class MessageName : uint16_t {
     TestWithSwiftTypes_SyncHandlerMessageWithoutReply,
     TestWithSwiftUntrusted_UntrustedOptionalOriginReply,
     TestWithSwiftUntrusted_UntrustedOriginReply,
+    TestWithSwiftUntrusted_UntrustedOriginWithRepliesReply,
+    TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReplyReply,
     TestWithSwiftUntrusted_UntrustedOriginWithoutReply,
     TestWithSwiftWorkQueue_SendCxxDecodedReply,
     TestWithSwiftWorkQueue_SendCxxString,
@@ -396,6 +398,8 @@ enum class MessageName : uint16_t {
 #endif
     TestWithSwiftUntrusted_UntrustedOptionalOrigin,
     TestWithSwiftUntrusted_UntrustedOrigin,
+    TestWithSwiftUntrusted_UntrustedOriginWithReplies,
+    TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply,
     TestWithSwiftWorkQueue_SendCxxDecoded,
     TestWithSwiftWorkQueue_SendCxxStringAsync,
     TestWithSwiftWorkQueue_SendEmptyAsync,

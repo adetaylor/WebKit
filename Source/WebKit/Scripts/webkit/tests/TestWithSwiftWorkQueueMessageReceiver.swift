@@ -248,7 +248,11 @@ final class TestWithSwiftWorkQueueWeakRef {
             CompletionHandlers.TestWithSwiftWorkQueue.complete(completionHandler, reply)
         } catch {
             markMessageInvalid(error, on: connection)
-            CompletionHandlers.TestWithSwiftWorkQueue.completeWithDefaultReply(completionHandler)
+            if let reply = error.reply(as: UInt64.self) {
+                CompletionHandlers.TestWithSwiftWorkQueue.complete(completionHandler, reply)
+            } else {
+                CompletionHandlers.TestWithSwiftWorkQueue.completeWithDefaultReply(completionHandler)
+            }
         }
     }
 
@@ -268,7 +272,11 @@ final class TestWithSwiftWorkQueueWeakRef {
             CompletionHandlers.TestWithSwiftWorkQueue.complete(completionHandler, reply)
         } catch {
             markMessageInvalid(error, on: connection)
-            CompletionHandlers.TestWithSwiftWorkQueue.completeWithDefaultReply(completionHandler)
+            if let reply = error.reply(as: UInt64.self) {
+                CompletionHandlers.TestWithSwiftWorkQueue.complete(completionHandler, reply)
+            } else {
+                CompletionHandlers.TestWithSwiftWorkQueue.completeWithDefaultReply(completionHandler)
+            }
         }
     }
 }

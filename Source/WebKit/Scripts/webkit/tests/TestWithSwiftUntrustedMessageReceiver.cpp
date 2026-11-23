@@ -34,6 +34,8 @@
 #include <WebCore/FrameIdentifier.h> // NOLINT
 #include <WebCore/SecurityOriginData.h> // NOLINT
 #include <optional> // NOLINT
+#include <utility> // NOLINT
+#include <wtf/text/WTFString.h> // NOLINT
 
 #if ENABLE(IPC_TESTING_API)
 #include "JSIPCBinding.h"
@@ -66,6 +68,14 @@ void TestWithSwiftUntrustedMessageForwarder::didReceiveMessage(IPC::Connection& 
     }
     if (decoder.messageName() == Messages::TestWithSwiftUntrusted::UntrustedOriginWithoutReply::name()) {
         IPC::handleMessage<Messages::TestWithSwiftUntrusted::UntrustedOriginWithoutReply>(connection, decoder, m_handler.get(), &TestWithSwiftUntrustedWeakRef::dispatchUntrustedOriginWithoutReply);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftUntrusted::UntrustedOriginWithReplies::name()) {
+        IPC::handleMessageAsync<Messages::TestWithSwiftUntrusted::UntrustedOriginWithReplies>(connection, decoder, m_handler.get(), &TestWithSwiftUntrustedWeakRef::dispatchUntrustedOriginWithReplies);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReply::name()) {
+        IPC::handleMessageAsync<Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReply>(connection, decoder, m_handler.get(), &TestWithSwiftUntrustedWeakRef::dispatchUntrustedOriginWithUnnamedReply);
         return;
     }
     UNUSED_PARAM(connection);
@@ -111,9 +121,24 @@ void completeWithDefaultReply(UntrustedOptionalOriginCompletionHandler& completi
     IPC::Connection::cancelReply<Messages::TestWithSwiftUntrusted::UntrustedOptionalOrigin>(*completionHandler);
 }
 
+void completeWithDefaultReply(UntrustedOriginWithRepliesCompletionHandler& completionHandler)
+{
+    IPC::Connection::cancelReply<Messages::TestWithSwiftUntrusted::UntrustedOriginWithReplies>(*completionHandler);
+}
+
+void completeWithDefaultReply(UntrustedOriginWithUnnamedReplyCompletionHandler& completionHandler)
+{
+    IPC::Connection::cancelReply<Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReply>(*completionHandler);
+}
+
 void complete(UntrustedOriginCompletionHandler& completionHandler, bool reply)
 {
     (*completionHandler)(reply);
+}
+
+void complete(UntrustedOriginWithRepliesCompletionHandler& completionHandler, WebCore::FrameIdentifier&& frameID, WebCore::ExceptionData&& exception)
+{
+    (*completionHandler)(WTF::move(frameID), WTF::move(exception));
 }
 
 } // namespace TestWithSwiftUntrusted
@@ -143,6 +168,22 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOriginWithoutReply::Arguments>(globalObject, decoder);
 }
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOriginWithReplies::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOriginWithReplies::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReply::ReplyArguments>(globalObject, decoder);
+}
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOriginReply::Arguments>(globalObject, decoder);
@@ -150,6 +191,14 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOptionalOriginReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOptionalOriginReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithRepliesReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOriginWithRepliesReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReplyReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReplyReply::Arguments>(globalObject, decoder);
 }
 
 }

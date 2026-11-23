@@ -636,7 +636,11 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -756,7 +760,11 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }

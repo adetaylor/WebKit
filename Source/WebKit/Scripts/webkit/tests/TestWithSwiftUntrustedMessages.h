@@ -30,9 +30,11 @@
 #include "SharedPreferencesForWebProcess.h"
 #include "Untrusted.h"
 #include <optional>
+#include <utility>
 #include <wtf/Forward.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 struct FrameIdentifierType;
@@ -184,6 +186,68 @@ private:
     SUPPRESS_FORWARD_DECL_MEMBER const WebCore::SecurityOriginData& m_origin;
 };
 
+class UntrustedOriginWithReplies {
+public:
+    using Arguments = std::tuple<IPC::Untrusted<WebCore::SecurityOriginData>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftUntrusted_UntrustedOriginWithRepliesReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<WebCore::FrameIdentifier, WebCore::ExceptionData>;
+    using Reply = CompletionHandler<void(WebCore::FrameIdentifier&&, WebCore::ExceptionData&&)>;
+    using Promise = WTF::NativePromise<std::tuple<WebCore::FrameIdentifier, WebCore::ExceptionData>, IPC::Error>;
+    explicit UntrustedOriginWithReplies(const WebCore::SecurityOriginData& origin)
+        : m_origin(origin)
+    {
+        ASSERT(isInWebProcess());
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_origin;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const WebCore::SecurityOriginData& m_origin;
+};
+
+class UntrustedOriginWithUnnamedReply {
+public:
+    using Arguments = std::tuple<IPC::Untrusted<WebCore::SecurityOriginData>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReplyReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<std::pair<uint32_t, String>>;
+    using Reply = CompletionHandler<void(std::pair<uint32_t, String>&&)>;
+    using Promise = WTF::NativePromise<std::pair<uint32_t, String>, IPC::Error>;
+    explicit UntrustedOriginWithUnnamedReply(const WebCore::SecurityOriginData& origin)
+        : m_origin(origin)
+    {
+        ASSERT(isInWebProcess());
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_origin;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const WebCore::SecurityOriginData& m_origin;
+};
+
 class UntrustedOriginReply {
 public:
     using Arguments = std::tuple<bool>;
@@ -236,6 +300,61 @@ private:
     SUPPRESS_FORWARD_DECL_MEMBER const WebCore::ExceptionData& m_exception;
 };
 
+class UntrustedOriginWithRepliesReply {
+public:
+    using Arguments = std::tuple<WebCore::FrameIdentifier, WebCore::ExceptionData>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftUntrusted_UntrustedOriginWithRepliesReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    UntrustedOriginWithRepliesReply(const WebCore::FrameIdentifier& frameID, const WebCore::ExceptionData& exception)
+        : m_frameID(frameID)
+        , m_exception(exception)
+    {
+        ASSERT(isInWebProcess());
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_frameID;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_exception;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const WebCore::FrameIdentifier& m_frameID;
+    SUPPRESS_FORWARD_DECL_MEMBER const WebCore::ExceptionData& m_exception;
+};
+
+class UntrustedOriginWithUnnamedReplyReply {
+public:
+    using Arguments = std::tuple<std::pair<uint32_t, String>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReplyReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit UntrustedOriginWithUnnamedReplyReply(const std::pair<uint32_t, String>& pair)
+        : m_pair(pair)
+    {
+        ASSERT(isInWebProcess());
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_pair;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const std::pair<uint32_t, String>& m_pair;
+};
+
 } // namespace TestWithSwiftUntrusted
 } // namespace Messages
 
@@ -243,12 +362,20 @@ namespace CompletionHandlers {
 namespace TestWithSwiftUntrusted {
 using UntrustedOriginCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftUntrusted::UntrustedOrigin::Reply>;
 using UntrustedOptionalOriginCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftUntrusted::UntrustedOptionalOrigin::Reply>;
+using UntrustedOriginWithRepliesCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftUntrusted::UntrustedOriginWithReplies::Reply>;
+using UntrustedOriginWithUnnamedReplyCompletionHandler = WTF::RefCountable<Messages::TestWithSwiftUntrusted::UntrustedOriginWithUnnamedReply::Reply>;
 
 void completeWithDefaultReply(UntrustedOriginCompletionHandler&);
 
 void completeWithDefaultReply(UntrustedOptionalOriginCompletionHandler&);
 
+void completeWithDefaultReply(UntrustedOriginWithRepliesCompletionHandler&);
+
+void completeWithDefaultReply(UntrustedOriginWithUnnamedReplyCompletionHandler&);
+
 void complete(UntrustedOriginCompletionHandler&, bool);
+
+void complete(UntrustedOriginWithRepliesCompletionHandler&, WebCore::FrameIdentifier&&, WebCore::ExceptionData&&);
 } // namespace TestWithSwiftUntrusted
 } // namespace CompletionHandlers
 

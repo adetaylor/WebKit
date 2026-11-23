@@ -1811,6 +1811,28 @@ def swift_reply_completion_call(receiver, message, reply_variable):
     return 'completionHandler.pointee(consuming: %s)' % reply_variable
 
 
+# How the generated catch of a failed message check replies: with the reply a failed messageCheck(_:orReply:body:)
+# carries, as a C++ handler's MESSAGE_CHECK_COMPLETION completes with its own value, or else with the default reply. A
+# reply whose type has no Swift name here is always the default reply.
+def swift_failed_check_reply_statements(receiver, message):
+    default_reply = 'CompletionHandlers.%s.completeWithDefaultReply(completionHandler)' % receiver.name
+    reply_parameters = message.reply_parameters or []
+    if not reply_parameters:
+        return [default_reply]
+    try:
+        reply_types = [swift_type_name(parameter.type) for parameter in reply_parameters]
+    except UnmappableSwiftType:
+        return [default_reply]
+    reply_type = reply_types[0] if len(reply_types) == 1 else '(%s)' % ', '.join(reply_types)
+    return [
+        'if let reply = error.reply(as: %s.self) {' % reply_type,
+        '    %s' % swift_reply_completion_call(receiver, message, 'reply'),
+        '} else {',
+        '    %s' % default_reply,
+        '}',
+    ]
+
+
 # Whether a message's Swift handler is given its reply as a value rather than returning it.
 def gives_swift_reply_value(message):
     return message.has_attribute(SWIFT_REPLY_VALUE_ATTRIBUTE) or message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)
@@ -3548,7 +3570,7 @@ def generate_swift_message_handler(receiver):
                 stream_reply_values.append((message, reply_value_type, encoding_statements))
         elif has_reply:
             reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]
-            cancel_statements = ['CompletionHandlers.%s.completeWithDefaultReply(completionHandler)' % receiver.name]
+            cancel_statements = swift_failed_check_reply_statements(receiver, message)
 
         def append_handler_call(base, await_keyword, typed_do, lends_inside=True, unsafe_keyword=''):
             if lends_inside:

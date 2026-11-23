@@ -100,7 +100,11 @@ final class TestWithSwiftConditionallyAndEnabledByWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftConditionallyAndEnabledBy.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftConditionallyAndEnabledBy.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftConditionallyAndEnabledBy.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftConditionallyAndEnabledBy.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -157,7 +161,11 @@ final class TestWithSwiftConditionallyAndEnabledByWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftConditionallyAndEnabledBy.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftConditionallyAndEnabledBy.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftConditionallyAndEnabledBy.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftConditionallyAndEnabledBy.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }

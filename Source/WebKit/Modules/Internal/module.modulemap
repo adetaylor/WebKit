@@ -364,6 +364,12 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module ValidationProceduresSwiftUtilities {
+        requires cplusplus20
+        header "../../UIProcess/ValidationProceduresSwiftUtilities.h"
+        export *
+    }
+
     module WebFrameProxy {
         requires cplusplus20
         header "../../UIProcess/WebFrameProxy.h"

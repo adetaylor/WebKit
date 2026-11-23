@@ -98,7 +98,11 @@ final class TestWithSwiftUntrustedWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftUntrusted.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftUntrusted.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: Bool.self) {
+                    CompletionHandlers.TestWithSwiftUntrusted.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftUntrusted.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -161,7 +165,11 @@ final class TestWithSwiftUntrustedWeakRef: @unchecked Sendable {
                 completionHandler.pointee(consuming: reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftUntrusted.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: WebCore.ExceptionData.self) {
+                    completionHandler.pointee(consuming: reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftUntrusted.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -212,6 +220,124 @@ final class TestWithSwiftUntrustedWeakRef: @unchecked Sendable {
                 )
             } catch {
                 markMessageInvalid(error, on: connection)
+            }
+        }
+    }
+
+    @used
+    func dispatchUntrustedOriginWithReplies(
+        connection: sending IPC.Connection,
+        origin: sending WebCore.UntrustedSecurityOriginData,
+        completionHandler: sending CompletionHandlers.TestWithSwiftUntrusted.UntrustedOriginWithRepliesCompletionHandler
+    ) {
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            Task.immediateOnMainActor {
+                await UntrustedOriginWithRepliesInvocation(
+                    target: target,
+                    connection: connection,
+                    origin: origin,
+                    completionHandler: completionHandler
+                )
+                .run()
+            }
+        }
+    }
+
+    private final class UntrustedOriginWithRepliesInvocation {
+        private let target: TestWithSwiftUntrustedTarget
+        private let connection: IPC.Connection
+        private let origin: WebCore.UntrustedSecurityOriginData
+        private let completionHandler: CompletionHandlers.TestWithSwiftUntrusted.UntrustedOriginWithRepliesCompletionHandler
+
+        init(
+            target: TestWithSwiftUntrustedTarget,
+            connection: IPC.Connection,
+            origin: WebCore.UntrustedSecurityOriginData,
+            completionHandler: CompletionHandlers.TestWithSwiftUntrusted.UntrustedOriginWithRepliesCompletionHandler
+        ) {
+            self.target = target
+            self.connection = connection
+            self.origin = origin
+            self.completionHandler = completionHandler
+        }
+
+        @MainActor
+        func run() async {
+            do {
+                let reply = try await mayThrowInvalidMessage(
+                    target.untrustedOriginWithReplies(
+                        connection: connection,
+                        origin: origin
+                    )
+                )
+                CompletionHandlers.TestWithSwiftUntrusted.complete(completionHandler, consuming: reply.0, consuming: reply.1)
+            } catch {
+                markMessageInvalid(error, on: connection)
+                if let reply = error.reply(as: (WebCore.FrameIdentifier, WebCore.ExceptionData).self) {
+                    CompletionHandlers.TestWithSwiftUntrusted.complete(completionHandler, consuming: reply.0, consuming: reply.1)
+                } else {
+                    CompletionHandlers.TestWithSwiftUntrusted.completeWithDefaultReply(completionHandler)
+                }
+            }
+        }
+    }
+
+    @used
+    func dispatchUntrustedOriginWithUnnamedReply(
+        connection: sending IPC.Connection,
+        origin: sending WebCore.UntrustedSecurityOriginData,
+        completionHandler: sending CompletionHandlers.TestWithSwiftUntrusted.UntrustedOriginWithUnnamedReplyCompletionHandler
+    ) {
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            Task.immediateOnMainActor {
+                await UntrustedOriginWithUnnamedReplyInvocation(
+                    target: target,
+                    connection: connection,
+                    origin: origin,
+                    completionHandler: completionHandler
+                )
+                .run()
+            }
+        }
+    }
+
+    private final class UntrustedOriginWithUnnamedReplyInvocation {
+        private let target: TestWithSwiftUntrustedTarget
+        private let connection: IPC.Connection
+        private let origin: WebCore.UntrustedSecurityOriginData
+        private let completionHandler: CompletionHandlers.TestWithSwiftUntrusted.UntrustedOriginWithUnnamedReplyCompletionHandler
+
+        init(
+            target: TestWithSwiftUntrustedTarget,
+            connection: IPC.Connection,
+            origin: WebCore.UntrustedSecurityOriginData,
+            completionHandler: CompletionHandlers.TestWithSwiftUntrusted.UntrustedOriginWithUnnamedReplyCompletionHandler
+        ) {
+            self.target = target
+            self.connection = connection
+            self.origin = origin
+            self.completionHandler = completionHandler
+        }
+
+        @MainActor
+        func run() async {
+            do {
+                let reply = try await mayThrowInvalidMessage(
+                    target.untrustedOriginWithUnnamedReply(
+                        connection: connection,
+                        origin: origin
+                    )
+                )
+                completionHandler.pointee(consuming: reply)
+            } catch {
+                markMessageInvalid(error, on: connection)
+                CompletionHandlers.TestWithSwiftUntrusted.completeWithDefaultReply(completionHandler)
             }
         }
     }

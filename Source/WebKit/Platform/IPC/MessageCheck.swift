@@ -40,6 +40,27 @@ struct InvalidMessage: Error {
     fileprivate let function: StaticString
     fileprivate let file: StaticString
     fileprivate let line: UInt
+    // The reply a failed `messageCheck(_:orReply:body:)` sends instead of the message's default reply.
+    fileprivate var failureReply: (any Sendable)? = nil
+
+    /// The reply generated dispatch sends for this failure, or nil for the message's default reply: a failure of
+    /// `messageCheck(_:body:)`, or of `messageCheck(_:orReply:body:)` with a reply of another type than `Reply`.
+    func reply<Reply>(as _: Reply.Type) -> Reply? {
+        guard let failureReply else {
+            return nil
+        }
+        guard let reply = failureReply as? InvalidMessageFailureReply<Reply> else {
+            assertionFailure("messageCheck(_:orReply:body:) was given a reply of another type than the handler's")
+            return nil
+        }
+        return reply.make()
+    }
+}
+
+// Sendable whatever the reply is: the closure captures nothing that is not Sendable, and makes the reply only when
+// generated dispatch sends it.
+private struct InvalidMessageFailureReply<Reply>: Sendable {
+    let make: @Sendable () -> Reply
 }
 
 /// Equivalent of MESSAGE_CHECK_BASE / MESSAGE_CHECK_WITH_MESSAGE_BASE.
@@ -60,6 +81,57 @@ func messageCheck(
         logFailedMessageCheck(reason, function: function, file: file, line: line)
         throw InvalidMessage(reason: reason, function: function, file: file, line: line)
     }
+}
+
+/// Equivalent of MESSAGE_CHECK_COMPLETION_BASE: a failed check replies with `reply`, as the C++ handler's `completion`
+/// does, rather than with the message's default reply.
+///
+/// It throws, as `messageCheck(_:body:)` does, so a failed check returns from the handler. Generated dispatch then
+/// marks the message invalid and sends `reply`, which must be of the type the handler returns, so spell it (an integer
+/// literal is an `Int`): a reply of any other type, or of a type messages.py cannot name, sends the default reply.
+@inline(always)
+func messageCheck<Reply>(
+    _ reason: StaticString = "",
+    orReply reply: @autoclosure @escaping @Sendable () -> Reply,
+    function: StaticString = #function,
+    file: StaticString = #fileID,
+    line: UInt = #line,
+    body: () -> Bool
+) throws(InvalidMessage) {
+    guard body() else {
+        logFailedMessageCheck(reason, function: function, file: file, line: line)
+        throw InvalidMessage(
+            reason: reason,
+            function: function,
+            file: file,
+            line: line,
+            failureReply: InvalidMessageFailureReply(make: reply)
+        )
+    }
+}
+
+/// Equivalent of EXTRACT_WITH_MESSAGE_CHECK_BASE with `ProcessSpeaksForDomain { connection }`: the origin, once
+/// the sending process is found to speak for its domain.
+///
+/// Returns nil when the handler replies with its completion value and returns: when the validation can't be sure,
+/// and the message is ignored, or when it fails, which is a failed message check, logged, and marked on
+/// `connection`, here. Like the macro, it is called while the message is dispatched, before the handler's first
+/// `await`; after it, a failed check terminates the sender directly.
+func extractWithMessageCheck(
+    _ untrustedOrigin: WebCore.UntrustedSecurityOriginData,
+    speakingForDomainOn connection: IPC.Connection,
+    function: StaticString = #function,
+    file: StaticString = #fileID,
+    line: UInt = #line
+) -> WebCore.SecurityOriginData? {
+    WebKit.extractProcessSpeaksForDomainWithMessageCheck(
+        untrustedOrigin,
+        connection,
+        WTF.String(function.description),
+        WTF.String(file.description),
+        UInt32(truncatingIfNeeded: line)
+    )
+    .value
 }
 
 // Lets generated dispatch mark every handler call with `try`, whether or not that handler throws.
@@ -90,8 +162,10 @@ func dispatchMessage(
     return true
 }
 
+// A check that failed after the handler's first suspension, when the message is no longer being dispatched,
+// terminates the sender directly.
 func markMessageInvalid(_ error: InvalidMessage, on connection: IPC.Connection) {
-    connection.markCurrentlyDispatchedMessageAsInvalid(WTF.String(error.reason.description))
+    WebKit.markCurrentlyDispatchedMessageAsInvalidOrTerminateSender(connection, WTF.String(error.reason.description))
 }
 
 func markMessageInvalid(_ error: InvalidMessage, on connection: IPC.StreamServerConnection) {

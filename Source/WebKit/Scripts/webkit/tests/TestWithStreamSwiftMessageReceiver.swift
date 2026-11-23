@@ -66,7 +66,11 @@ final class TestWithStreamSwiftWeakRef {
             CompletionHandlers.TestWithStreamSwift.complete(completionHandler, reply)
         } catch {
             markMessageInvalid(error, on: connection)
-            CompletionHandlers.TestWithStreamSwift.completeWithDefaultReply(completionHandler)
+            if let reply = error.reply(as: Int64.self) {
+                CompletionHandlers.TestWithStreamSwift.complete(completionHandler, reply)
+            } else {
+                CompletionHandlers.TestWithStreamSwift.completeWithDefaultReply(completionHandler)
+            }
         }
     }
 
