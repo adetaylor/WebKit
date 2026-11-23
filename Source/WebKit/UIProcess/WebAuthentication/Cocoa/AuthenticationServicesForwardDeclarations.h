@@ -126,9 +126,9 @@ WK_SOFT_LINKED_OBJC_CLASS
 
 @property (nonatomic, copy) NSData *challenge;
 
-@property (nonatomic, assign) ASAuthorizationPublicKeyCredentialUserVerificationPreference userVerificationPreference;
+@property (nonatomic, strong) ASAuthorizationPublicKeyCredentialUserVerificationPreference userVerificationPreference;
 
-@property (nonatomic, assign) ASAuthorizationPublicKeyCredentialAttestationKind attestationPreference;
+@property (nonatomic, strong) ASAuthorizationPublicKeyCredentialAttestationKind attestationPreference;
 
 @end
 
