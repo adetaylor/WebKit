@@ -620,7 +620,7 @@ private:
 
     bool m_paintsEntireContents { false };
 
-}; // class ScrollView
+} SWIFT_PRIVATE_FILEID("WebCore/ScrollView.swift"); // class ScrollView
 
 } // namespace WebCore
 
