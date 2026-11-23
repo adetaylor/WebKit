@@ -196,7 +196,7 @@ protected:
 
 private:
     bool isScrollbar() const override { return true; }
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_PRIVATE_FILEID("WebCore/Scrollbar.swift");
 
 } // namespace WebCore
 
