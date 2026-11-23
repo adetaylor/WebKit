@@ -719,6 +719,52 @@ module WebKit_Internal [system] {
         export *
     }
 
+    module WebAuthnRequests {
+        requires cplusplus20,objc
+        header "../../UIProcess/WebAuthentication/WebAuthenticatorCoordinatorProxy.h"
+        header "../../UIProcess/WebAuthentication/AuthenticatorManager.h"
+        header "../../UIProcess/WebAuthentication/Authenticator.h"
+        header "../../UIProcess/WebAuthentication/AuthenticatorTransportService.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/WebAuthenticationPanelClient.h"
+        header "../../UIProcess/API/Cocoa/_WKWebAuthenticationPanelInternal.h"
+        export *
+    }
+
+    module WebAuthnTransports {
+        requires cplusplus20,objc
+        header "../../UIProcess/WebAuthentication/Cocoa/CcidConnection.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/CcidService.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/LocalConnection.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/LocalService.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/NfcConnection.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/NfcService.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/WKNFReaderSessionDelegate.h"
+        header "../../UIProcess/WebAuthentication/Cocoa/WKSmartCardObservers.h"
+        export *
+    }
+
+    // The soft-linked frameworks' class declarations, error-domain getters and optional-class helpers, without the
+    // soft-link headers (their getters and alloc functions). A class lookup that misses loads the class's framework
+    // through the hook WebKit installs at initialization.
+    module WebAuthnSoftLink {
+        requires cplusplus20,objc
+        header "../../UIProcess/WebAuthentication/Cocoa/WebAuthnSoftLinkForSwift.h"
+        export *
+    }
+
+    module WebAuthnMock {
+        requires cplusplus20,objc
+        header "../../UIProcess/WebAuthentication/Mock/MockAuthenticatorManager.h"
+        header "../../UIProcess/WebAuthentication/Mock/MockCcidService.h"
+        header "../../UIProcess/WebAuthentication/Mock/MockHidConnection.h"
+        header "../../UIProcess/WebAuthentication/Mock/MockHidService.h"
+        header "../../UIProcess/WebAuthentication/Mock/MockLocalConnection.h"
+        header "../../UIProcess/WebAuthentication/Mock/MockLocalService.h"
+        header "../../UIProcess/WebAuthentication/Mock/MockNfcService.h"
+        header "../../UIProcess/WebAuthentication/Mock/WKMockWebAuthenticationObjects.h"
+        export *
+    }
+
     module SecurityFlags {
         requires cplusplus20
         header "SecurityFlagsForSwift.h"
