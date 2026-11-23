@@ -96,10 +96,8 @@ void NfcService::restartDiscoveryInternal()
         m_connection = nullptr;
         RELEASE_LOG(WebAuthn, "NfcService::restartDiscoveryInternal: ending session before starting new one");
         connection->stopWithCompletionHandler([weakThis = WeakPtr { *this }] {
-            RunLoop::mainSingleton().dispatch([weakThis] {
-                if (RefPtr protectedThis = weakThis.get())
-                    protectedThis->platformStartDiscovery();
-            });
+            if (RefPtr protectedThis = weakThis.get())
+                protectedThis->platformStartDiscovery();
         });
         return;
     }

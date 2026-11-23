@@ -27,6 +27,7 @@
 
 #if ENABLE(WEB_AUTHN) && HAVE(NEAR_FIELD)
 
+#include <wtf/CompletionHandler.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/RunLoop.h>
@@ -46,7 +47,8 @@ public:
 
     Vector<uint8_t> transact(Vector<uint8_t>&& data) const;
     void stop() const;
-    void stopWithCompletionHandler(Function<void()>&&);
+    // Calls the handler on the main run loop once the session has ended.
+    void stopWithCompletionHandler(CompletionHandler<void()>&&);
 
     // For WKNFReaderSessionDelegate
     void didDetectTags(NSArray *);

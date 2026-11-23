@@ -28,6 +28,7 @@
 
 #if ENABLE(WEB_AUTHN) && HAVE(NEAR_FIELD)
 
+#import "MainRunLoopDestroyedHandler.h"
 #import "NfcService.h"
 #import "WKNFReaderSessionDelegate.h"
 #import <WebCore/FidoConstants.h>
@@ -102,12 +103,16 @@ void NfcConnection::stop() const
     [m_session endSession];
 }
 
-void NfcConnection::stopWithCompletionHandler(Function<void()>&& completionHandler)
+void NfcConnection::stopWithCompletionHandler(CompletionHandler<void()>&& completionHandler)
 {
     [m_session disconnectTag];
     [m_session stopPolling];
-    [m_session endSessionWithCompletion:makeBlockPtr([completionHandler = WTF::move(completionHandler)]() mutable {
-        completionHandler();
+    // The handler is called, or destroyed if the block is dropped uncalled, on the main run loop where it was made,
+    // whichever queue runs or releases the block.
+    [m_session endSessionWithCompletion:makeBlockPtr([completionHandler = MainRunLoopDestroyedHandler { WTF::move(completionHandler) }] mutable {
+        RunLoop::mainSingleton().dispatch([completionHandler = completionHandler.take()] mutable {
+            completionHandler();
+        });
     }).get()];
 }
 

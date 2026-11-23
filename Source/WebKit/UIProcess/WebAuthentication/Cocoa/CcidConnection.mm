@@ -29,6 +29,7 @@
 #if ENABLE(WEB_AUTHN)
 #import "CcidService.h"
 #import "Logging.h"
+#import "MainRunLoopDestroyedHandler.h"
 #import <CryptoTokenKit/TKSmartCard.h>
 #import <WebCore/FidoConstants.h>
 #import <wtf/BlockPtr.h>
@@ -184,10 +185,10 @@ void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& cal
     }
     if (m_hasSession) {
         CCID_RELEASE_LOG("reusing session, calling transmitRequest");
-        [m_smartCard transmitRequest:toNSData(borrow(data)->span()).get() reply:makeBlockPtr([protectedThis = Ref { *this }, callback = WTF::move(callback)](NSData * _Nullable nsResponse, NSError * _Nullable error) mutable {
+        [m_smartCard transmitRequest:toNSData(borrow(data)->span()).get() reply:makeBlockPtr([protectedThis = Ref { *this }, callback = MainRunLoopDestroyedHandler { WTF::move(callback) }](NSData * _Nullable nsResponse, NSError * _Nullable error) mutable {
             RELEASE_LOG(WebAuthn, "%p - CcidConnection::transmitRequest reply, error=%p", protectedThis.ptr(), error);
             bool hasError = !!error;
-            callOnMainRunLoop([protectedThis = WTF::move(protectedThis), response = makeVector(nsResponse), callback = WTF::move(callback), hasError] () mutable {
+            callOnMainRunLoop([protectedThis = WTF::move(protectedThis), response = makeVector(nsResponse), callback = callback.take(), hasError] mutable {
                 if (hasError) {
                     [protectedThis->m_smartCard endSession];
                     protectedThis->m_hasSession = false;
@@ -198,10 +199,10 @@ void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& cal
     } else {
         CCID_RELEASE_LOG("no session, calling beginSessionWithReply");
         m_sessionPending = true;
-        [m_smartCard beginSessionWithReply:makeBlockPtr([protectedThis = Ref { *this }, data = WTF::move(data), callback = WTF::move(callback)] (BOOL success, NSError *error) mutable {
+        [m_smartCard beginSessionWithReply:makeBlockPtr([protectedThis = Ref { *this }, data = WTF::move(data), callback = MainRunLoopDestroyedHandler { WTF::move(callback) }](BOOL success, NSError *error) mutable {
             RELEASE_LOG(WebAuthn, "%p - CcidConnection::beginSessionWithReply reply, success=%d, error=%p", protectedThis.ptr(), success, error);
             if (!success) {
-                callOnMainRunLoop([protectedThis = WTF::move(protectedThis), callback = WTF::move(callback)] () mutable {
+                callOnMainRunLoop([protectedThis = WTF::move(protectedThis), callback = callback.take()] mutable {
                     protectedThis->m_sessionPending = false;
                     callback({ });
                     // Drain pending requests with empty callbacks on failure
@@ -212,14 +213,14 @@ void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& cal
                 });
                 return;
             }
-            callOnMainRunLoop([protectedThis = WTF::move(protectedThis), data = WTF::move(data), callback = WTF::move(callback)] () mutable {
+            callOnMainRunLoop([protectedThis = WTF::move(protectedThis), data = WTF::move(data), callback = callback.take()] mutable {
                 protectedThis->m_sessionPending = false;
                 protectedThis->m_hasSession = true;
                 RELEASE_LOG(WebAuthn, "%p - CcidConnection::session started", protectedThis.ptr());
-                [protectedThis->m_smartCard transmitRequest:toNSData(borrow(data)->span()).get() reply:makeBlockPtr([protectedThis = WTF::move(protectedThis), callback = WTF::move(callback)](NSData * _Nullable nsResponse, NSError * _Nullable error) mutable {
+                [protectedThis->m_smartCard transmitRequest:toNSData(borrow(data)->span()).get() reply:makeBlockPtr([protectedThis = WTF::move(protectedThis), callback = MainRunLoopDestroyedHandler { WTF::move(callback) }](NSData * _Nullable nsResponse, NSError * _Nullable error) mutable {
                     RELEASE_LOG(WebAuthn, "%p - CcidConnection::transmitRequest reply, error=%p", protectedThis.ptr(), error);
                     bool hasError = !!error;
-                    callOnMainRunLoop([protectedThis = WTF::move(protectedThis), response = makeVector(nsResponse), callback = WTF::move(callback), hasError] () mutable {
+                    callOnMainRunLoop([protectedThis = WTF::move(protectedThis), response = makeVector(nsResponse), callback = callback.take(), hasError] mutable {
                         if (hasError) {
                             [protectedThis->m_smartCard endSession];
                             protectedThis->m_hasSession = false;

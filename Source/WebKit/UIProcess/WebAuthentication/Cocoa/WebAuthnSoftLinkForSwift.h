@@ -38,7 +38,9 @@
 //   getter, which loads the framework and traps if it cannot, so the lookup never comes back nil;
 // - the optional classes, which may be absent and so cannot trap, only through the helpers below: Swift cannot name
 //   them, and sees what it makes of one as an NSObject, whose class the setters check;
-// - the framework calls whose reply comes on a framework queue with a Sendable block;
+// - the framework calls whose reply comes on a framework queue: Swift's block for one is Sendable (the
+//   ASCWebKitSPISupport helpers also reply on the main run loop), and the delegates the framework calls there are
+//   Objective-C;
 // - the error domains' getters.
 // The soft-link headers stay out of Swift: their class getters are shared mutable state, and their inline
 // alloc<Class>Instance() would give Swift an object whose initializer never ran.
@@ -64,10 +66,10 @@ bool webAuthnASCShouldUseAlternateCredentialStore();
 bool webAuthnASCShouldUseAlternateKeychainAttribute();
 NSData * _Nullable webAuthnASCEnterpriseAttestationIdentityPersistentReference(NSString * relyingParty);
 NSData * _Nullable webAuthnASCAlternateLargeBlobIfNecessary(NSString * relyingParty, NSData * clientDataHash);
-// Each returns whether it made the call; the handler is called only if it did.
-bool webAuthnASCGetCanCurrentProcessAccessPasskeys(NSString * relyingParty, void (^)(BOOL));
-bool webAuthnASCGetArePasskeysDisallowed(NSString * relyingParty, void (^)(BOOL));
-bool webAuthnASCGetClientCapabilities(NSString * relyingParty, void (^)(NSDictionary<NSString *, NSNumber *> *));
+// Each returns whether it made the call; the handler is called only if it did, once, on the main run loop.
+bool webAuthnASCGetCanCurrentProcessAccessPasskeys(NSString * relyingParty, NS_SWIFT_SENDABLE void (^)(BOOL));
+bool webAuthnASCGetArePasskeysDisallowed(NSString * relyingParty, NS_SWIFT_SENDABLE void (^)(BOOL));
+bool webAuthnASCGetClientCapabilities(NSString * relyingParty, NS_SWIFT_SENDABLE void (^)(NSDictionary<NSString *, NSNumber *> *));
 
 #endif // HAVE(ASC_AUTH_UI) || HAVE(UNIFIED_ASC_AUTH_UI) || HAVE(WEB_AUTHN_AS_MODERN)
 

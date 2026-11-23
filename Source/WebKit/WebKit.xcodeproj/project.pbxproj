@@ -6815,6 +6815,7 @@
 		570DAAB0230273D200E8FC04 /* NearField.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NearField.framework; path = System/Library/PrivateFrameworks/NearField.framework; sourceTree = SDKROOT; };
 		570DAAC02303730300E8FC04 /* NfcConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NfcConnection.h; sourceTree = "<group>"; };
 		570DAAC12303730300E8FC04 /* NfcConnection.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NfcConnection.mm; sourceTree = "<group>"; };
+		133B4CB7209CEAC25C96B84F /* MainRunLoopDestroyedHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MainRunLoopDestroyedHandler.h; sourceTree = "<group>"; };
 		570DAAC423037F7E00E8FC04 /* WKNFReaderSessionDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKNFReaderSessionDelegate.h; sourceTree = "<group>"; };
 		570DAAC523037F7E00E8FC04 /* WKNFReaderSessionDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WKNFReaderSessionDelegate.mm; sourceTree = "<group>"; };
 		570DAAC8230385FD00E8FC04 /* CtapNfcDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CtapNfcDriver.h; sourceTree = "<group>"; };
@@ -15428,6 +15429,7 @@
 				57DCEDA8214A568B0016B847 /* LocalConnection.mm */,
 				57DCED9A2148B0830016B847 /* LocalService.h */,
 				57DCEDA02148FA0F0016B847 /* LocalService.mm */,
+				133B4CB7209CEAC25C96B84F /* MainRunLoopDestroyedHandler.h */,
 				57B826422304F14000B72EB0 /* NearFieldSoftLink.h */,
 				57B826432304F14000B72EB0 /* NearFieldSoftLink.mm */,
 				570DAAC02303730300E8FC04 /* NfcConnection.h */,

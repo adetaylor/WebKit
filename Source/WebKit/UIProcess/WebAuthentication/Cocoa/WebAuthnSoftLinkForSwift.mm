@@ -28,9 +28,13 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#import "MainRunLoopDestroyedHandler.h"
 #import <array>
 #import <mutex>
 #import <objc/runtime.h>
+#import <wtf/BlockPtr.h>
+#import <wtf/RetainPtr.h>
+#import <wtf/RunLoop.h>
 #import <wtf/SetForScope.h>
 #import <wtf/StdLibExtras.h>
 #import <wtf/text/ASCIILiteral.h>
@@ -167,6 +171,10 @@ void installSoftLinkedClassLookupHook()
 
 #if HAVE(ASC_AUTH_UI) || HAVE(UNIFIED_ASC_AUTH_UI) || HAVE(WEB_AUTHN_AS_MODERN)
 
+// The asynchronous ones reply on the main run loop rather than on the framework's queue, as the Objective-C++ callers
+// do, and a reply block the framework drops uncalled destroys the handler there too. A second call of the reply block
+// traps.
+
 bool webAuthnASCShouldUseAlternateCredentialStore()
 {
     return [getASCWebKitSPISupportClassSingleton() shouldUseAlternateCredentialStore];
@@ -195,7 +203,13 @@ bool webAuthnASCGetCanCurrentProcessAccessPasskeys(NSString *relyingParty, void 
 {
     if (![getASCWebKitSPISupportClassSingleton() respondsToSelector:@selector(getCanCurrentProcessAccessPasskeysForRelyingParty:withCompletionHandler:)])
         return false;
-    [getASCWebKitSPISupportClassSingleton() getCanCurrentProcessAccessPasskeysForRelyingParty:relyingParty withCompletionHandler:completionHandler];
+    [getASCWebKitSPISupportClassSingleton() getCanCurrentProcessAccessPasskeysForRelyingParty:relyingParty withCompletionHandler:makeBlockPtr([completionHandler = MainRunLoopDestroyedHandler { makeBlockPtr(completionHandler) }](BOOL result) mutable {
+        auto handler = completionHandler.take();
+        RELEASE_ASSERT(handler);
+        RunLoop::mainSingleton().dispatch([handler = WTF::move(handler), result] {
+            handler(result);
+        });
+    }).get()];
     return true;
 }
 
@@ -203,7 +217,13 @@ bool webAuthnASCGetArePasskeysDisallowed(NSString *relyingParty, void (^completi
 {
     if (![getASCWebKitSPISupportClassSingleton() respondsToSelector:@selector(getArePasskeysDisallowedForRelyingParty:withCompletionHandler:)])
         return false;
-    [getASCWebKitSPISupportClassSingleton() getArePasskeysDisallowedForRelyingParty:relyingParty withCompletionHandler:completionHandler];
+    [getASCWebKitSPISupportClassSingleton() getArePasskeysDisallowedForRelyingParty:relyingParty withCompletionHandler:makeBlockPtr([completionHandler = MainRunLoopDestroyedHandler { makeBlockPtr(completionHandler) }](BOOL result) mutable {
+        auto handler = completionHandler.take();
+        RELEASE_ASSERT(handler);
+        RunLoop::mainSingleton().dispatch([handler = WTF::move(handler), result] {
+            handler(result);
+        });
+    }).get()];
     return true;
 }
 
@@ -211,7 +231,13 @@ bool webAuthnASCGetClientCapabilities(NSString *relyingParty, void (^completionH
 {
     if (![getASCWebKitSPISupportClassSingleton() respondsToSelector:@selector(getClientCapabilitiesForRelyingParty:withCompletionHandler:)])
         return false;
-    [getASCWebKitSPISupportClassSingleton() getClientCapabilitiesForRelyingParty:relyingParty withCompletionHandler:completionHandler];
+    [getASCWebKitSPISupportClassSingleton() getClientCapabilitiesForRelyingParty:relyingParty withCompletionHandler:makeBlockPtr([completionHandler = MainRunLoopDestroyedHandler { makeBlockPtr(completionHandler) }](NSDictionary<NSString *, NSNumber *> *result) mutable {
+        auto handler = completionHandler.take();
+        RELEASE_ASSERT(handler);
+        RunLoop::mainSingleton().dispatch([handler = WTF::move(handler), result = retainPtr(result)] {
+            handler(result.get());
+        });
+    }).get()];
     return true;
 }
 
