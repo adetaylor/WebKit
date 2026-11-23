@@ -256,7 +256,7 @@ public:
     NODELETE void cancelPendingStatisticsProcessingRequest();
     void mergeStatistics(Vector<ResourceLoadStatistics>&&);
     void runIncrementalVacuumCommand();
-    void dumpResourceLoadStatistics(CompletionHandler<void(const String&)>&&);
+    void dumpResourceLoadStatistics(CompletionHandler<void(String)>&&);
     bool isNewResourceLoadStatisticsDatabaseFile() const { return m_isNewResourceLoadStatisticsDatabaseFile; }
     void setIsNewResourceLoadStatisticsDatabaseFile(bool isNewResourceLoadStatisticsDatabaseFile) { m_isNewResourceLoadStatisticsDatabaseFile = isNewResourceLoadStatisticsDatabaseFile; }
 

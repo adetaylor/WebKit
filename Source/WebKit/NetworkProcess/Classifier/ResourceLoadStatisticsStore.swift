@@ -2995,3 +2995,48 @@ extension WebKit.ResourceLoadStatisticsStore {
         }
     }
 }
+
+// MARK: Completion handlers
+
+#if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
+
+// The function objects the store's members are called with on the statistics queue (WebResourceLoadStatisticsStore.h),
+// so that Swift can build them from closures. `CxxCompletionHandler` also gives each one a continuation initializer
+// whose `Argument: Sendable` bound is only a warning for a C++ type: for an argument that is not `Sendable` it would
+// carry the queue's value to the continuation's thread. Those conformances declare an `@unsafe` initializer of the same
+// shape, which overload resolution prefers, so that such a call does not compile without `unsafe`.
+
+extension WebKit.StatisticsQueueTask: @unsafe CxxCompletionHandler {
+    typealias Argument = WebKit.ResourceLoadStatisticsStore?
+
+    /// Do not use: the statistics queue's store would reach the continuation's thread.
+    @unsafe
+    init(_ continuation: CheckedContinuation<WebKit.ResourceLoadStatisticsStore?, some Error>) {
+        preconditionFailure("The statistics queue's store must not leave that queue")
+    }
+}
+
+extension WebKit.StorageAccessStatusCompletionHandler: @unsafe CxxCompletionHandler {
+    typealias Argument = WebKit.StorageAccessStatus
+}
+
+extension WebKit.StorageAccessWasGrantedCompletionHandler: @unsafe CxxCompletionHandler {
+    typealias Argument = WebCore.StorageAccessWasGranted
+}
+
+extension WebKit.PermissionStateCompletionHandler: @unsafe CxxCompletionHandler {
+    typealias Argument = WebCore.PermissionState
+}
+
+extension WebKit.StatisticsStringCompletionHandler: @unsafe CxxCompletionHandler {
+    typealias Argument = WTF.String
+
+    /// Do not use: a `WTF.String` made on the statistics queue would reach the continuation's thread, and its reference
+    /// count is not atomic.
+    @unsafe
+    init(_ continuation: CheckedContinuation<WTF.String, some Error>) {
+        preconditionFailure("A WTF.String must not cross threads")
+    }
+}
+
+#endif // compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN

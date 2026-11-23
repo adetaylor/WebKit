@@ -1379,7 +1379,7 @@ String ResourceLoadStatisticsStore::stringFromBuilder(StringBuilder& builder)
     return WTF::move(builder).toString();
 }
 
-void ResourceLoadStatisticsStore::dumpResourceLoadStatistics(CompletionHandler<void(const String&)>&& completionHandler)
+void ResourceLoadStatisticsStore::dumpResourceLoadStatistics(CompletionHandler<void(String)>&& completionHandler)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(!RunLoop::isMain());
     if (m_dataRecordsBeingRemoved) {

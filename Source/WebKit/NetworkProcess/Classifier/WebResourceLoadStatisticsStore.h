@@ -96,6 +96,43 @@ struct RegistrableDomainsToDeleteOrRestrictWebsiteDataFor {
     bool isEmpty() const { return domainsToDeleteAllCookiesFor.isEmpty() && domainsToDeleteAllButHttpOnlyCookiesFor.isEmpty() && domainsToDeleteAllScriptWrittenStorageFor.isEmpty() && domainsToEnforceSameSiteStrictFor.isEmpty(); }
 };
 
+// A function object Swift builds from a closure, run once on the statistics queue with that queue's store
+// (WebResourceLoadStatisticsStore.swift, onStatisticsQueue(_:)).
+class StatisticsQueueTask {
+    WTF_MAKE_NONCOPYABLE(StatisticsQueueTask);
+public:
+    StatisticsQueueTask(StatisticsQueueTask&&) = default;
+    StatisticsQueueTask& operator=(StatisticsQueueTask&&) = default;
+    ~StatisticsQueueTask() { }
+
+#ifdef __swift__
+    // This should only be called within the initializers of the `CxxCompletionHandler` protocols.
+    StatisticsQueueTask(WTF::SwiftClosureInvoke invoke, WTF::SwiftClosureDestroy destroy, void* WTF_NONNULL context) SWIFT_NAME(init(invoke:destroy:context:))
+        : m_function([invoke, owner = std::unique_ptr<void, WTF::SwiftClosureDestroy> { context, destroy }](ResourceLoadStatisticsStore* WTF_NULLABLE store) {
+            invoke(owner.get(), std::addressof(store));
+        })
+    {
+    }
+#endif
+
+    // Called once: a second call would call a null Function.
+    void operator()(ResourceLoadStatisticsStore* WTF_NULLABLE store)
+    {
+        RELEASE_ASSERT(m_function);
+        std::exchange(m_function, nullptr)(store);
+    }
+
+private:
+    Function<void(ResourceLoadStatisticsStore* WTF_NULLABLE)> m_function;
+};
+
+// The completion handlers of the statistics queue's store members, named so that Swift can build them
+// (WTFCompletionHandler+Extras.swift; WebResourceLoadStatisticsStore.swift, onStatisticsQueue(replying:)).
+using StorageAccessStatusCompletionHandler = CompletionHandler<void(StorageAccessStatus)>;
+using StorageAccessWasGrantedCompletionHandler = CompletionHandler<void(WebCore::StorageAccessWasGranted)>;
+using PermissionStateCompletionHandler = CompletionHandler<void(WebCore::PermissionState)>;
+using StatisticsStringCompletionHandler = CompletionHandler<void(String)>;
+
 class WebResourceLoadStatisticsStore final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<WebResourceLoadStatisticsStore, WTF::DestructionThread::Main>, public CanMakeThreadSafeCheckedPtr<WebResourceLoadStatisticsStore> {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(WebResourceLoadStatisticsStore);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(WebResourceLoadStatisticsStore);
