@@ -81,8 +81,8 @@ func copyMatchingItems(_ query: NSMutableDictionary, credentialID: Data?, _ stat
     return result
 }
 
-// checked_objc_cast: nil stays nil, and an object of another class traps. A Core Foundation type is not checked, as a
-// __bridge cast is not.
+// checked_objc_cast: nil stays nil, and an object of another class traps. Not for a Core Foundation type, which `as?`
+// does not check (it succeeds on any object): use checkedCFCast.
 func checkedObjectCast<T>(_ value: Any?, to type: T.Type) -> T? {
     guard let value else {
         return nil
@@ -91,6 +91,35 @@ func checkedObjectCast<T>(_ value: Any?, to type: T.Type) -> T? {
         preconditionFailure("An object of an unexpected class")
     }
     return object
+}
+
+// A Core Foundation type checkedCFCast can check, by its type ID.
+protocol WebAuthnCFTypeIDProviding: AnyObject {
+    static var typeID: CFTypeID { get }
+}
+
+extension SecKey: WebAuthnCFTypeIDProviding {
+    static var typeID: CFTypeID { SecKeyGetTypeID() }
+}
+
+extension SecAccessControl: WebAuthnCFTypeIDProviding {
+    static var typeID: CFTypeID { SecAccessControlGetTypeID() }
+}
+
+extension SecIdentity: WebAuthnCFTypeIDProviding {
+    static var typeID: CFTypeID { SecIdentityGetTypeID() }
+}
+
+// checked_cf_cast: nil stays nil, and an object whose Core Foundation type ID is not T's traps.
+func checkedCFCast<T: WebAuthnCFTypeIDProviding>(_ value: Any?, to type: T.Type) -> T? {
+    guard let value else {
+        return nil
+    }
+    let object = value as AnyObject
+    guard CFGetTypeID(object) == T.typeID, let cfObject = object as? T else {
+        preconditionFailure("An object of an unexpected Core Foundation type")
+    }
+    return cfObject
 }
 
 extension Data {

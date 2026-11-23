@@ -336,7 +336,7 @@ extension WebKit.LocalAuthenticator {
             let credentialID = alias ?? attributes[kSecAttrApplicationLabel]
             let rawID = checkedObjectCast(credentialID, to: Data.self) ?? Data()
 
-            let secAccessControl = checkedObjectCast(attributes[kSecAttrAccessControl], to: SecAccessControl.self)
+            let secAccessControl = checkedCFCast(attributes[kSecAttrAccessControl], to: SecAccessControl.self)
             let response = WebCore.AuthenticatorAssertionResponse
                 .create(
                     consuming: makeArrayBuffer(rawID.span),
@@ -436,7 +436,7 @@ extension WebKit.LocalAuthenticator {
         dataToSign.append(contentsOf: makeByteArray(clientDataHash.span()))
 
         // FIXME: Converting CFTypeRef to SecKeyRef is quite subtle here.
-        let privateKey = checkedObjectCast(privateKeyRef, to: SecKey.self)
+        let privateKey = checkedCFCast(privateKeyRef, to: SecKey.self)
         var signature = cbor.Bytes()
         let error = WebKit.createKeySignature(privateKey, .ecdsaSignatureMessageX962SHA256, Data(dataToSign) as CFData, &signature)
         if let error = Optional(fromCxx: error) {
@@ -597,7 +597,7 @@ extension WebKit.LocalAuthenticator {
             WebKit.LogChannel.WebAuthn().releaseLog.error("Couldn't find attestation certificate: \(status)")
             return nil
         }
-        let identity = checkedObjectCast(identityRef, to: SecIdentity.self)
+        let identity = checkedCFCast(identityRef, to: SecIdentity.self)
 
         let privateKey = WebKit.copyIdentityPrivateKey(identity, &status)
         if status != errSecSuccess {
