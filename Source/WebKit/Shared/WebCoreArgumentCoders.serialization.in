@@ -73,7 +73,7 @@ enum class WebCore::PermissionQuerySource : uint8_t {
 };
 
 header: <WebCore/PermissionState.h>
-enum class WebCore::PermissionState : uint8_t {
+[Swift] enum class WebCore::PermissionState : uint8_t {
     Granted,
     Denied,
     Prompt
@@ -895,7 +895,7 @@ struct WebCore::PublicKeyCredentialRequestOptions {
 #endif // ENABLE(WEB_AUTHN)
 };
 
-[CreateUsing=fromRawString] class WebCore::RegistrableDomain {
+[Swift, CreateUsing=fromRawString, SwiftCreateUsing=Memberwise] class WebCore::RegistrableDomain {
     String string()
 }
 
@@ -979,22 +979,25 @@ header: <WebCore/PlatformDynamicRangeLimit.h>
 #endif
 
 header: <WebCore/IsLoggedIn.h>
-enum class WebCore::IsLoggedIn : uint8_t {
+[Swift] enum class WebCore::IsLoggedIn : uint8_t {
     LoggedOut,
     LoggedIn
 };
 
 header: <WebCore/LoginStatus.h>
-[Nested] enum class WebCore::LoginStatus::CredentialTokenType : bool
+[Swift, Nested] enum class WebCore::LoginStatus::CredentialTokenType : bool {
+    LegacyCookie,
+    HTTPStateToken
+};
 
 header: <WebCore/LoginStatus.h>
-[Nested] enum class WebCore::LoginStatus::AuthenticationType : uint8_t {
+[Swift, Nested] enum class WebCore::LoginStatus::AuthenticationType : uint8_t {
     WebAuthn,
     PasswordManager,
     Unmanaged
 };
 
-class WebCore::LoginStatus {
+[Swift] class WebCore::LoginStatus {
     WebCore::RegistrableDomain domain();
     String username();
     WebCore::LoginStatus::CredentialTokenType tokenType();
@@ -2849,8 +2852,8 @@ enum class WebCore::TextGranularity : uint8_t {
 };
 
 header: <pal/SessionID.h>
-[CustomHeader] class PAL::SessionID {
-    [Validator='PAL::SessionID::isValidSessionIDValue(*toUInt64)'] uint64_t toUInt64();
+[Swift, CustomHeader] class PAL::SessionID {
+    [Validator='PAL::SessionID::isValidSessionIDValue(*toUInt64)', SwiftValidator='toUInt64 != 0 && toUInt64 != UInt64.max'] uint64_t toUInt64();
 }
 
 enum class WebCore::RunAsAsyncFunction : bool;
@@ -3725,7 +3728,7 @@ enum class WebCore::PrivacyStance : uint8_t {
 };
 
 header: <WebCore/ThirdPartyCookieBlockingMode.h>
-enum class WebCore::ThirdPartyCookieBlockingMode : uint8_t {
+[Swift] enum class WebCore::ThirdPartyCookieBlockingMode : uint8_t {
     All,
     AllExceptBetweenAppBoundDomains,
     AllExceptManagedDomains,
@@ -3746,7 +3749,7 @@ enum class WebCore::ThirdPartyCookieBlockingDecision : uint8_t {
 };
 
 header: <WebCore/TrackingPreventionTypes.h>
-enum class WebCore::FirstPartyWebsiteDataRemovalMode : uint8_t {
+[Swift] enum class WebCore::FirstPartyWebsiteDataRemovalMode : uint8_t {
     AllButCookies,
     None,
     AllButCookiesLiveOnTestingTimeout,
@@ -3932,20 +3935,29 @@ struct WebCore::MessageWithMessagePorts {
     Vector<WebCore::TransferredMessagePort> transferredPorts;
 };
 
-enum class WebCore::StorageAccessWasGranted : uint8_t {
+[Swift] enum class WebCore::StorageAccessWasGranted : uint8_t {
     No,
     Yes,
     YesWithException
 };
 
-enum class WebCore::StorageAccessPromptWasShown : bool
+[Swift] enum class WebCore::StorageAccessPromptWasShown : bool {
+    No,
+    Yes
+};
 
-enum class WebCore::HasUserGestureOrNoUserGestureRequired : bool
+[Swift] enum class WebCore::HasUserGestureOrNoUserGestureRequired : bool {
+    No,
+    Yes
+};
 
-enum class WebCore::StorageAccessScope : bool
+[Swift] enum class WebCore::StorageAccessScope : bool {
+    PerFrame,
+    PerPage
+};
 
 header: <WebCore/DocumentStorageAccess.h>
-[CustomHeader] struct WebCore::RequestStorageAccessResult {
+[Swift, CustomHeader] struct WebCore::RequestStorageAccessResult {
     WebCore::StorageAccessWasGranted wasGranted;
     WebCore::StorageAccessPromptWasShown promptWasShown;
     WebCore::StorageAccessScope scope;
