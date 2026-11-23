@@ -66,8 +66,8 @@ public:
     explicit AuthenticationManager(NetworkProcess&);
     ~AuthenticationManager();
 
-    void ref() const final;
-    void deref() const final;
+    SWIFT_UNSAFE void ref() const final;
+    SWIFT_UNSAFE void deref() const final;
 
     static ASCIILiteral supplementName();
 

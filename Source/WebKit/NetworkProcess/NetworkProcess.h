@@ -70,6 +70,7 @@
 #include <wtf/NeverDestroyed.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/TZoneMalloc.h>
+#include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/text/ASCIILiteral.h>
 
@@ -149,7 +150,7 @@ class Cache;
 enum class CacheOption : uint8_t;
 }
 
-class NetworkProcess final : public AuxiliaryProcess, private DownloadManager::Client
+class NetworkProcess final : public AuxiliaryProcess, public ThreadSafeRefCounted<NetworkProcess>, private DownloadManager::Client
 {
     WTF_MAKE_NONCOPYABLE(NetworkProcess);
     WTF_MAKE_TZONE_ALLOCATED(NetworkProcess);
@@ -388,9 +389,10 @@ public:
 
     const String& uiProcessBundleIdentifier() const LIFETIME_BOUND;
 
-    // ref() & deref() do nothing since NetworkProcess is a singleton object.
-    void ref() const final { }
-    void deref() const final { }
+    // A real count, as GPUProcess has, so that Swift holds the process as a shared reference; the singleton keeps it alive.
+    // Unsafe in Swift: an unbalanced deref() would destroy the singleton.
+    SWIFT_UNSAFE void ref() const final { ThreadSafeRefCounted::ref(); }
+    SWIFT_UNSAFE void deref() const final { ThreadSafeRefCounted::deref(); }
 
     void storePrivateClickMeasurement(PAL::SessionID, WebCore::PrivateClickMeasurement&&);
     void simulatePrivateClickMeasurementConversion(PAL::SessionID, int priority, int triggerData, const URL& sourceURL, const URL& destinationURL);
