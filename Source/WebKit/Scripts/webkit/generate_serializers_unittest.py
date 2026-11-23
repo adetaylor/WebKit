@@ -664,6 +664,28 @@ template: class WebKit::Fabulous
     uint32_t value;
 }
 ''', r'types marked \[Swift\] do not support the attribute CreateUsing, because Swift would not make the checks that the C\+\+ function may make')
+        self.assertGenerationFails('''
+[Swift, CreateUsing=fromValue, SwiftCreateUsing=Checked] struct WebKit::S {
+    uint32_t value;
+}
+''', r'SwiftCreateUsing=Checked is not supported; SwiftCreateUsing=Memberwise says the CreateUsing function checks nothing')
+        self.assertGenerationFails('''
+[Swift, SwiftCreateUsing=Memberwise] struct WebKit::S {
+    uint32_t value;
+}
+''', r'SwiftCreateUsing is for types marked \[Swift\] that have CreateUsing')
+
+    def test_create_using_that_checks_nothing(self):
+        # A CreateUsing function that only builds the type from its members, like RegistrableDomain::fromRawString, is the
+        # Swift form's memberwise initializer.
+        source = '''
+[Swift, CreateUsing=fromRawString, SwiftCreateUsing=Memberwise] class WebKit::Domain {
+    String string()
+}
+'''
+        swift = generate_swift(source)
+        self.assertIn('    struct Domain: Sendable, Equatable {\n        var string: String?\n    }\n', swift)
+        self.assertIn('        typealias WebKit_Domain = IPCTypes.Domain\n', swift)
 
     def test_parent_class(self):
         self.assertGenerationFails('''

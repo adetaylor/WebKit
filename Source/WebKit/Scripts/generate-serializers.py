@@ -130,7 +130,8 @@ def matches_bundle(item, bundle_filter):
 # LegacyPopulateFromEmptyConstructor - instead of calling a constructor with the members, call the empty constructor then insert the members one at a time.
 # OptionSet - for enum classes, instead of only allowing deserialization of the exact values, allow deserialization of any bit combination of the values.
 # RValue - serializer takes an rvalue reference, instead of an lvalue.
-# Swift - also generate a Swift form of this struct, class, enum class or Variant using statement into IPCTypes in GeneratedSerializers.swift, for messages whose Swift receivers take Swift types. A RefCounted class becomes a final class, other structs and classes become structs. Enum values must be numbered in declaration order (bits in declaration order for an OptionSet), or each give its number, as Name = 180, which the generated C++ checks. A bool enum class must list its two values. A class serialized as its subclasses becomes an enum with a case for each, which each need a Swift form. Not supported together with CreateUsing, whose function may check values that Swift would not.
+# Swift - also generate a Swift form of this struct, class, enum class or Variant using statement into IPCTypes in GeneratedSerializers.swift, for messages whose Swift receivers take Swift types. A RefCounted class becomes a final class, other structs and classes become structs. Enum values must be numbered in declaration order (bits in declaration order for an OptionSet), or each give its number, as Name = 180, which the generated C++ checks. A bool enum class must list its two values. A class serialized as its subclasses becomes an enum with a case for each, which each need a Swift form. Not supported together with CreateUsing, whose function may check values that Swift would not, unless SwiftCreateUsing says what Swift does instead.
+# SwiftCreateUsing=Memberwise - with Swift and CreateUsing: the CreateUsing function only builds the type from its members and checks nothing, so the Swift form's memberwise initializer is the same construction.
 # WebKitPlatform - put serializer into a file built as part of WebKitPlatform
 # CustomEncoder - Only generate the decoder, not the encoder.
 # WebKitSecureCodingClass - For webkit_secure_coding declarations that need a custom way of establishing the Obj-C class to instantiate (e.g. softlinked frameworks)
@@ -203,6 +204,7 @@ class SerializedType(object):
         self.bundle = None
         self.swift = False
         self.attribute_names = []
+        self.swift_create_using = None
         if attributes is not None:
             for attribute in attributes.split(', '):
                 if '=' in attribute:
@@ -214,6 +216,8 @@ class SerializedType(object):
                         self.construct_subclass = value
                     elif key == 'CreateUsing':
                         self.create_using = value
+                    elif key == 'SwiftCreateUsing':
+                        self.swift_create_using = value
                     elif key == 'Alias':
                         self.alias = value
                     elif key == 'ToCFMethod':
@@ -2650,9 +2654,15 @@ def swift_type_and_coder(cpp_type, context, swift_names):
 
 
 def check_swift_type_attributes(type, context):
-    if 'CreateUsing' in type.attribute_names:
-        raise Exception(f'{context}: types marked [Swift] do not support the attribute CreateUsing, because Swift would not make the checks that the C++ function may make.')
+    if 'SwiftCreateUsing' in type.attribute_names and type.swift_create_using != 'Memberwise':
+        raise Exception(f'{context}: SwiftCreateUsing={type.swift_create_using} is not supported; SwiftCreateUsing=Memberwise says the CreateUsing function checks nothing.')
+    if ('CreateUsing' in type.attribute_names) != ('SwiftCreateUsing' in type.attribute_names):
+        if 'CreateUsing' in type.attribute_names:
+            raise Exception(f'{context}: types marked [Swift] do not support the attribute CreateUsing, because Swift would not make the checks that the C++ function may make, unless SwiftCreateUsing=Memberwise says the function checks nothing.')
+        raise Exception(f'{context}: SwiftCreateUsing is for types marked [Swift] that have CreateUsing.')
     for attribute in type.attribute_names:
+        if attribute in ('CreateUsing', 'SwiftCreateUsing'):
+            continue
         if attribute not in _SWIFT_COMPATIBLE_TYPE_ATTRIBUTES:
             raise Exception(f'{context}: types marked [Swift] do not support the attribute {attribute}.')
     if type.cf_type is not None:
