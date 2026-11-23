@@ -69,6 +69,13 @@ void OriginQuotaManager::requestSpace(uint64_t spaceRequested, RequestCallback&&
     handleRequests();
 }
 
+void OriginQuotaManager::requestSpace(uint64_t spaceRequested, RequestCallbackBox& callbackBox)
+{
+    requestSpace(spaceRequested, [callbackBox = Ref { callbackBox }](Decision decision) {
+        callbackBox.get()(decision);
+    });
+}
+
 void OriginQuotaManager::handleRequests()
 {
     if (m_currentRequest)

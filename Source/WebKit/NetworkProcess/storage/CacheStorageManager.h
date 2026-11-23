@@ -29,6 +29,7 @@
 #include <WebCore/ClientOrigin.h>
 #include <WebCore/DOMCacheEngine.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
+#include <wtf/RefCountable.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
 
@@ -80,7 +81,10 @@ public:
     void sizeDecreased(uint64_t amount);
     void reset();
 
-    void query(WebCore::RetrieveRecordsOptions&&, String&&, CompletionHandler<void(std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&&)>&&);
+    using QueryCallback = CompletionHandler<void(std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&&)>;
+    using QueryCallbackBox = CompletionHandlerBox<void(std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&&)>;
+    void query(WebCore::RetrieveRecordsOptions&& options, String&& cacheName, QueryCallback&& callback);
+    SWIFT_UNSAFE void query(WebCore::RetrieveRecordsOptions&& options, String&& cacheName, QueryCallbackBox& callbackBox);
 
 private:
     CacheStorageManager(const String& path, CacheStorageRegistry&, const WebCore::ClientOrigin&, ShouldWriteOriginFile, QuotaCheckFunction&&, Ref<WorkQueue>&&);

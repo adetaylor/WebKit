@@ -230,3 +230,9 @@
 // SuspendableWorkQueue is a foreign reference type, so Swift needs its definition before ResourceLoadStatisticsStore.h names it.
 #include <wtf/SuspendableWorkQueue.h>
 #include "ResourceLoadStatisticsStore.h"
+
+// The storage classes whose CompletionHandlers Swift keeps.
+#include "CacheStorageManager.h"
+#include "CacheStorageRecord.h"
+#include "CacheStorageStore.h"
+#include "OriginQuotaManager.h"
