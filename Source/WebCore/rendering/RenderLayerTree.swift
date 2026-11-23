@@ -857,7 +857,7 @@ extension WebCore.RenderLayer {
 
     @cxx
     @implementation
-    private func setAncestorsHaveCompositingDirtyFlag(_ flag: WebCore.RenderLayer.Compositing) {
+    func setAncestorsHaveCompositingDirtyFlag(_ flag: WebCore.RenderLayer.Compositing) {
         var layer = paintOrderParentLayer()
         while let current = layer {
             if current.m_compositingDirtyBits.contains(flag) {

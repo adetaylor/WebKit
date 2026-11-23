@@ -4241,6 +4241,8 @@ if (APPLE)
             ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnPin.swift
             ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnU2f.swift
         )
+        # SourcesCMakeCocoa.txt lists these outside the unified sources, so they stay in WebCore_SOURCES.
+        list(REMOVE_ITEM WebCore_SOURCES ${_webcore_webauthn_swift_interop_sources})
         list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_webauthn_swift_interop_sources})
     endif ()
 
