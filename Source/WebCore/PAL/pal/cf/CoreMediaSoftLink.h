@@ -74,6 +74,8 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, CoreMedia, CMFormatDescriptionGetTypeID, CFTy
 template <> struct WTF::CFTypeTrait<CMFormatDescriptionRef> {
     static inline CFTypeID typeID() { return PAL::CMFormatDescriptionGetTypeID(); }
 };
+SOFT_LINK_FUNCTION_FOR_HEADER(PAL, CoreMedia, CMTagCollectionGetTypeID, CFTypeID, (void), ())
+#define CMTagCollectionGetTypeID softLink_CoreMedia_CMTagCollectionGetTypeID
 SOFT_LINK_FUNCTION_FOR_HEADER(PAL, CoreMedia, CMTimebaseGetTypeID, CFTypeID, (void), ())
 #define CMTimebaseGetTypeID softLink_CoreMedia_CMTimebaseGetTypeID
 template <> struct WTF::CFTypeTrait<CMTimebaseRef> {

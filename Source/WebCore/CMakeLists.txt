@@ -4168,7 +4168,7 @@ if (APPLE)
     # Its Swift reaches their symbols through accessors generated with the target's SDK from PAL's SOFT_LINK
     # declarations, for the symbols that platform/cocoa/SoftLinkAccessors.in lists. The SDK's declarations are read in
     # C++ interop mode, as WebCore's Swift imports them.
-    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox CoreML CoreMedia ScreenCaptureKit Vision)
+    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox CoreML CoreMedia ScreenCaptureKit VideoToolbox Vision)
     set(_soft_link_accessors_dir ${WebCore_DERIVED_SOURCES_DIR}/SoftLinkAccessors)
     set(_soft_link_pal_headers
         ${PAL_DIR}/pal/cf/AudioToolboxSoftLink.h
@@ -4178,6 +4178,7 @@ if (APPLE)
         ${PAL_DIR}/pal/cocoa/CoreMLSoftLink.h
         ${PAL_DIR}/pal/cocoa/VisionSoftLink.h
         ${PAL_DIR}/pal/mac/ScreenCaptureKitSoftLink.h
+        ${WEBCORE_DIR}/platform/cocoa/VideoToolboxSoftLink.h
     )
     # The clients of WebCore's Swift module load the modules it imports, and search this directory for WebCore's.
     set(_soft_link_accessors_types

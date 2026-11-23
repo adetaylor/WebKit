@@ -8003,6 +8003,7 @@
 		B24B331C8A5341318D91D032 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC91CC583F841EAB1620606 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift */; };
 		ECB218D4D904440A9EE8E0A7 /* SoftLinkAccessors/VisionSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61850C23954D4325BC4D79E9 /* SoftLinkAccessors/VisionSoftLinkAccessors.swift */; };
 		E370C46D22201E9389D08DCB /* SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F66CADD74C12B9189FA604 /* SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift */; };
+		A7C3E1D95B2F4A60B8D14E27 /* SoftLinkAccessors/VideoToolboxSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9D6B2A81C74E05A6B7C8D1 /* SoftLinkAccessors/VideoToolboxSoftLinkAccessors.swift */; };
 		F936C9750E104D8DB4F60324 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A67A2B224A84089824FE3BB /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */; };
 		35328990440148048DB3641E /* MicrophoneCaptureSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25E5507B370B4CBCA8AA007E /* MicrophoneCaptureSource.swift */; };
 /* End PBXBuildFile section */
@@ -24940,6 +24941,7 @@
 		ABC91CC583F841EAB1620606 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/CoreMLSoftLinkAccessors.swift; sourceTree = "<group>"; };
 		61850C23954D4325BC4D79E9 /* SoftLinkAccessors/VisionSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/VisionSoftLinkAccessors.swift; sourceTree = "<group>"; };
 		C9F66CADD74C12B9189FA604 /* SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift; sourceTree = "<group>"; };
+		3F9D6B2A81C74E05A6B7C8D1 /* SoftLinkAccessors/VideoToolboxSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/VideoToolboxSoftLinkAccessors.swift; sourceTree = "<group>"; };
 		5A67A2B224A84089824FE3BB /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift; sourceTree = "<group>"; };
 		25E5507B370B4CBCA8AA007E /* MicrophoneCaptureSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCaptureSource.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -31762,6 +31764,7 @@
 				5A67A2B224A84089824FE3BB /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */,
 				ABC91CC583F841EAB1620606 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift */,
 				C9F66CADD74C12B9189FA604 /* SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift */,
+				3F9D6B2A81C74E05A6B7C8D1 /* SoftLinkAccessors/VideoToolboxSoftLinkAccessors.swift */,
 				61850C23954D4325BC4D79E9 /* SoftLinkAccessors/VisionSoftLinkAccessors.swift */,
 				9908B0FD1BCAD07D00ED0F55 /* StreamInternalsBuiltins.cpp */,
 				9B03D8061BB3110D00B764C9 /* StreamInternalsBuiltins.h */,
@@ -52914,6 +52917,7 @@
 				F936C9750E104D8DB4F60324 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift in Sources */,
 				B24B331C8A5341318D91D032 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift in Sources */,
 				E370C46D22201E9389D08DCB /* SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift in Sources */,
+				A7C3E1D95B2F4A60B8D14E27 /* SoftLinkAccessors/VideoToolboxSoftLinkAccessors.swift in Sources */,
 				ECB218D4D904440A9EE8E0A7 /* SoftLinkAccessors/VisionSoftLinkAccessors.swift in Sources */,
 				FAFC665E50AE3137A8B4F14B /* SourceAlphaCoreImageApplier.swift in Sources */,
 				649031DC6302DE3AC23EAFFE /* SourceAlphaSoftwareApplier.swift in Sources */,

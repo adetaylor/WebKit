@@ -244,6 +244,7 @@ function CoreMedia CMVideoFormatDescriptionCreateForImageBuffer
 function CoreMedia CMTagCollectionContainsTag refined
 function CoreMedia CMTagCollectionCreate refined
 function CoreMedia CMTagCollectionGetTagsWithCategory refined
+function CoreMedia CMTagCollectionGetTypeID refined
 function CoreMedia CMTagEqualToTag refined
 function CoreMedia CMTagGetFlagsValue refined
 function CoreMedia CMTagGetSInt64Value refined
@@ -253,6 +254,13 @@ function CoreMedia CMTaggedBufferGroupFormatDescriptionCreateForTaggedBufferGrou
 function CoreMedia CMTaggedBufferGroupFormatDescriptionCreateForTaggedBufferGroupWithExtensions refined
 function CoreMedia CMTaggedBufferGroupGetTagCollectionAtIndex refined
 function CoreMedia CMVideoFormatDescriptionCopyTagCollectionArray refined
+
+# The decompression session (WebCoreDecompressionSession.swift), soft-linked by platform/cocoa/VideoToolboxSoftLink.h.
+function VideoToolbox VTDecompressionSessionCanAcceptFormatDescription
+function VideoToolbox VTDecompressionSessionCreate refined
+function VideoToolbox VTDecompressionSessionInvalidate
+function VideoToolbox VTDecompressionSessionWaitForAsynchronousFrames
+function VideoToolbox VTSessionCopyProperty
 
 # The renderer's shared timebase timer and its rate.
 function CoreMedia CMTimebaseAddTimerDispatchSource

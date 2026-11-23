@@ -3899,6 +3899,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/CoreMediaSoftLink
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/PALSoftLinkTypes/PALSoftLinkTypes.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/PALSoftLinkTypes/module.modulemap
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/VideoToolboxSoftLinkAccessors.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/VisionSoftLinkAccessors.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/StreamInternalsBuiltins.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/StreamInternalsBuiltins.h

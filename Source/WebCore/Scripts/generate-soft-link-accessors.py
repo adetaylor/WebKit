@@ -116,7 +116,7 @@ def parse_pal_header(text, source_text, declarations):
 
     for m in re.finditer(r'\bSOFT_LINK_(FUNCTION|CONSTANT)(_MAY_FAIL)?_FOR_HEADER\s*(?=\()', text):
         arguments = macro_arguments(text, m.end())
-        if arguments[0] != 'PAL':
+        if arguments[0] not in ('PAL', 'WebCore'):
             continue
         kind = m.group(1).lower()
         pal_type = arguments[3] if kind == 'constant' and len(arguments) > 3 else None
