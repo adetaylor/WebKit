@@ -48,7 +48,7 @@ class SQLiteStatement;
 class SQLiteStatementOwner;
 class SQLiteTransaction;
 
-class SQLiteDatabase final : public CanMakeThreadSafeCheckedPtr<SQLiteDatabase> {
+class SWIFT_NONSENDABLE SQLiteDatabase final : public CanMakeThreadSafeCheckedPtr<SQLiteDatabase> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(SQLiteDatabase, WEBCORE_EXPORT);
     WTF_MAKE_NONCOPYABLE(SQLiteDatabase);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(SQLiteDatabase);
