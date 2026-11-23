@@ -630,19 +630,6 @@ void RemoteScrollingCoordinatorProxyIOS::connectStateNodeLayers(ScrollingStateTr
     }
 }
 
-FloatRect RemoteScrollingCoordinatorProxyIOS::currentLayoutViewport() const
-{
-    // FIXME: does this give a different value to the last value pushed onto us?
-    Ref page = webPageProxy();
-    return page->computeLayoutViewportRect(page->unobscuredContentRect(), page->unobscuredContentRectRespectingInputViewBounds(), protect(webPageProxy())->layoutViewportRect(),
-        page->displayedContentScale(), LayoutViewportConstraint::Unconstrained);
-}
-
-void RemoteScrollingCoordinatorProxyIOS::scrollingTreeNodeWillStartPanGesture(ScrollingNodeID nodeID)
-{
-    protect(webPageProxy())->scrollingNodeScrollViewWillStartPanGesture(nodeID);
-}
-
 // This is not called for the main scroll view.
 void RemoteScrollingCoordinatorProxyIOS::scrollingTreeNodeWillStartScroll(ScrollingNodeID nodeID)
 {
@@ -789,14 +776,6 @@ void RemoteScrollingCoordinatorProxyIOS::updateSnapIndicesForMainFrameOffset(CGP
         auto [potentialSnapPosition, snapIndex] = closestSnapOffsetForMainFrameScrolling(WebCore::ScrollEventAxis::Vertical, zoomScale, scrollOffset.y, scrollOffset, 0);
         rootNode->setCurrentVerticalSnapPointIndex(snapIndex);
     }
-}
-
-void RemoteScrollingCoordinatorProxyIOS::displayDidRefresh(PlatformDisplayID displayID)
-{
-#if ENABLE(THREADED_ANIMATIONS)
-    updateTimeDependentAnimationStacks();
-    protect(drawingAreaIOS())->updateHighImpactMonotonicAnimations();
-#endif
 }
 
 RemoteLayerTreeDrawingAreaProxyIOS& RemoteScrollingCoordinatorProxyIOS::drawingAreaIOS() const

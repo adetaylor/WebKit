@@ -32,8 +32,6 @@
 #import "ScrollingStatePluginScrollingNode.h"
 #import "ScrollingTree.h"
 #import "ScrollingTreeScrollingNodeDelegateMac.h"
-#import "WebCoreCALayerExtras.h"
-#import <wtf/BlockObjCExceptions.h>
 #import <wtf/text/TextStream.h>
 
 namespace WebCore {
@@ -54,11 +52,6 @@ ScrollingTreePluginScrollingNodeMac::~ScrollingTreePluginScrollingNodeMac() = de
 ScrollingTreeScrollingNodeDelegateMac& ScrollingTreePluginScrollingNodeMac::delegate() const
 {
     return *static_cast<ScrollingTreeScrollingNodeDelegateMac*>(m_delegate.get());
-}
-
-void ScrollingTreePluginScrollingNodeMac::willBeDestroyed()
-{
-    delegate().nodeWillBeDestroyed();
 }
 
 bool ScrollingTreePluginScrollingNodeMac::commitStateBeforeChildren(const ScrollingStateNode& stateNode)
@@ -94,18 +87,6 @@ void ScrollingTreePluginScrollingNodeMac::currentScrollPositionChanged(ScrollTyp
 {
     ScrollingTreePluginScrollingNode::currentScrollPositionChanged(scrollType, action);
     delegate().currentScrollPositionChanged();
-}
-
-void ScrollingTreePluginScrollingNodeMac::repositionScrollingLayers()
-{
-    BEGIN_BLOCK_OBJC_EXCEPTIONS
-    [protect(static_cast<CALayer*>(scrollContainerLayer())) _web_setLayerBoundsOrigin:currentScrollOffset()];
-    END_BLOCK_OBJC_EXCEPTIONS
-}
-
-void ScrollingTreePluginScrollingNodeMac::repositionRelatedLayers()
-{
-    delegate().updateScrollbarPainters();
 }
 
 } // namespace WebCore

@@ -2214,10 +2214,13 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     page/csp/ContentSecurityPolicySwift.h
 
     page/scrolling/AsyncScrollingCoordinator.h
+    page/scrolling/ScrollLatchingController.h
+    page/scrolling/ScrollAnchoringController.h
     page/scrolling/ScrollSnapOffsetsInfo.h
     page/scrolling/ScrollingConstraints.h
     page/scrolling/ScrollingCoordinator.h
     page/scrolling/ScrollingCoordinatorTypes.h
+    page/scrolling/ScrollingLockedAccess.h
     page/scrolling/ScrollingNodeID.h
     page/scrolling/ScrollingPlatformLayer.h
     page/scrolling/ScrollingStateFixedNode.h

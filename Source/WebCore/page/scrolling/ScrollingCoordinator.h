@@ -37,6 +37,7 @@
 #include <WebCore/UserInterfaceLayoutDirection.h>
 #include <WebCore/WheelEventTestMonitor.h>
 #include <wtf/Forward.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/TypeCasts.h>
@@ -65,7 +66,7 @@ struct KeyboardScroll;
 using FramesPerSecond = unsigned;
 using PlatformDisplayID = uint32_t;
 
-class ScrollingCoordinator : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingCoordinator> {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingCoordinator.swift") ScrollingCoordinator : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingCoordinator> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingCoordinator, WEBCORE_EXPORT);
 public:
     static Ref<ScrollingCoordinator> create(Page*);

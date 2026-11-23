@@ -161,6 +161,7 @@ list(APPEND WebKit_SOURCES
     UIProcess/API/Cocoa/_WKPublicKeyCredentialUserEntity.mm
     UIProcess/API/Cocoa/_WKResourceLoadStatisticsFirstParty.mm
     UIProcess/API/Cocoa/_WKResourceLoadStatisticsThirdParty.mm
+    ${WEBKIT_DIR}/Shared/ScrollingAccelerationCurve.swift
     ${WEBKIT_DIR}/UIProcess/API/Cocoa/Logger+Extras.swift
     ${WEBKIT_DIR}/UIProcess/API/Cocoa/ObjectiveCBlockConversions.swift
     ${WEBKIT_DIR}/UIProcess/API/Cocoa/WebKitSwiftOverlay.swift
@@ -183,6 +184,10 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/UIProcess/PhoneNumberPossession/Cocoa/PhoneNumberPossessionManaging.swift
     ${WEBKIT_DIR}/UIProcess/RemoteLayerTree/RemoteScrollingCoordinatorProxy.swift
     ${WEBKIT_DIR}/UIProcess/RemoteLayerTree/mac/RemoteLayerTreeEventDispatcher.swift
+    ${WEBKIT_DIR}/UIProcess/RemoteLayerTree/mac/RemoteScrollingTreeMac.swift
+    ${WEBKIT_DIR}/UIProcess/RemoteLayerTree/ios/RemoteScrollingCoordinatorProxyIOS.swift
+    ${WEBKIT_DIR}/UIProcess/RemoteLayerTree/ios/ScrollingTreeScrollingNodeRemoteIOS.swift
+    ${WEBKIT_DIR}/UIProcess/RemoteLayerTree/mac/RemoteScrollingCoordinatorProxyMac.swift
     ${WEBKIT_DIR}/UIProcess/WebPageProxy.swift
     ${WEBKIT_DIR}/WebProcess/WebPage/MomentumEventDispatcher.swift
     ${WEBKIT_DIR}/WebProcess/WebPage/RemoteLayerTree/RemoteScrollingCoordinator.swift

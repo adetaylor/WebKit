@@ -35,6 +35,7 @@
 #endif
 #include <stdint.h>
 #include <wtf/CheckedPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/TypeCasts.h>
@@ -237,7 +238,7 @@ enum class ScrollingStateNodeProperty : uint64_t {
 // A name for Swift, which cannot spell a class template specialization.
 using ScrollingStateNodeProperties = OptionSet<ScrollingStateNodeProperty>;
 
-class ScrollingStateNode : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingStateNode> {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingStateNode.swift") ScrollingStateNode : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingStateNode> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStateNode, WEBCORE_EXPORT);
 public:
     virtual ~ScrollingStateNode();
@@ -303,9 +304,9 @@ public:
     void removeFromParent();
     void removeChild(ScrollingStateNode&);
 
-    NODELETE RefPtr<ScrollingStateNode> childAtIndex(size_t) const;
-
     String scrollingStateTreeAsText(OptionSet<ScrollingStateTreeAsTextBehavior> = { }) const;
+    // The node ID and layer ID dumpProperties writes for every node, written at the given indent.
+    String stateNodePropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 #if ASSERT_ENABLED
     bool parentPointersAreCorrect() const;
 #endif
@@ -319,6 +320,8 @@ protected:
     void setPropertiesChangedInternal(OptionSet<Property> properties) { m_changedProperties.add(properties); }
 
     virtual void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const;
+    // The text dumpProperties writes, from a stream with the caller's indent, formatting flags and container size limit.
+    virtual String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
     virtual OptionSet<Property> applicableProperties() const;
 
 private:
@@ -336,7 +339,11 @@ private:
     LayerRepresentation m_layer;
 };
 
-// For Swift: node's child at index, or null when index is past its last child.
+// Swift cannot name the unspecialized Ref.
+using RefScrollingStateNode = Ref<ScrollingStateNode>;
+using RefPtrScrollingStateNode = RefPtr<ScrollingStateNode>;
+
+// The node's child at index, or null when index is past its last child.
 inline ScrollingStateNode* scrollingStateChildAtIndex(const ScrollingStateNode& node, size_t index)
 {
     return index < node.children().size() ? node.children()[index].ptr() : nullptr;
@@ -344,9 +351,13 @@ inline ScrollingStateNode* scrollingStateChildAtIndex(const ScrollingStateNode& 
 
 } // namespace WebCore
 
+// Also defines as##ToValueTypeName(), dynamicDowncast() for Swift, which cannot call the template.
 #define SPECIALIZE_TYPE_TRAITS_SCROLLING_STATE_NODE(ToValueTypeName, predicate) \
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::ScrollingStateNode& node) { return node.predicate; } \
-SPECIALIZE_TYPE_TRAITS_END()
+SPECIALIZE_TYPE_TRAITS_END() \
+namespace WebCore { \
+inline const ToValueTypeName* as##ToValueTypeName(const ScrollingStateNode& node) { return dynamicDowncast<ToValueTypeName>(node); } \
+}
 
 #endif // ENABLE(ASYNC_SCROLLING)

@@ -28,15 +28,7 @@
 
 #if ENABLE(ASYNC_SCROLLING)
 
-#include "ScrollingConstraints.h"
-#include "ScrollingStateStickyNode.h"
 #include "ScrollingTree.h"
-#include "ScrollingTreeFixedNode.h"
-#include "ScrollingTreeFrameScrollingNode.h"
-#include "ScrollingTreeOverflowScrollProxyNode.h"
-#include "ScrollingTreeOverflowScrollingNode.h"
-#include "ScrollingTreePositionedNode.h"
-#include "ScrollingTreeStickyNode.h"
 
 namespace WebCore {
 
@@ -49,55 +41,6 @@ ScrollingTreeViewportConstrainedNode::ScrollingTreeViewportConstrainedNode(Scrol
 }
 
 ScrollingTreeViewportConstrainedNode::~ScrollingTreeViewportConstrainedNode() = default;
-
-FloatPoint ScrollingTreeViewportConstrainedNode::computeLayerPosition() const
-{
-    FloatSize overflowScrollDelta;
-    RefPtr<ScrollingTreeStickyNode> lastStickyNode;
-    for (RefPtr ancestor = parent(); ancestor; ancestor = ancestor->parent()) {
-        if (RefPtr scrollingNode = dynamicDowncast<ScrollingTreeFrameScrollingNode>(*ancestor)) {
-            // Fixed nodes are positioned relative to the containing frame scrolling node.
-            // We bail out after finding one.
-            auto layoutViewport = scrollingNode->layoutViewport();
-            return constraints().viewportRelativeLayerPosition(layoutViewport) - overflowScrollDelta;
-        }
-
-        if (auto* overflowNode = dynamicDowncast<ScrollingTreeOverflowScrollingNode>(*ancestor)) {
-            // To keep the layer still during async scrolling we adjust by how much the position has changed since layout.
-            overflowScrollDelta -= overflowNode->scrollDeltaSinceLastCommit();
-            continue;
-        }
-
-        if (RefPtr overflowNode = dynamicDowncast<ScrollingTreeOverflowScrollProxyNode>(*ancestor)) {
-            // To keep the layer still during async scrolling we adjust by how much the position has changed since layout.
-            overflowScrollDelta -= overflowNode->scrollDeltaSinceLastCommit();
-            continue;
-        }
-
-        if (RefPtr positioningAncestor = dynamicDowncast<ScrollingTreePositionedNode>(*ancestor)) {
-            // See if sticky node already handled this positioning node.
-            // FIXME: Include positioning node information to sticky/fixed node to avoid these tests.
-            if (lastStickyNode && lastStickyNode->layer() == positioningAncestor->layer())
-                continue;
-            if (positioningAncestor->layer() != layer())
-                overflowScrollDelta -= positioningAncestor->scrollDeltaSinceLastCommit();
-            continue;
-        }
-
-        if (RefPtr stickyNode = dynamicDowncast<ScrollingTreeStickyNode>(*ancestor)) {
-            overflowScrollDelta += stickyNode->scrollDeltaSinceLastCommit();
-            lastStickyNode = stickyNode;
-            continue;
-        }
-
-        if (is<ScrollingTreeFixedNode>(*ancestor)) {
-            // The ancestor fixed node has already applied the needed corrections to say put.
-            return constraints().layerPositionAtLastLayout() - overflowScrollDelta;
-        }
-    }
-    ASSERT_NOT_REACHED();
-    return { };
-}
 
 } // namespace WebCore
 

@@ -91,23 +91,6 @@ void RemoteScrollingCoordinatorProxyMac::wheelEventHandlingCompleted(const Platf
     m_eventDispatcher->wheelEventHandlingCompleted(wheelEvent, defaultHandlingFrameID, scrollingNodeID, gestureState, wasHandled);
 }
 
-RequestsScrollHandling RemoteScrollingCoordinatorProxyMac::scrollingTreeNodeRequestsScroll(ScrollingNodeID, RequestedScrollData)
-{
-    // Unlike iOS, we handle scrolling requests for the main frame in the same way we handle them for subscrollers.
-    return RequestsScrollHandling::Unhandled;
-}
-
-bool RemoteScrollingCoordinatorProxyMac::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, RequestedKeyboardScrollData)
-{
-    // Unlike iOS, we handle scrolling requests for the main frame in the same way we handle them for subscrollers.
-    return false;
-}
-
-void RemoteScrollingCoordinatorProxyMac::hasNodeWithAnimatedScrollChanged(bool hasAnimatedScrolls)
-{
-    m_eventDispatcher->hasNodeWithAnimatedScrollChanged(hasAnimatedScrolls);
-}
-
 void RemoteScrollingCoordinatorProxyMac::setRubberBandingInProgressForNode(ScrollingNodeID nodeID, bool isRubberBanding)
 {
     if (isRubberBanding) {
@@ -259,21 +242,6 @@ void RemoteScrollingCoordinatorProxyMac::connectStateNodeLayers(ScrollingStateTr
     }
 }
 
-void RemoteScrollingCoordinatorProxyMac::displayDidRefresh(PlatformDisplayID displayID)
-{
-    m_eventDispatcher->mainThreadDisplayDidRefresh(displayID);
-}
-
-void RemoteScrollingCoordinatorProxyMac::windowScreenDidChange(PlatformDisplayID displayID, std::optional<FramesPerSecond> nominalFramesPerSecond)
-{
-    m_eventDispatcher->windowScreenDidChange(displayID, nominalFramesPerSecond);
-}
-
-void RemoteScrollingCoordinatorProxyMac::windowScreenWillChange()
-{
-    m_eventDispatcher->windowScreenWillChange();
-}
-
 void RemoteScrollingCoordinatorProxyMac::willCommitLayerAndScrollingTrees()
 {
     scrollingTree().lockLayersForHitTesting();
@@ -294,11 +262,6 @@ void RemoteScrollingCoordinatorProxyMac::applyScrollingTreeLayerPositionsAfterCo
 {
     RemoteScrollingCoordinatorProxy::applyScrollingTreeLayerPositionsAfterCommit();
     m_eventDispatcher->renderingUpdateComplete();
-}
-
-void RemoteScrollingCoordinatorProxyMac::flushMainThreadTransactionIfNeeded()
-{
-    m_eventDispatcher->flushMainThreadTransactionIfNeeded();
 }
 
 #if ENABLE(THREADED_ANIMATIONS)

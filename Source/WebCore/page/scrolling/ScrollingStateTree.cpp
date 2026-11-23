@@ -92,19 +92,6 @@ ScrollingStateTree::ScrollingStateTree(bool hasNewRootStateNode, bool hasChanged
     setHasChangedProperties(hasChangedProperties);
 }
 
-void ScrollingStateTree::attachDeserializedNodes()
-{
-    if (auto* rootStateNode = m_rootStateNode.get()) {
-        rootStateNode->attachAfterDeserialization(*this);
-        ASSERT(rootStateNode->parentPointersAreCorrect());
-    }
-}
-
-RefPtr<ScrollingStateFrameScrollingNode> ScrollingStateTree::rootStateNode() const
-{
-    return m_rootStateNode;
-}
-
 void ScrollingStateTree::setHasChangedProperties(bool changedProperties)
 {
 #if ENABLE(ASYNC_SCROLLING)
@@ -186,7 +173,7 @@ std::optional<ScrollingNodeID> ScrollingStateTree::insertNode(ScrollingNodeType 
             if (!parentID)
                 return newNodeID;
 
-            if (parent->childAtIndex(childIndex) == node)
+            if (scrollingStateChildAtIndex(*parent, childIndex) == node.get())
                 return newNodeID;
 
             auto& children = parent->children();
@@ -325,15 +312,6 @@ void ScrollingStateTree::detachAndDestroySubtree(std::optional<ScrollingNodeID> 
     removeNodeAndAllDescendants(*node);
 }
 
-void ScrollingStateTree::clear()
-{
-    if (auto node = rootStateNode())
-        removeNodeAndAllDescendants(*node);
-
-    m_stateNodeMap.clear();
-    m_unparentedNodes.clear();
-}
-
 void ScrollingStateTree::setAllPropertiesChanged()
 {
     if (RefPtr rootStateNode = m_rootStateNode)
@@ -368,63 +346,6 @@ std::unique_ptr<ScrollingStateTree> ScrollingStateTree::commit(LayerRepresentati
     return treeStateClone;
 }
 
-void ScrollingStateTree::traverse(const ScrollingStateNode& node, NOESCAPE const Function<void(const ScrollingStateNode&)>& traversalFunc) const
-{
-    traversalFunc(node);
-
-    for (auto childNode : node.children())
-        traverse(childNode, traversalFunc);
-}
-
-bool ScrollingStateTree::isValid() const
-{
-    RefPtr rootStateNode = m_rootStateNode;
-    if (!rootStateNode)
-        return true;
-
-    bool isValid = true;
-    traverse(*rootStateNode, [&](const ScrollingStateNode& node) {
-        switch (node.nodeType()) {
-        case ScrollingNodeType::MainFrame:
-            break;
-        case ScrollingNodeType::Subframe:
-            break;
-        case ScrollingNodeType::FrameHosting:
-            break;
-        case ScrollingNodeType::PluginScrolling:
-            break;
-        case ScrollingNodeType::PluginHosting:
-            break;
-        case ScrollingNodeType::Overflow:
-            break;
-        case ScrollingNodeType::OverflowProxy: {
-            auto& proxyNode = downcast<ScrollingStateOverflowScrollProxyNode>(node);
-            if (!proxyNode.overflowScrollingNode() || !nodeMap().contains(*proxyNode.overflowScrollingNode())) {
-                LOG_WITH_STREAM(ScrollingTree, stream << "ScrollingStateOverflowScrollProxyNode " << node.scrollingNodeID() << " refers to non-existant overflow node " << proxyNode.overflowScrollingNode());
-                isValid = false;
-            }
-            break;
-        }
-        case ScrollingNodeType::Fixed:
-            break;
-        case ScrollingNodeType::Sticky:
-            break;
-        case ScrollingNodeType::Positioned: {
-            auto& positionedNode = downcast<ScrollingStatePositionedNode>(node);
-            for (auto relatedNodeID : positionedNode.relatedOverflowScrollingNodes()) {
-                if (!nodeMap().contains(relatedNodeID)) {
-                    LOG_WITH_STREAM(ScrollingTree, stream << "ScrollingStatePositionedNode " << node.scrollingNodeID() << " refers to non-existant overflow node " << relatedNodeID);
-                    isValid = false;
-                }
-            }
-            break;
-        }
-        }
-    });
-    
-    return isValid;
-}
-
 void ScrollingStateTree::setRootStateNode(Ref<ScrollingStateFrameScrollingNode>&& rootStateNode)
 {
     m_rootStateNode = WTF::move(rootStateNode);
@@ -455,57 +376,11 @@ void ScrollingStateTree::removeNodeAndAllDescendants(ScrollingStateNode& node)
     }
 }
 
-void ScrollingStateTree::recursiveNodeWillBeRemoved(ScrollingStateNode& currentNode)
-{
-    currentNode.setParent(nullptr);
-    willRemoveNode(currentNode);
-
-    for (auto& child : currentNode.children())
-        recursiveNodeWillBeRemoved(child);
-}
-
-void ScrollingStateTree::willRemoveNode(ScrollingStateNode& node)
-{
-    m_stateNodeMap.remove(node.scrollingNodeID());
-    setHasChangedProperties();
-}
-
 RefPtr<ScrollingStateNode> ScrollingStateTree::stateNodeForID(std::optional<ScrollingNodeID> nodeID) const
 {
     RefPtr node = nodeID ? m_stateNodeMap.get(*nodeID) : nullptr;
     RELEASE_ASSERT(!node || node->scrollingNodeID() == nodeID);
     return node;
-}
-
-static void reconcileLayerPositionsRecursive(ScrollingStateNode& currentNode, const LayoutRect& layoutViewport, ScrollingLayerPositionAction action)
-{
-    currentNode.reconcileLayerPositionForViewportRect(layoutViewport, action);
-    
-    for (auto& child : currentNode.children()) {
-        // Never need to cross frame boundaries, since viewport rect reconciliation is per frame.
-        if (is<ScrollingStateFrameScrollingNode>(child))
-            continue;
-
-        reconcileLayerPositionsRecursive(child, layoutViewport, action);
-    }
-}
-
-void ScrollingStateTree::reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID> scrollingNodeID, LayoutRect layoutViewport, ScrollingLayerPositionAction action)
-{
-    if (auto scrollingNode = stateNodeForID(scrollingNodeID))
-        reconcileLayerPositionsRecursive(*scrollingNode, layoutViewport, action);
-}
-
-String ScrollingStateTree::scrollingStateTreeAsText(OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
-{
-    if (!rootStateNode())
-        return emptyString();
-
-    StringBuilder stateTreeAsString;
-    stateTreeAsString.append(rootStateNode()->scrollingStateTreeAsText(behavior));
-    if (!m_unparentedNodes.isEmpty())
-        stateTreeAsString.append("\nunparented node count: "_s, m_unparentedNodes.size());
-    return stateTreeAsString.toString();
 }
 
 } // namespace WebCore

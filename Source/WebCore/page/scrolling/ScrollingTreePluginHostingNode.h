@@ -34,7 +34,7 @@ namespace WebCore {
 
 class ScrollingTree;
 
-class ScrollingTreePluginHostingNode : public ScrollingTreeNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreePluginHostingNode.swift") ScrollingTreePluginHostingNode : public ScrollingTreeNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreePluginHostingNode, WEBCORE_EXPORT);
 public:
     NODELETE WEBCORE_EXPORT static Ref<ScrollingTreePluginHostingNode> create(ScrollingTree&, ScrollingNodeID);
@@ -43,7 +43,7 @@ public:
 private:
     ScrollingTreePluginHostingNode(ScrollingTree&, ScrollingNodeID);
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) final;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) final;
     NODELETE void applyLayerPositions() final;
 
     WEBCORE_EXPORT void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;

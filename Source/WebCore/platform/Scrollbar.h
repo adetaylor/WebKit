@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <WebCore/FloatPoint.h>
 #include <WebCore/ScrollTypes.h>
 #include <WebCore/ScrollbarTheme.h>
 #include <WebCore/Timer.h>
@@ -163,6 +164,12 @@ protected:
     void autoscrollPressedPart(Seconds delay);
     NODELETE ScrollDirection pressedPartScrollDirection();
     NODELETE ScrollGranularity pressedPartScrollGranularity();
+
+    // Scrollbar.swift reaches the scrollable area through these, since Swift imports ScrollableArea as a value type.
+    void scrollScrollableAreaToOffsetWithoutAnimation(float newOffset);
+    FloatPoint scrollAnimatorCurrentPosition() const;
+    void updateScrollbarsControllerEnabledState();
+    bool scrollbarsControllerShouldParticipateInHitTesting();
 
     WeakRef<ScrollableArea> m_scrollableArea;
     ScrollbarOrientation m_orientation;

@@ -35,7 +35,7 @@ namespace WebKit {
 
 class RemoteLayerTreeEventDispatcher;
 
-class RemoteScrollingCoordinatorProxyMac final : public RemoteScrollingCoordinatorProxy {
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteScrollingCoordinatorProxyMac.swift") RemoteScrollingCoordinatorProxyMac final : public RemoteScrollingCoordinatorProxy {
     WTF_MAKE_TZONE_ALLOCATED(RemoteScrollingCoordinatorProxyMac);
 public:
     explicit RemoteScrollingCoordinatorProxyMac(WebPageProxy&);

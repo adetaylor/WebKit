@@ -1,3 +1,4 @@
+// Copyright (C) 2023-2025 Apple Inc. All rights reserved.
 // Copyright (C) 2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -21,10 +22,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-// PLATFORM(MAC), as RemoteLayerTreeEventDispatcher.mm, the C++ this replaces.
 #if os(macOS)
 
 import WebKit_Internal
+internal import QuartzCore
 internal import Synchronization
 
 private let maxStartRenderingUpdateDelay = 0.001
@@ -45,18 +46,18 @@ struct RemoteEventDispatcherDisplayRefreshAction {
     @used
     static let cxxTypeMetadata: Any.Type = Self.self
 
-    fileprivate var needsUpdateLayerPositionsValue = false
-    fileprivate var renderingUpdateDetectionDelayValue = Double.nan
+    fileprivate var needsUpdateLayerPositions = false
+    fileprivate var renderingUpdateDetectionDelaySeconds: Double?
 
     fileprivate init() {
     }
 
     @used
-    func needsUpdateLayerPositionsAndAnimations() -> Bool { needsUpdateLayerPositionsValue }
+    func needsUpdateLayerPositionsAndAnimations() -> Bool { needsUpdateLayerPositions }
     @used
-    func schedulesRenderingUpdateDetection() -> Bool { !renderingUpdateDetectionDelayValue.isNaN }
+    func schedulesRenderingUpdateDetection() -> Bool { renderingUpdateDetectionDelaySeconds != nil }
     @used
-    func renderingUpdateDetectionDelay() -> Double { renderingUpdateDetectionDelayValue }
+    func renderingUpdateDetectionDelay() -> Double { renderingUpdateDetectionDelaySeconds ?? .nan }
 }
 
 /// When the scrolling thread stops waiting for the main thread's rendering update, and whether that time was cut
@@ -103,12 +104,12 @@ final class RemoteLayerTreeEventDispatcherState {
         lastDisplayDidRefreshTime = now
 
         var action = RemoteEventDispatcherDisplayRefreshAction()
-        action.needsUpdateLayerPositionsValue = state != .idle
+        action.needsUpdateLayerPositions = state != .idle
 
         switch state {
         case .idle:
             state = .waitingForRenderingUpdate
-            action.renderingUpdateDetectionDelayValue = maxStartRenderingUpdateDelay
+            action.renderingUpdateDetectionDelaySeconds = maxStartRenderingUpdateDelay
         case .waitingForRenderingUpdate, .inRenderingUpdate, .desynchronized:
             break
         }
@@ -365,6 +366,176 @@ nonisolated func remoteEventDispatcherSyntheticEventEndsMomentumInterval(
     _ momentumPhaseEnded: Bool
 ) -> Bool {
     state.syntheticEventEndsMomentumInterval(deltaHeight, momentumPhaseEnded)
+}
+
+// The RemoteLayerTreeEventDispatcher members below take none of its locks.
+extension WebKit.RemoteLayerTreeEventDispatcher {
+    /// Called on the main thread when the wheel event activity hysteresis starts or stops.
+    @cxx
+    @implementation
+    func wheelEventHysteresisUpdated(_: PAL.HysteresisState) {
+        startOrStopDisplayLink()
+    }
+
+    /// Called on the main thread or the scrolling thread.
+    @cxx
+    @implementation
+    func hasNodeWithAnimatedScrollChanged(_: Bool) {
+        startOrStopDisplayLink()
+    }
+
+    /// Called on the main thread.
+    @cxx
+    @implementation
+    func windowScreenWillChange() {
+        removeDisplayLinkClient()
+    }
+
+    /// Called on the scrolling thread, by the timer scheduleDelayedRenderingUpdateDetectionTimer() starts.
+    @cxx
+    @implementation
+    func delayedRenderingUpdateDetectionTimerFired() {
+        assert(WebCore.ScrollingThread.isCurrentThread())
+        updateLayerPositionsAndAnimations()
+    }
+
+    #if ENABLE_MOMENTUM_EVENT_DISPATCHER
+    /// Called on the main thread when a scrolling node starts rubber-banding.
+    @cxx
+    @implementation
+    func didStartRubberbanding() {
+        endFingerDownSignpostInterval()
+        endMomentumSignpostInterval()
+    }
+
+    /// Called by the momentum event dispatcher on the scrolling thread.
+    @cxx
+    @implementation
+    func startDisplayDidRefreshCallbacks(_: WebCore.PlatformDisplayID) {
+        assert(!m_momentumEventDispatcherNeedsDisplayLink)
+        m_momentumEventDispatcherNeedsDisplayLink = true
+        startOrStopDisplayLink()
+    }
+    #endif
+}
+
+// MARK: Wheel events
+
+extension WebKit.RemoteLayerTreeEventDispatcher {
+    @cxx
+    @implementation
+    func scrollingThreadHandleWheelEvent(
+        _ webWheelEvent: borrowing WebKit.WebWheelEvent,
+        _ rubberBandableEdges: WebCore.RectEdgesRubberBandingBehavior
+    ) {
+        assert(WebCore.ScrollingThread.isCurrentThread())
+
+        guard let scrollingTree = scrollingTree().get() else {
+            return
+        }
+
+        let hitTest = WebCore.ScrollingTree.HitTestLocker(scrollingTree)
+
+        let platformWheelEvent = WebKit.platform(webWheelEvent)
+        let processingSteps = determineWheelEventProcessing(hitTest, platformWheelEvent, rubberBandableEdges)
+
+        // Do this before the event is handled here or in the web process, so that it stops springs whichever scroller handles it.
+        scrollingTree.stopSpringAnimationsForWheelEvent(hitTest, platformWheelEvent)
+
+        if processingSteps.contains(.SynchronousScrolling) {
+            scrollingTree.willSendEventForDefaultHandling(platformWheelEvent)
+            wheelEventWasHandledByScrollingThread(.unhandled(processingSteps))
+            // Wait for the web process to respond to the event, preventing the next event from being handled until we get a response or time out,
+            // allowing us to know if this gesture should be come non-blocking.
+            scrollingTree.waitForEventDefaultHandlingCompletion(platformWheelEvent)
+            CATransaction.flush()
+            return
+        }
+
+        #if ENABLE_MOMENTUM_EVENT_DISPATCHER
+        do {
+            let momentumEventDispatcher = lockMomentumEventDispatcher()
+            if momentumEventDispatcher.handleWheelEvent(hitTest, webWheelEvent, rubberBandableEdges) {
+                wheelEventWasHandledByScrollingThread(.handled(processingSteps))
+                CATransaction.flush()
+                return
+            }
+        }
+        #endif
+
+        wheelEventWasHandledByScrollingThread(internalHandleWheelEvent(hitTest, platformWheelEvent, processingSteps))
+        CATransaction.flush()
+    }
+}
+
+// MARK: Display link
+
+extension WebKit.RemoteLayerTreeEventDispatcher {
+    @cxx
+    @implementation
+    func startOrStopDisplayLinkOnMainThread() {
+        assert(WTF.isMainRunLoop())
+
+        if needsDisplayLink {
+            startDisplayLinkObserver()
+        } else {
+            stopDisplayLinkObserver()
+        }
+    }
+
+    @cxx
+    @implementation
+    func haveLayersWithAnimations() -> Bool {
+        #if ENABLE_THREADED_ANIMATIONS
+        return lockAnimations().hasAnimationStacks()
+        #else
+        return false
+        #endif
+    }
+
+    private var needsDisplayLink: Bool {
+        #if ENABLE_MOMENTUM_EVENT_DISPATCHER
+        if m_momentumEventDispatcherNeedsDisplayLink {
+            return true
+        }
+        #endif
+        if wheelEventActivityStarted() {
+            return true
+        }
+
+        #if ENABLE_THREADED_ANIMATIONS
+        do {
+            let animations = lockAnimations()
+            if animations.monotonicTimelinesNonEmpty() {
+                return true
+            }
+        }
+        #endif
+
+        guard let scrollingTree = scrollingTree().get() else {
+            return false
+        }
+        return scrollingTree.hasNodeWithActiveScrollAnimations()
+    }
+
+    @cxx
+    @implementation
+    func windowScreenDidChange(
+        _ displayID: WebCore.PlatformDisplayID,
+        _ nominalFramesPerSecond: WebCore.OptionalFramesPerSecond
+    ) {
+        #if ENABLE_MOMENTUM_EVENT_DISPATCHER
+        do {
+            let momentumEventDispatcher = lockMomentumEventDispatcher()
+            momentumEventDispatcher.pageScreenDidChange(displayID, nominalFramesPerSecond)
+        }
+        #endif
+        if let scrollingTree = scrollingTree().get() {
+            scrollingTree.windowScreenDidChange(displayID, nominalFramesPerSecond)
+        }
+
+        // FIXME: Restart the displayLink if necessary.
+    }
 }
 
 #endif // os(macOS)

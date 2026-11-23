@@ -31,6 +31,7 @@
 
 #include "RemoteScrollingCoordinator.h"
 #include <WebCore/ScrollingConstraints.h>
+#include <WebCore/ScrollingLockedAccess.h>
 #include <WebCore/ScrollingTree.h>
 #include <wtf/TZoneMalloc.h>
 
@@ -41,8 +42,11 @@ class PlatformMouseEvent;
 namespace WebKit {
 
 class RemoteScrollingCoordinatorProxy;
+class RemoteScrollingTreeMac;
 
-class RemoteScrollingTreeMac final : public RemoteScrollingTree {
+using RemoteScrollingTreeMacHandle = WebCore::MainRunLoopHandle<RemoteScrollingTreeMac>;
+
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteScrollingTreeMac.swift") RemoteScrollingTreeMac final : public RemoteScrollingTree {
     WTF_MAKE_TZONE_ALLOCATED(RemoteScrollingTreeMac);
 public:
     explicit RemoteScrollingTreeMac(RemoteScrollingCoordinatorProxy&);
@@ -89,10 +93,14 @@ private:
 
     void displayDidRefresh(WebCore::PlatformDisplayID) override;
 
+    // For the blocks this tree sends to the main run loop.
+    SWIFT_MAIN_ACTOR SWIFT_RETURNS_UNRETAINED
+        static RemoteScrollingCoordinatorProxy* scrollingCoordinatorProxyOnMainRunLoop(const RemoteScrollingTreeMacHandle& handle) { return handle.object().scrollingCoordinatorProxy(); }
+
     SWIFT_UNSAFE void lockLayersForHitTesting() final WTF_ACQUIRES_LOCK(m_layerHitTestMutex);
     SWIFT_UNSAFE void unlockLayersForHitTesting() final WTF_RELEASES_LOCK(m_layerHitTestMutex);
 
-    void startPendingScrollAnimations() WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void startPendingScrollAnimations() WTF_REQUIRES_LOCK(m_treeLock);
 
     void scrollingTreeNodeWillStartScroll(WebCore::ScrollingNodeID) override;
     void scrollingTreeNodeDidEndScroll(WebCore::ScrollingNodeID) override;
@@ -105,13 +113,13 @@ private:
 
     Ref<WebCore::ScrollingTreeNode> createScrollingTreeNode(WebCore::ScrollingNodeType, WebCore::ScrollingNodeID) override;
 
-    HashMap<WebCore::ScrollingNodeID, WebCore::RequestedScrollData> m_nodesWithPendingScrollAnimations; // Guarded by m_treeLock but used via call chains that can't be annotated.
-    HashMap<WebCore::ScrollingNodeID, WebCore::RequestedKeyboardScrollData> m_nodesWithPendingKeyboardScrollAnimations; // Guarded by m_treeLock but used via call chains that can't be annotated.
+    SWIFT_UNAVAILABLE_IN_SWIFT HashMap<WebCore::ScrollingNodeID, WebCore::RequestedScrollData> m_nodesWithPendingScrollAnimations; // Guarded by m_treeLock but used via call chains that can't be annotated.
+    SWIFT_UNAVAILABLE_IN_SWIFT HashMap<WebCore::ScrollingNodeID, WebCore::RequestedKeyboardScrollData> m_nodesWithPendingKeyboardScrollAnimations; // Guarded by m_treeLock but used via call chains that can't be annotated.
 
-    mutable Lock m_layerHitTestMutex;
+    SWIFT_UNAVAILABLE_IN_SWIFT mutable Lock m_layerHitTestMutex;
 
-    Condition m_waitingForBeganEventCondition;
-    bool m_receivedBeganEventFromMainThread WTF_GUARDED_BY_LOCK(m_treeLock) { false };
+    SWIFT_UNAVAILABLE_IN_SWIFT Condition m_waitingForBeganEventCondition;
+    SWIFT_UNAVAILABLE_IN_SWIFT bool m_receivedBeganEventFromMainThread WTF_GUARDED_BY_LOCK(m_treeLock) { false };
 };
 
 } // namespace WebKit

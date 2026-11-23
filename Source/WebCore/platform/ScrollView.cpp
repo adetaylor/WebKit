@@ -125,11 +125,6 @@ void ScrollView::scrollbarModes(ScrollbarMode& horizontalMode, ScrollbarMode& ve
     verticalMode = m_verticalScrollbarMode;
 }
 
-void ScrollView::setCanHaveScrollbars(bool canScroll)
-{
-    setScrollbarModes(scrollViewCanHaveScrollbarsMode(canScroll, horizontalScrollbarMode()), scrollViewCanHaveScrollbarsMode(canScroll, verticalScrollbarMode()));
-}
-
 void ScrollView::setCanBlitOnScroll(bool b)
 {
     if (platformWidget()) {
@@ -247,11 +242,6 @@ IntRect ScrollView::unobscuredContentRect(VisibleContentRectIncludesScrollbars s
         return IntRect(m_scrollPosition, roundedIntSize(m_delegatedScrollingGeometry->unobscuredContentSize));
 
     return unobscuredContentRectInternal(scrollbarInclusion);
-}
-
-IntRect ScrollView::unobscuredContentRectInternal(VisibleContentRectIncludesScrollbars scrollbarInclusion) const
-{
-    return scrollViewUnobscuredContentRect(sizeForUnobscuredContent(scrollbarInclusion), visibleContentScaleFactor(), m_scrollPosition);
 }
 
 IntSize ScrollView::sizeForVisibleContent(VisibleContentRectIncludesScrollbars scrollbarInclusion) const
@@ -396,11 +386,6 @@ void ScrollView::cacheCurrentScrollState()
 #endif
 }
 
-ScrollPosition ScrollView::documentScrollPositionRelativeToViewOrigin() const
-{
-    return scrollViewDocumentScrollPositionRelativeToViewOrigin(scrollPosition(), viewToContentsInsetOffset());
-}
-
 ScrollPosition ScrollView::documentScrollPositionRelativeToScrollableAreaOrigin() const
 {
     return scrollPosition() - IntSize(0, headerHeight());
@@ -501,56 +486,6 @@ IntSize ScrollView::viewToContentsInsetOffset() const
     return IntSize(insetForLeftScrollbarSpace() + obscuredContentInsets.left(), obscuredContentInsets.top() + headerHeight());
 }
 
-IntPoint ScrollView::viewToContents(IntPoint point) const
-{
-    return scrollViewViewToContentsIntPoint(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), point);
-}
-
-IntPoint ScrollView::contentsToView(IntPoint point) const
-{
-    return scrollViewContentsToViewIntPoint(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), point);
-}
-
-FloatPoint ScrollView::viewToContents(FloatPoint point) const
-{
-    return scrollViewViewToContentsFloatPoint(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), point);
-}
-
-DoublePoint ScrollView::viewToContents(DoublePoint point) const
-{
-    return scrollViewViewToContentsDoublePoint(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), point);
-}
-
-FloatPoint ScrollView::contentsToView(FloatPoint point) const
-{
-    return scrollViewContentsToViewFloatPoint(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), point);
-}
-
-DoublePoint ScrollView::contentsToView(DoublePoint point) const
-{
-    return scrollViewContentsToViewDoublePoint(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), point);
-}
-
-IntRect ScrollView::viewToContents(IntRect rect) const
-{
-    return scrollViewViewToContentsIntRect(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), rect);
-}
-
-FloatRect ScrollView::viewToContents(FloatRect rect) const
-{
-    return scrollViewViewToContentsFloatRect(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), rect);
-}
-
-IntRect ScrollView::contentsToView(IntRect rect) const
-{
-    return scrollViewContentsToViewIntRect(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), rect);
-}
-
-FloatRect ScrollView::contentsToView(FloatRect rect) const
-{
-    return scrollViewContentsToViewFloatRect(delegatesScrollingToNativeView(), visibleContentScaleFactor(), scrollPosition(), viewToContentsInsetOffset(), rect);
-}
-
 IntPoint ScrollView::contentsToContainingViewContents(const IntPoint& point) const
 {
     if (const RefPtr parentScrollView = parent()) {
@@ -638,11 +573,6 @@ FloatQuad ScrollView::contentsToRootView(const FloatQuad& quad) const
     result.setP3(contentsToRootView(result.p3()));
     result.setP4(contentsToRootView(result.p4()));
     return result;
-}
-
-IntPoint ScrollView::rootViewToTotalContents(IntPoint rootViewPoint) const
-{
-    return scrollViewRootViewToTotalContents(delegatesScrollingToNativeView(), convertFromRootView(rootViewPoint), scrollPosition(), obscuredContentInsets(InsetType::WebCoreOrPlatformInset));
 }
 
 IntRect ScrollView::contentsToRootView(const IntRect& contentsRect) const

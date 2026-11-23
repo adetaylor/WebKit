@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2019 Apple Inc. All rights reserved.
  * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -276,8 +277,8 @@ final class ScrollingTreeScrollPhysicsDelegate {
         let rubberbandingEdges = controller.rubberBandingEdges()
 
         let node = c.node()
-        let minimumScrollPosition = node.minimumScrollPosition()
-        let maximumScrollPosition = node.maximumScrollPosition()
+        let minimumScrollPosition = node.minimumScrollPositionForSwift()
+        let maximumScrollPosition = node.maximumScrollPositionForSwift()
 
         // In allBoxSides order.
         if rubberbandingEdges[.Top], targetPosition.y() != minimumScrollPosition.y() {
@@ -550,16 +551,16 @@ extension WebCore.ScrollingTreeScrollPhysicsClient: ScrollPhysicsClientProtocol 
         var stretchHeight: Int32 = 0
         let scrollPosition = node.currentScrollPosition()
 
-        if scrollPosition.y() < node.minimumScrollPosition().y() {
-            stretchHeight = intSizeComponent(scrollPosition.y() - node.minimumScrollPosition().y())
-        } else if scrollPosition.y() > node.maximumScrollPosition().y() {
-            stretchHeight = intSizeComponent(scrollPosition.y() - node.maximumScrollPosition().y())
+        if scrollPosition.y() < node.minimumScrollPositionForSwift().y() {
+            stretchHeight = intSizeComponent(scrollPosition.y() - node.minimumScrollPositionForSwift().y())
+        } else if scrollPosition.y() > node.maximumScrollPositionForSwift().y() {
+            stretchHeight = intSizeComponent(scrollPosition.y() - node.maximumScrollPositionForSwift().y())
         }
 
-        if scrollPosition.x() < node.minimumScrollPosition().x() {
-            stretchWidth = intSizeComponent(scrollPosition.x() - node.minimumScrollPosition().x())
-        } else if scrollPosition.x() > node.maximumScrollPosition().x() {
-            stretchWidth = intSizeComponent(scrollPosition.x() - node.maximumScrollPosition().x())
+        if scrollPosition.x() < node.minimumScrollPositionForSwift().x() {
+            stretchWidth = intSizeComponent(scrollPosition.x() - node.minimumScrollPositionForSwift().x())
+        } else if scrollPosition.x() > node.maximumScrollPositionForSwift().x() {
+            stretchWidth = intSizeComponent(scrollPosition.x() - node.maximumScrollPositionForSwift().x())
         }
 
         return WebCore.IntSize(stretchWidth, stretchHeight)
@@ -584,22 +585,22 @@ extension WebCore.ScrollingTreeScrollPhysicsClient: ScrollPhysicsClientProtocol 
             if !node.allowsVerticalScrolling() {
                 return true
             }
-            return node.currentScrollPosition().y() <= node.minimumScrollPosition().y()
+            return node.currentScrollPosition().y() <= node.minimumScrollPositionForSwift().y()
         case .Bottom:
             if !node.allowsVerticalScrolling() {
                 return true
             }
-            return node.currentScrollPosition().y() >= node.maximumScrollPosition().y()
+            return node.currentScrollPosition().y() >= node.maximumScrollPositionForSwift().y()
         case .Left:
             if !node.allowsHorizontalScrolling() {
                 return true
             }
-            return node.currentScrollPosition().x() <= node.minimumScrollPosition().x()
+            return node.currentScrollPosition().x() <= node.minimumScrollPositionForSwift().x()
         case .Right:
             if !node.allowsHorizontalScrolling() {
                 return true
             }
-            return node.currentScrollPosition().x() >= node.maximumScrollPosition().x()
+            return node.currentScrollPosition().x() >= node.maximumScrollPositionForSwift().x()
         @unknown default:
             return false
         }

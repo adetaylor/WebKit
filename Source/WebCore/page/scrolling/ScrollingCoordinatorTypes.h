@@ -148,6 +148,16 @@ struct RequestedScrollData {
     WEBCORE_EXPORT FloatPoint destinationPosition(FloatPoint currentScrollPosition) const;
     WEBCORE_EXPORT static FloatPoint computeDestinationPosition(FloatPoint currentScrollPosition, ScrollRequestType, const Variant<FloatPoint, FloatSize>& scrollPositionOrDelta);
 
+    // For Swift, which cannot reach the Variant. requestedScrollPosition() only when hasRequestedScrollDelta() is false,
+    // requestedScrollDelta() only when it is true.
+    FloatPoint requestedScrollPosition() const { return std::get<FloatPoint>(scrollPositionOrDelta); }
+    FloatSize requestedScrollDelta() const { return std::get<FloatSize>(scrollPositionOrDelta); }
+    bool hasRequestedScrollDelta() const { return std::holds_alternative<FloatSize>(scrollPositionOrDelta); }
+    void setRequestedScrollPosition(FloatPoint position) { scrollPositionOrDelta = position; }
+    void setRequestedScrollDelta(FloatSize delta) { scrollPositionOrDelta = delta; }
+    // 0 when there is no identifier; an identifier is never 0.
+    uint64_t identifierValue() const { return identifier ? identifier->toUInt64() : 0; }
+
     bool comparePositionOrDelta(const RequestedScrollData& other) const
     {
         if (requestType == ScrollRequestType::PositionUpdate)

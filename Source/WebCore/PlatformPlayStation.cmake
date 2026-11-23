@@ -35,7 +35,6 @@ list(APPEND WebCore_SOURCES
     page/playstation/ResourceUsageOverlayPlayStation.cpp
     page/playstation/ResourceUsageThreadPlayStation.cpp
 
-    platform/ScrollAnimationKinetic.cpp
     platform/ScrollAnimationSmooth.cpp
 
     platform/generic/KeyedDecoderGeneric.cpp

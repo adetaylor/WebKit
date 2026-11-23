@@ -61,24 +61,6 @@ Ref<ScrollingStateNode> ScrollingStateOverflowScrollProxyNode::clone(ScrollingSt
     return adoptRef(*new ScrollingStateOverflowScrollProxyNode(*this, adoptiveTree));
 }
 
-OptionSet<ScrollingStateNode::Property> ScrollingStateOverflowScrollProxyNode::applicableProperties() const
-{
-    constexpr OptionSet<Property> nodeProperties = { Property::OverflowScrollingNode };
-
-    auto properties = ScrollingStateNode::applicableProperties();
-    properties.add(nodeProperties);
-    return properties;
-}
-
-
-void ScrollingStateOverflowScrollProxyNode::setOverflowScrollingNode(std::optional<ScrollingNodeID> nodeID)
-{
-    if (nodeID == m_overflowScrollingNodeID)
-        return;
-    
-    m_overflowScrollingNodeID = nodeID;
-    setPropertyChanged(Property::OverflowScrollingNode);
-}
 
 void ScrollingStateOverflowScrollProxyNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {

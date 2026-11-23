@@ -39,7 +39,9 @@ namespace WebCore {
 
 class Scrollbar;
 
-class ScrollingStateFrameScrollingNode final : public ScrollingStateScrollingNode {
+using OptionalFloatSize = std::optional<FloatSize>;
+
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingStateFrameScrollingNode.swift") ScrollingStateFrameScrollingNode final : public ScrollingStateScrollingNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStateFrameScrollingNode, WEBCORE_EXPORT);
 public:
     template<typename... Args> static Ref<ScrollingStateFrameScrollingNode> create(Args&&... args) { return adoptRef(*new ScrollingStateFrameScrollingNode(std::forward<Args>(args)...)); }
@@ -134,10 +136,10 @@ public:
     WEBCORE_EXPORT void setOverlayScrollbarsEnabled(bool);
 
     NODELETE WEBCORE_EXPORT bool isMainFrame() const;
-    
-    void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
 
 private:
+    String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const final;
+
     WEBCORE_EXPORT ScrollingStateFrameScrollingNode(
         bool isMainFrame,
         ScrollingNodeID,
@@ -236,5 +238,10 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_SCROLLING_STATE_NODE(ScrollingStateFrameScrollingNode, isFrameScrollingNode())
+
+namespace WebCore {
+// For Swift, which cannot convert a C++ class to its base: the frame scrolling node as a state node.
+inline ScrollingStateNode* asScrollingStateNode(ScrollingStateFrameScrollingNode& node) { return &node; }
+}
 
 #endif // ENABLE(ASYNC_SCROLLING)

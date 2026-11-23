@@ -37,7 +37,6 @@
 #import <WebCore/NSScrollerImpDetails.h>
 #import <WebCore/PlatformWheelEvent.h>
 #import <WebCore/ScrollTypes.h>
-#import <WebCore/ScrollableArea.h>
 #import <WebCore/ScrollingTreeScrollingNode.h>
 #import <pal/spi/mac/NSScrollerImpSPI.h>
 #import <wtf/BlockObjCExceptions.h>
@@ -83,43 +82,6 @@ ScrollerPairMac::~ScrollerPairMac()
     });
 }
 
-FloatSize ScrollerPairMac::visibleSize() const
-{
-    RefPtr node = m_scrollingNode.get();
-    if (!node)
-        return { };
-
-    return node->scrollableAreaSize();
-}
-
-ScrollerPairMac::Values ScrollerPairMac::valuesForOrientation(ScrollbarOrientation orientation)
-{
-    RefPtr node = m_scrollingNode.get();
-    if (!node)
-        return { };
-
-    float position;
-    float totalSize;
-    float visibleSize;
-    if (orientation == ScrollbarOrientation::Vertical) {
-        position = node->currentScrollOffset().y();
-        totalSize = node->totalContentsSize().height();
-        visibleSize = node->scrollableAreaSize().height();
-    } else {
-        position = node->currentScrollOffset().x();
-        totalSize = node->totalContentsSize().width();
-        visibleSize = node->scrollableAreaSize().width();
-    }
-
-    float value;
-    float overhang;
-    ScrollableArea::computeScrollbarValueAndOverhang(position, totalSize, visibleSize, value, overhang);
-
-    float proportion = totalSize ? (visibleSize - overhang) / totalSize : 1;
-
-    return { value, proportion };
-}
-
 MacScrollerPair& ScrollerPairMac::scrollers()
 {
     return m_state->scrollers;
@@ -154,25 +116,6 @@ bool ScrollerPairMac::isHostLayer(ScrollbarOrientation orientation, CALayer *lay
 {
     Locker locker { m_state->referencesLock };
     return m_state->references(orientation).hostLayer.get() == layer;
-}
-
-void ScrollerPairMac::setScrollerImpProgress(ScrollbarOrientation orientation, ScrollbarPartFeature feature, double value)
-{
-    RetainPtr scrollerImp = this->scrollerImp(orientation);
-    switch (feature) {
-    case ScrollbarPartFeature::KnobAlpha:
-        [scrollerImp setKnobAlpha:value];
-        break;
-    case ScrollbarPartFeature::TrackAlpha:
-        [scrollerImp setTrackAlpha:value];
-        break;
-    case ScrollbarPartFeature::UIStateTransition:
-        [scrollerImp setUiStateTransitionProgress:value];
-        break;
-    case ScrollbarPartFeature::ExpansionTransition:
-        [scrollerImp setExpansionTransitionProgress:value];
-        break;
-    }
 }
 
 void ScrollerPairMac::setScrollerReferences(ScrollbarOrientation orientation, NSScrollerImp *scrollerImp, CALayer *hostLayer)

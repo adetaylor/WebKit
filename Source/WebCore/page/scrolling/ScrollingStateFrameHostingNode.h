@@ -33,7 +33,7 @@ namespace WebCore {
 
 class Scrollbar;
 
-class ScrollingStateFrameHostingNode final : public ScrollingStateNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingStateFrameHostingNode.swift") ScrollingStateFrameHostingNode final : public ScrollingStateNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStateFrameHostingNode, WEBCORE_EXPORT);
 public:
     NODELETE WEBCORE_EXPORT static Ref<ScrollingStateFrameHostingNode> create(ScrollingStateTree&, ScrollingNodeID);
@@ -45,7 +45,7 @@ public:
 
     virtual ~ScrollingStateFrameHostingNode();
 
-    void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const final;
 
 private:
     ScrollingStateFrameHostingNode(ScrollingNodeID, Vector<Ref<ScrollingStateNode>>&&, OptionSet<ScrollingStateNodeProperty>, std::optional<PlatformLayerIdentifier>, std::optional<LayerHostingContextIdentifier>);

@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2012-2015 Apple Inc. All rights reserved.
  * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,40 +24,271 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// The update of the scrolling tree from a scrolling state tree, and the walk over a node's ancestors that propagates
-// synchronous scrolling reasons after a commit.
-
 internal import WebCore_Private.Core.FloatPoint
 internal import WebCore_Private.Core.FloatRect
 internal import WebCore_Private.Core.FrameIdentifier
+internal import WebCore_Private.Core.Logging
 internal import WebCore_Private.Core.ProcessQualified
 internal import WebCore_Private.Core.ScrollingCoordinatorTypes
 internal import WebCore_Private.Core.ScrollingNodeID
+internal import WebCore_Private.Core.ScrollingStateFrameScrollingNode
 internal import WebCore_Private.Core.ScrollingStateNode
+internal import WebCore_Private.Core.ScrollingStateTree
 internal import WebCore_Private.Core.ScrollingTree
 internal import WebCore_Private.Core.ScrollingTreeFrameHostingNode
 internal import WebCore_Private.Core.ScrollingTreeFrameScrollingNode
 internal import WebCore_Private.Core.ScrollingTreeNode
 internal import WebCore_Private.Core.ScrollingTreeOverflowScrollProxyNode
 internal import WebCore_Private.Core.ScrollingTreeScrollingNode
+internal import wtf
 
-/// ScrollingTree::commitTreeState()'s update of `tree` from the scrolling state tree, from `stateNode` down: a null
-/// `stateNode` removes every node. Called on the thread that commits (the main thread of the web process or of the UI
-/// process) with the tree's lock held, which `locked` shows, inside ScrollingTree::commitTreeState(), which owns the
-/// state tree: no other thread reaches it. `tree` is the tree that created `locked`.
-///
-/// The nodes this calls node members on directly are `tree`'s: the ones its node map returns, the ones its
-/// createScrollingTreeNode() makes, and their parents, which only this commit sets.
-///
-/// `frameID` is the frame the commit is for, and `frameHostingNode` the hosting node when it commits a hosted subtree.
-/// `state` is the CommitTreeState on ScrollingTree::commitTreeStateInternal()'s stack, which only that function
-/// constructs. What this calls reaches it only through `state`: `locked`'s members, the tree's
-/// createScrollingTreeNode() and the nodes' getters do not refer to it. Returns false when the commit fails.
+// LOG_WITH_STREAM(Scrolling, ...): writeMessage runs only while the channel is on.
+func logScrolling(_ writeMessage: (inout WTF.TextStream) -> Void) {
+    #if !LOG_DISABLED
+    guard WebCore.LogChannel.Scrolling().state != .Off else {
+        return
+    }
+    var stream = WTF.TextStream(.SingleLine)
+    writeMessage(&stream)
+    WTF.logPreformatted(WebCore.LogChannel.Scrolling(), stream.release())
+    #endif
+}
+
+// LOG_WITH_STREAM(ScrollingTree, ...): writeMessage runs only while the channel is on.
+func logScrollingTree(_ writeMessage: (inout WTF.TextStream) -> Void) {
+    #if !LOG_DISABLED
+    guard WebCore.LogChannel.ScrollingTree().state != .Off else {
+        return
+    }
+    var stream = WTF.TextStream(.SingleLine)
+    writeMessage(&stream)
+    WTF.logPreformatted(WebCore.LogChannel.ScrollingTree(), stream.release())
+    #endif
+}
+
+// Duration of a few frames so that we stay active for sequence of wheel events.
+private let activityIntervalSeconds = 0.05
+
+// A ScrollingNodeID's two identifiers, ordered so the nodes a commit visits can be sorted.
+private struct ScrollingNodeKey: Comparable {
+    let object: UInt64
+    let process: UInt64
+
+    init(_ nodeID: WebCore.ScrollingNodeID) {
+        object = nodeID.objectValue().toUInt64()
+        process = nodeID.processIdentifier().toUInt64()
+    }
+
+    static func < (lhs: ScrollingNodeKey, rhs: ScrollingNodeKey) -> Bool {
+        (lhs.object, lhs.process) < (rhs.object, rhs.process)
+    }
+}
+
+extension [ScrollingNodeKey] {
+    fileprivate func isSorted() -> Bool {
+        var index = 1
+        while index < count {
+            if self[index] < self[index - 1] {
+                return false
+            }
+            index += 1
+        }
+        return true
+    }
+
+    // Whether the array, which is sorted, contains key.
+    fileprivate func containsSorted(_ key: ScrollingNodeKey) -> Bool {
+        var low = 0
+        var high = count
+        while low < high {
+            let middle = low &+ (high &- low) / 2
+            if self[middle] < key {
+                low = middle + 1
+            } else {
+                high = middle
+            }
+        }
+        return low < count && self[low] == key
+    }
+}
+
+/// What the commit of one state tree records while it updates the tree.
+private struct ScrollingTreeCommitState: ~Copyable {
+    // The nodes the commit visits, sorted at the end to find the frame's nodes it did not visit.
+    // We can't use orphanNodes for this, because orphanNodes won't contain descendants of removed nodes.
+    var visitedNodes: [ScrollingNodeKey] = []
+    // Nodes with non-empty synchronousScrollingReasons.
+    var synchronousScrollingNodes: [WebCore.ScrollingNodeID] = []
+    // orphanNodes keeps child nodes alive while we rebuild child lists.
+    var orphanNodes: [WebCore.ScrollingTreeNode] = []
+    // Hosted subtrees needing attaching to scrolling tree after main commit has finished
+    var pendingSubtreesNeedingCommit: [WebCore.LayerHostingContextIdentifier] = []
+
+    mutating func didVisitNode(_ nodeID: WebCore.ScrollingNodeID) {
+        visitedNodes.append(ScrollingNodeKey(nodeID))
+    }
+
+    /// Makes `node`'s children orphans, which are kept alive until the commit ends, and removes them from `node`.
+    mutating func orphanChildren(_ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ node: WebCore.ScrollingTreeNode) {
+        var index = 0
+        while let child = WebCore.scrollingTreeChildAtIndex(node, index) {
+            locked.setParent(child, nil)
+            orphanNodes.append(child)
+            index += 1
+        }
+        locked.removeAllChildren(node)
+    }
+
+    /// Records what the commit needs from `node` once it and its children are committed.
+    mutating func didCommitNode(
+        _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ node: WebCore.ScrollingTreeNode,
+        _ frameHostingNode: WebCore.ScrollingTreeFrameHostingNode?
+    ) {
+        #if ENABLE_SCROLLING_THREAD
+        if WebCore.scrollingTreeNodeHasSynchronousScrollingReasons(node) {
+            synchronousScrollingNodes.append(node.scrollingNodeID())
+        }
+        #endif
+
+        if node.isFrameHostingNode(), let hostingNode = WebCore.asScrollingTreeFrameHostingNode(node),
+            let identifier = Optional(fromCxx: hostingNode.layerHostingContextIdentifier()) {
+            pendingSubtreesNeedingCommit.append(identifier)
+        }
+
+        if let frameHostingNode {
+            locked.addHostedChild(frameHostingNode, node)
+        }
+    }
+}
+
+/// ScrollingTree::commitTreeState() for `stateTree`, called by ScrollingTreeLockedAccess::commitStateTree() with the tree's lock held.
 @_expose(Cxx)
-nonisolated func updateScrollingTreeFromStateNode(
+nonisolated func commitScrollingTreeState(
+    _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ tree: WebCore.ScrollingTree,
+    _ stateTree: WebCore.ScrollingStateTree, _ hostingContextIdentifier: WebCore.OptionalLayerHostingContextIdentifier
+) -> WebCore.ScrollingTreeCommitResult {
+    let rootStateNodeChanged = stateTree.hasNewRootStateNode()
+    locked.captureMainFrameRubberbandingState(rootStateNodeChanged)
+
+    let rootNode = stateTree.rootStateNode().get()
+    let frameID = stateTree.rootFrameIdentifier()
+    let hostingContextIdentifier = Optional(fromCxx: hostingContextIdentifier)
+    var frameHostingNode: WebCore.ScrollingTreeFrameHostingNode?
+
+    if let hostingContextIdentifier {
+        logScrolling { stream in
+            stream.appendUTF8("ScrollingTree::commitTreeState - starting hosted tree commit for hosting context ID:  ".utf8.span)
+            stream.append(hostingContextIdentifier)
+        }
+        guard let hostingNode = locked.hostingNodeForHostedSubtree(hostingContextIdentifier).get() else {
+            logScrolling { stream in
+                stream.appendUTF8("ScrollingTree::commitTreeState - parent not present for hosted tree commit".utf8.span)
+            }
+            return .NeedsHostingNode
+        }
+        frameHostingNode = hostingNode
+        if rootNode == nil {
+            locked.removeHostedChildren(hostingNode)
+            return .Committed
+        }
+    }
+    if let rootNode, hostingContextIdentifier == nil,
+        rootStateNodeChanged
+            || rootNode.hasChangedProperty(.EventTrackingRegion)
+            || rootNode.hasChangedProperty(.ScrolledContentsLayer)
+            || rootNode.hasChangedProperty(.AsyncFrameOrOverflowScrollingEnabled)
+            || rootNode.hasChangedProperty(.WheelEventGesturesBecomeNonBlocking)
+            || rootNode.hasChangedProperty(.ScrollingPerformanceTestingEnabled)
+            || rootNode.hasChangedProperty(.IsMonitoringWheelEvents)
+            || rootNode.hasChangedProperty(.OverlayScrollbarsEnabled) {
+        locked.updateTreeStateFromRootStateNode(stateTree, rootStateNodeChanged)
+    }
+
+    locked.removeActiveNodesForFrame(frameID)
+
+    var state = ScrollingTreeCommitState()
+    let nodesForFrame = locked.nodeIDsForFrame(frameID)
+    state.visitedNodes.reserveCapacity(nodesForFrame.size())
+    state.orphanNodes.reserveCapacity(nodesForFrame.size())
+
+    let rootStateNode = stateTree.rootStateNode().get().flatMap { WebCore.asScrollingStateNode($0) }
+    guard updateScrollingTreeFromStateNode(locked, tree, rootStateNode, frameID, frameHostingNode, &state) else {
+        // The hosted subtrees the commit took for its frame hosting nodes go with it.
+        for hostingID in state.pendingSubtreesNeedingCommit {
+            locked.discardHostedSubtreesNeedingPairing(hostingID)
+        }
+        return .Failed
+    }
+
+    if let anySynchronousScrollingNode = state.synchronousScrollingNodes.first {
+        locked.propagateSynchronousScrollingReasons(.init(anySynchronousScrollingNode))
+    } else {
+        let noSynchronousScrollingNode = WebCore.OptionalScrollingNodeID()
+        locked.propagateSynchronousScrollingReasons(noSynchronousScrollingNode)
+    }
+    #if ENABLE_SCROLLING_THREAD
+    if locked.propagatesSynchronousScrollingReasonsToAncestors() {
+        for nodeID in state.synchronousScrollingNodes {
+            if let node = locked.nodeForID(nodeID) {
+                propagateSynchronousScrollingReasonsToAncestors(locked, node)
+            }
+        }
+    }
+    #endif
+
+    // The nodes are visited in tree order, which is usually their identifiers' order.
+    if !state.visitedNodes.isSorted() {
+        state.visitedNodes.sort()
+    }
+    var unvisitedNodes: [(key: ScrollingNodeKey, nodeID: WebCore.ScrollingNodeID)] = []
+    for index in 0..<nodesForFrame.size() {
+        let nodeID = nodesForFrame[index]
+        let key = ScrollingNodeKey(nodeID)
+        if !state.visitedNodes.containsSorted(key) {
+            // Reserve for the most nodes that can be left.
+            if unvisitedNodes.isEmpty {
+                unvisitedNodes.reserveCapacity(nodesForFrame.size() - index)
+            }
+            unvisitedNodes.append((key, nodeID))
+        }
+    }
+    unvisitedNodes.sort { $0.key < $1.key }
+    for unvisitedNode in unvisitedNodes {
+        let nodeID = unvisitedNode.nodeID
+        logScrolling { stream in
+            stream.appendUTF8("ScrollingTree::commitTreeState - removing unvisited node ".utf8.span)
+            stream.append(nodeID)
+        }
+        if let frameHostingNode {
+            locked.removeNode(nodeID, frameHostingNode)
+        } else {
+            locked.removeNode(nodeID)
+        }
+    }
+
+    logScrollingTree { stream in
+        stream.appendUTF8("committed ScrollingTree".utf8.span)
+        stream.append(unsafe tree.scrollingTreeAsText(WebCore.debugScrollingStateTreeAsTextBehaviors)) // U5(m_treeLock): held by commitTreeState()'s Locker
+    }
+
+    // Recursively commit subtrees that can now be attached
+    var succeeded = true
+    for hostingID in state.pendingSubtreesNeedingCommit {
+        succeeded = locked.commitHostedSubtreesNeedingPairing(hostingID) && succeeded
+    }
+    _ = consume state
+
+    locked.didCommitTree()
+    tree.setNeedsApplyLayerPositions()
+
+    return succeeded ? .Committed : .Failed
+}
+
+/// Updates `tree` from `stateNode` down; a null `stateNode` removes every node. Returns false when the commit fails.
+private func updateScrollingTreeFromStateNode(
     _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ tree: WebCore.ScrollingTree,
     _ stateNode: WebCore.ScrollingStateNode?, _ frameID: WebCore.FrameIdentifier,
-    _ frameHostingNode: WebCore.ScrollingTreeFrameHostingNode?, _ state: inout WebCore.ScrollingTreeCommitState
+    _ frameHostingNode: WebCore.ScrollingTreeFrameHostingNode?, _ state: inout ScrollingTreeCommitState
 ) -> Bool {
     guard let stateNode else {
         locked.removeAllNodes()
@@ -91,7 +323,7 @@ private enum ScrollingTreeCommitVisit {
 private func visitStateNode(
     _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ tree: WebCore.ScrollingTree,
     _ stateNode: WebCore.ScrollingStateNode, _ frameID: WebCore.FrameIdentifier,
-    _ frameHostingNode: WebCore.ScrollingTreeFrameHostingNode?, _ state: inout WebCore.ScrollingTreeCommitState
+    _ frameHostingNode: WebCore.ScrollingTreeFrameHostingNode?, _ state: inout ScrollingTreeCommitState
 ) -> ScrollingTreeCommitVisit {
     let nodeID = stateNode.scrollingNodeID()
     var parentNodeID = Optional(fromCxx: stateNode.parentNodeID())
@@ -100,14 +332,14 @@ private func visitStateNode(
     }
 
     let node: WebCore.ScrollingTreeNode
-    if let existingNode = unsafe tree.nodeForID(.init(nodeID)) { // U5(m_treeLock): held by commitTreeState()'s Locker, which calls in; locked is in scope
+    if let existingNode = locked.nodeForID(nodeID) {
         node = existingNode
         state.didVisitNode(nodeID)
     } else {
         node = tree.createScrollingTreeNode(stateNode.nodeType(), nodeID).get()
         if parentNodeID == nil {
             // This is the root node. Clear the node map.
-            guard let frameScrollingNode = WebCore.asScrollingTreeFrameScrollingNode(node).get() else {
+            guard let frameScrollingNode = WebCore.asScrollingTreeFrameScrollingNode(node) else {
                 return .failed
             }
             locked.setRootNode(frameScrollingNode)
@@ -117,7 +349,7 @@ private func visitStateNode(
     }
 
     if let parentNodeID {
-        if let parent = unsafe tree.nodeForID(.init(parentNodeID)) { // U5(m_treeLock): held by commitTreeState()'s Locker, which calls in; locked is in scope
+        if let parent = locked.nodeForID(parentNodeID) {
             let oldParent = unsafe node.parent().get() // U5(m_treeLock): held by commitTreeState()'s Locker, which calls in; locked is in scope
             if let oldParent {
                 unsafe oldParent.removeChild(node) // U5(m_treeLock): held by commitTreeState()'s Locker, which calls in; locked is in scope
@@ -146,19 +378,15 @@ private func visitStateNode(
         return .committing(node, nil)
     }
     // The children become orphans, which the commit keeps alive; the live ones are added back below.
-    state.orphanChildren(node)
+    state.orphanChildren(locked, node)
     return .committing(node, 0)
 }
 
-/// From `rootStateNode` down, in the order of a depth-first walk, each state node's tree node is created if the tree
-/// has none, made a child of its parent, and committed with its children: commitStateBeforeChildren(), the
-/// children, commitStateAfterChildren(), didCompleteCommitForNode(). A node whose parent is not in the tree is
-/// removed, and its children are not visited. The node whose children are being committed is held in the
-/// `current` locals, and `stack` holds its ancestors.
+/// Commits `rootStateNode` and its descendants depth first; `stack` holds the ancestors of the node whose children are being committed.
 private func updateScrollingTreeFromStateNode(
     _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ tree: WebCore.ScrollingTree,
     _ rootStateNode: WebCore.ScrollingStateNode, _ frameID: WebCore.FrameIdentifier,
-    _ frameHostingNode: WebCore.ScrollingTreeFrameHostingNode?, _ state: inout WebCore.ScrollingTreeCommitState
+    _ frameHostingNode: WebCore.ScrollingTreeFrameHostingNode?, _ state: inout ScrollingTreeCommitState
 ) -> Bool {
     var currentNode: WebCore.ScrollingTreeNode
     var currentStateNode = rootStateNode
@@ -200,7 +428,7 @@ private func updateScrollingTreeFromStateNode(
 
         unsafe currentNode.didCompleteCommitForNode() // U5(m_treeLock): held by commitTreeState()'s Locker, which calls in; locked is in scope
 
-        state.didCommitNode(currentNode)
+        state.didCommitNode(locked, currentNode, frameHostingNode)
 
         if stack.isEmpty {
             return true
@@ -213,13 +441,8 @@ private func updateScrollingTreeFromStateNode(
 }
 
 #if ENABLE_SCROLLING_THREAD
-/// ThreadedScrollingTree::propagateSynchronousScrollingReasons() for one node with synchronous scrolling reasons:
-/// unless `node` is a frame scrolling node, marks the scrolling nodes that enclose it, up to and including the
-/// enclosing frame scrolling node, as having descendant scrollers with synchronous scrolling. An overflow scroll
-/// proxy node is followed to its overflow scrolling node. Called on the thread that commits (the web process's main
-/// thread) inside ScrollingTree::commitTreeState(), with the tree's lock held, which `locked` shows.
-@_expose(Cxx)
-nonisolated func propagateSynchronousScrollingReasonsToAncestors(
+/// Marks the scrolling nodes enclosing `node`, up to its frame scrolling node, as having descendant scrollers with synchronous scrolling.
+private func propagateSynchronousScrollingReasonsToAncestors(
     _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ node: WebCore.ScrollingTreeNode
 ) {
     if node.isFrameScrollingNode() {
@@ -229,17 +452,13 @@ nonisolated func propagateSynchronousScrollingReasonsToAncestors(
     // `node` is the caller's, so `locked` checks that it is this tree's; its ancestors are then this tree's too.
     var currentNode = locked.parent(node).get()
     while let current = currentNode {
-        if let scrollingNode = WebCore.asScrollingTreeScrollingNode(current).get() {
+        if let scrollingNode = WebCore.asScrollingTreeScrollingNode(current) {
             scrollingNode.addSynchronousScrollingReason(.DescendantScrollersHaveSynchronousScrolling)
         }
 
-        if let proxyNode = WebCore.asScrollingTreeOverflowScrollProxyNode(current).get() {
+        if let proxyNode = WebCore.asScrollingTreeOverflowScrollProxyNode(current) {
             // A proxy node without an overflow scrolling node ends the walk.
-            if let overflowScrollingNodeID = Optional(fromCxx: proxyNode.overflowScrollingNodeID()) {
-                currentNode = locked.nodeForID(overflowScrollingNodeID).get()
-            } else {
-                currentNode = nil
-            }
+            currentNode = locked.nodeForID(proxyNode.overflowScrollingNodeID())
             continue
         }
 
@@ -252,10 +471,7 @@ nonisolated func propagateSynchronousScrollingReasonsToAncestors(
 }
 #endif
 
-/// ScrollingTree::mainFrameViewportChangedViaDelegatedScrolling() once it holds the tree's lock: the root node takes
-/// the page scale and is scrolled to `scrollPosition` with `layoutViewport`, and its scrolling layers are repositioned
-/// when the scale changed. Called on the UI process's main thread (delegated scrolling) inside that member, which
-/// takes a Ref to the tree, then the tree's lock, and creates `locked` for this call only.
+/// ScrollingTree::mainFrameViewportChangedViaDelegatedScrolling() with the tree's lock held.
 @_expose(Cxx)
 nonisolated func scrollingTreeMainFrameViewportChangedViaDelegatedScrolling(
     _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ scrollPosition: WebCore.FloatPoint,
@@ -275,18 +491,324 @@ nonisolated func scrollingTreeMainFrameViewportChangedViaDelegatedScrolling(
     }
 }
 
-/// ScrollingTree::setMainFrameDelegatedPageScaleFactor() once it holds the tree's lock: when `scale` differs from
-/// the root node's page scale, the root node takes it and its scrolling layers are repositioned. Called on the UI
-/// process's main thread (delegated scrolling) inside that member, which takes a Ref to the tree, then the tree's
-/// lock, and creates `locked` for this call only.
-@_expose(Cxx)
-nonisolated func scrollingTreeSetMainFrameDelegatedPageScaleFactor(
-    _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ scale: Float
-) {
-    guard let rootNode = locked.rootNode().get(), rootNode.delegatedPageScaleFactor() != scale else {
-        return
+// Out of line so the optimizer does not retain self around the optional's accessors.
+@_effects(readonly)
+@inline(never)
+private func scrollingTreeQueriedNodeID(_ nodeID: WebCore.OptionalScrollingNodeID) -> WebCore.ScrollingNodeID? {
+    Optional(fromCxx: nodeID)
+}
+
+extension WebCore.ScrollingTree {
+    // MARK: Tree state
+
+    @cxx
+    @implementation
+    public func setMainFrameScrollPosition(_ position: WebCore.FloatPoint) {
+        lockTreeState().setMainFrameScrollPosition(position)
     }
 
-    rootNode.setDelegatedPageScaleFactor(scale)
-    unsafe rootNode.repositionScrollingLayersForDelegatedScaleChange() // U5(m_treeLock): held by the C++ Locker in setMainFrameDelegatedPageScaleFactor(), which calls in; locked is in scope
+    @cxx
+    @implementation
+    public func setGestureState(_ gestureState: WebCore.OptionalWheelScrollGestureState) {
+        lockTreeState().setGestureState(gestureState)
+    }
+
+    @cxx
+    @implementation
+    public func gestureState() -> WebCore.OptionalWheelScrollGestureState {
+        lockTreeState().gestureState()
+    }
+
+    @cxx
+    @implementation
+    public func eventTrackingTypeForPoint(
+        _ eventType: WebCore.EventTrackingRegionsEventType,
+        _ point: WebCore.IntPoint
+    ) -> WebCore.TrackingType {
+        lockTreeState().eventTrackingTypeForPoint(eventType, point)
+    }
+
+    // Can be called from the main thread.
+    @cxx
+    @implementation
+    public func isRubberBandInProgressForNode(_ nodeID: WebCore.OptionalScrollingNodeID) -> Bool {
+        guard let nodeID = scrollingTreeQueriedNodeID(nodeID) else {
+            return false
+        }
+        return lockTreeState().contains(.ActiveRubberBanding, nodeID)
+    }
+
+    // Can be called from the main thread.
+    @cxx
+    @implementation
+    public func isUserScrollInProgressForNode(_ nodeID: WebCore.OptionalScrollingNodeID) -> Bool {
+        guard let nodeID = scrollingTreeQueriedNodeID(nodeID) else {
+            return false
+        }
+        return lockTreeState().contains(.ActiveUserScrolls, nodeID)
+    }
+
+    @cxx
+    @implementation
+    public func setUserScrollInProgressForNode(_ nodeID: WebCore.ScrollingNodeID, _ isScrolling: Bool) {
+        let state = lockTreeState()
+        if isScrolling {
+            _ = state.add(.ActiveUserScrolls, nodeID)
+            scrollingTreeNodeWillStartScroll(nodeID)
+        } else {
+            _ = state.remove(.ActiveUserScrolls, nodeID)
+            scrollingTreeNodeDidEndScroll(nodeID)
+        }
+    }
+
+    // Can be called from the main thread.
+    @cxx
+    @implementation
+    public func isScrollSnapInProgressForNode(_ nodeID: WebCore.OptionalScrollingNodeID) -> Bool {
+        guard let nodeID = scrollingTreeQueriedNodeID(nodeID) else {
+            return false
+        }
+        return lockTreeState().contains(.ActiveScrollSnap, nodeID)
+    }
+
+    @cxx
+    @implementation
+    public func setNodeScrollSnapInProgress(_ nodeID: WebCore.ScrollingNodeID, _ isScrollSnapping: Bool) {
+        let state = lockTreeState()
+        if isScrollSnapping {
+            if state.add(.ActiveScrollSnap, nodeID) {
+                scrollingTreeNodeDidBeginScrollSnapping(nodeID)
+            }
+        } else if state.remove(.ActiveScrollSnap, nodeID) {
+            scrollingTreeNodeDidEndScrollSnapping(nodeID)
+        }
+    }
+
+    @cxx
+    @implementation
+    public func isScrollAnimationInProgressForNode(_ nodeID: WebCore.OptionalScrollingNodeID) -> Bool {
+        guard let nodeID = scrollingTreeQueriedNodeID(nodeID) else {
+            return false
+        }
+        return lockTreeState().contains(.ActiveScrollAnimations, nodeID)
+    }
+
+    @cxx
+    @implementation
+    public func setScrollAnimationInProgressForNode(
+        _ nodeID: WebCore.OptionalScrollingNodeID,
+        _ isScrollAnimationInProgress: Bool
+    ) {
+        guard let nodeID = scrollingTreeQueriedNodeID(nodeID) else {
+            return
+        }
+
+        let state = lockTreeState()
+        let hadAnyAnimatedScrollingNodes = !state.isEmpty(.ActiveScrollAnimations)
+        if isScrollAnimationInProgress {
+            _ = state.add(.ActiveScrollAnimations, nodeID)
+        } else {
+            _ = state.remove(.ActiveScrollAnimations, nodeID)
+        }
+
+        let hasAnyAnimatedScrollingNodes = !state.isEmpty(.ActiveScrollAnimations)
+        if hasAnyAnimatedScrollingNodes != hadAnyAnimatedScrollingNodes {
+            hasNodeWithAnimatedScrollChanged(hasAnyAnimatedScrollingNodes)
+        }
+    }
+
+    @cxx
+    @implementation
+    public func hasNodeWithActiveScrollAnimations() -> Bool {
+        !lockTreeState().isEmpty(.ActiveScrollAnimations)
+    }
+
+    @cxx
+    @implementation
+    public func windowScreenDidChange(
+        _ displayID: WebCore.PlatformDisplayID,
+        _ nominalFramesPerSecond: WebCore.OptionalFramesPerSecond
+    ) {
+        let state = lockTreeState()
+        state.setDisplayID(displayID)
+        state.setNominalFramesPerSecond(nominalFramesPerSecond)
+    }
+
+    @cxx
+    @implementation
+    public func displayID() -> WebCore.PlatformDisplayID {
+        lockTreeState().displayID()
+    }
+
+    @cxx
+    @implementation
+    public func nominalFramesPerSecond() -> WebCore.OptionalFramesPerSecond {
+        lockTreeState().nominalFramesPerSecond()
+    }
+
+    // MARK: Swipe state and wheel event time
+
+    @cxx
+    @implementation
+    public func setMainFramePinnedState(_ edgePinningState: WebCore.RectEdgesBool) {
+        updateSwipeState { $0.mainFramePinnedState = edgePinningState }
+    }
+
+    @cxx
+    @implementation
+    public func setClientAllowedMainFrameRubberBandableEdges(
+        _ clientAllowedRubberBandableEdges: WebCore.RectEdgesRubberBandingBehavior
+    ) {
+        updateSwipeState { $0.clientAllowedRubberBandableEdges = clientAllowedRubberBandableEdges }
+    }
+
+    // Can be called from the main thread.
+    @cxx
+    @implementation
+    public func setScrollPinningBehavior(_ pinning: WebCore.ScrollPinningBehavior) {
+        updateSwipeState { $0.scrollPinningBehavior = pinning }
+    }
+
+    private func updateSwipeState(_ body: (inout WebCore.ScrollingTree.SwipeState) -> Void) {
+        let swipe = lockSwipeState()
+        var state = swipe.get()
+        body(&state)
+        swipe.set(state)
+    }
+
+    @cxx
+    @implementation
+    public func scrollPinningBehavior() -> WebCore.ScrollPinningBehavior {
+        lockSwipeState().get().scrollPinningBehavior
+    }
+
+    @cxx
+    @implementation
+    public func hasProcessedWheelEventsRecently() -> Bool {
+        let lastWheelEventTime = lockLastWheelEventTime()
+        let now = WTF.MonotonicTime.now().secondsSinceEpoch().value()
+        return now - lastWheelEventTime.get().secondsSinceEpoch().value() < activityIntervalSeconds
+    }
+
+    @cxx
+    @implementation
+    public func willProcessWheelEvent() {
+        lockLastWheelEventTime().set(WTF.MonotonicTime.now())
+    }
+
+    // MARK: Main frame
+
+    @cxx
+    @implementation
+    public func mainFrameHorizontalOverscrollBehavior() -> WebCore.OverscrollBehavior {
+        withRootNode(default: .Auto) { $0.horizontalOverscrollBehavior() }
+    }
+
+    @cxx
+    @implementation
+    public func mainFrameScrollbarWidth() -> WebCore.ScrollbarWidth {
+        withRootNode(default: .Auto) { $0.scrollbarWidthStyle() }
+    }
+
+    @cxx
+    @implementation
+    public func mainFrameScrollbarColor() -> WebCore.OptionalScrollbarColor {
+        withRootNode(default: .init()) { $0.scrollbarColorStyle() }
+    }
+
+    @cxx
+    @implementation
+    public func mainFrameVerticalOverscrollBehavior() -> WebCore.OverscrollBehavior {
+        withRootNode(default: .Auto) { $0.verticalOverscrollBehavior() }
+    }
+
+    @cxx
+    @implementation
+    public func mainFrameScrollOrigin() -> WebCore.IntPoint {
+        withRootNode(default: WebCore.IntPoint()) { $0.scrollOrigin() }
+    }
+
+    @cxx
+    @implementation
+    public func mainFrameHeaderHeight() -> Int32 {
+        withRootNode(default: 0) { $0.headerHeight() }
+    }
+
+    @cxx
+    @implementation
+    public func mainFrameFooterHeight() -> Int32 {
+        withRootNode(default: 0) { $0.footerHeight() }
+    }
+
+    @cxx
+    @implementation
+    public func mainFrameScaleFactor() -> Float {
+        withRootNode(default: 1) { $0.frameScaleFactor() }
+    }
+
+    @cxx
+    @implementation
+    public func setMainFrameDelegatedPageScaleFactor(_ scale: Float) {
+        let locked = lockTree()
+        guard let rootNode = locked.rootNode().get(), rootNode.delegatedPageScaleFactor() != scale else {
+            return
+        }
+
+        rootNode.setDelegatedPageScaleFactor(scale)
+        unsafe rootNode.repositionScrollingLayersForDelegatedScaleChange() // U5(m_treeLock): held by lockTree()'s result, alive to the end of this scope
+    }
+
+    @cxx
+    @implementation
+    public func totalContentsSize() -> WebCore.FloatSize {
+        withRootNode(default: WebCore.FloatSize()) { $0.totalContentsSize() }
+    }
+
+    @cxx
+    @implementation
+    public func layoutViewport() -> WebCore.FloatRect {
+        withRootNode(default: WebCore.FloatRect()) { $0.layoutViewport() }
+    }
+
+    @cxx
+    @implementation
+    public func mainFrameSizeForVisibleContent() -> WebCore.FloatSize {
+        withRootNode(default: WebCore.FloatSize()) { $0.sizeForVisibleContent() }
+    }
+
+    @cxx
+    @implementation
+    public func viewWillStartLiveResize() {
+        withRootNode(default: ()) { $0.viewWillStartLiveResize() }
+    }
+
+    @cxx
+    @implementation
+    public func viewWillEndLiveResize() {
+        withRootNode(default: ()) { $0.viewWillEndLiveResize() }
+    }
+
+    @cxx
+    @implementation
+    public func viewSizeDidChange() {
+        withRootNode(default: ()) { $0.viewSizeDidChange() }
+    }
+
+    // Calls body with the root node while the tree lock is held; defaultValue if there is no root node.
+    private func withRootNode<T>(default defaultValue: T, _ body: (WebCore.ScrollingTreeFrameScrollingNode) -> T) -> T {
+        let locked = lockTree()
+        guard let rootNode = locked.rootNode().get() else {
+            return defaultValue
+        }
+        return body(rootNode)
+    }
+
+    @cxx
+    @implementation
+    public func scrollBySimulatingWheelEventForTesting(_ nodeID: WebCore.ScrollingNodeID, _ delta: WebCore.FloatSize) {
+        let locked = lockTree()
+        if let node = locked.nodeForID(nodeID), let scrollingNode = WebCore.asScrollingTreeScrollingNode(node) {
+            locked.scrollBy(scrollingNode, delta, .Clamped)
+        }
+    }
 }

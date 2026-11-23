@@ -36,7 +36,7 @@ namespace WebCore {
 
 class StickyPositionViewportConstraints;
 
-class ScrollingStateStickyNode final : public ScrollingStateNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingStateStickyNode.swift") ScrollingStateStickyNode final : public ScrollingStateNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStateStickyNode, WEBCORE_EXPORT);
 public:
     template<typename... Args> static Ref<ScrollingStateStickyNode> create(Args&&... args) { return adoptRef(*new ScrollingStateStickyNode(std::forward<Args>(args)...)); }
@@ -63,7 +63,7 @@ private:
     void reconcileLayerPositionForViewportRect(LayoutRect viewportRect, ScrollingLayerPositionAction) final;
     FloatSize scrollDeltaSinceLastCommit(LayoutRect viewportRect) const;
 
-    void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const final;
+    String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const final;
     OptionSet<ScrollingStateNode::Property> applicableProperties() const final;
 
     bool hasViewportClippingLayer() const;

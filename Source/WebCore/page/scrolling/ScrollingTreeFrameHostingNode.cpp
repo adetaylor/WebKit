@@ -52,17 +52,6 @@ ScrollingTreeFrameHostingNode::ScrollingTreeFrameHostingNode(ScrollingTree& scro
 
 ScrollingTreeFrameHostingNode::~ScrollingTreeFrameHostingNode() = default;
 
-bool ScrollingTreeFrameHostingNode::commitStateBeforeChildren(const ScrollingStateNode& stateNode)
-{
-    auto* state = dynamicDowncast<ScrollingStateFrameHostingNode>(stateNode);
-    if (!state)
-        return false;
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::LayerHostingContextIdentifier))
-        setLayerHostingContextIdentifier(state->layerHostingContextIdentifier());
-    return true;
-}
-
 void ScrollingTreeFrameHostingNode::setLayerHostingContextIdentifier(std::optional<LayerHostingContextIdentifier> identifier)
 {
     if (m_hostingContext != identifier)
@@ -89,33 +78,15 @@ void ScrollingTreeFrameHostingNode::removeHostedChildren()
     scrollingTree->hostedSubtreeNeedsFullCommit(hostedFrameID);
 }
 
-void ScrollingTreeFrameHostingNode::willBeDestroyed()
-{
-    if (m_hostingContext)
-        scrollingTree()->removeFrameHostingNode(*m_hostingContext);
-    removeHostedChildren();
-}
-
 void ScrollingTreeFrameHostingNode::removeHostedChild(ScrollingTreeNode& node)
 {
     m_hostedChildren.remove(node);
     m_children.removeFirst(&node);
 }
 
-void ScrollingTreeFrameHostingNode::applyLayerPositions()
-{
-}
-
 void ScrollingTreeFrameHostingNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {
-    ts << "frame hosting node"_s;
-    if (auto hostingContextIdentifier = m_hostingContext) {
-        if (behavior & ScrollingStateTreeAsTextBehavior::IncludeNodeIDs)
-            ts.dumpProperty("hosting context identifier"_s, *m_hostingContext);
-        else
-            ts.dumpProperty("has hosting context identifier"_s, "");
-    }
-    ScrollingTreeNode::dumpProperties(ts, behavior);
+    ts << frameHostingNodePropertiesText(behavior, ts.indent(), ts.formattingFlags(), ts.containerSizeLimit());
 }
 
 } // namespace WebCore

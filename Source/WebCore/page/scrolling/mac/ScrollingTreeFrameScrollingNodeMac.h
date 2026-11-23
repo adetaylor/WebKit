@@ -41,7 +41,7 @@ namespace WebCore {
 
 class ScrollingTreeScrollingNodeDelegateMac;
 
-class WEBCORE_EXPORT ScrollingTreeFrameScrollingNodeMac : public ScrollingTreeFrameScrollingNode {
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeScrollingNodeMac.swift") ScrollingTreeFrameScrollingNodeMac : public ScrollingTreeFrameScrollingNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreeFrameScrollingNodeMac, WEBCORE_EXPORT);
 public:
     static Ref<ScrollingTreeFrameScrollingNode> create(ScrollingTree&, ScrollingNodeType, ScrollingNodeID);
@@ -49,17 +49,17 @@ public:
 
     RetainPtr<CALayer> rootContentsLayer() const { return m_rootContentsLayer; }
 
-    void startRubberBandSnapBack();
-    void rubberBandTargetOffsetDidChange();
+    SWIFT_UNSAFE void startRubberBandSnapBack();
+    SWIFT_UNSAFE void rubberBandTargetOffsetDidChange();
 
 protected:
     ScrollingTreeFrameScrollingNodeMac(ScrollingTree&, ScrollingNodeType, ScrollingNodeID);
 
     // ScrollingTreeNode member functions.
-    bool commitStateBeforeChildren(const ScrollingStateNode&) override;
-    bool commitStateAfterChildren(const ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateAfterChildren(const ScrollingStateNode&) override;
 
-    WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting) override;
+    SWIFT_UNSAFE WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting) override;
 
     WEBCORE_EXPORT SWIFT_UNSAFE void repositionRelatedLayers() override;
 
@@ -73,7 +73,7 @@ protected:
 private:
     NODELETE ScrollingTreeScrollingNodeDelegateMac& delegate() const;
 
-    void willBeDestroyed() final;
+    SWIFT_UNSAFE void willBeDestroyed() final;
     void willDoProgrammaticScroll(const FloatPoint&) final;
     bool isScrollingTreeFrameScrollingNodeMac() const final { return true; };
 

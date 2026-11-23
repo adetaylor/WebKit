@@ -33,6 +33,7 @@
 #include <WebCore/ScrollingCoordinator.h>
 #include <WebCore/ScrollingStateNode.h>
 #include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/TypeCasts.h>
@@ -45,7 +46,7 @@ class ScrollingTreeFrameScrollingNode;
 class ScrollingTreeLockedAccess;
 class ScrollingTreeScrollingNode;
 
-class ScrollingTreeNode : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingTreeNode> {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeNode.swift") ScrollingTreeNode : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingTreeNode> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreeNode, WEBCORE_EXPORT);
     friend class ScrollingTree;
     friend class ScrollingTreeLockedAccess;
@@ -114,6 +115,8 @@ protected:
     SWIFT_UNSAFE virtual void applyLayerPositions() = 0;
 
     WEBCORE_EXPORT virtual void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const;
+    // The text dumpProperties writes, from a stream with the caller's indent, formatting flags and container size limit.
+    String treeNodePropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     Vector<Ref<ScrollingTreeNode>> m_children;
 
@@ -128,11 +131,21 @@ private:
     ThreadSafeWeakPtr<ScrollingTreeNode> m_parent;
 };
 
+// For Swift: node's child at index, or null when index is past its last child.
+inline ScrollingTreeNode* scrollingTreeChildAtIndex(const ScrollingTreeNode& node, size_t index)
+{
+    return index < node.children().size() ? node.children()[index].ptr() : nullptr;
+}
+
 } // namespace WebCore
 
+// Also defines as##ToValueTypeName() for Swift, which cannot cast between C++ classes: the node as a ToValueTypeName, or null.
 #define SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ToValueTypeName, predicate) \
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::ScrollingTreeNode& node) { return node.predicate; } \
-SPECIALIZE_TYPE_TRAITS_END()
+SPECIALIZE_TYPE_TRAITS_END() \
+namespace WebCore { \
+inline ToValueTypeName* as##ToValueTypeName(ScrollingTreeNode& node) { return dynamicDowncast<ToValueTypeName>(node); } \
+}
 
 #endif // ENABLE(ASYNC_SCROLLING)

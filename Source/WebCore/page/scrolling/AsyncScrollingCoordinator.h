@@ -47,7 +47,7 @@ class ScrollingStateTree;
 
 // ScrollingCoordinator subclass that maintains a ScrollingStateTree and a ScrollingTree,
 // allowing asynchronous scrolling (in another thread or process).
-class AsyncScrollingCoordinator : public ScrollingCoordinator {
+class SWIFT_PRIVATE_FILEID("WebCore/AsyncScrollingCoordinator.swift") AsyncScrollingCoordinator : public ScrollingCoordinator {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(AsyncScrollingCoordinator, WEBCORE_EXPORT);
 public:
     static Ref<AsyncScrollingCoordinator> create(Page*);
@@ -77,10 +77,12 @@ public:
 
     virtual void hasNodeWithAnimatedScrollChanged(bool) { };
 
+    // Swift cannot take a ScrollableArea, so these pass its state node and values to the overloads below.
     WEBCORE_EXPORT void setScrollbarColor(ScrollableArea&, std::optional<ScrollbarColor>) override;
     WEBCORE_EXPORT void setScrollbarLayoutDirection(ScrollableArea&, UserInterfaceLayoutDirection) override;
-    WEBCORE_EXPORT void setMouseIsOverContentArea(ScrollableArea&, bool) override;
+    WEBCORE_EXPORT void setMouseIsOverContentArea(ScrollableArea&, bool isOverContentArea) override;
     WEBCORE_EXPORT void setMouseMovedInContentArea(ScrollableArea&) override;
+    void setMouseMovedInContentArea(ScrollingStateNode*, IntPoint locationInHorizontalScrollbar, IntPoint locationInVerticalScrollbar);
     WEBCORE_EXPORT void setLayerHostingContextIdentifierForFrameHostingNode(ScrollingNodeID, std::optional<LayerHostingContextIdentifier>) override;
 #if USE(COORDINATED_GRAPHICS_ASYNC_SCROLLBAR)
     void setScrollbarOpacity(ScrollableArea&) override;
@@ -96,6 +98,7 @@ public:
     // the scrolling tree we commit to has discarded the state we previously sent it.
     WEBCORE_EXPORT void setAllScrollingStatePropertiesChangedForRootFrameID(FrameIdentifier);
 
+    // Swift cannot take a ScrollableArea, so this passes its state node and scroll position to the overload below.
     WEBCORE_EXPORT void scrollableAreaWillBeDetached(ScrollableArea&) override;
 
 protected:
@@ -117,7 +120,7 @@ protected:
     bool eventTrackingRegionsDirty() const { return m_eventTrackingRegionsDirty; }
     WEBCORE_EXPORT LocalFrameView* frameViewForScrollingNode(std::optional<ScrollingNodeID>) const;
     RefPtr<ScrollingStateNode> stateNodeForNodeID(std::optional<ScrollingNodeID>) const;
-    RefPtr<ScrollingStateNode> stateNodeForScrollableArea(const ScrollableArea&) const;
+    WEBCORE_EXPORT RefPtr<ScrollingStateNode> stateNodeForScrollableArea(const ScrollableArea&) const;
 
     virtual void willSendScrollPositionRequest(ScrollingNodeID, RequestedScrollData&) { }
 
@@ -135,8 +138,9 @@ private:
     WEBCORE_EXPORT void frameViewWillBeDetached(LocalFrameView&) override;
     WEBCORE_EXPORT void rootFrameWasRemoved(FrameIdentifier rootFrameID) final;
 
+    // Swift cannot take a ScrollableArea, so these pass its state node to the overloads below.
     WEBCORE_EXPORT bool requestStartKeyboardScrollAnimation(ScrollableArea&, const KeyboardScroll&) final;
-    WEBCORE_EXPORT bool requestStopKeyboardScrollAnimation(ScrollableArea&, bool) final;
+    WEBCORE_EXPORT bool requestStopKeyboardScrollAnimation(ScrollableArea&, bool immediate) final;
 
     WEBCORE_EXPORT bool requestScrollToPosition(ScrollableArea&, const ScrollPosition&, const ScrollPositionChangeOptions& options) final;
     WEBCORE_EXPORT void stopAnimatedScroll(ScrollableArea&) final;
@@ -174,6 +178,7 @@ private:
 
     WEBCORE_EXPORT void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, LayoutRect viewportRect, ScrollingLayerPositionAction) override;
     WEBCORE_EXPORT void scrollableAreaScrollbarLayerDidChange(ScrollableArea&, ScrollbarOrientation) override;
+    void scrollbarLayerDidChange(ScrollingStateNode*, ScrollbarOrientation, GraphicsLayer*, UserInterfaceLayoutDirection);
 
     WEBCORE_EXPORT void setSynchronousScrollingReasons(std::optional<ScrollingNodeID>, OptionSet<SynchronousScrollingReason>) final;
     WEBCORE_EXPORT OptionSet<SynchronousScrollingReason> synchronousScrollingReasons(std::optional<ScrollingNodeID>) const final;
@@ -195,14 +200,31 @@ private:
     void wheelEventScrollWillStartForNode(ScrollingNodeID);
     void wheelEventScrollDidEndForNode(ScrollingNodeID);
     void notifyScrollableAreasForScrollEnd(ScrollingNodeID);
+    static void scrollDidEnd(LocalFrameView&, ScrollingNodeID);
+    static void setActiveScrollSnapIndices(LocalFrameView&, ScrollingNodeID, std::optional<unsigned> horizontalIndex, std::optional<unsigned> verticalIndex);
+#if PLATFORM(COCOA)
+    static void handleWheelEventPhase(LocalFrameView&, ScrollingNodeID, PlatformWheelEventPhase);
+#endif
     
 #if USE(COORDINATED_GRAPHICS_ASYNC_SCROLLBAR)
     void setHoveredAndPressedScrollbarParts(ScrollableArea&) override;
 #else
     WEBCORE_EXPORT void setMouseIsOverScrollbar(Scrollbar*, bool isOverScrollbar) override;
+    void setMouseIsOverScrollbar(ScrollingStateNode*, ScrollbarOrientation, bool isOverScrollbar);
 #endif
     WEBCORE_EXPORT void setScrollbarEnabled(Scrollbar&) override;
+    // Swift cannot take a ScrollableArea, so this passes its state node to the overload below.
     WEBCORE_EXPORT void setScrollbarWidth(ScrollableArea&, ScrollbarWidth) override;
+
+    void scrollableAreaWillBeDetached(ScrollingStateNode*, ScrollPosition);
+    bool requestStartKeyboardScrollAnimation(ScrollingStateNode*, KeyboardScroll);
+    bool requestStopKeyboardScrollAnimation(ScrollingStateNode*, bool immediate);
+    void stopAnimatedScroll(std::optional<ScrollingNodeID>, ScrollingStateNode*);
+    void setScrollbarColor(ScrollingStateNode*, std::optional<ScrollbarColor>);
+    void setScrollbarLayoutDirection(ScrollingStateNode*, UserInterfaceLayoutDirection);
+    void setMouseIsOverContentArea(ScrollingStateNode*, bool isOverContentArea);
+    void setScrollbarEnabled(ScrollingStateNode*, ScrollbarOrientation, bool enabled);
+    void setScrollbarWidth(ScrollingStateNode*, ScrollbarWidth);
 
     NODELETE void hysterisisTimerFired(PAL::HysteresisState);
 

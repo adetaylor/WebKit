@@ -33,7 +33,7 @@ OBJC_CLASS CALayer;
 
 namespace WebCore {
 
-class ScrollingTreeFixedNodeCocoa : public ScrollingTreeFixedNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeFixedNode.swift") ScrollingTreeFixedNodeCocoa : public ScrollingTreeFixedNode {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreeFixedNodeCocoa);
 public:
     NODELETE WEBCORE_EXPORT static Ref<ScrollingTreeFixedNodeCocoa> create(ScrollingTree&, ScrollingNodeID);
@@ -45,10 +45,10 @@ private:
 
     CALayer *layer() const final { return m_layer.get(); }
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) final;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) final;
     SWIFT_UNSAFE void applyLayerPositions() final WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
 #if ENABLE(OVERLAY_REGIONS_REMOTE_EFFECT)
-    void willBeDestroyed() final;
+    SWIFT_UNSAFE void willBeDestroyed() final;
 #endif
 
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const final;

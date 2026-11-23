@@ -52,15 +52,6 @@ ScrollingTreePluginHostingNode::ScrollingTreePluginHostingNode(ScrollingTree& sc
 
 ScrollingTreePluginHostingNode::~ScrollingTreePluginHostingNode() = default;
 
-bool ScrollingTreePluginHostingNode::commitStateBeforeChildren(const ScrollingStateNode&)
-{
-    return true;
-}
-
-void ScrollingTreePluginHostingNode::applyLayerPositions()
-{
-}
-
 void ScrollingTreePluginHostingNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {
     ts << "plugin hosting node"_s;

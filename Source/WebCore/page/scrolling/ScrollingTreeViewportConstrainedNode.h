@@ -27,6 +27,7 @@
 
 #if ENABLE(ASYNC_SCROLLING)
 
+#include <WebCore/ScrollingConstraints.h>
 #include <WebCore/ScrollingPlatformLayer.h>
 #include <WebCore/ScrollingTreeNode.h>
 #include <wtf/TZoneMalloc.h>
@@ -35,7 +36,8 @@ namespace WebCore {
 
 class ViewportConstraints;
 
-class ScrollingTreeViewportConstrainedNode : public ScrollingTreeNode {
+// Its Swift members are with the fixed node's, their one caller.
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeFixedNode.swift") ScrollingTreeViewportConstrainedNode : public ScrollingTreeNode {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreeViewportConstrainedNode);
 protected:
     ScrollingTreeViewportConstrainedNode(ScrollingTree&, ScrollingNodeType, ScrollingNodeID);
@@ -44,7 +46,10 @@ protected:
     virtual const ViewportConstraints& constraints() const LIFETIME_BOUND = 0;
     virtual ScrollingPlatformLayer* layer() const = 0;
 
-    FloatPoint computeLayerPosition() const;
+    SWIFT_UNSAFE FloatPoint computeLayerPosition() const;
+    // For Swift, which does not import constraints(), a reference to an abstract class.
+    FloatPoint viewportRelativeLayerPosition(const FloatRect& viewportRect) const { return constraints().viewportRelativeLayerPosition(viewportRect); }
+    FloatPoint layerPositionAtLastLayout() const { return constraints().layerPositionAtLastLayout(); }
 };
 
 } // namespace WebCore

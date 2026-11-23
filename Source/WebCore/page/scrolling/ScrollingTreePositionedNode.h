@@ -34,7 +34,7 @@
 
 namespace WebCore {
 
-class ScrollingTreePositionedNode : public ScrollingTreeNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreePositionedNode.swift") ScrollingTreePositionedNode : public ScrollingTreeNode {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreePositionedNode);
 public:
     virtual ~ScrollingTreePositionedNode();
@@ -48,9 +48,10 @@ public:
 protected:
     ScrollingTreePositionedNode(ScrollingTree&, ScrollingNodeID);
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
 
     WEBCORE_EXPORT void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String positionedNodePropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     Vector<ScrollingNodeID> m_relatedOverflowScrollingNodes;
     AbsolutePositionConstraints m_constraints;

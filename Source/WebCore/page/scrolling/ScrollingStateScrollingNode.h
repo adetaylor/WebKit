@@ -67,7 +67,7 @@ struct ScrollbarEnabledState {
     bool verticalScrollbarIsEnabled { false };
 };
 
-class ScrollingStateScrollingNode : public ScrollingStateNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingStateScrollingNode.swift") ScrollingStateScrollingNode : public ScrollingStateNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStateScrollingNode, WEBCORE_EXPORT);
 public:
     virtual ~ScrollingStateScrollingNode();
@@ -207,10 +207,12 @@ protected:
     ScrollingStateScrollingNode(const ScrollingStateScrollingNode&, ScrollingStateTree&);
 
     OptionSet<Property> applicableProperties() const override;
-    void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const override;
 
 private:
-    void mergeOrAppendScrollRequest(RequestedScrollData&&);
+    void mergeOrAppendScrollRequest(RequestedScrollData);
+    // The snap offsets part of dumpPropertiesText(), for Swift, which reaches the snap offset vectors only through unsafe API.
+    String snapOffsetsPropertiesText(int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     FloatSize m_scrollableAreaSize;
     FloatSize m_totalContentsSize;

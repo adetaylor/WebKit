@@ -194,16 +194,6 @@ RefPtr<RemoteScrollingTree> RemoteLayerTreeEventDispatcher::scrollingTree()
     return result;
 }
 
-void RemoteLayerTreeEventDispatcher::wheelEventHysteresisUpdated(PAL::HysteresisState state)
-{
-    startOrStopDisplayLink();
-}
-
-void RemoteLayerTreeEventDispatcher::hasNodeWithAnimatedScrollChanged(bool hasAnimatedScrolls)
-{
-    startOrStopDisplayLink();
-}
-
 void RemoteLayerTreeEventDispatcher::cacheWheelEventScrollingAccelerationCurve(const NativeWebWheelEvent& wheelEvent)
 {
     ASSERT(isMainRunLoop());
@@ -259,53 +249,11 @@ void RemoteLayerTreeEventDispatcher::handleWheelEvent(Ref<WebWheelEvent> wheelEv
     });
 }
 
-void RemoteLayerTreeEventDispatcher::scrollingThreadHandleWheelEvent(const WebWheelEvent& webWheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
+void RemoteLayerTreeEventDispatcher::wheelEventWasHandledByScrollingThread(WheelEventHandlingResult handlingResult)
 {
-    ASSERT(ScrollingThread::isCurrentThread());
-
-    auto continueEventHandlingOnMainThread = [protectedThis = Ref { *this }](WheelEventHandlingResult handlingResult) {
-        RunLoop::mainSingleton().dispatch([protectedThis, handlingResult] {
-            protectedThis->continueWheelEventHandling(handlingResult);
-        });
-    };
-
-    auto scrollingTree = this->scrollingTree();
-    if (!scrollingTree)
-        return;
-
-    ScrollingTree::HitTestLocker locker { *scrollingTree };
-
-    auto platformWheelEvent = platform(webWheelEvent);
-    auto processingSteps = determineWheelEventProcessing(platformWheelEvent, rubberBandableEdges);
-
-    // Do this before the event is handled here or in the web process, so that it stops springs whichever scroller handles it.
-    scrollingTree->stopSpringAnimationsForWheelEvent(platformWheelEvent);
-
-    bool needSynchronousScrolling = processingSteps.contains(WheelEventProcessingSteps::SynchronousScrolling);
-    if (needSynchronousScrolling) {
-        scrollingTree->willSendEventForDefaultHandling(platformWheelEvent);
-        continueEventHandlingOnMainThread(WheelEventHandlingResult::unhandled(processingSteps));
-        // Wait for the web process to respond to the event, preventing the next event from being handled until we get a response or time out,
-        // allowing us to know if this gesture should be come non-blocking.
-        scrollingTree->waitForEventDefaultHandlingCompletion(platformWheelEvent);
-        [CATransaction flush];
-        return;
-    }
-
-#if ENABLE(MOMENTUM_EVENT_DISPATCHER)
-    {
-        Locker locker { m_momentumEventDispatcherLock };
-        if (m_momentumEventDispatcher && m_momentumEventDispatcher->handleWheelEvent(m_pageIdentifier, webWheelEvent, rubberBandableEdges)) {
-            continueEventHandlingOnMainThread(WheelEventHandlingResult::handled(processingSteps));
-            [CATransaction flush];
-            return;
-        }
-    }
-#endif
-
-    auto handlingResult = internalHandleWheelEvent(platformWheelEvent, processingSteps);
-    continueEventHandlingOnMainThread(handlingResult);
-    [CATransaction flush];
+    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, handlingResult] {
+        protectedThis->continueWheelEventHandling(handlingResult);
+    });
 }
 
 void RemoteLayerTreeEventDispatcher::continueWheelEventHandling(WheelEventHandlingResult handlingResult)
@@ -321,11 +269,12 @@ void RemoteLayerTreeEventDispatcher::continueWheelEventHandling(WheelEventHandli
     scrollingCoordinator->continueWheelEventHandling(WTF::move(event), handlingResult);
 }
 
-OptionSet<WheelEventProcessingSteps> RemoteLayerTreeEventDispatcher::determineWheelEventProcessing(const PlatformWheelEvent& wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
+OptionSet<WheelEventProcessingSteps> RemoteLayerTreeEventDispatcher::determineWheelEventProcessing(const PlatformWheelEvent& wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges, const ScrollingTree::HitTestLocker* hitTest)
 {
     auto scrollingTree = this->scrollingTree();
     if (!scrollingTree)
         return { };
+    RELEASE_ASSERT(!hitTest || hitTest->holdsLayersOf(*scrollingTree));
 
     // Replicate the hack in EventDispatcher::internalWheelEvent(). We could pass rubberBandableEdges all the way through the
     // WebProcess and back via the ScrollingTree, but we only ever need to consult it here.
@@ -334,7 +283,7 @@ OptionSet<WheelEventProcessingSteps> RemoteLayerTreeEventDispatcher::determineWh
     return scrollingTree->determineWheelEventProcessing(wheelEvent);
 }
 
-WheelEventHandlingResult RemoteLayerTreeEventDispatcher::internalHandleWheelEvent(const PlatformWheelEvent& wheelEvent, OptionSet<WheelEventProcessingSteps> processingSteps)
+WheelEventHandlingResult RemoteLayerTreeEventDispatcher::internalHandleWheelEvent(const PlatformWheelEvent& wheelEvent, OptionSet<WheelEventProcessingSteps> processingSteps, const ScrollingTree::HitTestLocker* hitTest)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(ScrollingThread::isCurrentThread());
     ASSERT(processingSteps.contains(WheelEventProcessingSteps::AsyncScrolling));
@@ -342,6 +291,7 @@ WheelEventHandlingResult RemoteLayerTreeEventDispatcher::internalHandleWheelEven
     auto scrollingTree = this->scrollingTree();
     if (!scrollingTree)
         return WheelEventHandlingResult::unhandled();
+    RELEASE_ASSERT(!hitTest || hitTest->holdsLayersOf(*scrollingTree));
 
     scrollingTree->willProcessWheelEvent();
 
@@ -421,36 +371,6 @@ void RemoteLayerTreeEventDispatcher::startOrStopDisplayLink()
     RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }] {
         protectedThis->startOrStopDisplayLinkOnMainThread();
     });
-}
-
-void RemoteLayerTreeEventDispatcher::startOrStopDisplayLinkOnMainThread()
-{
-    ASSERT(isMainRunLoop());
-
-    auto needsDisplayLink = [&]() {
-#if ENABLE(MOMENTUM_EVENT_DISPATCHER)
-        if (m_momentumEventDispatcherNeedsDisplayLink)
-            return true;
-#endif
-        if (m_wheelEventActivityHysteresis.state() == PAL::HysteresisState::Started)
-            return true;
-
-#if ENABLE(THREADED_ANIMATIONS)
-        {
-            Locker lock { m_animationLock };
-            if (m_monotonicTimelineRegistry && !m_monotonicTimelineRegistry->isEmpty())
-                return true;
-        }
-#endif
-
-        auto scrollingTree = this->scrollingTree();
-        return scrollingTree && scrollingTree->hasNodeWithActiveScrollAnimations();
-    }();
-
-    if (needsDisplayLink)
-        startDisplayLinkObserver();
-    else
-        stopDisplayLinkObserver();
 }
 
 void RemoteLayerTreeEventDispatcher::startDisplayLinkObserver()
@@ -561,12 +481,6 @@ void RemoteLayerTreeEventDispatcher::scheduleDelayedRenderingUpdateDetectionTime
     m_delayedRenderingUpdateDetectionTimer->startOneShot(delay);
 }
 
-void RemoteLayerTreeEventDispatcher::delayedRenderingUpdateDetectionTimerFired()
-{
-    ASSERT(ScrollingThread::isCurrentThread());
-    updateLayerPositionsAndAnimations();
-}
-
 void RemoteLayerTreeEventDispatcher::waitForRenderingUpdateCompletionOrTimeout()
 {
     ASSERT(ScrollingThread::isCurrentThread());
@@ -627,16 +541,6 @@ bool RemoteLayerTreeEventDispatcher::scrollingTreeWasRecentlyActive()
         return true;
 
     return false;
-}
-
-bool RemoteLayerTreeEventDispatcher::haveLayersWithAnimations()
-{
-#if ENABLE(THREADED_ANIMATIONS)
-    Locker lock { m_animationLock };
-    return !m_animationStacks.isEmpty();
-#else
-    return false;
-#endif
 }
 
 void RemoteLayerTreeEventDispatcher::mainThreadDisplayDidRefresh(PlatformDisplayID)
@@ -821,29 +725,6 @@ HashSet<Ref<RemoteMonotonicTimeline>> RemoteLayerTreeEventDispatcher::monotonicT
 }
 #endif
 
-void RemoteLayerTreeEventDispatcher::windowScreenWillChange()
-{
-    removeDisplayLinkClient();
-}
-
-void RemoteLayerTreeEventDispatcher::windowScreenDidChange(PlatformDisplayID displayID, std::optional<FramesPerSecond> nominalFramesPerSecond)
-{
-#if ENABLE(MOMENTUM_EVENT_DISPATCHER)
-    {
-        Locker locker { m_momentumEventDispatcherLock };
-        if (m_momentumEventDispatcher)
-            m_momentumEventDispatcher->pageScreenDidChange(m_pageIdentifier, displayID, nominalFramesPerSecond);
-    }
-#else
-    UNUSED_PARAM(displayID);
-    UNUSED_PARAM(nominalFramesPerSecond);
-#endif
-    if (auto scrollingTree = this->scrollingTree())
-        scrollingTree->windowScreenDidChange(displayID, nominalFramesPerSecond);
-    
-    // FIXME: Restart the displayLink if necessary.
-}
-
 void RemoteLayerTreeEventDispatcher::startFingerDownSignpostInterval()
 {
     if (remoteEventDispatcherStartFingerDownInterval(*m_signpostState))
@@ -883,24 +764,12 @@ void RemoteLayerTreeEventDispatcher::handleSyntheticWheelEvent(PageIdentifier pa
     }
 
     auto platformWheelEvent = platform(event);
-    auto processingSteps = determineWheelEventProcessing(platformWheelEvent, rubberBandableEdges);
+    // The callers hold the tree's layers: didRefreshDisplay()'s HitTestLocker, or scrollingThreadHandleWheelEvent()'s.
+    auto processingSteps = determineWheelEventProcessing(platformWheelEvent, rubberBandableEdges, nullptr);
     if (!processingSteps.contains(WheelEventProcessingSteps::AsyncScrolling))
         return;
 
-    internalHandleWheelEvent(platformWheelEvent, processingSteps);
-}
-
-void RemoteLayerTreeEventDispatcher::didStartRubberbanding()
-{
-    endFingerDownSignpostInterval();
-    endMomentumSignpostInterval();
-}
-
-void RemoteLayerTreeEventDispatcher::startDisplayDidRefreshCallbacks(PlatformDisplayID)
-{
-    ASSERT(!m_momentumEventDispatcherNeedsDisplayLink);
-    m_momentumEventDispatcherNeedsDisplayLink = true;
-    startOrStopDisplayLink();
+    internalHandleWheelEvent(platformWheelEvent, processingSteps, nullptr);
 }
 
 void RemoteLayerTreeEventDispatcher::stopDisplayDidRefreshCallbacks(PlatformDisplayID)

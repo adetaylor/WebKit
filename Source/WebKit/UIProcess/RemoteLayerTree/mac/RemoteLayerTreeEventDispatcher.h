@@ -32,6 +32,7 @@
 #include "NativeWebWheelEvent.h"
 #include <WebCore/PlatformLayerIdentifier.h>
 #include <WebCore/ProcessQualified.h>
+#include <WebCore/ScrollingLockedAccess.h>
 #include <pal/HysteresisActivity.h>
 #include <wtf/Condition.h>
 #include <wtf/Deque.h>
@@ -45,6 +46,9 @@
 #if ENABLE(THREADED_ANIMATIONS)
 #include "RemoteAnimationStack.h"
 #include "RemoteMonotonicTimelineRegistry.h"
+#endif
+#if ENABLE(MOMENTUM_EVENT_DISPATCHER)
+#include "RemoteScrollingTree.h"
 #endif
 
 namespace WebCore {
@@ -77,16 +81,28 @@ class RemoteScrollingTree;
 class RemoteLayerTreeEventDispatcherDisplayLinkClient;
 class RemoteLayerTreeEventDispatcherSignpostState;
 class RemoteLayerTreeEventDispatcherState;
+#if ENABLE(THREADED_ANIMATIONS)
+class RemoteLayerTreeAnimationsAccess;
+#endif
+#if ENABLE(MOMENTUM_EVENT_DISPATCHER)
+class RemoteLayerTreeMomentumEventDispatcherAccess;
+#endif
 class WebProcessPool;
 
 // This class exists to act as a threadsafe DisplayLink::Client client, allowing RemoteScrollingCoordinatorProxyMac to
 // be main-thread only. It's the UI-process analogue of WebPage/EventDispatcher.
-class RemoteLayerTreeEventDispatcher
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteLayerTreeEventDispatcher.swift") RemoteLayerTreeEventDispatcher
     : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<RemoteLayerTreeEventDispatcher, WTF::DestructionThread::MainRunLoop>
     , public MomentumEventDispatcher::Client {
     WTF_MAKE_TZONE_ALLOCATED(RemoteLayerTreeEventDispatcher);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteLayerTreeEventDispatcher);
     friend class RemoteLayerTreeEventDispatcherDisplayLinkClient;
+#if ENABLE(THREADED_ANIMATIONS)
+    friend class RemoteLayerTreeAnimationsAccess;
+#endif
+#if ENABLE(MOMENTUM_EVENT_DISPATCHER)
+    friend class RemoteLayerTreeMomentumEventDispatcherAccess;
+#endif
 public:
     static Ref<RemoteLayerTreeEventDispatcher> create(RemoteScrollingCoordinatorProxyMac&, WebCore::PageIdentifier);
 
@@ -127,17 +143,23 @@ public:
 #endif
 
 private:
-    OptionSet<WebCore::WheelEventProcessingSteps> determineWheelEventProcessing(const WebCore::PlatformWheelEvent&, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges);
+    // hitTest proves the tree's layers are held; handleSyntheticWheelEvent() passes none, its callers hold them.
+    OptionSet<WebCore::WheelEventProcessingSteps> determineWheelEventProcessing(const WebCore::ScrollingTree::HitTestLocker& hitTest, const WebCore::PlatformWheelEvent& wheelEvent, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges) { return determineWheelEventProcessing(wheelEvent, rubberBandableEdges, &hitTest); }
+    SWIFT_UNSAFE OptionSet<WebCore::WheelEventProcessingSteps> determineWheelEventProcessing(const WebCore::PlatformWheelEvent&, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges, const WebCore::ScrollingTree::HitTestLocker*);
 
     void scrollingThreadHandleWheelEvent(const WebWheelEvent&, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges);
-    WebCore::WheelEventHandlingResult internalHandleWheelEvent(const WebCore::PlatformWheelEvent&, OptionSet<WebCore::WheelEventProcessingSteps>);
+    WebCore::WheelEventHandlingResult internalHandleWheelEvent(const WebCore::ScrollingTree::HitTestLocker& hitTest, const WebCore::PlatformWheelEvent& wheelEvent, OptionSet<WebCore::WheelEventProcessingSteps> processingSteps) { return internalHandleWheelEvent(wheelEvent, processingSteps, &hitTest); }
+    SWIFT_UNSAFE WebCore::WheelEventHandlingResult internalHandleWheelEvent(const WebCore::PlatformWheelEvent&, OptionSet<WebCore::WheelEventProcessingSteps>, const WebCore::ScrollingTree::HitTestLocker*);
 
     WebCore::PlatformWheelEvent filteredWheelEvent(const WebCore::PlatformWheelEvent&);
 
     void wheelEventHysteresisUpdated(PAL::HysteresisState);
+    // For Swift: PAL::HysteresisActivity is an unsafe type in Swift.
+    bool wheelEventActivityStarted() const { return m_wheelEventActivityHysteresis.state() == PAL::HysteresisState::Started; }
 
     void willHandleWheelEvent(Ref<WebWheelEvent>);
     void continueWheelEventHandling(WebCore::WheelEventHandlingResult);
+    // For Swift, which cannot pass a closure to callOnMainRunLoop() safely.
     void wheelEventWasHandledByScrollingThread(WebCore::WheelEventHandlingResult);
 
     DisplayLink* displayLink() const;
@@ -158,7 +180,7 @@ private:
     bool scrollingTreeWasRecentlyActive();
     bool haveLayersWithAnimations();
 
-    void waitForRenderingUpdateCompletionOrTimeout() WTF_REQUIRES_LOCK(m_scrollingTreeLock);
+    SWIFT_UNSAFE void waitForRenderingUpdateCompletionOrTimeout() WTF_REQUIRES_LOCK(m_scrollingTreeLock);
 
     void startFingerDownSignpostInterval();
     void endFingerDownSignpostInterval();
@@ -184,41 +206,91 @@ private:
 
     RefPtr<RemoteScrollingTree> scrollingTree();
 
-    Lock m_scrollingTreeLock;
-    RefPtr<RemoteScrollingTree> m_scrollingTree WTF_GUARDED_BY_LOCK(m_scrollingTreeLock);
+    // For Swift: each takes its lock and holds it until the returned object goes out of scope.
+#if ENABLE(THREADED_ANIMATIONS)
+    SCROLLING_UNAVAILABLE_FROM_ASYNC inline RemoteLayerTreeAnimationsAccess lockAnimations();
+#endif
+#if ENABLE(MOMENTUM_EVENT_DISPATCHER)
+    SCROLLING_UNAVAILABLE_FROM_ASYNC inline RemoteLayerTreeMomentumEventDispatcherAccess lockMomentumEventDispatcher();
+#endif
 
-    Deque<Ref<WebWheelEvent>, 2> m_wheelEventsBeingProcessed; // FIXME: Remove
+    SWIFT_UNAVAILABLE_IN_SWIFT Lock m_scrollingTreeLock;
+    SWIFT_UNAVAILABLE_IN_SWIFT RefPtr<RemoteScrollingTree> m_scrollingTree WTF_GUARDED_BY_LOCK(m_scrollingTreeLock);
+
+    SWIFT_UNAVAILABLE_IN_SWIFT Deque<Ref<WebWheelEvent>, 2> m_wheelEventsBeingProcessed; // FIXME: Remove
 
     const WeakPtr<RemoteScrollingCoordinatorProxyMac> m_scrollingCoordinator;
     WebCore::PageIdentifier m_pageIdentifier;
     const WeakPtr<WebProcessPool> m_processPool;
 
     const std::unique_ptr<WebCore::WheelEventDeltaFilter> m_wheelEventDeltaFilter;
-    std::unique_ptr<RemoteLayerTreeEventDispatcherDisplayLinkClient> m_displayLinkClient;
+    SWIFT_UNAVAILABLE_IN_SWIFT std::unique_ptr<RemoteLayerTreeEventDispatcherDisplayLinkClient> m_displayLinkClient;
     std::optional<DisplayLinkObserverID> m_displayRefreshObserverID;
     PAL::HysteresisActivity m_wheelEventActivityHysteresis;
 
     const std::unique_ptr<RemoteLayerTreeEventDispatcherSignpostState> m_signpostState;
 
-    const std::unique_ptr<RemoteLayerTreeEventDispatcherState> m_synchronizationState WTF_POINTEE_GUARDED_BY_LOCK(m_scrollingTreeLock);
-    Condition m_stateCondition;
+    SWIFT_UNAVAILABLE_IN_SWIFT const std::unique_ptr<RemoteLayerTreeEventDispatcherState> m_synchronizationState WTF_POINTEE_GUARDED_BY_LOCK(m_scrollingTreeLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT Condition m_stateCondition;
 
-    std::unique_ptr<RunLoop::Timer> m_delayedRenderingUpdateDetectionTimer;
+    SWIFT_UNAVAILABLE_IN_SWIFT std::unique_ptr<RunLoop::Timer> m_delayedRenderingUpdateDetectionTimer;
 
 #if ENABLE(THREADED_ANIMATIONS)
     // For WTF_ACQUIRES_LOCK
     friend class RemoteScrollingCoordinatorProxyMac;
-    Lock m_animationLock;
-    HashMap<WebCore::PlatformLayerIdentifier, Ref<RemoteAnimationStack>> m_animationStacks WTF_GUARDED_BY_LOCK(m_animationLock);
-    std::unique_ptr<RemoteMonotonicTimelineRegistry> m_monotonicTimelineRegistry WTF_GUARDED_BY_LOCK(m_animationLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT Lock m_animationLock;
+    SWIFT_UNAVAILABLE_IN_SWIFT HashMap<WebCore::PlatformLayerIdentifier, Ref<RemoteAnimationStack>> m_animationStacks WTF_GUARDED_BY_LOCK(m_animationLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT std::unique_ptr<RemoteMonotonicTimelineRegistry> m_monotonicTimelineRegistry WTF_GUARDED_BY_LOCK(m_animationLock);
 #endif
 
 #if ENABLE(MOMENTUM_EVENT_DISPATCHER)
     bool m_momentumEventDispatcherNeedsDisplayLink { false };
-    Lock m_momentumEventDispatcherLock;
-    std::unique_ptr<MomentumEventDispatcher> m_momentumEventDispatcher WTF_GUARDED_BY_LOCK(m_momentumEventDispatcherLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT Lock m_momentumEventDispatcherLock;
+    SWIFT_UNAVAILABLE_IN_SWIFT std::unique_ptr<MomentumEventDispatcher> m_momentumEventDispatcher WTF_GUARDED_BY_LOCK(m_momentumEventDispatcherLock);
 #endif
 };
+
+#if ENABLE(THREADED_ANIMATIONS)
+// Holds m_animationLock for its lifetime, for Swift
+// (WebCore/ScrollingLockedAccess.h): whether it has animations, by value.
+class SCROLLING_LOCK_HOLDER_ATTRIBUTES RemoteLayerTreeAnimationsAccess {
+    using AnimationStacks = HashMap<WebCore::PlatformLayerIdentifier, Ref<RemoteAnimationStack>>;
+    SCROLLING_LOCK_HOLDER(RemoteLayerTreeAnimationsAccess, RemoteLayerTreeEventDispatcher, &RemoteLayerTreeEventDispatcher::m_animationLock, AnimationStacks, &RemoteLayerTreeEventDispatcher::m_animationStacks, stacks);
+public:
+    bool hasAnimationStacks() const { return !stacks().isEmpty(); }
+    bool monotonicTimelinesNonEmpty() const { return registry() && !registry()->isEmpty(); }
+
+private:
+    std::unique_ptr<RemoteMonotonicTimelineRegistry>& registry() const WTF_IGNORES_THREAD_SAFETY_ANALYSIS { return m_owner->m_monotonicTimelineRegistry; }
+};
+
+inline RemoteLayerTreeAnimationsAccess RemoteLayerTreeEventDispatcher::lockAnimations() { return RemoteLayerTreeAnimationsAccess { *this }; }
+#endif
+
+#if ENABLE(MOMENTUM_EVENT_DISPATCHER)
+// Holds m_momentumEventDispatcherLock for its lifetime, for Swift (WebCore/ScrollingLockedAccess.h). The
+// momentum event dispatcher is reached only through these members, each a call the C++ makes under the lock, for the
+// dispatcher's page; each does nothing (or returns false) once invalidate() has dropped it.
+class SCROLLING_LOCK_HOLDER_ATTRIBUTES RemoteLayerTreeMomentumEventDispatcherAccess {
+    SCROLLING_LOCK_HOLDER(RemoteLayerTreeMomentumEventDispatcherAccess, RemoteLayerTreeEventDispatcher, &RemoteLayerTreeEventDispatcher::m_momentumEventDispatcherLock, std::unique_ptr<MomentumEventDispatcher>, &RemoteLayerTreeEventDispatcher::m_momentumEventDispatcher, dispatcher);
+public:
+    // Whether the momentum event dispatcher took the event. Its synthetic events hit test the dispatcher's tree, so
+    // hitTest must hold that tree's layers (taken before this lock, as the C++ does).
+    bool handleWheelEvent(const WebCore::ScrollingTree::HitTestLocker& hitTest, const WebWheelEvent& event, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges) const
+    {
+        RefPtr tree = m_owner->scrollingTree();
+        RELEASE_ASSERT(!tree || hitTest.holdsLayersOf(*tree));
+        return dispatcher() && dispatcher()->handleWheelEvent(m_owner->m_pageIdentifier, event, rubberBandableEdges);
+    }
+    void pageScreenDidChange(WebCore::PlatformDisplayID displayID, std::optional<WebCore::FramesPerSecond> nominalFramesPerSecond) const
+    {
+        if (dispatcher())
+            dispatcher()->pageScreenDidChange(m_owner->m_pageIdentifier, displayID, nominalFramesPerSecond);
+    }
+};
+
+inline RemoteLayerTreeMomentumEventDispatcherAccess RemoteLayerTreeEventDispatcher::lockMomentumEventDispatcher() { return RemoteLayerTreeMomentumEventDispatcherAccess { *this }; }
+#endif
 
 } // namespace WebKit
 

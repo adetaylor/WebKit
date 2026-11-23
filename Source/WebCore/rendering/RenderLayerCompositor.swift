@@ -4970,7 +4970,7 @@ extension WebCore.RenderLayerCompositor {
         _ nodeID: WebCore.ScrollingNodeID,
         _ layer: WebCore.GraphicsLayer?
     ) {
-        WebCore.RenderLayerCompositor.setNodeLayersForSwift(scrollingCoordinator, nodeID, layer, nil, nil, nil, nil, nil, nil, nil, nil)
+        scrollingCoordinator.setNodeLayers(nodeID, layer: layer)
     }
 
     // Takes the backing, not its layer: the backing's willBeDestroyed() calls this while its layer is destroyed, and Swift
@@ -5326,18 +5326,10 @@ extension WebCore.RenderLayerCompositor {
 
         if changes.layer {
             let backing = layer.backing()!
-            WebCore.RenderLayerCompositor.setNodeLayersForSwift(
-                scrollingCoordinator!,
+            scrollingCoordinator!.setNodeLayers(
                 newNodeID,
-                backing.viewportClippingOrAnchorLayer(),
-                nil,
-                nil,
-                nil,
-                nil,
-                nil,
-                nil,
-                nil,
-                backing.viewportAnchorLayer()
+                layer: backing.viewportClippingOrAnchorLayer(),
+                viewportAnchorLayer: backing.viewportAnchorLayer()
             )
         }
 
@@ -5369,36 +5361,28 @@ extension WebCore.RenderLayerCompositor {
 
         if layer.isRenderViewLayer() {
             let frameView = m_renderView.get().frameView()
-            WebCore.RenderLayerCompositor.setNodeLayersForSwift(
-                scrollingCoordinator,
+            scrollingCoordinator.setNodeLayers(
                 nodeID,
-                nil,
-                scrollContainerLayer(),
-                scrolledContentsLayer(),
-                fixedRootBackgroundLayer(),
-                clipLayer(),
-                rootContentsLayer(),
-                frameView.layerForHorizontalScrollbar(),
-                frameView.layerForVerticalScrollbar(),
-                nil
+                scrollContainerLayer: scrollContainerLayer(),
+                scrolledContentsLayer: scrolledContentsLayer(),
+                counterScrollingLayer: fixedRootBackgroundLayer(),
+                insetClipLayer: clipLayer(),
+                rootContentsLayer: rootContentsLayer(),
+                horizontalScrollbarLayer: frameView.layerForHorizontalScrollbar(),
+                verticalScrollbarLayer: frameView.layerForVerticalScrollbar()
             )
         } else {
             let scrollableArea = layer.scrollableArea()
             assert(scrollableArea != nil)
 
             let backing = layer.backing()!
-            WebCore.RenderLayerCompositor.setNodeLayersForSwift(
-                scrollingCoordinator,
+            scrollingCoordinator.setNodeLayers(
                 nodeID,
-                backing.graphicsLayer(),
-                backing.scrollContainerLayer(),
-                backing.scrolledContentsLayer(),
-                nil,
-                nil,
-                nil,
-                scrollableArea!.layerForHorizontalScrollbar(),
-                scrollableArea!.layerForVerticalScrollbar(),
-                nil
+                layer: backing.graphicsLayer(),
+                scrollContainerLayer: backing.scrollContainerLayer(),
+                scrolledContentsLayer: backing.scrolledContentsLayer(),
+                horizontalScrollbarLayer: scrollableArea!.layerForHorizontalScrollbar(),
+                verticalScrollbarLayer: scrollableArea!.layerForVerticalScrollbar()
             )
         }
     }
@@ -5596,8 +5580,8 @@ extension WebCore.RenderLayerCompositor {
             let backing = layer.backing()!
             // Would be nice to avoid calling computeCoordinatedPositioningForLayer() again.
             let positioningBehavior = computeCoordinatedPositioningForLayer(layer, compositingAncestor)
-            let relatedNodeIDs = collectRelatedCoordinatedScrollingNodes(layer, positioningBehavior)
-            WebCore.RenderLayerCompositor.setRelatedOverflowScrollingNodesForSwift(scrollingCoordinator!, newNodeID, relatedNodeIDs)
+            var relatedNodeIDs = collectRelatedCoordinatedScrollingNodes(layer, positioningBehavior)
+            scrollingCoordinator!.setRelatedOverflowScrollingNodes(newNodeID, relatedNodeIDs.takeNodeIDs())
 
             let graphicsLayer = backing.graphicsLayer()!
             var constraints = WebCore.AbsolutePositionConstraints()
@@ -5869,11 +5853,9 @@ extension WebCore.RenderLayerCompositor {
             return false
         }
 
-        WebCore.RenderLayerCompositor.setRelatedOverflowScrollingNodeForSwift(
-            scrollingCoordinator,
-            scrollingProxyNodeID,
-            overflowScrollNodeID
-        )
+        var relatedNodeIDs = WebCore.ScrollingNodeIDList()
+        relatedNodeIDs.append(overflowScrollNodeID)
+        scrollingCoordinator.setRelatedOverflowScrollingNodes(scrollingProxyNodeID, relatedNodeIDs.takeNodeIDs())
         return true
     }
 }

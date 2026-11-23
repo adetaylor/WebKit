@@ -37,7 +37,7 @@ namespace WebCore {
 class PlatformWheelEvent;
 class ScrollingTree;
 
-class WEBCORE_EXPORT ScrollingTreeFrameScrollingNode : public ScrollingTreeScrollingNode {
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeFrameScrollingNode.swift") ScrollingTreeFrameScrollingNode : public ScrollingTreeScrollingNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreeFrameScrollingNode, WEBCORE_EXPORT);
 public:
     virtual ~ScrollingTreeFrameScrollingNode();
@@ -101,6 +101,7 @@ private:
     FloatRect layoutViewportForScrollPosition(FloatPoint, float scale, ScrollBehaviorForFixedElements = ScrollBehaviorForFixedElements::StickToDocumentBounds) const;
 
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String frameScrollingNodePropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     FloatRect m_layoutViewport;
     FloatSize m_sizeForVisibleContent;
@@ -130,9 +131,7 @@ SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ScrollingTreeFrameScrollingNode, isFrameSc
 
 namespace WebCore {
 // For Swift, which cannot convert a C++ class to its base: the frame scrolling node as a scrolling node.
-inline RefPtr<ScrollingTreeScrollingNode> asScrollingTreeScrollingNode(ScrollingTreeFrameScrollingNode& node) { return &node; }
-// For Swift, which cannot cast between C++ classes: the node as a frame scrolling node, or null.
-inline RefPtr<ScrollingTreeFrameScrollingNode> asScrollingTreeFrameScrollingNode(ScrollingTreeNode& node) { return dynamicDowncast<ScrollingTreeFrameScrollingNode>(node); }
+inline ScrollingTreeScrollingNode* asScrollingTreeScrollingNode(ScrollingTreeFrameScrollingNode& node) { return &node; }
 }
 
 #endif // ENABLE(ASYNC_SCROLLING)

@@ -75,13 +75,6 @@ void ScrollingTreeNode::removeChild(ScrollingTreeNode& node)
         child->removeChild(node);
 }
 
-void ScrollingTreeNode::removeAllChildren()
-{
-    RELEASE_ASSERT(scrollingTree()->inCommitTreeState());
-
-    m_children.shrink(0);
-}
-
 bool ScrollingTreeNode::isRootNode() const
 {
     return scrollingTree()->rootNode() == this;
@@ -89,8 +82,7 @@ bool ScrollingTreeNode::isRootNode() const
 
 void ScrollingTreeNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {
-    if (behavior & ScrollingStateTreeAsTextBehavior::IncludeNodeIDs)
-        ts.dumpProperty("nodeID"_s, scrollingNodeID());
+    ts << treeNodePropertiesText(behavior, ts.indent(), ts.formattingFlags(), ts.containerSizeLimit());
 }
 
 RefPtr<ScrollingTreeFrameScrollingNode> ScrollingTreeNode::enclosingFrameNodeIncludingSelf()

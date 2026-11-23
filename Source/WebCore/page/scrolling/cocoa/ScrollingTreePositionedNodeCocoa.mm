@@ -26,10 +26,8 @@
 #import "config.h"
 #import "ScrollingTreePositionedNodeCocoa.h"
 
-#import "Logging.h"
 #import "ScrollingStatePositionedNode.h"
 #import "ScrollingTree.h"
-#import "WebCoreCALayerExtras.h"
 #import <wtf/TZoneMallocInlines.h>
 
 namespace WebCore {
@@ -54,16 +52,6 @@ bool ScrollingTreePositionedNodeCocoa::commitStateBeforeChildren(const Scrolling
         m_layer = static_cast<CALayer*>(stateNode.layer());
 
     return ScrollingTreePositionedNode::commitStateBeforeChildren(stateNode);
-}
-
-void ScrollingTreePositionedNodeCocoa::applyLayerPositions()
-{
-    auto delta = scrollDeltaSinceLastCommit();
-    auto layerPosition = m_constraints.layerPositionAtLastLayout() - delta;
-
-    LOG_WITH_STREAM(Scrolling, stream << "ScrollingTreePositionedNode " << scrollingNodeID() << " applyLayerPositions: overflow delta " << delta << " moving layer to " << layerPosition);
-
-    [m_layer _web_setLayerTopLeftPosition:layerPosition - m_constraints.alignmentOffset()];
 }
 
 } // namespace WebCore

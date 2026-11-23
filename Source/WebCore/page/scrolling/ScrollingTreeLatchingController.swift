@@ -56,7 +56,7 @@ final class ScrollingTreeWheelState: Sendable {
     private struct LatchedNode {
         var nodeID: WebCore.ScrollingNodeID
         var processingSteps: UInt8
-        // LatchedToUnscrollableRoot::Yes: the root, latched by latchToUnscrollableRoot() while it could not scroll.
+        // Whether this is the root, latched by latchToUnscrollableRoot() while it could not scroll.
         var latchedToUnscrollableRoot = false
     }
 
@@ -377,7 +377,7 @@ final class ScrollingTreeWheelState: Sendable {
         if !asyncFrameOrOverflowScrollingEnabled {
             receivedWheelEvent(isGestureStart, processingSteps, allowLatching)
             guard let rootNode = locked.rootNode().get(),
-                let rootScrollingNode = WebCore.asScrollingTreeScrollingNode(rootNode).get()
+                let rootScrollingNode = WebCore.asScrollingTreeScrollingNode(rootNode)
             else {
                 return .result(false)
             }
@@ -471,7 +471,7 @@ final class ScrollingTreeWheelState: Sendable {
             return
         }
         guard let rootNode = locked.rootNode().get(),
-            let rootScrollingNode = WebCore.asScrollingTreeScrollingNode(rootNode).get(),
+            let rootScrollingNode = WebCore.asScrollingTreeScrollingNode(rootNode),
             Self.isUnscrollableRoot(rootScrollingNode)
         else {
             return
@@ -520,7 +520,7 @@ final class ScrollingTreeWheelState: Sendable {
 
         var node = enclosingNode(locked, startingNode, true)
         while let currentNode = node {
-            if let scrollingNode = WebCore.asScrollingTreeScrollingNode(currentNode).get() {
+            if let scrollingNode = WebCore.asScrollingTreeScrollingNode(currentNode) {
                 let result = unsafe scrollingNode.handleWheelEvent(adjustedWheelEvent, eventTargeting) // U5(m_treeLock): caller holds it
                 if let result = afterNodeOffered(
                     locked, scrollingNode, adjustedWheelEvent, result, processingSteps, allowLatching, eventTargeting)
@@ -581,7 +581,7 @@ final class ScrollingTreeWheelState: Sendable {
         // As in handleWheelEventWithNode(), `locked` checks `startingNode`, the caller's.
         var isStartingNode = true
         while let currentNode = node {
-            if let scrollingNode = WebCore.asScrollingTreeScrollingNode(currentNode).get() {
+            if let scrollingNode = WebCore.asScrollingTreeScrollingNode(currentNode) {
                 if isStartingNode {
                     locked.stopSpringAnimation(scrollingNode)
                 } else {
@@ -600,9 +600,8 @@ final class ScrollingTreeWheelState: Sendable {
     private func enclosingNode(
         _ locked: borrowing WebCore.ScrollingTreeLockedAccess, _ node: WebCore.ScrollingTreeNode, _ isStartingNode: Bool
     ) -> WebCore.ScrollingTreeNode? {
-        if let proxyNode = WebCore.asScrollingTreeOverflowScrollProxyNode(node).get(),
-            let relatedNodeID = Optional(fromCxx: proxyNode.overflowScrollingNodeID()),
-            let relatedNode = locked.nodeForID(relatedNodeID).get() {
+        if let proxyNode = WebCore.asScrollingTreeOverflowScrollProxyNode(node),
+            let relatedNode = locked.nodeForID(proxyNode.overflowScrollingNodeID()) {
             return relatedNode
         }
         if isStartingNode {

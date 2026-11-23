@@ -38,6 +38,8 @@ namespace WebCore {
 class AsyncScrollingCoordinator;
 class ScrollingStateFrameScrollingNode;
 
+using RefPtrScrollingStateFrameScrollingNode = RefPtr<ScrollingStateFrameScrollingNode>;
+
 // The ScrollingStateTree is a tree that manages ScrollingStateNodes. The nodes keep track of the current
 // state of scrolling related properties. Whenever any properties change, the scrolling coordinator
 // will be informed and will schedule a timer that will clone the new state tree and send it over to
@@ -114,7 +116,6 @@ private:
     void willRemoveNode(ScrollingStateNode&);
     
     bool isValid() const;
-    void traverse(const ScrollingStateNode&, NOESCAPE const Function<void(const ScrollingStateNode&)>&) const;
 
     ThreadSafeWeakPtr<AsyncScrollingCoordinator> m_scrollingCoordinator;
     Markable<FrameIdentifier> m_rootFrameIdentifier;

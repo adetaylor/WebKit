@@ -114,27 +114,6 @@ bool ScrollingTreeFrameScrollingNodeRemoteIOS::commitStateAfterChildren(const Sc
     return ScrollingTreeFrameScrollingNode::commitStateAfterChildren(stateNode);
 }
 
-FloatPoint ScrollingTreeFrameScrollingNodeRemoteIOS::minimumScrollPosition() const
-{
-    FloatPoint position = ScrollableArea::scrollPositionFromOffset(FloatPoint(), toFloatSize(scrollOrigin()));
-    
-    if (isRootNode() && scrollingTree()->scrollPinningBehavior() == ScrollPinningBehavior::PinToBottom)
-        position.setY(maximumScrollPosition().y());
-
-    return position;
-}
-
-FloatPoint ScrollingTreeFrameScrollingNodeRemoteIOS::maximumScrollPosition() const
-{
-    FloatPoint position = ScrollableArea::scrollPositionFromOffset(FloatPoint(totalContentsSizeForRubberBand() - scrollableAreaSize()), toFloatSize(scrollOrigin()));
-    position = position.expandedTo(FloatPoint());
-
-    if (isRootNode() && scrollingTree()->scrollPinningBehavior() == ScrollPinningBehavior::PinToTop)
-        position.setY(minimumScrollPosition().y());
-
-    return position;
-}
-
 void ScrollingTreeFrameScrollingNodeRemoteIOS::repositionScrollingLayers()
 {
     if (m_delegate) {

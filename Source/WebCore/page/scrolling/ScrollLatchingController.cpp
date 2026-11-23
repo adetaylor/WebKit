@@ -65,13 +65,6 @@ void ScrollLatchingController::deref() const
     m_page->deref();
 }
 
-void ScrollLatchingController::clear()
-{
-    LOG_WITH_STREAM(ScrollLatching, stream << "ScrollLatchingController::clear()");
-    m_cumulativeEventDelta = { };
-    m_frameStateStack.clear();
-}
-
 // FIXME: This logic is different from ScrollingTreeLatchingController, which simply lets the latching state elapse after 100ms.
 void ScrollLatchingController::clearOrScheduleClearIfNeeded(PlatformWheelEvent wheelEvent)
 {
@@ -98,22 +91,6 @@ void ScrollLatchingController::clearOrScheduleClearIfNeeded(PlatformWheelEvent w
         LOG_WITH_STREAM(ScrollLatching, stream << "ScrollLatchingController::clearOrScheduleClearingLatchedStateIfNeeded() - event" << wheelEvent << ", scheduling clear timer");
         m_clearLatchingStateTimer.startOneShot(resetLatchedStateTimeout);
     }
-}
-
-void ScrollLatchingController::clearTimerFired()
-{
-    LOG_WITH_STREAM(ScrollLatching, stream << "ScrollLatchingController::clearTimerFired() - clearing state");
-    clear();
-}
-
-void ScrollLatchingController::receivedWheelEvent(PlatformWheelEvent wheelEvent)
-{
-    clearOrScheduleClearIfNeeded(wheelEvent);
-
-    if (wheelEvent.isGestureStart() || wheelEvent.isNonGestureEvent())
-        m_cumulativeEventDelta = wheelEvent.delta();
-    else
-        m_cumulativeEventDelta += wheelEvent.delta();
 }
 
 bool ScrollLatchingController::latchingAllowsScrollingInFrame(const LocalFrame& frame, WeakPtr<ScrollableArea>& latchedScroller) const
@@ -184,32 +161,6 @@ bool ScrollLatchingController::fetchLatchedStateIfIndependentOfHitTest(const Loc
     scrollableArea = state->scrollableArea;
     isOverWidget = state->isOverWidget;
     return true;
-}
-
-void ScrollLatchingController::removeLatchingStateForTarget(const Element& element)
-{
-    if (m_frameStateStack.isEmpty())
-        return;
-
-    auto findResult = m_frameStateStack.findIf([&element] (const auto& state) {
-        RefPtr wheelElement = state.wheelEventElement;
-        return wheelElement && element.isEqualNode(wheelElement);
-    });
-    
-    // If this element is found in the latching stack, just clear the whole stack. We can't just remove one entry,
-    // since the stack has to match the frame hierarchy.
-    if (findResult != notFound)
-        m_frameStateStack.clear();
-}
-
-void ScrollLatchingController::removeLatchingStateForFrame(const LocalFrame& frame)
-{
-    if (m_frameStateStack.isEmpty())
-        return;
-
-    // If the frame was in the latching stack, just clear state.
-    if (stateForFrame(frame))
-        clear();
 }
 
 NODELETE static bool scrollDeltaIsPredominantlyVertical(FloatSize delta)

@@ -66,34 +66,9 @@ bool ScrollingTreeOverflowScrollProxyNode::commitStateBeforeChildren(const Scrol
     return true;
 }
 
-FloatSize ScrollingTreeOverflowScrollProxyNode::scrollDeltaSinceLastCommit() const
-{
-    if (auto* node = dynamicDowncast<ScrollingTreeOverflowScrollingNode>(scrollingTree()->nodeForID(m_overflowScrollingNodeID)))
-        return node->scrollDeltaSinceLastCommit();
-
-    return { };
-}
-
-FloatPoint ScrollingTreeOverflowScrollProxyNode::computeLayerPosition() const
-{
-    FloatPoint scrollOffset;
-    if (RefPtr node = dynamicDowncast<ScrollingTreeOverflowScrollingNode>(scrollingTree()->nodeForID(m_overflowScrollingNodeID)))
-        scrollOffset = node->currentScrollOffset();
-    return scrollOffset;
-}
-
 void ScrollingTreeOverflowScrollProxyNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {
-    ts << "overflow scroll proxy node"_s;
-    ScrollingTreeNode::dumpProperties(ts, behavior);
-
-    if (RefPtr relatedOverflowNode = scrollingTree()->nodeForID(m_overflowScrollingNodeID)) {
-        if (RefPtr scrollingNode = dynamicDowncast<ScrollingTreeOverflowScrollingNode>(relatedOverflowNode))
-            ts.dumpProperty("related overflow scrolling node scroll position"_s, scrollingNode->currentScrollPosition());
-    }
-
-    if (behavior & ScrollingStateTreeAsTextBehavior::IncludeNodeIDs)
-        ts.dumpProperty("overflow scrolling node"_s, m_overflowScrollingNodeID);
+    ts << overflowScrollProxyNodePropertiesText(behavior, ts.indent(), ts.formattingFlags(), ts.containerSizeLimit());
 }
 
 } // namespace WebCore

@@ -107,11 +107,6 @@ bool RemoteScrollingCoordinator::isScrollSnapInProgress(std::optional<ScrollingN
     return m_nodesWithActiveScrollSnap.contains(*nodeID);
 }
 
-void RemoteScrollingCoordinator::setScrollPinningBehavior(ScrollPinningBehavior)
-{
-    // FIXME: send to the UI process.
-}
-
 RemoteScrollingCoordinatorTransaction RemoteScrollingCoordinator::buildTransaction(FrameIdentifier rootFrameID)
 {
     willCommitTree(rootFrameID);
@@ -217,11 +212,6 @@ void RemoteScrollingCoordinator::scrollUpdateForNode(ScrollUpdate&& update, Comp
         applyScrollUpdate(WTF::move(update), ScrollType::User, ViewportRectStability::Stable);
 }
 
-void RemoteScrollingCoordinator::currentSnapPointIndicesChangedForNode(ScrollingNodeID nodeID, std::optional<unsigned> horizontal, std::optional<unsigned> vertical)
-{
-    setActiveScrollSnapIndices(nodeID, horizontal, vertical);
-}
-
 void RemoteScrollingCoordinator::scrollingStateInUIProcessChanged(const RemoteScrollingUIState& uiState)
 {
     // FIXME: Also track m_nodesWithActiveRubberBanding.
@@ -243,12 +233,6 @@ void RemoteScrollingCoordinator::addNodeWithActiveRubberBanding(ScrollingNodeID 
 void RemoteScrollingCoordinator::removeNodeWithActiveRubberBanding(ScrollingNodeID nodeID)
 {
     m_nodesWithActiveRubberBanding.remove(nodeID);
-}
-
-void RemoteScrollingCoordinator::startMonitoringWheelEvents(bool clearLatchingState)
-{
-    if (clearLatchingState)
-        m_clearScrollLatchingInNextTransaction = true;
 }
 
 void RemoteScrollingCoordinator::receivedWheelEventWithPhases(WebCore::PlatformWheelEventPhase phase, WebCore::PlatformWheelEventPhase momentumPhase)

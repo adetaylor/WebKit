@@ -37,7 +37,7 @@ namespace WebCore {
 // ScrollingStatePositionedNode is used to manage the layers for z-order composited descendants of overflow:scroll
 // which are not containing block descendants (i.e. position:absolute). These layers must have their position inside their ancestor clipping
 // layer adjusted on the scrolling thread.
-class ScrollingStatePositionedNode final : public ScrollingStateNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingStatePositionedNode.swift") ScrollingStatePositionedNode final : public ScrollingStateNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStatePositionedNode, WEBCORE_EXPORT);
 public:
     template<typename... Args> static Ref<ScrollingStatePositionedNode> create(Args&&... args) { return adoptRef(*new ScrollingStatePositionedNode(std::forward<Args>(args)...)); }
@@ -58,7 +58,7 @@ private:
     ScrollingStatePositionedNode(ScrollingStateTree&, ScrollingNodeID);
     ScrollingStatePositionedNode(const ScrollingStatePositionedNode&, ScrollingStateTree&);
 
-    void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const final;
+    String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const final;
     OptionSet<ScrollingStateNode::Property> applicableProperties() const final;
 
     Vector<ScrollingNodeID> m_relatedOverflowScrollingNodes;

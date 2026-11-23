@@ -117,13 +117,6 @@ Ref<ScrollingStateNode> ScrollingStateOverflowScrollingNode::clone(ScrollingStat
     return adoptRef(*new ScrollingStateOverflowScrollingNode(*this, adoptiveTree));
 }
 
-void ScrollingStateOverflowScrollingNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
-{
-    ts << "Overflow scrolling node"_s;
-    
-    ScrollingStateScrollingNode::dumpProperties(ts, behavior);
-}
-
 } // namespace WebCore
 
 #endif // ENABLE(ASYNC_SCROLLING)

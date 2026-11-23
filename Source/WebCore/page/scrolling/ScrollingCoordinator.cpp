@@ -69,12 +69,6 @@ ScrollingCoordinator::~ScrollingCoordinator()
     ASSERT(!m_page);
 }
 
-void ScrollingCoordinator::pageDestroyed()
-{
-    ASSERT(m_page);
-    m_page = nullptr;
-}
-
 bool ScrollingCoordinator::coordinatesScrollingForFrameView(const LocalFrameView& frameView) const
 {
     ASSERT(isMainThread());
@@ -205,17 +199,6 @@ EventTrackingRegions ScrollingCoordinator::absoluteEventTrackingRegions() const
     return absoluteEventTrackingRegionsForFrame(*localMainFrame);
 }
 
-void ScrollingCoordinator::frameViewFixedObjectsDidChange(LocalFrameView& frameView)
-{
-    ASSERT_WITH_SECURITY_IMPLICATION(isMainThread());
-    ASSERT(m_page);
-
-    if (!coordinatesScrollingForFrameView(frameView))
-        return;
-
-    updateSynchronousScrollingReasons(frameView);
-}
-
 GraphicsLayer* ScrollingCoordinator::scrollContainerLayerForFrameView(LocalFrameView& frameView)
 {
     if (CheckedPtr renderView = frameView.frame().contentRenderer())
@@ -322,29 +305,6 @@ bool ScrollingCoordinator::hasVisibleSlowRepaintViewportConstrainedObjects(const
     return false;
 }
 
-void ScrollingCoordinator::updateSynchronousScrollingReasons(LocalFrameView& frameView)
-{
-    ASSERT(coordinatesScrollingForFrameView(frameView));
-
-    OptionSet<SynchronousScrollingReason> newSynchronousScrollingReasons;
-
-    // RenderLayerCompositor::updateSynchronousScrollingReasons maintains this bit, so maintain its current value.
-    if (synchronousScrollingReasons(frameView.scrollingNodeID()).contains(SynchronousScrollingReason::HasSlowRepaintObjects))
-        newSynchronousScrollingReasons.add(SynchronousScrollingReason::HasSlowRepaintObjects);
-
-    if (m_forceSynchronousScrollLayerPositionUpdates)
-        newSynchronousScrollingReasons.add(SynchronousScrollingReason::ForcedOnMainThread);
-
-    if (hasVisibleSlowRepaintViewportConstrainedObjects(frameView))
-        newSynchronousScrollingReasons.add(SynchronousScrollingReason::HasNonLayerViewportConstrainedObjects);
-
-    RefPtr page = frameView.frame().page();
-    if (page && page->topDocumentHasDocumentClass(DocumentClass::Image))
-        newSynchronousScrollingReasons.add(SynchronousScrollingReason::IsImageDocument);
-
-    setSynchronousScrollingReasons(frameView.scrollingNodeID(), newSynchronousScrollingReasons);
-}
-
 void ScrollingCoordinator::updateSynchronousScrollingReasonsForAllFrames()
 {
     for (RefPtr frame = m_page->mainFrame(); frame; frame = frame->tree().traverseNext()) {
@@ -358,23 +318,9 @@ void ScrollingCoordinator::updateSynchronousScrollingReasonsForAllFrames()
     }
 }
 
-void ScrollingCoordinator::setForceSynchronousScrollLayerPositionUpdates(bool forceSynchronousScrollLayerPositionUpdates)
-{
-    if (m_forceSynchronousScrollLayerPositionUpdates == forceSynchronousScrollLayerPositionUpdates)
-        return;
-
-    m_forceSynchronousScrollLayerPositionUpdates = forceSynchronousScrollLayerPositionUpdates;
-    updateSynchronousScrollingReasonsForAllFrames();
-}
-
 bool ScrollingCoordinator::shouldUpdateScrollLayerPositionSynchronously(const LocalFrameView& frameView) const
 {
     return !synchronousScrollingReasons(frameView.scrollingNodeID()).isEmpty();
-}
-
-ScrollingNodeID ScrollingCoordinator::uniqueScrollingNodeID()
-{
-    return ScrollingNodeID::generate();
 }
 
 void ScrollingCoordinator::receivedWheelEventWithPhases(PlatformWheelEventPhase phase, PlatformWheelEventPhase momentumPhase)

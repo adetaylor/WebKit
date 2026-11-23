@@ -67,23 +67,9 @@ ScrollingStateFrameHostingNode::ScrollingStateFrameHostingNode(const ScrollingSt
 
 ScrollingStateFrameHostingNode::~ScrollingStateFrameHostingNode() = default;
 
-void ScrollingStateFrameHostingNode::setLayerHostingContextIdentifier(const std::optional<LayerHostingContextIdentifier> identifier)
-{
-    if (identifier == m_hostingContext)
-        return;
-    m_hostingContext = identifier;
-    setPropertyChanged(Property::LayerHostingContextIdentifier);
-}
-
 Ref<ScrollingStateNode> ScrollingStateFrameHostingNode::clone(ScrollingStateTree& adoptiveTree)
 {
     return adoptRef(*new ScrollingStateFrameHostingNode(*this, adoptiveTree));
-}
-
-void ScrollingStateFrameHostingNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
-{
-    ts << "Frame hosting node"_s;
-    ScrollingStateNode::dumpProperties(ts, behavior);
 }
 
 } // namespace WebCore

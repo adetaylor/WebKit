@@ -1,3 +1,4 @@
+// Copyright (C) 2021 Apple Inc. All rights reserved.
 // Copyright (C) 2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -132,17 +133,107 @@ private struct AccelerationCurveParameters: Sendable {
     var resolution: Float
     var frameRate: Float
 
-    var curve: WebKit.ScrollingAccelerationCurve {
-        WebKit.ScrollingAccelerationCurve(
-            gainLinear,
-            gainParabolic,
-            gainCubic,
-            gainQuartic,
-            tangentSpeedLinear,
-            tangentSpeedParabolicRoot,
-            resolution,
-            frameRate
+    var curve: AccelerationCurve {
+        AccelerationCurve(parameters: self)
+    }
+
+    fileprivate func evaluateQuartic(_ x: Float) -> Float {
+        let parabolic = Double(gainParabolic * x)
+        return Float(
+            pow(Double(gainQuartic * x), 4) + pow(Double(gainCubic * x), 3) + parabolic * parabolic + Double(gainLinear * x)
         )
+    }
+
+    private func quarticSlope(_ x: Float) -> Double {
+        let wideX = Double(x)
+        let wideGainParabolic = Double(gainParabolic)
+        let quartic = 4 * pow(wideX, 3)
+        let cubic = 3 * (wideX * wideX) * pow(Double(gainCubic), 3)
+        // Fused multiply-adds: the curve's results depend on them.
+        return cubic.addingProduct(quartic, pow(Double(gainQuartic), 4))
+            .addingProduct(Double(2 * x), wideGainParabolic * wideGainParabolic) + Double(gainLinear)
+    }
+
+    private static func falloffIntercept(_ y: Float, _ slope: Float, _ x: Float) -> Float {
+        Float(Double(y) * Double(y) - Double(slope * x))
+    }
+
+    fileprivate var intermediateValues: AccelerationCurve.ComputedIntermediateValues {
+        var values = AccelerationCurve.ComputedIntermediateValues()
+
+        if tangentSpeedLinear != 0 {
+            let tangentInitialY = evaluateQuartic(tangentSpeedLinear)
+            values.tangentSlope = Float(quarticSlope(tangentSpeedLinear))
+            values.tangentIntercept = tangentInitialY.addingProduct(-values.tangentSlope, tangentSpeedLinear)
+            values.tangentStartX = tangentSpeedLinear
+
+            if tangentSpeedParabolicRoot != 0 {
+                let y1 = values.tangentIntercept.addingProduct(values.tangentSlope, tangentSpeedParabolicRoot)
+                values.falloffSlope = 2 * y1 * values.tangentSlope
+                values.falloffIntercept = Self.falloffIntercept(y1, values.falloffSlope, tangentSpeedParabolicRoot)
+                values.falloffStartX = tangentSpeedParabolicRoot
+            }
+        } else if tangentSpeedParabolicRoot != 0 {
+            let tangentInitialY = evaluateQuartic(tangentSpeedParabolicRoot)
+            values.falloffSlope = Float(quarticSlope(tangentSpeedParabolicRoot))
+            values.falloffIntercept = Self.falloffIntercept(
+                tangentInitialY,
+                values.falloffSlope,
+                tangentSpeedParabolicRoot
+            )
+            values.tangentStartX = tangentSpeedParabolicRoot
+        }
+
+        return values
+    }
+}
+
+// An acceleration curve, with the values derived from its parameters computed on first use.
+private struct AccelerationCurve {
+    fileprivate struct ComputedIntermediateValues {
+        var tangentStartX = Float.greatestFiniteMagnitude
+        var tangentSlope: Float = 0
+        var tangentIntercept: Float = 0
+        var falloffStartX = Float.greatestFiniteMagnitude
+        var falloffSlope: Float = 0
+        var falloffIntercept: Float = 0
+    }
+
+    private static let frameRate: Float = 67 // Why is this 67 and not 60?
+    private static let cursorScale = 96 / frameRate
+
+    let parameters: AccelerationCurveParameters
+    private var intermediates: ComputedIntermediateValues?
+
+    init(parameters: AccelerationCurveParameters) {
+        self.parameters = parameters
+    }
+
+    mutating func accelerationFactor(_ value: Float) -> Float {
+        let intermediates = computeIntermediateValuesIfNeeded()
+
+        let deviceScale = parameters.resolution / Self.frameRate
+        let value = value / deviceScale
+
+        let multiplier: Float
+        if value <= intermediates.tangentStartX {
+            multiplier = parameters.evaluateQuartic(value)
+        } else if value <= intermediates.falloffStartX && intermediates.tangentStartX == parameters.tangentSpeedLinear {
+            multiplier = intermediates.tangentIntercept.addingProduct(intermediates.tangentSlope, value)
+        } else {
+            multiplier = intermediates.falloffIntercept.addingProduct(intermediates.falloffSlope, value).squareRoot()
+        }
+
+        return multiplier * Self.cursorScale
+    }
+
+    private mutating func computeIntermediateValuesIfNeeded() -> ComputedIntermediateValues {
+        if let intermediates {
+            return intermediates
+        }
+        let computed = parameters.intermediateValues
+        intermediates = computed
+        return computed
     }
 }
 
@@ -181,7 +272,7 @@ private struct DeltaHistory: ~Copyable {
     }
 
     // value accelerated by accelerationCurve at the velocity of these deltas.
-    borrowing func accelerate(_ value: Float, _ accelerationCurve: inout WebKit.ScrollingAccelerationCurve) -> Float {
+    borrowing func accelerate(_ value: Float, _ accelerationCurve: inout AccelerationCurve) -> Float {
         var totalDelta: Float = 0
         var totalTime = 0.0
         var deltaCount: UInt32 = 0
@@ -229,7 +320,7 @@ private struct Gesture {
     var active = false
     var momentumCurve = MomentumCurve.standard
     var pageIdentifier: UInt64?
-    var accelerationCurve: WebKit.ScrollingAccelerationCurve?
+    var accelerationCurve: AccelerationCurve?
     var initiatingEventDirectionInvertedFromDevice = false
     var currentOffset = Size()
     var startTime = 0.0
@@ -511,7 +602,7 @@ private struct MomentumDispatcher: ~Copyable {
         // directly when the frame interval is within 20fps of idealCurveFrameRate;
         // we should perhaps do the same.
         // swift-format-ignore: NeverForceUnwrap
-        let idealCurveMultiplier = currentGesture.accelerationCurve!.frameRate() / idealCurveFrameRate
+        let idealCurveMultiplier = currentGesture.accelerationCurve!.parameters.frameRate / idealCurveFrameRate
         buildOffsetTableWithInitialDelta(
             event.rawPlatformDelta * idealCurveMultiplier * event.momentumFastScrollMultiplier
         )
@@ -692,7 +783,7 @@ private struct MomentumDispatcher: ~Copyable {
             currentGesture.offsetTable.append(accumulatedOffset)
         } while abs(unacceleratedDelta.width) > 0.5 || abs(unacceleratedDelta.height) > 0.5
 
-        currentGesture.accelerationCurve = consume curve
+        currentGesture.accelerationCurve = curve
 
         equalizeTailGaps()
     }
@@ -760,7 +851,7 @@ private struct MomentumDispatcher: ~Copyable {
 
     private mutating func computeNextDelta(
         _ currentUnacceleratedDelta: Size,
-        _ accelerationCurve: inout WebKit.ScrollingAccelerationCurve
+        _ accelerationCurve: inout AccelerationCurve
     ) -> (Size, Size) {
         var unacceleratedDelta = currentUnacceleratedDelta
 

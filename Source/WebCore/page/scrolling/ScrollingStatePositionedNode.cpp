@@ -64,15 +64,6 @@ Ref<ScrollingStateNode> ScrollingStatePositionedNode::clone(ScrollingStateTree& 
     return adoptRef(*new ScrollingStatePositionedNode(*this, adoptiveTree));
 }
 
-OptionSet<ScrollingStateNode::Property> ScrollingStatePositionedNode::applicableProperties() const
-{
-    constexpr OptionSet<Property> nodeProperties = { Property::RelatedOverflowScrollingNodes, Property::LayoutConstraintData };
-
-    auto properties = ScrollingStateNode::applicableProperties();
-    properties.add(nodeProperties);
-    return properties;
-}
-
 void ScrollingStatePositionedNode::setRelatedOverflowScrollingNodes(Vector<ScrollingNodeID>&& nodes)
 {
     if (nodes == m_relatedOverflowScrollingNodes)
@@ -80,35 +71,6 @@ void ScrollingStatePositionedNode::setRelatedOverflowScrollingNodes(Vector<Scrol
 
     m_relatedOverflowScrollingNodes = WTF::move(nodes);
     setPropertyChanged(Property::RelatedOverflowScrollingNodes);
-}
-
-void ScrollingStatePositionedNode::updateConstraints(AbsolutePositionConstraints constraints)
-{
-    if (m_constraints == constraints)
-        return;
-
-    LOG_WITH_STREAM(Scrolling, stream << "ScrollingStatePositionedNode " << scrollingNodeID() << " updateConstraints " << constraints);
-
-    m_constraints = constraints;
-    setPropertyChanged(Property::LayoutConstraintData);
-}
-
-void ScrollingStatePositionedNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
-{
-    ts << "Positioned node"_s;
-    ScrollingStateNode::dumpProperties(ts, behavior);
-
-    ts.dumpProperty("layout constraints"_s, m_constraints);
-    ts.dumpProperty("related overflow nodes"_s, m_relatedOverflowScrollingNodes.size());
-
-    if (behavior & ScrollingStateTreeAsTextBehavior::IncludeNodeIDs) {
-        if (!m_relatedOverflowScrollingNodes.isEmpty()) {
-            TextStream::GroupScope scope(ts);
-            ts << "overflow nodes"_s;
-            for (auto nodeID : m_relatedOverflowScrollingNodes)
-                ts << '\n' << indent << "nodeID "_s << nodeID;
-        }
-    }
 }
 
 } // namespace WebCore
