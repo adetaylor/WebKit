@@ -965,6 +965,7 @@
 				WebCore/HTTPHeaderParsersBench.cpp,
 				WebCore/HTTPParsers.cpp,
 				WebCore/HysteresisActivityTests.cpp,
+				WebCore/IDBBackingStoreBench.cpp,
 				WebCore/IDBKeyData.cpp,
 				WebCore/IDBSerializationTest.cpp,
 				WebCore/ImageBufferTests.cpp,

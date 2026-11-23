@@ -336,6 +336,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/HTTPHeaderMap.cpp
         Tests/WebCore/HTTPHeaderParsersBench.cpp
         Tests/WebCore/HTTPParsers.cpp
+        Tests/WebCore/IDBBackingStoreBench.cpp
         Tests/WebCore/IDBKeyData.cpp
         Tests/WebCore/IDBSerializationTest.cpp
         Tests/WebCore/IPAddressSpaceTests.cpp
