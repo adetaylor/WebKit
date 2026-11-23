@@ -102,6 +102,13 @@ struct WebAuthnByteSink {
     Vector<uint8_t> take() { return std::exchange(bytes, { }); }
     Vector<uint8_t> bytes;
 };
+// A BufferSource holding an ArrayBuffer, the shape every option and extension input from the panel, the JSON parsers and
+// the request validation takes. Swift calls none of BufferSource's constructors: each takes the Variant or an rvalue
+// Ref.
+inline WebCore::BufferSource bufferSourceFromArrayBuffer(Ref<JSC::ArrayBuffer> buffer) { return WebCore::BufferSource(WTF::move(buffer)); }
+// The same over a copy of bytes.
+inline WebCore::BufferSource bufferSourceFromBytes(const Vector<uint8_t>& bytes) { return WebCore::BufferSource(JSC::ArrayBuffer::create(bytes.span())); }
+
 // Build the extension inputs and outputs that the CBOR codecs read. Swift cannot construct their nested optionals,
 // or their Ref and RefPtr members, field by field. A largeBlob setter follows beginLargeBlob.
 struct WebAuthnClientInputsBuilder {
@@ -111,7 +118,15 @@ struct WebAuthnClientInputsBuilder {
     void beginLargeBlob() { inputs.largeBlob = WebCore::AuthenticationExtensionsClientInputs::LargeBlobInputs { }; }
     void setLargeBlobSupport(const String& support) { inputs.largeBlob->support = support; }
     void setLargeBlobRead(bool read) { inputs.largeBlob->read = read; }
-    void setLargeBlobWrite(const Vector<uint8_t>& write) { inputs.largeBlob->write = WebCore::BufferSource(JSC::ArrayBuffer::create(write.span())); }
+    void setLargeBlobWrite(const Vector<uint8_t>& write) { inputs.largeBlob->write = bufferSourceFromBytes(write); }
+    // The PRF inputs: beginPRF, then eval's first salt and optionally its second, then for evalByCredential its begin
+    // and, per credential, its first salt and optionally the second, which applies to the last credential added.
+    void beginPRF() { inputs.prf = WebCore::AuthenticationExtensionsClientInputs::PRFInputs { }; }
+    void setPRFEval(const Vector<uint8_t>& first) { inputs.prf->eval = WebCore::AuthenticationExtensionsClientInputs::PRFValues { bufferSourceFromBytes(first), std::nullopt }; }
+    void setPRFEvalSecond(const Vector<uint8_t>& second) { inputs.prf->eval->second = bufferSourceFromBytes(second); }
+    void beginPRFEvalByCredential() { inputs.prf->evalByCredential = Vector<KeyValuePair<String, WebCore::AuthenticationExtensionsClientInputs::PRFValues>> { }; }
+    void addPRFEvalByCredential(const String& credentialID, const Vector<uint8_t>& first) { inputs.prf->evalByCredential->append({ credentialID, WebCore::AuthenticationExtensionsClientInputs::PRFValues { bufferSourceFromBytes(first), std::nullopt } }); }
+    void setLastPRFEvalByCredentialSecond(const Vector<uint8_t>& second) { inputs.prf->evalByCredential->last().value.second = bufferSourceFromBytes(second); }
     std::optional<WebCore::AuthenticationExtensionsClientInputs> take() { return std::exchange(inputs, { }); }
     WebCore::AuthenticationExtensionsClientInputs inputs;
 };
