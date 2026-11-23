@@ -139,6 +139,6 @@ private:
     bool m_anchoringSuppressedByStyleChange { false };
     unsigned m_inScrollEventCount { 0 };
     unsigned m_suppressionCount { 0 };
-};
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/ScrollAnchoringController.swift");
 
 } // namespace WebCore
