@@ -60,7 +60,7 @@ bool ScrollingTreeScrollingNode::commitStateBeforeChildren(const ScrollingStateN
     if (!scrollingStateNode)
         return false;
 
-    commitScrollingNodeState(*scrollingStateNode);
+    commitScrollingNodeState(*scrollingStateNode, scrollingStateNode->changedProperties().toRaw());
     return true;
 }
 
@@ -70,7 +70,7 @@ bool ScrollingTreeScrollingNode::commitStateAfterChildren(const ScrollingStateNo
     if (!scrollingStateNode)
         return false;
 
-    commitScrollingNodeStateAfterChildren(*scrollingStateNode);
+    commitScrollingNodeStateAfterChildren(*scrollingStateNode, scrollingStateNode->changedProperties().toRaw());
     return true;
 }
 

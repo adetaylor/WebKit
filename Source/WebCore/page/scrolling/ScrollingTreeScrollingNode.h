@@ -75,9 +75,10 @@ public:
     SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
     SWIFT_UNSAFE bool commitStateAfterChildren(const ScrollingStateNode&) override;
     // What commitStateBeforeChildren() commits of a scrolling state node; its overrides cast the state node, since Swift
-    // can cast it only through a call that retains the node and the result. Public for the frame node's Swift, which
-    // cannot reach a protected member.
-    SWIFT_UNSAFE void commitScrollingNodeState(const ScrollingStateScrollingNode&);
+    // can cast it only through a call that retains the node and the result. The caller passes the node's
+    // changedProperties().toRaw(): Swift reads the bits on a derived node, and tests them in an OptionSet, only through
+    // calls, and retains both nodes around them.
+    SWIFT_UNSAFE void commitScrollingNodeState(const ScrollingStateScrollingNode&, uint64_t changedProperties);
     NODELETE SWIFT_UNSAFE void didCompleteCommitForNode() final;
 
     virtual bool canHandleWheelEvent(PlatformWheelEvent, EventTargeting) const;
@@ -128,6 +129,7 @@ public:
 #if ENABLE(SCROLLING_THREAD)
     OptionSet<SynchronousScrollingReason> synchronousScrollingReasons() const { return m_synchronousScrollingReasons; }
     void addSynchronousScrollingReason(SynchronousScrollingReason reason) { m_synchronousScrollingReasons.add(reason); }
+    void removeSynchronousScrollingReason(SynchronousScrollingReason reason) { m_synchronousScrollingReasons.remove(reason); }
     bool hasSynchronousScrollingReasons() const { return !m_synchronousScrollingReasons.isEmpty(); }
     bool hasNonRepaintSynchronousScrollingReasons() const { return !(m_synchronousScrollingReasons - SynchronousScrollingReason::HasSlowRepaintObjects).isEmpty(); }
 #endif
@@ -245,8 +247,9 @@ protected:
     void handleScrollPositionRequest(RequestedScrollData);
 
     // What commitStateAfterChildren() commits of a scrolling state node. The overrides cast the state node, since
-    // Swift can cast it only through a call that retains the node and the result.
-    SWIFT_UNSAFE void commitScrollingNodeStateAfterChildren(const ScrollingStateScrollingNode&);
+    // Swift can cast it only through a call that retains the node and the result; the caller passes its
+    // changedProperties().toRaw(), as for commitScrollingNodeState().
+    SWIFT_UNSAFE void commitScrollingNodeStateAfterChildren(const ScrollingStateScrollingNode&, uint64_t changedProperties);
 
     // For Swift, which reads the state node's non-trivial members only as unsafe pointers (their getters return
     // references): what commitStateBeforeChildren() copies of the snap offsets, the scrollable area parameters and

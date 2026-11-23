@@ -34,6 +34,23 @@ internal import WebCore_Private.Core.ScrollingStateScrollingNode
 internal import wtf
 
 extension WebCore.ScrollingStateFrameScrollingNode {
+    // The fields the scrolling tree's commit copies, for its Swift, as in ScrollingStateScrollingNode.swift.
+    var frameScaleFactorValue: Float { m_frameScaleFactor }
+    var headerHeightValue: Int32 { m_headerHeight }
+    var footerHeightValue: Int32 { m_footerHeight }
+    var scrollBehaviorForFixedElementsValue: WebCore.ScrollBehaviorForFixedElements { m_behaviorForFixed }
+    var obscuredContentInsetsValue: WebCore.FloatBoxExtent { m_obscuredContentInsets }
+    var insetForLeftScrollbarSpaceValue: Int32 { m_insetForLeftScrollbarSpace }
+    #if HAVE_NSREFRESHCONTROLLER
+    var topScrollStretchForRefreshControllerValue: Float { m_topScrollStretchForRefreshController }
+    #endif
+    var visualViewportIsSmallerThanLayoutViewportValue: Bool { m_visualViewportIsSmallerThanLayoutViewport }
+    var layoutViewportValue: WebCore.FloatRect { m_layoutViewport }
+    var sizeForVisibleContentValue: WebCore.FloatSize { m_sizeForVisibleContent }
+    var minLayoutViewportOriginValue: WebCore.FloatPoint { m_minLayoutViewportOrigin }
+    var maxLayoutViewportOriginValue: WebCore.FloatPoint { m_maxLayoutViewportOrigin }
+    var overrideVisualViewportSizeValue: WebCore.OptionalFloatSize { m_overrideVisualViewportSize }
+
     @cxx
     @implementation
     public override func applicableProperties() -> WebCore.ScrollingStateNodeProperties {

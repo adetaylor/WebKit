@@ -58,6 +58,16 @@ extension WebCore.ScrollingStateNodeProperties {
     }
 }
 
+// A state node's changedProperties(), as raw bits the scrolling tree's commit tests in Swift: WTF::OptionSet's members
+// are C++ calls, which the optimiser cannot see through, and around which Swift retains the nodes the commit holds.
+struct ScrollingStateChangedProperties {
+    let rawValue: UInt64
+
+    func contains(_ property: WebCore.ScrollingStateNodeProperty) -> Bool {
+        rawValue & property.rawValue != 0
+    }
+}
+
 extension WebCore.ScrollingStateNode {
     // The properties every node has: applicableProperties() and the subclasses' overrides, which cannot call super, add theirs to these.
     var stateNodeApplicableProperties: WebCore.ScrollingStateNodeProperties { .init(.Layer, .ChildNodes) }

@@ -48,6 +48,29 @@ ScrollingTreeFrameScrollingNode::ScrollingTreeFrameScrollingNode(ScrollingTree& 
 
 ScrollingTreeFrameScrollingNode::~ScrollingTreeFrameScrollingNode() = default;
 
+bool ScrollingTreeFrameScrollingNode::commitStateBeforeChildren(const ScrollingStateNode& stateNode)
+{
+    auto* scrollingStateNode = dynamicDowncast<ScrollingStateScrollingNode>(stateNode);
+    if (!scrollingStateNode)
+        return false;
+
+    auto changedProperties = stateNode.changedProperties().toRaw();
+    auto* state = dynamicDowncast<ScrollingStateFrameScrollingNode>(stateNode);
+    if (!state) {
+        commitScrollingNodeState(*scrollingStateNode, changedProperties);
+        return false;
+    }
+
+    commitFrameScrollingNodeState(*state, changedProperties);
+    commitScrollingNodeState(*scrollingStateNode, changedProperties);
+
+    if (state->hasChangedProperty(ScrollingStateNode::Property::LayoutViewport)) {
+        // This requires that minLayoutViewportOrigin and maxLayoutViewportOrigin have been updated.
+        updateViewportForCurrentScrollPosition({ });
+    }
+    return true;
+}
+
 FloatRect ScrollingTreeFrameScrollingNode::layoutViewportForScrollPosition(FloatPoint visibleContentOrigin, float scale, ScrollBehaviorForFixedElements fixedBehavior) const
 {
     FloatSize visualViewportSize = m_overrideVisualViewportSize.value_or(scrollableAreaSize());

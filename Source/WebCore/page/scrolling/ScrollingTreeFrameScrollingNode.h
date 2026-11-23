@@ -35,6 +35,7 @@
 namespace WebCore {
 
 class PlatformWheelEvent;
+class ScrollingStateFrameScrollingNode;
 class ScrollingTree;
 
 class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeFrameScrollingNode.swift") ScrollingTreeFrameScrollingNode : public ScrollingTreeScrollingNode {
@@ -43,6 +44,10 @@ public:
     virtual ~ScrollingTreeFrameScrollingNode();
 
     SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    // What commitStateBeforeChildren() commits of a frame scrolling state node's own fields, before the scrolling node's
+    // commitScrollingNodeState(). The caller casts the node and passes its changedProperties().toRaw(), as for
+    // commitScrollingNodeState(): Swift casts only through calls that retain the node and the result.
+    SWIFT_UNSAFE void commitFrameScrollingNodeState(const ScrollingStateFrameScrollingNode&, uint64_t changedProperties);
     
     bool visualViewportIsSmallerThanLayoutViewport() const { return m_visualViewportIsSmallerThanLayoutViewport; }
 

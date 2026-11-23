@@ -149,6 +149,19 @@ private func mergeCancelAnimatedScroll(
 }
 
 extension WebCore.ScrollingStateScrollingNode {
+    // The fields the scrolling tree's commit copies, for its Swift: a read here is visible to the optimiser, where an
+    // imported getter is an opaque call around which Swift retains both nodes (docs/interop-limitations.md 56).
+    var scrollableAreaSizeValue: WebCore.FloatSize { m_scrollableAreaSize }
+    var totalContentsSizeValue: WebCore.FloatSize { m_totalContentsSize }
+    var reachableContentsSizeValue: WebCore.FloatSize { m_reachableContentsSize }
+    var scrollPositionValue: WebCore.FloatPoint { m_scrollPosition }
+    var scrollOriginValue: WebCore.IntPoint { m_scrollOrigin }
+    var currentHorizontalSnapPointIndexValue: WebCore.OptionalSnapPointIndex { m_currentHorizontalSnapPointIndex }
+    var currentVerticalSnapPointIndexValue: WebCore.OptionalSnapPointIndex { m_currentVerticalSnapPointIndex }
+    #if ENABLE_SCROLLING_THREAD
+    var synchronousScrollingReasonsValue: WebCore.SynchronousScrollingReasons { m_synchronousScrollingReasons }
+    #endif
+
     // Note that this list does not include Property::RequestedScrollPosition, which is imperative, not stateful.
     var scrollingNodeApplicableProperties: WebCore.ScrollingStateNodeProperties {
         var properties = stateNodeApplicableProperties

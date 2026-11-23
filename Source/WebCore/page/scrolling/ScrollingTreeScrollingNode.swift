@@ -51,55 +51,85 @@ private struct ScrollingNodePinnedEdges: OptionSet {
 }
 
 extension WebCore.ScrollingTreeScrollingNode {
+    // The commit callbacks below read the state node through its Swift accessors and test its changed properties as
+    // raw bits the C++ caller passes, and each keeps its cold calls in an @inline(never) function, so that on the common
+    // path a callback's only opaque call is its last. Swift retains a foreign reference it holds (self, the state node)
+    // around an opaque call, an imported getter or an OptionSet member included, after which it uses the reference
+    // again, and takes that retain at entry for any path that needs it (docs/interop-limitations.md 56). The bits come
+    // from the caller because they are the base class's private field, which Swift reaches on a derived node only
+    // through a call or an upcast that copies the node.
     @cxx
     @implementation
-    func commitScrollingNodeState(_ state: borrowing WebCore.ScrollingStateScrollingNode) {
-        commitScrollingNodeProperties(state)
+    func commitScrollingNodeState(
+        _ state: borrowing WebCore.ScrollingStateScrollingNode,
+        _ changedProperties: UInt64
+    ) {
+        commitScrollingNodeProperties(state, .init(rawValue: changedProperties))
     }
 
-    // What commitStateBeforeChildren() commits for every scrolling node, which the subclasses' overrides commit first;
-    // inlined into commitScrollingNodeState(), its only caller, on the commit path.
+    // What commitStateBeforeChildren() commits for every scrolling node, which the frame node's override commits after
+    // its own fields; inlined into commitScrollingNodeState(), its only caller, on the commit path.
     @inline(always)
-    private func commitScrollingNodeProperties(_ state: borrowing WebCore.ScrollingStateScrollingNode) {
-        let changedProperties = state.changedProperties()
+    private func commitScrollingNodeProperties(
+        _ state: borrowing WebCore.ScrollingStateScrollingNode,
+        _ changedProperties: ScrollingStateChangedProperties
+    ) {
         if changedProperties.contains(.ScrollableAreaSize) {
-            m_scrollableAreaSize = state.scrollableAreaSize()
+            m_scrollableAreaSize = state.scrollableAreaSizeValue
         }
 
         let previousTotalContentsSize = m_totalContentsSize
         let totalContentsSizeChanged = changedProperties.contains(.TotalContentsSize)
         if totalContentsSizeChanged {
-            m_totalContentsSize = state.totalContentsSize()
+            m_totalContentsSize = state.totalContentsSizeValue
         }
 
         if changedProperties.contains(.ReachableContentsSize) {
-            m_reachableContentsSize = state.reachableContentsSize()
+            m_reachableContentsSize = state.reachableContentsSizeValue
         }
 
         let scrollPositionChanged = changedProperties.contains(.ScrollPosition)
         if scrollPositionChanged {
-            m_lastCommittedScrollPosition = state.scrollPosition()
+            m_lastCommittedScrollPosition = state.scrollPositionValue
         }
 
         if changedProperties.contains(.ScrollOrigin) {
-            m_scrollOrigin = state.scrollOrigin()
+            m_scrollOrigin = state.scrollOriginValue
         }
 
         if changedProperties.contains(.CurrentHorizontalSnapOffsetIndex) {
-            m_currentHorizontalSnapPointIndex = state.currentHorizontalSnapPointIndex()
+            m_currentHorizontalSnapPointIndex = state.currentHorizontalSnapPointIndexValue
         }
 
         if changedProperties.contains(.CurrentVerticalSnapOffsetIndex) {
-            m_currentVerticalSnapPointIndex = state.currentVerticalSnapPointIndex()
+            m_currentVerticalSnapPointIndex = state.currentVerticalSnapPointIndexValue
         }
 
         #if ENABLE_SCROLLING_THREAD
         if changedProperties.contains(.ReasonsForSynchronousScrolling) {
-            m_synchronousScrollingReasons = state.synchronousScrollingReasons()
+            m_synchronousScrollingReasons = state.synchronousScrollingReasonsValue
         }
         #endif
 
-        if scrollPositionChanged && m_isFirstCommit {
+        let primesFirstCommitScrollPosition = scrollPositionChanged && m_isFirstCommit
+        if primesFirstCommitScrollPosition || totalContentsSizeChanged {
+            commitFirstCommitAndRubberBandProperties(
+                state, primesFirstCommitScrollPosition, totalContentsSizeChanged, previousTotalContentsSize)
+        } else {
+            unsafe commitNonTrivialStateProperties(state) // U5(m_treeLock): held by commitTreeState()'s Locker, which commits this node
+        }
+    }
+
+    // The rest of commitScrollingNodeProperties() on a first commit that scrolls or a commit that changes the contents
+    // size, in the same order: the calls these make before the last one would make the common path retain both nodes.
+    @inline(never)
+    private func commitFirstCommitAndRubberBandProperties(
+        _ state: borrowing WebCore.ScrollingStateScrollingNode,
+        _ primesFirstCommitScrollPosition: Bool,
+        _ totalContentsSizeChanged: Bool,
+        _ previousTotalContentsSize: WebCore.FloatSize
+    ) {
+        if primesFirstCommitScrollPosition {
             // If the first commit contains a scroll delta, prime m_currentScrollPosition so we apply
             // the delta relative to it later (otherwise we'll apply the delta relative to (0,0) and
             // end up with the wrong scroll position). For an absolute position request, leave
@@ -124,21 +154,46 @@ extension WebCore.ScrollingTreeScrollingNode {
 
     @cxx
     @implementation
-    func commitScrollingNodeStateAfterChildren(_ scrollingStateNode: borrowing WebCore.ScrollingStateScrollingNode) {
+    func commitScrollingNodeStateAfterChildren(
+        _ scrollingStateNode: borrowing WebCore.ScrollingStateScrollingNode,
+        _ changedPropertiesRaw: UInt64
+    ) {
+        let changedProperties = ScrollingStateChangedProperties(rawValue: changedPropertiesRaw)
         // Only commitStateBeforeChildren() reads it.
         m_isFirstCommit = false
 
-        if scrollingStateNode.hasChangedProperty(.RequestedScrollPosition) {
+        if changedProperties.contains(.RequestedScrollPosition) || changedProperties.contains(.KeyboardScrollData) {
+            commitRequestedScrolls(scrollingStateNode, changedProperties)
+        } else {
+            clearDescendantSynchronousScrollingReason()
+        }
+    }
+
+    // The rest of commitScrollingNodeStateAfterChildren() when the state node requests a scroll, in the same order: the
+    // requests' calls would make the common path retain both nodes.
+    @inline(never)
+    private func commitRequestedScrolls(
+        _ scrollingStateNode: borrowing WebCore.ScrollingStateScrollingNode,
+        _ changedProperties: ScrollingStateChangedProperties
+    ) {
+        if changedProperties.contains(.RequestedScrollPosition) {
             unsafe handleRequestedScrollPositions(scrollingStateNode) // U5(m_treeLock): the caller holds it
         }
 
-        if scrollingStateNode.hasChangedProperty(.KeyboardScrollData) {
+        if changedProperties.contains(.KeyboardScrollData) {
             unsafe requestKeyboardScroll(scrollingStateNode.keyboardScrollData()) // U5(m_treeLock): the caller holds it
         }
 
-        // This synthetic bit is added back in ScrollingTree::propagateSynchronousScrollingReasons().
+        clearDescendantSynchronousScrollingReason()
+    }
+
+    // This synthetic bit is added back in ScrollingTree::propagateSynchronousScrollingReasons().
+    @inline(always)
+    private func clearDescendantSynchronousScrollingReason() {
         #if ENABLE_SCROLLING_THREAD
-        m_synchronousScrollingReasons.remove(.init(.DescendantScrollersHaveSynchronousScrolling))
+        // One C++ call, the body's last: building the OptionSet in Swift is a call of its own, after which Swift
+        // retains self for the remove (docs/interop-limitations.md 56).
+        removeSynchronousScrollingReason(.DescendantScrollersHaveSynchronousScrolling)
         #endif
     }
 

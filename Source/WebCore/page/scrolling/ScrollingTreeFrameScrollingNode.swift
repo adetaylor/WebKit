@@ -37,77 +37,64 @@ internal import wtf
 extension WebCore.ScrollingTreeFrameScrollingNode {
     @cxx
     @implementation
-    public override func commitStateBeforeChildren(_ stateNode: borrowing WebCore.ScrollingStateNode) -> Bool {
-        guard let scrollingState = WebCore.asScrollingStateScrollingNode(stateNode) else {
-            return false
-        }
-        guard let state = WebCore.asScrollingStateFrameScrollingNode(stateNode) else {
-            unsafe commitScrollingNodeState(scrollingState) // U5(m_treeLock): held by commitTreeState()'s Locker, which commits this node
-            return false
-        }
-
-        if state.hasChangedProperty(.FrameScaleFactor) {
-            m_frameScaleFactor = state.frameScaleFactor()
+    func commitFrameScrollingNodeState(
+        _ state: borrowing WebCore.ScrollingStateFrameScrollingNode,
+        _ changedPropertiesRaw: UInt64
+    ) {
+        let changedProperties = ScrollingStateChangedProperties(rawValue: changedPropertiesRaw)
+        if changedProperties.contains(.FrameScaleFactor) {
+            m_frameScaleFactor = state.frameScaleFactorValue
         }
 
-        if state.hasChangedProperty(.HeaderHeight) {
-            m_headerHeight = state.headerHeight()
+        if changedProperties.contains(.HeaderHeight) {
+            m_headerHeight = state.headerHeightValue
         }
 
-        if state.hasChangedProperty(.FooterHeight) {
-            m_footerHeight = state.footerHeight()
+        if changedProperties.contains(.FooterHeight) {
+            m_footerHeight = state.footerHeightValue
         }
 
-        if state.hasChangedProperty(.BehaviorForFixedElements) {
-            m_behaviorForFixed = state.scrollBehaviorForFixedElements()
+        if changedProperties.contains(.BehaviorForFixedElements) {
+            m_behaviorForFixed = state.scrollBehaviorForFixedElementsValue
         }
 
-        if state.hasChangedProperty(.ObscuredContentInsets) {
-            m_obscuredContentInsets = state.obscuredContentInsets()
+        if changedProperties.contains(.ObscuredContentInsets) {
+            m_obscuredContentInsets = state.obscuredContentInsetsValue
         }
 
-        if state.hasChangedProperty(.InsetForLeftScrollbarSpace) {
-            m_insetForLeftScrollbarSpace = state.insetForLeftScrollbarSpace()
+        if changedProperties.contains(.InsetForLeftScrollbarSpace) {
+            m_insetForLeftScrollbarSpace = state.insetForLeftScrollbarSpaceValue
         }
 
         #if HAVE_NSREFRESHCONTROLLER
-        if state.hasChangedProperty(.TopScrollStretchForRefreshController) {
-            m_topScrollStretchForRefreshController = state.topScrollStretchForRefreshController()
+        if changedProperties.contains(.TopScrollStretchForRefreshController) {
+            m_topScrollStretchForRefreshController = state.topScrollStretchForRefreshControllerValue
         }
         #endif
 
-        if state.hasChangedProperty(.VisualViewportIsSmallerThanLayoutViewport) {
-            m_visualViewportIsSmallerThanLayoutViewport = state.visualViewportIsSmallerThanLayoutViewport()
+        if changedProperties.contains(.VisualViewportIsSmallerThanLayoutViewport) {
+            m_visualViewportIsSmallerThanLayoutViewport = state.visualViewportIsSmallerThanLayoutViewportValue
         }
 
-        if state.hasChangedProperty(.LayoutViewport) {
-            m_layoutViewport = state.layoutViewport()
+        if changedProperties.contains(.LayoutViewport) {
+            m_layoutViewport = state.layoutViewportValue
         }
 
-        if state.hasChangedProperty(.SizeForVisibleContent) {
-            m_sizeForVisibleContent = state.sizeForVisibleContent()
+        if changedProperties.contains(.SizeForVisibleContent) {
+            m_sizeForVisibleContent = state.sizeForVisibleContentValue
         }
 
-        if state.hasChangedProperty(.MinLayoutViewportOrigin) {
-            m_minLayoutViewportOrigin = state.minLayoutViewportOrigin()
+        if changedProperties.contains(.MinLayoutViewportOrigin) {
+            m_minLayoutViewportOrigin = state.minLayoutViewportOriginValue
         }
 
-        if state.hasChangedProperty(.MaxLayoutViewportOrigin) {
-            m_maxLayoutViewportOrigin = state.maxLayoutViewportOrigin()
+        if changedProperties.contains(.MaxLayoutViewportOrigin) {
+            m_maxLayoutViewportOrigin = state.maxLayoutViewportOriginValue
         }
 
-        if state.hasChangedProperty(.OverrideVisualViewportSize) {
-            m_overrideVisualViewportSize = state.overrideVisualViewportSize()
+        if changedProperties.contains(.OverrideVisualViewportSize) {
+            m_overrideVisualViewportSize = state.overrideVisualViewportSizeValue
         }
-
-        unsafe commitScrollingNodeState(scrollingState) // U5(m_treeLock): held by commitTreeState()'s Locker, which commits this node
-
-        if state.hasChangedProperty(.LayoutViewport) {
-            // This requires that minLayoutViewportOrigin and maxLayoutViewportOrigin have been updated.
-            setLayoutViewportForCurrentScrollPosition(nil)
-        }
-
-        return true
     }
 
     @cxx
