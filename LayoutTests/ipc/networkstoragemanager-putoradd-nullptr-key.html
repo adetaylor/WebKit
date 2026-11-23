@@ -62,9 +62,8 @@ async function runTest()
     };
 
     // Without the validator fix, this PutOrAdd passes IPC decoding and
-    // reaches MemoryObjectStore::addRecord, which inserts the key into a
-    // HashMap whose empty sentinel is exactly std::nullptr_t — crashing the
-    // Network process via key validation.
+    // reaches the in-memory backing store's addRecord with a std::nullptr_t
+    // key, crashing the Network process via key validation.
     CoreIPC.Networking.NetworkStorageManager.PutOrAdd(connectionID, {
         requestData,
         key: {

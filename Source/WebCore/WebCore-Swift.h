@@ -162,6 +162,7 @@
 #include "SharedVideoFrameSwiftBridge.h"
 #endif
 #include "SourceGraphicParameters.h"
+#include "SwiftIDBTypes.h"
 
 #include "AV1CodecConfigurationRecord.h"
 #include "AnnexBUtilities.h"
