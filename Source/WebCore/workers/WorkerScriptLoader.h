@@ -73,8 +73,8 @@ public:
     void notifyError(std::optional<ScriptExecutionContextIdentifier>);
 
     // ThreadableLoaderClient.
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
+    SWIFT_UNSAFE void ref() const final { RefCounted::ref(); }
+    SWIFT_UNSAFE void deref() const final { RefCounted::deref(); }
 
     OptionSet<AdvancedPrivacyProtections> advancedPrivacyProtections() const { return m_advancedPrivacyProtections; }
     std::optional<bool> globalPrivacyControlEnabled() const { return m_globalPrivacyControlEnabled; }

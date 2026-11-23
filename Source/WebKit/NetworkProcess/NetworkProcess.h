@@ -175,9 +175,9 @@ public:
     // CanMakeThreadSafeCheckedPtr interface
     uint32_t checkedPtrCount() const final { return AuxiliaryProcess::checkedPtrCount(); }
     uint32_t checkedPtrCountWithoutThreadCheck() const final { return AuxiliaryProcess::checkedPtrCountWithoutThreadCheck(); }
-    void incrementCheckedPtrCount() const final { AuxiliaryProcess::incrementCheckedPtrCount(); }
-    void decrementCheckedPtrCount() const final { AuxiliaryProcess::decrementCheckedPtrCount(); }
-    void setDidBeginCheckedPtrDeletion() final { AuxiliaryProcess::setDidBeginCheckedPtrDeletion(); }
+    SWIFT_UNSAFE void incrementCheckedPtrCount() const final { AuxiliaryProcess::incrementCheckedPtrCount(); }
+    SWIFT_UNSAFE void decrementCheckedPtrCount() const final { AuxiliaryProcess::decrementCheckedPtrCount(); }
+    SWIFT_UNSAFE void setDidBeginCheckedPtrDeletion() final { AuxiliaryProcess::setDidBeginCheckedPtrDeletion(); }
 
     template<typename T>
     T* supplement()

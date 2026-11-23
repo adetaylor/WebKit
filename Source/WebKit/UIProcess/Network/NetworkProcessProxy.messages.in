@@ -26,7 +26,7 @@
     ExceptionForEnabledBy
 ]
 messages -> NetworkProcessProxy WantsDispatchMessage {
-    DidReceiveAuthenticationChallenge(PAL::SessionID sessionID, WebKit::WebPageProxyIdentifier pageID, std::optional<WebCore::SecurityOriginData> topOrigin, WebCore::AuthenticationChallenge challenge, bool negotiatedLegacyTLS, WebKit::AuthenticationChallengeIdentifier challengeID)
+    DidReceiveAuthenticationChallenge(PAL::SessionID sessionID, WebKit::WebPageProxyIdentifier pageID, std::optional<WebCore::SecurityOriginData> topOrigin, WebCore::AuthenticationChallenge challenge, bool negotiatedLegacyTLS, WebKit::AuthenticationChallengeIdentifier challengeID) SentFromCxx
     NegotiatedLegacyTLS(WebKit::WebPageProxyIdentifier pageID)
     DidNegotiateModernTLS(WebKit::WebPageProxyIdentifier pageID, URL url)
 
@@ -36,9 +36,9 @@ messages -> NetworkProcessProxy WantsDispatchMessage {
     ProcessHasUnresponseServiceWorker(WebCore::ProcessIdentifier processIdentifier)
 
     # Diagnostic messages logging
-    LogDiagnosticMessage(WebKit::WebPageProxyIdentifier pageID, String message, String description, enum:bool WebCore::ShouldSample shouldSample)
-    LogDiagnosticMessageWithResult(WebKit::WebPageProxyIdentifier pageID, String message, String description, uint32_t result, enum:bool WebCore::ShouldSample shouldSample)
-    LogDiagnosticMessageWithValue(WebKit::WebPageProxyIdentifier pageID, String message, String description, double value, unsigned significantFigures, enum:bool WebCore::ShouldSample shouldSample)
+    LogDiagnosticMessage(WebKit::WebPageProxyIdentifier pageID, String message, String description, enum:bool WebCore::ShouldSample shouldSample) SentFromCxx
+    LogDiagnosticMessageWithResult(WebKit::WebPageProxyIdentifier pageID, String message, String description, uint32_t result, enum:bool WebCore::ShouldSample shouldSample) SentFromCxx
+    LogDiagnosticMessageWithValue(WebKit::WebPageProxyIdentifier pageID, String message, String description, double value, unsigned significantFigures, enum:bool WebCore::ShouldSample shouldSample) SentFromCxx
 
     LogTestingEvent(PAL::SessionID sessionID, String event)
     RequestStorageAccessConfirm(WebKit::WebPageProxyIdentifier pageID, WebCore::FrameIdentifier frameID, WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, struct std::optional<WebCore::OrganizationStorageAccessPromptQuirk> organizationStorageAccessPromptQuirk) -> (bool userDidGrantAccess)
@@ -51,16 +51,16 @@ messages -> NetworkProcessProxy WantsDispatchMessage {
     ContentExtensionRules(WebKit::UserContentControllerIdentifier identifier)
 #endif
 
-    TerminateWebProcess(WebCore::ProcessIdentifier webProcessIdentifier, enum:uint16_t IPC::MessageName invalidMessageName)
+    TerminateWebProcess(WebCore::ProcessIdentifier webProcessIdentifier, enum:uint16_t IPC::MessageName invalidMessageName) SentFromCxx
 
     StartServiceWorkerBackgroundProcessing(WebCore::ProcessIdentifier serviceWorkerProcessIdentifier)
     EndServiceWorkerBackgroundProcessing(WebCore::ProcessIdentifier serviceWorkerProcessIdentifier)
     RequestBackgroundFetchPermission(PAL::SessionID sessionID, struct WebCore::ClientOrigin origin) -> (bool result)
-    NotifyBackgroundFetchChange(PAL::SessionID sessionID, String backgroundFetchIdentifier, enum:uint8_t WebKit::BackgroundFetchChange change)
+    NotifyBackgroundFetchChange(PAL::SessionID sessionID, String backgroundFetchIdentifier, enum:uint8_t WebKit::BackgroundFetchChange change) SentFromCxx
     EstablishRemoteWorkerContextConnectionToNetworkProcess(enum:uint8_t WebKit::RemoteWorkerType workerType, WebCore::Site site, std::optional<WebCore::ProcessIdentifier> requestingProcessIdentifier, std::optional<WebCore::ScriptExecutionContextIdentifier> serviceWorkerPageIdentifier, PAL::SessionID sessionID, enum:uint8_t WebCore::CrossOriginEmbedderPolicyValue workerCrossOriginEmbedderPolicy) -> (std::optional<WebCore::ProcessIdentifier> remoteProcessIdentifier)
-    RemoteWorkerContextConnectionNoLongerNeeded(enum:uint8_t WebKit::RemoteWorkerType workerType, WebCore::ProcessIdentifier identifier)
-    RegisterRemoteWorkerClientProcess(enum:uint8_t WebKit::RemoteWorkerType workerType, WebCore::ProcessIdentifier clientProcessIdentifier, WebCore::ProcessIdentifier remoteWorkerProcessIdentifier);
-    UnregisterRemoteWorkerClientProcess(enum:uint8_t WebKit::RemoteWorkerType workerType, WebCore::ProcessIdentifier clientProcessIdentifier, WebCore::ProcessIdentifier remoteWorkerProcessIdentifier);
+    RemoteWorkerContextConnectionNoLongerNeeded(enum:uint8_t WebKit::RemoteWorkerType workerType, WebCore::ProcessIdentifier identifier) SentFromCxx
+    RegisterRemoteWorkerClientProcess(enum:uint8_t WebKit::RemoteWorkerType workerType, WebCore::ProcessIdentifier clientProcessIdentifier, WebCore::ProcessIdentifier remoteWorkerProcessIdentifier) SentFromCxx
+    UnregisterRemoteWorkerClientProcess(enum:uint8_t WebKit::RemoteWorkerType workerType, WebCore::ProcessIdentifier clientProcessIdentifier, WebCore::ProcessIdentifier remoteWorkerProcessIdentifier) SentFromCxx
 
     SetWebProcessHasUploads(WebCore::ProcessIdentifier processID, bool hasUpload)
 
@@ -68,13 +68,13 @@ messages -> NetworkProcessProxy WantsDispatchMessage {
     GetAppBoundDomains(PAL::SessionID sessionID) -> (HashSet<WebCore::RegistrableDomain> appBoundDomains)
 #endif
 
-    IncreaseQuota(PAL::SessionID sessionID, struct WebCore::ClientOrigin origin, WebKit::QuotaIncreaseRequestIdentifier identifier, uint64_t quota, uint64_t currentSize, uint64_t spaceRequested)
+    IncreaseQuota(PAL::SessionID sessionID, struct WebCore::ClientOrigin origin, WebKit::QuotaIncreaseRequestIdentifier identifier, uint64_t quota, uint64_t currentSize, uint64_t spaceRequested) SentFromCxx
 
-    ResourceLoadDidSendRequest(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::ResourceRequest request, std::optional<IPC::FormDataReference> httpBody)
-    ResourceLoadDidPerformHTTPRedirection(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::ResourceResponse resourceResponse, WebCore::ResourceRequest request)
-    ResourceLoadDidReceiveChallenge(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::AuthenticationChallenge challenge)
-    ResourceLoadDidReceiveResponse(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::ResourceResponse response)
-    ResourceLoadDidCompleteWithError(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::ResourceResponse response, WebCore::ResourceError error)
+    ResourceLoadDidSendRequest(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::ResourceRequest request, std::optional<IPC::FormDataReference> httpBody) SentFromCxx
+    ResourceLoadDidPerformHTTPRedirection(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::ResourceResponse resourceResponse, WebCore::ResourceRequest request) SentFromCxx
+    ResourceLoadDidReceiveChallenge(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::AuthenticationChallenge challenge) SentFromCxx
+    ResourceLoadDidReceiveResponse(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::ResourceResponse response) SentFromCxx
+    ResourceLoadDidCompleteWithError(WebKit::WebPageProxyIdentifier pageIdentifier, struct WebKit::ResourceLoadInfo resourceLoadInfo, WebCore::ResourceResponse response, WebCore::ResourceError error) SentFromCxx
 
     DidAllowPrivateTokenUsageByThirdPartyForTesting(PAL::SessionID sessionID, bool wasAllowed, URL resourceURL)
 
@@ -100,7 +100,7 @@ messages -> NetworkProcessProxy WantsDispatchMessage {
     DataTaskWillPerformHTTPRedirection(WebKit::DataTaskIdentifier identifier, WebCore::ResourceResponse response, WebCore::ResourceRequest request) -> (bool allowed)
     DataTaskDidReceiveResponse(WebKit::DataTaskIdentifier identifier, WebCore::ResourceResponse response) -> (bool allowed)
     DataTaskDidReceiveData(WebKit::DataTaskIdentifier identifier, std::span<const uint8_t> data)
-    DataTaskDidCompleteWithError(WebKit::DataTaskIdentifier identifier, WebCore::ResourceError error)
+    DataTaskDidCompleteWithError(WebKit::DataTaskIdentifier identifier, WebCore::ResourceError error) SentFromCxx
 
     OpenWindowFromServiceWorker(PAL::SessionID sessionID, String urlString, WebCore::SecurityOriginData serviceWorkerOrigin) -> (std::optional<WebCore::PageIdentifier> newPage)
     NavigateServiceWorkerClient(WebCore::FrameIdentifier frameIdentifier, WebCore::ScriptExecutionContextIdentifier documentIdentifier, URL url) -> (std::optional<WebCore::PageIdentifier> page, std::optional<WebCore::FrameIdentifier> frame)
@@ -122,9 +122,9 @@ messages -> NetworkProcessProxy WantsDispatchMessage {
     ReportNetworkIssue(WebKit::WebPageProxyIdentifier webPageProxyIdentifier, URL requestURL)
 #endif
 
-    ReceivedQualifiedServerTrust(WebKit::WebPageProxyIdentifier webPageProxyIdentifier, WebCore::CertificateInfo serverTrust, WebCore::CertificateInfo qualifiedServerTrust)
+    ReceivedQualifiedServerTrust(WebKit::WebPageProxyIdentifier webPageProxyIdentifier, WebCore::CertificateInfo serverTrust, WebCore::CertificateInfo qualifiedServerTrust) SentFromCxx
 
-    HandOverTransferredImageBuffers(Vector<WebCore::ImageBufferTransferIdentifier> transferIdentifiers, WebCore::ProcessIdentifier destinationProcess)
+    HandOverTransferredImageBuffers(Vector<WebCore::ImageBufferTransferIdentifier> transferIdentifiers, WebCore::ProcessIdentifier destinationProcess) SentFromCxx
 }
 
 }

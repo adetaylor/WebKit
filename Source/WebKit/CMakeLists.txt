@@ -1680,6 +1680,8 @@ list(APPEND WebKit_SOURCES
 set_source_files_properties(
     ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkConnectionToWebProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/ServiceWorkerFetchTaskMessageReceiver.swift
@@ -1710,6 +1712,8 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/NetworkProcess/storage/SwiftIDBStorageManager.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/SwiftIDBStorageRegistry.swift
     ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkConnectionToWebProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementDatabase.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementManager.swift

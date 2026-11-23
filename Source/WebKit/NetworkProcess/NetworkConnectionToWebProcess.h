@@ -182,8 +182,9 @@ public:
     static Ref<NetworkConnectionToWebProcess> create(WebCore::ProcessIdentifier, PAL::SessionID, NetworkProcessConnectionParameters&&, IPC::Connection::Identifier&&);
     virtual ~NetworkConnectionToWebProcess();
 
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
+    // Unsafe in Swift: an unbalanced deref() would destroy a connection others still use.
+    SWIFT_UNSAFE void ref() const final { RefCounted::ref(); }
+    SWIFT_UNSAFE void deref() const final { RefCounted::deref(); }
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const { return m_sharedPreferencesForWebProcess; }
     SharedPreferencesForWebProcess sharedPreferencesForWebProcessValue() const { return m_sharedPreferencesForWebProcess; }

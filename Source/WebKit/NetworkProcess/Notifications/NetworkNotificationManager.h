@@ -59,8 +59,8 @@ public:
     static Ref<NetworkNotificationManager> create(const String& webPushMachServiceName, WebPushD::WebPushDaemonConnectionConfiguration&&);
     ~NetworkNotificationManager();
 
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
+    SWIFT_UNSAFE void ref() const final { RefCounted::ref(); }
+    SWIFT_UNSAFE void deref() const final { RefCounted::deref(); }
 
     void setPushAndNotificationsEnabledForOrigin(const WebCore::SecurityOriginData&, bool, CompletionHandler<void()>&&);
     void getPendingPushMessage(CompletionHandler<void(const std::optional<WebPushMessage>&)>&&);

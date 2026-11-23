@@ -133,7 +133,7 @@ using StorageAccessWasGrantedCompletionHandler = CompletionHandler<void(WebCore:
 using PermissionStateCompletionHandler = CompletionHandler<void(WebCore::PermissionState)>;
 using StatisticsStringCompletionHandler = CompletionHandler<void(String)>;
 
-class WebResourceLoadStatisticsStore final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<WebResourceLoadStatisticsStore, WTF::DestructionThread::Main>, public CanMakeThreadSafeCheckedPtr<WebResourceLoadStatisticsStore> {
+class SWIFT_PRIVATE_FILEID("WebKit/WebResourceLoadStatisticsStore.swift") WebResourceLoadStatisticsStore final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<WebResourceLoadStatisticsStore, WTF::DestructionThread::Main>, public CanMakeThreadSafeCheckedPtr<WebResourceLoadStatisticsStore> {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(WebResourceLoadStatisticsStore);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(WebResourceLoadStatisticsStore);
 public:

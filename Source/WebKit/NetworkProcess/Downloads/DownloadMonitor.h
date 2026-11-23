@@ -46,8 +46,8 @@ public:
     void downloadReceivedBytes(uint64_t);
     void timerFired();
 
-    NODELETE void ref() const;
-    void deref() const;
+    NODELETE SWIFT_UNSAFE void ref() const;
+    SWIFT_UNSAFE void deref() const;
 
 private:
     WeakRef<Download> m_download;

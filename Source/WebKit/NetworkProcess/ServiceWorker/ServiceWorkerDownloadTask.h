@@ -57,8 +57,8 @@ public:
     }
     ~ServiceWorkerDownloadTask();
 
-    void ref() const final { NetworkDataTask::ref(); }
-    void deref() const final { NetworkDataTask::deref(); }
+    SWIFT_UNSAFE void ref() const final { NetworkDataTask::ref(); }
+    SWIFT_UNSAFE void deref() const final { NetworkDataTask::deref(); }
 
     WebCore::FetchIdentifier fetchIdentifier() const { return m_fetchIdentifier; }
     void contextClosed() { cancel(); }

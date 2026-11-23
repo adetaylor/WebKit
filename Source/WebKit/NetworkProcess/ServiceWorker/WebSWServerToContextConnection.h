@@ -67,8 +67,8 @@ public:
     static Ref<WebSWServerToContextConnection> create(NetworkConnectionToWebProcess&, WebPageProxyIdentifier, WebCore::Site&&, std::optional<WebCore::ScriptExecutionContextIdentifier>, WebCore::SWServer&, WebCore::CrossOriginEmbedderPolicyValue);
     ~WebSWServerToContextConnection();
 
-    void ref() const final { WebCore::SWServerToContextConnection::ref(); }
-    void deref() const final { WebCore::SWServerToContextConnection::deref(); }
+    SWIFT_UNSAFE void ref() const final { WebCore::SWServerToContextConnection::ref(); }
+    SWIFT_UNSAFE void deref() const final { WebCore::SWServerToContextConnection::deref(); }
 
     void stop();
 

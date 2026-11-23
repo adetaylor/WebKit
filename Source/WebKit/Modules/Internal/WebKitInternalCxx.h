@@ -267,3 +267,10 @@
 #include "WebSWServerToContextConnection.h"
 #include "WebSWServerToContextConnectionMessages.h"
 #include "WebSWContextManagerConnectionMessages.h"
+
+// The receivers hold std::unique_ptr maps of SWServerJobQueue and of NetworkProcessSupplement (above), whose destructors Swift instantiates on import; C++ includes them only where used.
+#include <WebCore/SWServerJobQueue.h>
+#include "NetworkConnectionToWebProcess.h"
+#include "NetworkConnectionToWebProcessMessages.h"
+#include "NetworkProcessMessages.h"
+#include "WebResourceLoadStatisticsStore.h"

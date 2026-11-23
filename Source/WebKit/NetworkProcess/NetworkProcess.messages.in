@@ -23,7 +23,9 @@
 [
     DispatchedFrom=UI,
     DispatchedTo=Networking,
-    ExceptionForEnabledBy
+    ExceptionForEnabledBy,
+    SwiftImplementation,
+    SwiftSends=NetworkProcessProxy
 ]
 messages -> NetworkProcess : AuxiliaryProcess WantsAsyncDispatchMessage {
     InitializeNetworkProcess(struct WebKit::NetworkProcessCreationParameters processCreationParameters) -> ()

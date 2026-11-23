@@ -23,7 +23,8 @@
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
-    DispatchedTo=Networking
+    DispatchedTo=Networking,
+    SwiftImplementation
 ]
 messages -> NetworkConnectionToWebProcess WantsDispatchMessage {
 
