@@ -1614,17 +1614,6 @@ extension WebKit.ResourceLoadStatisticsStore {
 
 // MARK: Interaction and navigation logging, and debug mode
 
-// A Swift string as a WTF::String for anything but SQL: the one-step conversion (StdlibExtras.swift) keeps the C string's
-// terminating NUL, which SQLite's prepare ignores but a message would carry.
-private func wtfText(_ text: Swift.String) -> WTF.String {
-    let string = WTF.String(text)
-    let length = string.length()
-    guard length > 0, string.endsWith(UInt16(0)) else {
-        return string
-    }
-    return string.left(length &- 1)
-}
-
 extension WebKit.ResourceLoadStatisticsStore {
     private func debugModeReleaseLog(_ message: Swift.String) {
         WebKit.LogChannel.ITPDebug().releaseLog.info("ResourceLoadStatisticsStore: \(message, privacy: .public)")
@@ -1644,10 +1633,10 @@ extension WebKit.ResourceLoadStatisticsStore {
 
         if m_debugLoggingEnabled {
             debugModeReleaseLog("Turned ITP Debug Mode on.")
-            debugBroadcastConsoleMessage(.ITPDebug, .Info, wtfText("[ITP] Turned Debug Mode on."))
+            debugBroadcastConsoleMessage(.ITPDebug, .Info, WTF.String("[ITP] Turned Debug Mode on."))
         } else {
             debugModeReleaseLog("Turned ITP Debug Mode off.")
-            debugBroadcastConsoleMessage(.ITPDebug, .Info, wtfText("[ITP] Turned Debug Mode off."))
+            debugBroadcastConsoleMessage(.ITPDebug, .Info, WTF.String("[ITP] Turned Debug Mode off."))
         }
 
         _ = ensurePrevalentResourcesForDebugMode()
@@ -1706,7 +1695,9 @@ extension WebKit.ResourceLoadStatisticsStore {
                 debugBroadcastConsoleMessage(
                     .ITPDebug,
                     .Info,
-                    wtfText("[ITP] Did set '" + domain + "' as prevalent resource for the purposes of ITP Debug Mode.")
+                    WTF.String(
+                        "[ITP] Did set '" + domain + "' as prevalent resource for the purposes of ITP Debug Mode."
+                    )
                 )
             }
         }
@@ -1772,7 +1763,9 @@ extension WebKit.ResourceLoadStatisticsStore {
                                 debugBroadcastConsoleMessage(
                                     .ITPDebug,
                                     .Info,
-                                    wtfText("Did set '" + source + "' as making a top frame redirect to '" + target + "'.")
+                                    WTF.String(
+                                        "Did set '" + source + "' as making a top frame redirect to '" + target + "'."
+                                    )
                                 )
                             }
                         }
@@ -1960,7 +1953,7 @@ extension WebKit.ResourceLoadStatisticsStore {
 
         let actionText = action.description
         let allDomains = domains.joined(separator: ", ")
-        debugBroadcastConsoleMessage(.ITPDebug, .Info, wtfText("[ITP] " + actionText + " to: [" + allDomains + "]."))
+        debugBroadcastConsoleMessage(.ITPDebug, .Info, WTF.String("[ITP] " + actionText + " to: [" + allDomains + "]."))
 
         let maxNumberOfDomainsInOneLogStatement = 50
 
@@ -2224,7 +2217,7 @@ extension WebKit.ResourceLoadStatisticsStore {
                         debugBroadcastConsoleMessage(
                             .ITPDebug,
                             .Info,
-                            wtfText("Scheduled '" + domain + "' to have its cookies set to SameSite=strict'.")
+                            WTF.String("Scheduled '" + domain + "' to have its cookies set to SameSite=strict'.")
                         )
                     }
                 }
@@ -2312,28 +2305,28 @@ private enum SubStatisticTable: Int, CaseIterable {
 
 // The dump's fixed text as WTF::Strings, made once per dump.
 private struct DumpPieces {
-    let header = wtfText("Resource load statistics:\n\n")
-    let registrableDomain = wtfText("Registrable domain: ")
-    let newline = wtfText("\n")
-    let yes = wtfText("Yes")
-    let no = wtfText("No")
-    let hadUserInteraction = wtfText("    hadUserInteraction: ")
-    let mostRecentUserInteraction = wtfText("    mostRecentUserInteraction: ")
-    let withinDay = wtfText("within 24 hours")
-    let noRecentInteraction = wtfText("-1")
-    let grandfathered = wtfText("    grandfathered: ")
-    let dataRemovalFrequency = wtfText("    DataRemovalFrequency: ")
-    let never = wtfText("Never")
-    let short = wtfText("Short")
-    let long = wtfText("Long")
-    let unknown = wtfText("Unknown")
-    let isPrevalentResource = wtfText("    isPrevalentResource: ")
-    let isVeryPrevalentResource = wtfText("    isVeryPrevalentResource: ")
-    let dataRecordsRemoved = wtfText("    dataRecordsRemoved: ")
-    let entryIndent = wtfText("        ")
-    let thirdPartyHeader = wtfText("\nITP Data:\n")
-    // By SubStatisticTable.rawValue: "    <name>:\n", and the query as SQL (WTF.String(_:); SQLite's prepare ignores the trailing NUL).
-    let tableHeaders = SubStatisticTable.allCases.map { wtfText("    " + $0.name + ":\n") }
+    let header = WTF.String("Resource load statistics:\n\n")
+    let registrableDomain = WTF.String("Registrable domain: ")
+    let newline = WTF.String("\n")
+    let yes = WTF.String("Yes")
+    let no = WTF.String("No")
+    let hadUserInteraction = WTF.String("    hadUserInteraction: ")
+    let mostRecentUserInteraction = WTF.String("    mostRecentUserInteraction: ")
+    let withinDay = WTF.String("within 24 hours")
+    let noRecentInteraction = WTF.String("-1")
+    let grandfathered = WTF.String("    grandfathered: ")
+    let dataRemovalFrequency = WTF.String("    DataRemovalFrequency: ")
+    let never = WTF.String("Never")
+    let short = WTF.String("Short")
+    let long = WTF.String("Long")
+    let unknown = WTF.String("Unknown")
+    let isPrevalentResource = WTF.String("    isPrevalentResource: ")
+    let isVeryPrevalentResource = WTF.String("    isVeryPrevalentResource: ")
+    let dataRecordsRemoved = WTF.String("    dataRecordsRemoved: ")
+    let entryIndent = WTF.String("        ")
+    let thirdPartyHeader = WTF.String("\nITP Data:\n")
+    // By SubStatisticTable.rawValue: "    <name>:\n", and the query as SQL.
+    let tableHeaders = SubStatisticTable.allCases.map { WTF.String("    " + $0.name + ":\n") }
     let tableQueries = SubStatisticTable.allCases.map { table -> WTF.String? in
         guard let query = table.query else {
             return nil
@@ -2473,8 +2466,8 @@ extension WebKit.ResourceLoadStatisticsStore {
         #endif
         let prevalentDomainsBindParameter = isBlockAll ? "%" : "1"
         guard let sortedStatistics = database.prepareStatement(WTF.String(joinSubStatisticsForSorting)),
-            sortedStatistics.bindText(1, wtfText(prevalentDomainsBindParameter)) == SQLITE_OK,
-            sortedStatistics.bindText(2, wtfText("%")) == SQLITE_OK
+            sortedStatistics.bindText(1, WTF.String(prevalentDomainsBindParameter)) == SQLITE_OK,
+            sortedStatistics.bindText(2, WTF.String("%")) == SQLITE_OK
         else {
             releaseLogDatabaseError("aggregatedThirdPartyData: failed to bind parameters")
             return thirdPartyDataList
