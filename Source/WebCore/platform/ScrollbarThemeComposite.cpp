@@ -109,7 +109,7 @@ bool ScrollbarThemeComposite::paint(Scrollbar& scrollbar, GraphicsContext& graph
     return true;
 }
 
-ScrollbarPart ScrollbarThemeComposite::hitTest(Scrollbar& scrollbar, const IntPoint& position, ScrollbarHitTestTolerance tolerance)
+ScrollbarPart ScrollbarThemeComposite::hitTest(Scrollbar& scrollbar, IntPoint position, ScrollbarHitTestTolerance tolerance)
 {
     ScrollbarPart result = NoPart;
     if (!scrollbar.enabled())

@@ -28,6 +28,7 @@
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/IntRect.h>
 #include <WebCore/ScrollTypes.h>
+#include <wtf/CheckedPtr.h>
 #include <wtf/OptionSet.h>
 #include <wtf/TZoneMalloc.h>
 
@@ -42,8 +43,9 @@ class ScrollView;
 class GraphicsLayer;
 #endif
 
-class ScrollbarTheme {
+class ScrollbarTheme : public CanMakeCheckedPtr<ScrollbarTheme, WTF::DefaultedOperatorEqual::No, WTF::CheckedPtrDeleteCheckException::Yes> {
     WTF_MAKE_TZONE_ALLOCATED(ScrollbarTheme);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ScrollbarTheme);
     WTF_MAKE_NONCOPYABLE(ScrollbarTheme);
 public:
     ScrollbarTheme() = default;
@@ -52,7 +54,7 @@ public:
     virtual void updateEnabledState(Scrollbar&) { }
 
     virtual bool paint(Scrollbar&, GraphicsContext&, const IntRect& /*damageRect*/, OptionSet<ScrollbarPaintBehavior>) { return false; }
-    virtual ScrollbarPart hitTest(Scrollbar&, const IntPoint&, ScrollbarHitTestTolerance = ScrollbarHitTestTolerance::None) { return NoPart; }
+    virtual ScrollbarPart hitTest(Scrollbar&, IntPoint, ScrollbarHitTestTolerance = ScrollbarHitTestTolerance::None) { return NoPart; }
     
     virtual int scrollbarThickness(ScrollbarWidth = ScrollbarWidth::Auto, OverlayScrollbarSizeRelevancy = OverlayScrollbarSizeRelevancy::IncludeOverlayScrollbarSize) { return 0; }
 
@@ -120,6 +122,6 @@ public:
 
 private:
     static ScrollbarTheme& nativeTheme(); // Must be implemented to return the correct theme subclass.
-};
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 }

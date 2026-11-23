@@ -38,7 +38,7 @@ class ScrollbarThemeComposite : public ScrollbarTheme {
 public:
     // Implement ScrollbarTheme interface
     bool paint(Scrollbar&, GraphicsContext&, const IntRect& damageRect, OptionSet<ScrollbarPaintBehavior>) override;
-    ScrollbarPart hitTest(Scrollbar&, const IntPoint&, ScrollbarHitTestTolerance) override;
+    ScrollbarPart hitTest(Scrollbar&, IntPoint, ScrollbarHitTestTolerance) override;
     void invalidatePart(Scrollbar&, ScrollbarPart) override;
     int thumbPosition(Scrollbar&) override;
     int thumbLength(Scrollbar&) override;
@@ -68,6 +68,6 @@ public:
     virtual void paintThumb(GraphicsContext&, Scrollbar&, const IntRect&) { }
 
     virtual IntRect constrainTrackRectToTrackPieces(Scrollbar&, const IntRect& rect) { return rect; }
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 }
