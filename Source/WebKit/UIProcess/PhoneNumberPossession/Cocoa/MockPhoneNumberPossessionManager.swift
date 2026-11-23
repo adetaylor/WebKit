@@ -78,7 +78,9 @@ final class MockPhoneNumberPossessionManager: PhoneNumberPossessionManaging {
     ) throws(CxxUnexpected<WebKit.PhoneNumberPossessionError>) -> WebCore.PhoneNumberPossessionResponse {
         #if compiler(>=6.5)
         let challengeBuffer = request.pointee.challenge
-        let challenge = Data(copying: challengeBuffer.span().bytes)
+        // FIXME: Use Data(copying: challengeBuffer.span().bytes) once every SDK a Swift 6.5 compiler builds against
+        // has it: Foundation in the macOS 27.2 SDK has no Data(copying:).
+        let challenge = data(challengeBuffer.span())
         #else
         // FIXME: rdar://191033367 Reading a request's BufferSource copies it, which crashes the compiler, so read
         // the challenge's bytes through a copy that C++ makes. Remove the copy and this #if once that's fixed.
@@ -152,7 +154,6 @@ private struct DecryptionKey: Encodable {
     let decryptionKey: [UInt8]
 }
 
-#if compiler(<6.5)
 // Data has no initializer that takes a Span.
 private func data(_ bytes: Span<UInt8>) -> Data {
     var data = Data(capacity: bytes.count)
@@ -161,6 +162,5 @@ private func data(_ bytes: Span<UInt8>) -> Data {
     }
     return data
 }
-#endif
 
 #endif // ENABLE_PHONE_NUMBER_POSSESSION

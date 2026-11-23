@@ -196,8 +196,12 @@ final class RemoteImageBufferSet {
 
     // Copies what the dirty region leaves of the previous frame into the new front buffer, clips to the region, and clears
     // the pixels to be drawn, unless drawing will be opaque.
+    // FIXME: `dirtyRegion` is not `borrowing`, though it is borrowed: Region is copyable and holds a std::unique_ptr,
+    // which Swift imports as noncopyable, and `borrowing` such a type stops the move-only checker of an assertions
+    // toolchain, with or without a `copy` of it (KIT docs/interop-limitations.md, "A `borrowing` or `consuming`
+    // parameter of a copyable C++ type with a noncopyable field"). A plain parameter has the same borrowed convention.
     @_expose(!Cxx)
-    func prepareBufferForDisplay(dirtyRegion: borrowing WebCore.Region, requiresClearedPixels: Bool) {
+    func prepareBufferForDisplay(dirtyRegion: WebCore.Region, requiresClearedPixels: Bool) {
         guard let frontBuffer = frontBuffer else {
             previouslyPaintedRect = nil
             return
