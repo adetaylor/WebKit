@@ -54,7 +54,7 @@ class VideoDecoder;
 class VideoDecoderVTBSession;
 struct PlatformVideoColorSpace;
 
-class WebCoreDecompressionSession : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<WebCoreDecompressionSession> {
+class SWIFT_PRIVATE_FILEID("WebCore/WebCoreDecompressionSession.swift") WebCoreDecompressionSession : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<WebCoreDecompressionSession> {
 public:
     NODELETE WEBCORE_EXPORT static Ref<WebCoreDecompressionSession> createOpenGL(GuaranteedSerialFunctionDispatcher* = nullptr);
     WEBCORE_EXPORT static Ref<WebCoreDecompressionSession> createRGB(GuaranteedSerialFunctionDispatcher* = nullptr);
@@ -86,34 +86,34 @@ private:
     WEBCORE_EXPORT WebCoreDecompressionSession(NSDictionary *, GuaranteedSerialFunctionDispatcher*, IsAlphaDecoder = IsAlphaDecoder::No);
     static NSDictionary *defaultPixelBufferAttributes();
 
-    std::expected<RefPtr<VideoDecoderVTBSession>, OSStatus> ensureDecoderForSample(CMSampleBufferRef, DecodingFlags);
+    SWIFT_UNSAFE std::expected<RefPtr<VideoDecoderVTBSession>, OSStatus> ensureDecoderForSample(CMSampleBufferRef, DecodingFlags);
 
-    Ref<DecodingPromise> decodeSampleInternal(CMSampleBufferRef, DecodingFlags);
-    Ref<DecodingPromise> decodeSampleWithAlpha(CMSampleBufferRef, CFArrayRef alphaDatas, DecodingFlags);
-    std::expected<Vector<RetainPtr<CMSampleBufferRef>>, OSStatus> compositeAlphaOntoColorFrames(Vector<RetainPtr<CMSampleBufferRef>>&&, const Vector<RetainPtr<CVPixelBufferRef>>& alphaPixelBuffers);
-    void assignResourceOwner(CVImageBufferRef);
+    SWIFT_UNSAFE Ref<DecodingPromise> decodeSampleInternal(CMSampleBufferRef, DecodingFlags);
+    SWIFT_UNSAFE Ref<DecodingPromise> decodeSampleWithAlpha(CMSampleBufferRef, CFArrayRef alphaDatas, DecodingFlags);
+    SWIFT_UNSAFE std::expected<Vector<RetainPtr<CMSampleBufferRef>>, OSStatus> compositeAlphaOntoColorFrames(Vector<RetainPtr<CMSampleBufferRef>>&&, const Vector<RetainPtr<CVPixelBufferRef>>& alphaPixelBuffers);
+    SWIFT_UNSAFE void assignResourceOwner(CVImageBufferRef);
 
-    Ref<MediaPromise> initializeVideoDecoder(FourCharCode, std::span<const uint8_t>, const std::optional<PlatformVideoColorSpace>&);
+    SWIFT_UNSAFE Ref<MediaPromise> initializeVideoDecoder(FourCharCode, std::span<const uint8_t>, const std::optional<PlatformVideoColorSpace>&);
     bool isInvalidated() const { return m_invalidated; }
 
-    const RetainPtr<NSDictionary> m_pixelBufferAttributes;
-    const IsAlphaDecoder m_isAlphaDecoder;
+    SWIFT_UNSAFE const RetainPtr<NSDictionary> m_pixelBufferAttributes;
+    SWIFT_UNSAFE const IsAlphaDecoder m_isAlphaDecoder;
     static WorkQueue& queueSingleton();
-    const Ref<GuaranteedSerialFunctionDispatcher> m_dispatcher;
+    SWIFT_UNSAFE const Ref<GuaranteedSerialFunctionDispatcher> m_dispatcher;
 
-    mutable Lock m_lock;
-    RefPtr<VideoDecoderVTBSession> m_videoDecoderVTB WTF_GUARDED_BY_LOCK(m_lock);
+    SWIFT_UNSAFE mutable Lock m_lock;
+    SWIFT_UNSAFE RefPtr<VideoDecoderVTBSession> m_videoDecoderVTB WTF_GUARDED_BY_LOCK(m_lock);
     mutable std::optional<bool> m_isHardwareAccelerated WTF_GUARDED_BY_LOCK(m_lock);
 
     std::atomic<uint32_t> m_flushId { 0 };
-    RefPtr<VideoDecoder> m_videoDecoder WTF_GUARDED_BY_LOCK(m_lock);
+    SWIFT_UNSAFE RefPtr<VideoDecoder> m_videoDecoder WTF_GUARDED_BY_LOCK(m_lock);
     bool m_videoDecoderCreationFailed { false };
     struct PendingDecodeData {
         DecodingFlags flags;
     };
     std::optional<PendingDecodeData> m_pendingDecodeData WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-    Vector<RetainPtr<CMSampleBufferRef>> m_lastDecodedSamples WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-    RetainPtr<CMFormatDescriptionRef> m_lastFormatDescription WTF_GUARDED_BY_LOCK(m_lock);
+    SWIFT_UNSAFE Vector<RetainPtr<CMSampleBufferRef>> m_lastDecodedSamples WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
+    SWIFT_UNSAFE RetainPtr<CMFormatDescriptionRef> m_lastFormatDescription WTF_GUARDED_BY_LOCK(m_lock);
     OSStatus m_lastDecodingError WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get()) { noErr };
     // Only ever accessed from a single thread per instance: either m_dispatcher
     // (MSE path, where flush() dispatches its write to serialize with
@@ -121,24 +121,24 @@ private:
     // (ImageDecoderAVFObjC path, which never calls flush()). Not annotated
     // with a capability guard because the owning thread differs per instance.
     bool m_waitingForKeyframe { true };
-    RetainPtr<CMFormatDescriptionRef> m_currentImageDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
+    SWIFT_UNSAFE RetainPtr<CMFormatDescriptionRef> m_currentImageDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
 
     // WebM alpha compositing.
-    RefPtr<WebCoreDecompressionSession> m_alphaDecompressionSession WTF_GUARDED_BY_LOCK(m_lock);
-    RetainPtr<CMFormatDescriptionRef> m_alphaSourceFormatDescription WTF_GUARDED_BY_LOCK(m_lock);
+    SWIFT_UNSAFE RefPtr<WebCoreDecompressionSession> m_alphaDecompressionSession WTF_GUARDED_BY_LOCK(m_lock);
+    SWIFT_UNSAFE RetainPtr<CMFormatDescriptionRef> m_alphaSourceFormatDescription WTF_GUARDED_BY_LOCK(m_lock);
     bool m_alphaDecoderIsFullRange WTF_GUARDED_BY_LOCK(m_lock) { false };
-    RetainPtr<CVPixelBufferPoolRef> m_mergedPixelBufferPool WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-    RetainPtr<CMFormatDescriptionRef> m_mergedFormatDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-    RetainPtr<CMFormatDescriptionRef> m_mergedSourceFormatDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
+    SWIFT_UNSAFE RetainPtr<CVPixelBufferPoolRef> m_mergedPixelBufferPool WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
+    SWIFT_UNSAFE RetainPtr<CMFormatDescriptionRef> m_mergedFormatDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
+    SWIFT_UNSAFE RetainPtr<CMFormatDescriptionRef> m_mergedSourceFormatDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
 
     // Stereo playback support
-    const bool m_stereoSupported { false };
+    SWIFT_UNSAFE const bool m_stereoSupported { false };
     bool m_stereoConfigured WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get()) { false };
-    RetainPtr<CFArrayRef> m_tagCollections WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
+    SWIFT_UNSAFE RetainPtr<CFArrayRef> m_tagCollections WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
 
     std::atomic<bool> m_invalidated { false };
 
-    ProcessIdentity m_resourceOwner;
-};
+    SWIFT_UNSAFE ProcessIdentity m_resourceOwner;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 }
