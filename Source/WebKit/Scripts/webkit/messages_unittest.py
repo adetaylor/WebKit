@@ -592,8 +592,12 @@ messages -> TestReceiver %s {
         self.assertIn('IPC::handleSwiftMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchSwiftMessage);\n        return;\n    }\n    if (dispatchMessage(connection, decoder))\n', handler)
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage takes Swift types, which is not supported on a receiver with 'WantsDispatchMessage'"):
             parse(['SwiftReceiver'], 'WantsDispatchMessage')
+        # So does one with 'WantsAsyncDispatchMessage', such as NetworkProcess: its asynchronous messages reach dispatchMessage()
+        # the same way.
+        handler = messages.generate_message_handler(parse(['SwiftImplementation'], 'WantsAsyncDispatchMessage'))
+        self.assertIn('IPC::handleSwiftMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchSwiftMessage);\n        return;\n    }\n    if (dispatchMessage(connection, decoder))\n', handler)
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage takes Swift types, which is not supported on a receiver with 'WantsAsyncDispatchMessage'"):
-            parse(['SwiftImplementation'], 'WantsAsyncDispatchMessage')
+            parse(['SwiftReceiver'], 'WantsAsyncDispatchMessage')
 
     def test_cxx_decoded_arguments(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
