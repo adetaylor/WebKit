@@ -68,7 +68,7 @@ void MockAuthenticatorManager::respondReceivedInternal(Respond&& respond, bool s
     requestTimeOutTimer().stop();
 }
 
-void MockAuthenticatorManager::filterTransports(TransportSet& transports) const
+auto MockAuthenticatorManager::filterTransports(TransportSet transports) const -> TransportSet
 {
     if (!m_testConfiguration.nfc)
         transports.remove(WebCore::AuthenticatorTransport::Nfc);
@@ -77,6 +77,7 @@ void MockAuthenticatorManager::filterTransports(TransportSet& transports) const
     if (!m_testConfiguration.ccid)
         transports.remove(WebCore::AuthenticatorTransport::SmartCard);
     transports.remove(WebCore::AuthenticatorTransport::Ble);
+    return transports;
 }
 
 void MockAuthenticatorManager::validateHidExpectedCommands()

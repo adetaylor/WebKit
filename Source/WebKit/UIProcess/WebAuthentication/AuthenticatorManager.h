@@ -64,7 +64,7 @@ public:
     virtual ~AuthenticatorManager();
 
     void handleRequest(WebAuthenticationRequestData&&, Callback&&);
-    void cancelRequest(const WebCore::PageIdentifier&, const std::optional<WebCore::FrameIdentifier>&); // Called from WebPageProxy/WebProcessProxy.
+    void cancelRequest(WebCore::PageIdentifier, std::optional<WebCore::FrameIdentifier>); // Called from WebPageProxy/WebProcessProxy.
     void cancelRequest(const API::WebAuthenticationPanel&); // Called from panel clients.
     void cancel(); // Called from the presenter.
 
@@ -100,13 +100,13 @@ private:
     };
 
     // AuthenticatorTransportServiceObserver
-    void authenticatorAdded(Ref<Authenticator>&&) final;
+    void authenticatorAdded(Ref<Authenticator>) final;
     void serviceStatusUpdated(WebAuthenticationStatus) final;
     bool isAuthenticatorManager() const final { return true; }
 
     // AuthenticatorObserver
     void respondReceived(Respond&&) final;
-    void downgrade(Authenticator& id, Ref<Authenticator>&& downgradedAuthenticator) final;
+    void downgrade(Authenticator& id, Ref<Authenticator> downgradedAuthenticator) final;
     void authenticatorStatusUpdated(WebAuthenticationStatus) final;
     void requestPin(uint64_t retries, CompletionHandler<void(const WTF::String&)>&&) final;
     void requestNewPin(uint64_t minLength, CompletionHandler<void(const WTF::String&)>&&) final;
@@ -117,7 +117,7 @@ private:
     virtual Ref<AuthenticatorTransportService> createService(WebCore::AuthenticatorTransport, AuthenticatorTransportServiceObserver&) const;
     // Overriden to return every exception for tests to confirm.
     virtual void respondReceivedInternal(Respond&&, bool shouldComplete);
-    virtual void filterTransports(TransportSet&) const;
+    virtual TransportSet filterTransports(TransportSet) const;
     virtual void runPresenterInternal(const TransportSet&);
 
     void initTimeOutTimer();

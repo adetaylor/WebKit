@@ -52,7 +52,7 @@ void FidoService::notifyAuthenticatorAdded(Authenticator& authenticator)
     protect(observer())->authenticatorAdded(Ref { authenticator });
 }
 
-void FidoService::getInfo(Ref<CtapDriver>&& driver)
+void FidoService::getInfo(Ref<CtapDriver> driver)
 {
     // Get authenticator info from the device.
     driver->transact(encodeEmptyAuthenticatorRequest(CtapRequestCommand::kAuthenticatorGetInfo), [weakThis = WeakPtr { *this }, weakDriver = WeakPtr { driver.get() }] (Vector<uint8_t>&& response) mutable {

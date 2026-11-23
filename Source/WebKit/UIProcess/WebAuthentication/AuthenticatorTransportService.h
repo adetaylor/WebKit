@@ -46,7 +46,7 @@ class AuthenticatorTransportServiceObserver : public AbstractRefCountedAndCanMak
 public:
     virtual ~AuthenticatorTransportServiceObserver() = default;
 
-    virtual void authenticatorAdded(Ref<Authenticator>&&) = 0;
+    virtual void authenticatorAdded(Ref<Authenticator>) = 0;
     virtual void serviceStatusUpdated(WebAuthenticationStatus) = 0;
 
     virtual bool isAuthenticatorManager() const { return false; }

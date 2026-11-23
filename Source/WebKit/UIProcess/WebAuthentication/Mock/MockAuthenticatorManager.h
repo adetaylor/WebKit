@@ -45,7 +45,7 @@ private:
 
     Ref<AuthenticatorTransportService> createService(WebCore::AuthenticatorTransport, AuthenticatorTransportServiceObserver&) const final;
     void respondReceivedInternal(Respond&&, bool shouldComplete) final;
-    void filterTransports(TransportSet&) const;
+    TransportSet filterTransports(TransportSet) const final;
     void runPresenterInternal(const TransportSet&) final { }
 
     void validateHidExpectedCommands();

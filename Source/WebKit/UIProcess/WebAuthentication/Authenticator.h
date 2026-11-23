@@ -52,7 +52,7 @@ class AuthenticatorObserver : public AbstractRefCountedAndCanMakeWeakPtr<Authent
 public:
     virtual ~AuthenticatorObserver() = default;
     virtual void respondReceived(AuthenticatorObserverRespond&&) = 0;
-    virtual void downgrade(Authenticator& id, Ref<Authenticator>&& downgradedAuthenticator) = 0;
+    virtual void downgrade(Authenticator& id, Ref<Authenticator> downgradedAuthenticator) = 0;
     virtual void authenticatorStatusUpdated(WebAuthenticationStatus) = 0;
     virtual void requestPin(uint64_t retries, CompletionHandler<void(const WTF::String&)>&&) = 0;
     virtual void requestNewPin(uint64_t minLength, CompletionHandler<void(const WTF::String&)>&&) = 0;
@@ -82,7 +82,7 @@ public:
     void downgradeInObserver(Authenticator& downgradedAuthenticator);
     // Asks for the PIN, given the retries left, or for a new one, given its minimum length.
     void requestPinFromObserver(bool isNew, uint64_t retriesOrMinLength, AuthenticatorPinHandler&&) const;
-    void respondWithError(WebCore::ExceptionCode, const WTF::String& message) const;
+    void respondWithError(WebCore::ExceptionCode, WTF::String message) const;
     void respondWithResponse(WebCore::AuthenticatorResponse&) const;
     bool isCreationRequest() const { return std::holds_alternative<WebCore::PublicKeyCredentialCreationOptions>(requestData().options); }
     WebCore::PublicKeyCredentialCreationOptions creationOptions() const { return std::get<WebCore::PublicKeyCredentialCreationOptions>(requestData().options); }

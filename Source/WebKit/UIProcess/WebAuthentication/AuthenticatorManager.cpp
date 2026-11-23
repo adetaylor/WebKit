@@ -217,7 +217,7 @@ void AuthenticatorManager::handleRequest(WebAuthenticationRequestData&& data, Ca
     runPresenter();
 }
 
-void AuthenticatorManager::cancelRequest(const PageIdentifier& pageID, const std::optional<FrameIdentifier>& frameID)
+void AuthenticatorManager::cancelRequest(PageIdentifier pageID, std::optional<FrameIdentifier> frameID)
 {
     if (!m_pendingRequest || !m_pendingRequest->completionHandler)
         return;
@@ -272,7 +272,7 @@ void AuthenticatorManager::clearState()
     m_presenter = nullptr;
 }
 
-void AuthenticatorManager::authenticatorAdded(Ref<Authenticator>&& authenticator)
+void AuthenticatorManager::authenticatorAdded(Ref<Authenticator> authenticator)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
     if (!m_pendingRequest || !m_pendingRequest->completionHandler)
@@ -323,7 +323,7 @@ void AuthenticatorManager::respondReceivedInternal(Respond&& respond, bool shoul
     }
 }
 
-void AuthenticatorManager::downgrade(Authenticator& id, Ref<Authenticator>&& downgradedAuthenticator)
+void AuthenticatorManager::downgrade(Authenticator& id, Ref<Authenticator> downgradedAuthenticator)
 {
     RunLoop::mainSingleton().dispatch([weakThis = WeakPtr { *this }, id = Ref { id }] {
         RefPtr protectedThis = weakThis.get();
@@ -469,13 +469,14 @@ Ref<AuthenticatorTransportService> AuthenticatorManager::createService(Authentic
     return AuthenticatorTransportService::create(transport, observer);
 }
 
-void AuthenticatorManager::filterTransports(TransportSet& transports) const
+auto AuthenticatorManager::filterTransports(TransportSet transports) const -> TransportSet
 {
     if (!NfcService::isAvailable())
         transports.remove(AuthenticatorTransport::Nfc);
     if (!LocalService::isAvailable())
         transports.remove(AuthenticatorTransport::Internal);
     transports.remove(AuthenticatorTransport::Ble);
+    return transports;
 }
 
 void AuthenticatorManager::startDiscovery(const TransportSet& transports)
@@ -621,8 +622,7 @@ auto AuthenticatorManager::getTransports(const Variant<WebCore::PublicKeyCredent
             return collectTransports(options.allowCredentials, options.authenticatorAttachment);
         }
     );
-    filterTransports(transports);
-    return transports;
+    return filterTransports(WTF::move(transports));
 }
 
 void AuthenticatorManager::dispatchPanelClientCall(Function<void(const API::WebAuthenticationPanel&)>&& call) const

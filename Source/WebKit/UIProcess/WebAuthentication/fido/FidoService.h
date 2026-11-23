@@ -44,7 +44,7 @@ public:
 
 protected:
     explicit FidoService(AuthenticatorTransportServiceObserver&);
-    void getInfo(Ref<CtapDriver>&&);
+    void getInfo(Ref<CtapDriver>);
 
 private:
     void continueAfterGetInfo(CtapDriver&, Vector<uint8_t> info);
