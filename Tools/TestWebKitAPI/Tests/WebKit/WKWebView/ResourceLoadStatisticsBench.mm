@@ -33,16 +33,25 @@
 #import "Helpers/cocoa/TestWKWebView.h"
 #import "Helpers/cocoa/WKWebViewConfigurationExtras.h"
 #import "ResourceLoadStatisticsBenchInputs.h"
+#import <WebKit/WKArray.h>
+#import <WebKit/WKPreferencesPrivate.h>
 #import <WebKit/WKRetainPtr.h>
 #import <WebKit/WKString.h>
+#import <WebKit/WKWebViewPrivate.h>
+#import <WebKit/WKWebsiteDataRecordPrivate.h>
 #import <WebKit/WKWebsiteDataStorePrivate.h>
 #import <WebKit/WKWebsiteDataStoreRef.h>
+#import <WebKit/_WKFeature.h>
+#import <WebKit/_WKResourceLoadStatisticsFirstParty.h>
+#import <WebKit/_WKResourceLoadStatisticsThirdParty.h>
 #import <WebKit/_WKWebsiteDataStoreConfiguration.h>
+#import <algorithm>
 #import <cstdio>
 #import <cstdlib>
 #import <libproc.h>
 #import <mach/mach_time.h>
 #import <string>
+#import <vector>
 #import <wtf/MonotonicTime.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/URL.h>
@@ -50,7 +59,7 @@
 
 // Measures the network process's statistics store through the data store's testing entry points, and checks a digest of its dump.
 // Each test runs one pass; with WEBKIT_RUN_BENCHMARKS=1 it runs the pass repeatedly and prints the wall-clock time and
-// store calls per millisecond (in the MB/s slot) for the whole round trip.
+// store calls per millisecond (in the MB/s slot) for the whole round trip. The page shapes time their one pass.
 
 namespace TestWebKitAPI::ResourceLoadStatisticsBench {
 
@@ -103,6 +112,12 @@ static std::string domainURL(unsigned n)
     return "https://site" + std::to_string(n) + "." + suffixes[n % suffixes.size()] + "/";
 }
 
+// Host spelling of the nth domain, as removeITPDataForDomain takes it ("site12.co.uk").
+static std::string domainHost(unsigned n)
+{
+    return "site" + std::to_string(n) + "." + suffixes[n % suffixes.size()];
+}
+
 static std::string topFrameURL(unsigned n)
 {
     return "https://top" + std::to_string(n) + ".example/";
@@ -146,6 +161,48 @@ struct Pending {
     void wait() { Util::waitFor([&] { return !outstanding; }, 1000000); }
 };
 
+// One query's answer, written by its completion wherever it lands in the order of completions; 2 until it answers.
+struct Answer {
+    Pending* pending { nullptr };
+    uint8_t value { 2 };
+
+    void* context(Pending& owner)
+    {
+        pending = &owner;
+        owner.context();
+        return this;
+    }
+    static void received(bool value, void* context)
+    {
+        auto& answer = *static_cast<Answer*>(context);
+        answer.value = value;
+        Pending::done(answer.pending);
+    }
+};
+
+static void addAnswers(Checksum* checksum, const std::vector<Answer>& answers)
+{
+    if (!checksum)
+        return;
+    for (auto& answer : answers)
+        checksum->add(static_cast<uint64_t>(answer.value));
+}
+
+static std::string toStdString(WKStringRef string)
+{
+    size_t size = WKStringGetMaximumUTF8CStringSize(string);
+    std::string buffer(size, '\0');
+    buffer.resize(WKStringGetUTF8CString(string, buffer.data(), size) - 1);
+    return buffer;
+}
+
+static RetainPtr<NSURL> domainNSURL(unsigned n)
+{
+    return [NSURL URLWithString:@(domainURL(n).c_str())];
+}
+
+enum class Persistence : bool { Persistent, Ephemeral };
+
 // A data store with every directory under <directory>, so that website data other tests left cannot change the dump.
 static RetainPtr<_WKWebsiteDataStoreConfiguration> isolatedStoreConfiguration(NSURL *directory)
 {
@@ -164,20 +221,31 @@ static RetainPtr<NSURL> createTemporaryDirectory()
 // One persistent data store in its own temporary directory, with ITP on and test mode set, as an empty database.
 class Fixture {
 public:
-    Fixture()
+    explicit Fixture(Persistence persistence = Persistence::Persistent)
     {
-        m_directory = createTemporaryDirectory();
-        auto configuration = isolatedStoreConfiguration(m_directory.get());
-        m_store = adoptNS([[WKWebsiteDataStore alloc] _initWithConfiguration:configuration.get()]);
+        if (persistence == Persistence::Persistent) {
+            m_directory = createTemporaryDirectory();
+            auto configuration = isolatedStoreConfiguration(m_directory.get());
+            m_store = adoptNS([[WKWebsiteDataStore alloc] _initWithConfiguration:configuration.get()]);
+        } else {
+            RetainPtr configuration = adoptNS([[_WKWebsiteDataStoreConfiguration alloc] initNonPersistentConfiguration]);
+            m_store = adoptNS([[WKWebsiteDataStore alloc] _initWithConfiguration:configuration.get()]);
+        }
         [m_store _setResourceLoadStatisticsEnabled:YES];
         clear();
         Pending pending;
         WKWebsiteDataStoreSetStatisticsIsRunningTest(ref(), true, pending.context(), Pending::done);
         pending.wait();
-        advanceTime(0);
+        // An ephemeral session's store has no database: moving its clock is a RELEASE_ASSERT in the network process.
+        if (persistence == Persistence::Persistent)
+            advanceTime(0);
     }
 
-    ~Fixture() { [[NSFileManager defaultManager] removeItemAtURL:m_directory.get() error:nil]; }
+    ~Fixture()
+    {
+        if (m_directory)
+            [[NSFileManager defaultManager] removeItemAtURL:m_directory.get() error:nil];
+    }
 
     WKWebsiteDataStore *store() { return m_store.get(); }
     pid_t networkProcessIdentifier() { return [m_store _networkProcessIdentifier]; }
@@ -326,10 +394,10 @@ static void printNetworkFootprint(ASCIILiteral name, pid_t pid)
 // A shape is a function from a fixture to the digest of what the store ended up holding. It owns the whole pass,
 // including clearing the database, so a repeated pass starts where the first one did.
 template<typename Pass>
-static void runBenchmark(ASCIILiteral name, unsigned iterations, uint64_t expectedChecksum, Pass&& pass)
+static void runBenchmark(ASCIILiteral name, unsigned iterations, uint64_t expectedChecksum, Pass&& pass, Persistence persistence = Persistence::Persistent)
 {
     currentShape = name;
-    Fixture fixture;
+    Fixture fixture { persistence };
     Checksum checksum;
     auto firstStart = MonotonicTime::now();
     pass(fixture, &checksum);
@@ -463,6 +531,519 @@ static void cookieBlockingUpdate(Fixture& fixture, Checksum* checksum)
         fixture.sync();
     }
     digestDump(fixture, checksum);
+}
+
+// The queries the testing entry points send (isPrevalentResource, isVeryPrevalentResource, isGrandfathered,
+// hadUserInteraction, isRegisteredAsSubresourceUnder, isRegisteredAsSubFrameUnder, isRegisteredAsRedirectingTo,
+// isRelationshipOnlyInDatabaseOnce, domainIDExistsInDatabase), every tenth naming a domain the store has never seen,
+// except isRelationshipOnlyInDatabaseOnce, which traps in the network process on an unseen domain, and so names a seen one.
+static void statisticsQueries(Fixture& fixture, Checksum* checksum)
+{
+    constexpr unsigned queriesPerDomain = 9;
+    static bool populated = false;
+    if (!populated) {
+        fixture.clear();
+        fixture.populate(databaseDomains);
+        fixture.addRelations(databaseDomains, 0x9e41e5);
+        populated = true;
+    }
+    for (unsigned pass = 0; pass < queryPasses; ++pass) {
+        std::vector<Answer> answers(databaseDomains * queriesPerDomain + 1);
+        Pending pending;
+        WKWebsiteDataStoreIsStatisticsEphemeral(fixture.ref(), answers.back().context(pending), Answer::received);
+        for (unsigned n = 0; n < databaseDomains; ++n) {
+            unsigned subject = !(n % unknownDomainEvery) ? databaseDomains + n : n;
+            auto host = wkString(domainURL(subject));
+            auto top = wkString(topFrameURL(n % topFrameDomains));
+            auto other = wkString(domainURL((n + 1) % databaseDomains));
+            auto* answer = &answers[n * queriesPerDomain];
+            WKWebsiteDataStoreIsStatisticsPrevalentResource(fixture.ref(), host.get(), answer[0].context(pending), Answer::received);
+            WKWebsiteDataStoreIsStatisticsVeryPrevalentResource(fixture.ref(), host.get(), answer[1].context(pending), Answer::received);
+            WKWebsiteDataStoreIsStatisticsGrandfathered(fixture.ref(), host.get(), answer[2].context(pending), Answer::received);
+            WKWebsiteDataStoreIsStatisticsHasHadUserInteraction(fixture.ref(), host.get(), answer[3].context(pending), Answer::received);
+            WKWebsiteDataStoreIsStatisticsRegisteredAsSubresourceUnder(fixture.ref(), host.get(), top.get(), answer[4].context(pending), Answer::received);
+            WKWebsiteDataStoreIsStatisticsRegisteredAsSubFrameUnder(fixture.ref(), host.get(), top.get(), answer[5].context(pending), Answer::received);
+            WKWebsiteDataStoreIsStatisticsRegisteredAsRedirectingTo(fixture.ref(), host.get(), other.get(), answer[6].context(pending), Answer::received);
+            WKWebsiteDataStoreIsStatisticsOnlyInDatabaseOnce(fixture.ref(), wkString(domainURL(n)).get(), top.get(), answer[7].context(pending), Answer::received);
+            WKWebsiteDataStoreDoesStatisticsDomainIDExistInDatabase(fixture.ref(), static_cast<int>(subject + 1), answer[8].context(pending), Answer::received);
+            if (pending.outstanding >= mergeBatchSize)
+                pending.wait();
+        }
+        pending.wait();
+        if (!pass)
+            addAnswers(checksum, answers);
+    }
+}
+
+// Prevalence and interaction logging: setPrevalentResource, setVeryPrevalentResource, clearPrevalentResource,
+// logUserInteraction / clearUserInteraction, setLastSeen, setGrandfathered, setPrevalentResourceForDebugMode and debug
+// mode, then the classification that follows them.
+static void prevalenceAndInteraction(Fixture& fixture, Checksum* checksum)
+{
+    fixture.clear();
+    fixture.populate(databaseDomains);
+    {
+        Pending pending;
+        WKWebsiteDataStoreSetResourceLoadStatisticsDebugModeWithCompletionHandler(fixture.ref(), true, pending.context(), Pending::done);
+        pending.wait();
+    }
+    for (unsigned pass = 0; pass < interactionPasses; ++pass) {
+        Pending pending;
+        Pending* pendingPointer = &pending;
+        for (unsigned n = 0; n < databaseDomains; ++n) {
+            auto host = wkString(domainURL(n));
+            switch ((n + pass) % 5) {
+            case 0:
+                WKWebsiteDataStoreSetStatisticsPrevalentResource(fixture.ref(), host.get(), true, pending.context(), Pending::done);
+                break;
+            case 1:
+                WKWebsiteDataStoreSetStatisticsVeryPrevalentResource(fixture.ref(), host.get(), !(pass % 2), pending.context(), Pending::done);
+                break;
+            case 2:
+                pending.context();
+                [fixture.store() _clearPrevalentDomain:domainNSURL(n).get() completionHandler:^{
+                    Pending::done(pendingPointer);
+                }];
+                break;
+            case 3:
+                WKWebsiteDataStoreSetStatisticsHasHadUserInteraction(fixture.ref(), host.get(), !(pass % 2), pending.context(), Pending::done);
+                break;
+            case 4:
+                WKWebsiteDataStoreSetStatisticsLastSeen(fixture.ref(), host.get(), 3600.0 * (n % 48 + 1), pending.context(), Pending::done);
+                break;
+            }
+            if (!(n % 11)) {
+                ++callCount;
+                WKWebsiteDataStoreSetStatisticsGrandfathered(fixture.ref(), host.get(), (n + pass) % 2);
+            }
+            if (!(n % 17)) {
+                pending.context();
+                [fixture.store() _logUserInteraction:domainNSURL(n).get() completionHandler:^{
+                    Pending::done(pendingPointer);
+                }];
+            }
+            if (!(n % 97))
+                WKWebsiteDataStoreSetResourceLoadStatisticsPrevalentResourceForDebugMode(fixture.ref(), host.get(), pending.context(), Pending::done);
+            if (pending.outstanding >= mergeBatchSize)
+                pending.wait();
+        }
+        pending.wait();
+        fixture.sync();
+        fixture.processStatisticsAndDataRecords();
+        if (checksum)
+            digestDump(fixture, checksum);
+    }
+    {
+        Pending pending;
+        WKWebsiteDataStoreSetResourceLoadStatisticsDebugModeWithCompletionHandler(fixture.ref(), false, pending.context(), Pending::done);
+        pending.wait();
+    }
+    digestDump(fixture, checksum);
+}
+
+// The testing setters, each round setting every parameter to a new value, merging a few domains under it and
+// processing: grandfathering time, minimum time between removals, classification before removal, user-interaction time
+// to live, cache max-age cap, third-party cookie blocking (each policy), first-party website data removal mode, cross-site
+// loads with link decoration, isRunningTest and the time advance; then resetParametersToDefaultValues.
+static void testingSetters(Fixture& fixture, Checksum* checksum)
+{
+    fixture.clear();
+    for (unsigned round = 0; round < setterRounds; ++round) {
+        Pending pending;
+        callCount += 3;
+        WKWebsiteDataStoreSetStatisticsGrandfatheringTime(fixture.ref(), round % 2 ? 3600 : 1);
+        WKWebsiteDataStoreSetStatisticsMinimumTimeBetweenDataRecordsRemoval(fixture.ref(), round % 3);
+        WKWebsiteDataStoreSetStatisticsShouldClassifyResourcesBeforeDataRecordsRemoval(fixture.ref(), round % 2);
+        WKWebsiteDataStoreSetStatisticsTimeToLiveUserInteraction(fixture.ref(), 86400.0 * (1 + round % 30), pending.context(), Pending::done);
+        WKWebsiteDataStoreSetStatisticsCacheMaxAgeCap(fixture.ref(), 3600.0 * (round + 1), pending.context(), Pending::done);
+        WKWebsiteDataStoreSetResourceLoadStatisticsShouldBlockThirdPartyCookiesForTesting(fixture.ref(), round % 4 != 3, static_cast<WKThirdPartyCookieBlockingPolicy>(round % 3), pending.context(), Pending::done);
+        WKWebsiteDataStoreSetResourceLoadStatisticsFirstPartyWebsiteDataRemovalModeForTesting(fixture.ref(), round % 2, pending.context(), Pending::done);
+        auto from = wkString(domainURL(round));
+        auto to = wkString(topFrameURL(round % topFrameDomains));
+        WKWebsiteDataStoreSetStatisticsCrossSiteLoadWithLinkDecoration(fixture.ref(), from.get(), to.get(), round % 2, pending.context(), Pending::done);
+        WKWebsiteDataStoreSetStatisticsIsRunningTest(fixture.ref(), true, pending.context(), Pending::done);
+        WKWebsiteDataStoreSetResourceLoadStatisticsTimeAdvanceForTesting(fixture.ref(), timeShiftSeconds() + 3600.0 * round, pending.context(), Pending::done);
+        double now = WallTime::now().secondsSinceEpoch().seconds() + timeShiftSeconds();
+        for (unsigned domain = 0; domain < setterDomains; ++domain)
+            fixture.merge(pending, round * setterDomains + domain, round, now);
+        pending.wait();
+        fixture.processStatisticsAndDataRecords();
+    }
+    digestDump(fixture, checksum);
+
+    Pending pending;
+    WKWebsiteDataStoreStatisticsResetToConsistentState(fixture.ref(), pending.context(), Pending::done);
+    pending.wait();
+    WKWebsiteDataStoreSetStatisticsIsRunningTest(fixture.ref(), true, pending.context(), Pending::done);
+    pending.wait();
+    fixture.advanceTime(0);
+    digestDump(fixture, checksum);
+}
+
+// Pruning: setMaxStatisticsEntries and setPruneEntriesDownTo, with the database one below the maximum, at it, one above
+// it and well above it, each processed.
+static void pruneEntries(Fixture& fixture, Checksum* checksum)
+{
+    for (unsigned count : { pruneMaximumEntries - 1, pruneMaximumEntries, pruneMaximumEntries + 1, databaseDomains }) {
+        fixture.clear();
+        callCount += 2;
+        WKWebsiteDataStoreSetStatisticsMaxStatisticsEntries(fixture.ref(), pruneMaximumEntries);
+        WKWebsiteDataStoreSetStatisticsPruneEntriesDownTo(fixture.ref(), pruneEntriesDownTo);
+        fixture.populate(count);
+        fixture.processStatisticsAndDataRecords();
+        digestDump(fixture, checksum);
+    }
+}
+
+static RetainPtr<NSArray<WKWebsiteDataRecord *>> fetchStatisticsRecords(Fixture& fixture)
+{
+    ++callCount;
+    __block RetainPtr<NSArray<WKWebsiteDataRecord *>> records;
+    __block bool done = false;
+    [fixture.store() fetchDataRecordsOfTypes:[NSSet setWithObject:_WKWebsiteDataTypeResourceLoadStatistics] completionHandler:^(NSArray<WKWebsiteDataRecord *> *result) {
+        records = result;
+        done = true;
+    }];
+    Util::run(&done);
+    return [records sortedArrayUsingComparator:^NSComparisonResult(WKWebsiteDataRecord *a, WKWebsiteDataRecord *b) {
+        return [a.displayName compare:b.displayName];
+    }];
+}
+
+static std::string recordsText(NSArray<WKWebsiteDataRecord *> *records)
+{
+    std::string text;
+    for (WKWebsiteDataRecord *record in records)
+        text += std::string(record.displayName.UTF8String) + "\n";
+    return text;
+}
+
+// The data summary (aggregatedThirdPartyData) and the website data records of the statistics type (registrableDomains),
+// over a populated database with prevalent domains and relations.
+static void thirdPartyDataSummary(Fixture& fixture, Checksum* checksum)
+{
+    static bool populated = false;
+    if (!populated) {
+        fixture.clear();
+        fixture.populate(databaseDomains);
+        fixture.addRelations(databaseDomains, 0x5a11);
+        populated = true;
+    }
+    for (unsigned pass = 0; pass < summaryPasses; ++pass) {
+        ++callCount;
+        __block RetainPtr<NSArray<_WKResourceLoadStatisticsThirdParty *>> summary;
+        __block bool done = false;
+        [fixture.store() _getResourceLoadStatisticsDataSummary:^(NSArray<_WKResourceLoadStatisticsThirdParty *> *result) {
+            summary = result;
+            done = true;
+        }];
+        Util::run(&done);
+        auto records = fetchStatisticsRecords(fixture);
+        if (!checksum || pass)
+            continue;
+        // Time last updated is the clock's; the domains and grants are the store's.
+        std::vector<std::string> lines;
+        for (_WKResourceLoadStatisticsThirdParty *thirdParty in summary.get()) {
+            std::vector<std::string> firstParties;
+            for (_WKResourceLoadStatisticsFirstParty *firstParty in thirdParty.underFirstParties)
+                firstParties.push_back(std::string(firstParty.firstPartyDomain.UTF8String) + (firstParty.thirdPartyStorageAccessGranted ? "+" : "-"));
+            std::ranges::sort(firstParties);
+            std::string line = thirdParty.thirdPartyDomain.UTF8String;
+            for (auto& firstParty : firstParties)
+                line += " " + firstParty;
+            lines.push_back(WTF::move(line));
+        }
+        std::ranges::sort(lines);
+        checksum->add(lines.size());
+        for (auto& line : lines)
+            checksum->add(line);
+        checksum->add(recordsText(records.get()));
+    }
+}
+
+// Website data removal: records of the statistics type removed (removeDataForDomain), removeITPDataForDomain, a clear
+// of what was modified in the last hour, and a clear through website data removal.
+static void removeWebsiteData(Fixture& fixture, Checksum* checksum)
+{
+    fixture.clear();
+    fixture.populate(databaseDomains);
+    fixture.addRelations(databaseDomains, 0x7e30e);
+
+    auto records = fetchStatisticsRecords(fixture);
+    if (checksum)
+        checksum->add(recordsText(records.get()));
+    RetainPtr toRemove = adoptNS([[NSMutableArray alloc] init]);
+    for (NSUInteger i = 0; i < [records count]; i += removalStride)
+        [toRemove addObject:[records objectAtIndex:i]];
+    ++callCount;
+    __block bool done = false;
+    [fixture.store() removeDataOfTypes:[NSSet setWithObject:_WKWebsiteDataTypeResourceLoadStatistics] forDataRecords:toRemove.get() completionHandler:^{
+        done = true;
+    }];
+    Util::run(&done);
+    digestDump(fixture, checksum);
+
+    Pending pending;
+    for (unsigned n = 0; n < databaseDomains; n += itpRemovalStride) {
+        WKWebsiteDataStoreRemoveITPDataForDomain(fixture.ref(), wkString(domainHost(n)).get(), pending.context(), Pending::done);
+        if (pending.outstanding >= mergeBatchSize)
+            pending.wait();
+    }
+    pending.wait();
+    fixture.sync();
+    digestDump(fixture, checksum);
+
+    // Every fifth domain seen now, the rest an hour and more ago, so the last hour holds exactly the fifths.
+    double now = WallTime::now().secondsSinceEpoch().seconds() + timeShiftSeconds();
+    for (unsigned n = 0; n < databaseDomains; n += 5) {
+        WKWebsiteDataStoreSetStatisticsLastSeen(fixture.ref(), wkString(domainURL(n)).get(), now, pending.context(), Pending::done);
+        if (pending.outstanding >= mergeBatchSize)
+            pending.wait();
+    }
+    pending.wait();
+    WKWebsiteDataStoreStatisticsClearInMemoryAndPersistentStoreModifiedSinceHours(fixture.ref(), 1, pending.context(), Pending::done);
+    pending.wait();
+    digestDump(fixture, checksum);
+
+    fixture.populate(databaseDomains / 4);
+    WKWebsiteDataStoreStatisticsClearThroughWebsiteDataRemoval(fixture.ref(), pending.context(), Pending::done);
+    pending.wait();
+    digestDump(fixture, checksum);
+}
+
+// An ephemeral session's store: the in-memory interaction paths (logUserInteraction, clearUserInteraction,
+// hadUserInteraction), isResourceLoadStatisticsEphemeral and the in-memory clear.
+static void ephemeralSession(Fixture& fixture, Checksum* checksum)
+{
+    fixture.clear();
+    std::vector<Answer> answers(2 * ephemeralDomains + 1);
+    Pending pending;
+    WKWebsiteDataStoreIsStatisticsEphemeral(fixture.ref(), answers.back().context(pending), Answer::received);
+    for (unsigned n = 0; n < ephemeralDomains; ++n) {
+        auto host = wkString(domainURL(n));
+        WKWebsiteDataStoreSetStatisticsHasHadUserInteraction(fixture.ref(), host.get(), true, pending.context(), Pending::done);
+        if (!(n % 3))
+            WKWebsiteDataStoreSetStatisticsHasHadUserInteraction(fixture.ref(), host.get(), false, pending.context(), Pending::done);
+        WKWebsiteDataStoreIsStatisticsHasHadUserInteraction(fixture.ref(), host.get(), answers[n].context(pending), Answer::received);
+        if (pending.outstanding >= mergeBatchSize)
+            pending.wait();
+    }
+    pending.wait();
+    fixture.clear();
+    for (unsigned n = 0; n < ephemeralDomains; ++n) {
+        WKWebsiteDataStoreIsStatisticsHasHadUserInteraction(fixture.ref(), wkString(domainURL(n)).get(), answers[ephemeralDomains + n].context(pending), Answer::received);
+        if (pending.outstanding >= mergeBatchSize)
+            pending.wait();
+    }
+    pending.wait();
+    addAnswers(checksum, answers);
+}
+
+static std::string dumpOf(WKWebsiteDataStoreRef store)
+{
+    struct Context {
+        std::string result;
+        bool finished { false };
+    } context;
+    WKWebsiteDataStoreDumpResourceLoadStatistics(store, &context, [](WKStringRef string, void* contextPointer) {
+        auto& context = *static_cast<Context*>(contextPointer);
+        context.result = toStdString(string);
+        context.finished = true;
+    });
+    Util::run(&context.finished);
+    return context.result;
+}
+
+// Messages a web process sends per pass of WebProcessMessages, the rate's numerator.
+constexpr unsigned webProcessMessagesPerPass = webProcessRounds * (webProcessHostsPerRound + 4) + webProcessFrames * 6 + webProcessPopups * 2;
+
+// One page's pass over the NetworkConnectionToWebProcess messages: resourceLoadStatisticsUpdated (subresource loads, then
+// the observer's flush), logUserInteraction, setLoginStatus and isLoggedIn, queryStorageAccessPermission and the
+// permission-change subscription, hasStorageAccess and requestStorageAccess, requestStorageAccessUnderOpener (cross-site
+// popups with a user gesture), clearFrameLoadRecordsForStorageAccess (the frames removed); then, from the UI process,
+// setStorageAccessPermissionForTesting and the storage access entries. A fresh data store and page each pass.
+static void webProcessPass(Persistence persistence, Checksum* checksum)
+{
+    auto frameBody = "<script>(async () => {"
+        "let state = 'none';"
+        "try { const status = await navigator.permissions.query({ name: 'storage-access' }); state = status.state; status.onchange = () => { }; } catch (e) { state = 'error'; }"
+        "const before = await document.hasStorageAccess();"
+        "let requested = 'none';"
+        "await new Promise(resolve => internals.withUserGesture(() => { document.requestStorageAccess().then(() => { requested = 'granted'; resolve(); }, () => { requested = 'denied'; resolve(); }); }));"
+        "const after = await document.hasStorageAccess();"
+        "parent.postMessage('frame:' + location.hostname + ':' + state + ':' + before + ':' + requested + ':' + after, '*');"
+        "})();</script>"_s;
+    auto popupBody = "<script>internals.withUserGesture(() => { });"
+        "opener.postMessage('popup:' + location.hostname, '*');</script>"_s;
+
+    HTTPServer httpServer { HTTPServer::UseCoroutines::Yes, [&](Connection connection) -> ConnectionTask {
+        while (true) {
+            auto request = co_await connection.awaitableReceiveHTTPRequest();
+            URL url { HTTPServer::parsePath(request) };
+            if (url.string() == "/frame"_s) {
+                co_await connection.awaitableSend(HTTPResponse(frameBody).serialize());
+                continue;
+            }
+            if (url.string() == "/popup"_s) {
+                co_await connection.awaitableSend(HTTPResponse(popupBody).serialize());
+                continue;
+            }
+            co_await connection.awaitableSend(HTTPResponse("<body></body>"_s).serialize());
+        }
+    }, HTTPServer::Protocol::HttpsProxy };
+
+    RetainPtr<NSURL> storeDirectory;
+    RetainPtr<_WKWebsiteDataStoreConfiguration> storeConfiguration;
+    if (persistence == Persistence::Persistent) {
+        storeDirectory = createTemporaryDirectory();
+        storeConfiguration = isolatedStoreConfiguration(storeDirectory.get());
+    } else
+        storeConfiguration = adoptNS([[_WKWebsiteDataStoreConfiguration alloc] initNonPersistentConfiguration]);
+    storeConfiguration.get().httpsProxy = [NSURL URLWithString:[NSString stringWithFormat:@"https://127.0.0.1:%d/", httpServer.port()]];
+    RetainPtr dataStore = adoptNS([[WKWebsiteDataStore alloc] _initWithConfiguration:storeConfiguration.get()]);
+    auto storeRef = (WKWebsiteDataStoreRef)dataStore.get();
+    RetainPtr configuration = [WKWebViewConfiguration _test_configurationWithTestPlugInClassName:@"WebProcessPlugInWithInternals" configureJSCForTesting:YES];
+    [configuration setWebsiteDataStore:dataStore.get()];
+    [configuration preferences].javaScriptCanOpenWindowsAutomatically = YES;
+    for (_WKFeature *feature in [WKPreferences _features]) {
+        if ([feature.key isEqualToString:@"LoginStatusAPIEnabled"])
+            [[configuration preferences] _setEnabled:YES forFeature:feature];
+    }
+    [dataStore _setResourceLoadStatisticsEnabled:YES];
+
+    __block bool done { false };
+    [dataStore _clearResourceLoadStatistics:^{
+        done = true;
+    }];
+    Util::run(&done);
+    {
+        Pending pending;
+        WKWebsiteDataStoreSetStatisticsIsRunningTest(storeRef, true, pending.context(), Pending::done);
+        // Moving an ephemeral store's clock, or dumping it, is a RELEASE_ASSERT in the network process.
+        if (persistence == Persistence::Persistent)
+            WKWebsiteDataStoreSetResourceLoadStatisticsTimeAdvanceForTesting(storeRef, timeShiftSeconds(), pending.context(), Pending::done);
+        pending.wait();
+    }
+    for (unsigned frame = 0; frame < webProcessFrames; frame += 2) {
+        done = false;
+        [dataStore _logUserInteraction:[NSURL URLWithString:[NSString stringWithFormat:@"https://third%u.example/", frame]] completionHandler:^{
+            done = true;
+        }];
+        Util::run(&done);
+    }
+
+    RetainPtr navigationDelegate = adoptNS([TestNavigationDelegate new]);
+    [navigationDelegate allowAnyTLSCertificate];
+    RetainPtr uiDelegate = adoptNS([TestUIDelegate new]);
+    RetainPtr popups = adoptNS([[NSMutableArray alloc] init]);
+    uiDelegate.get().requestStorageAccessPanelForDomain = ^(WKWebView *, NSString *, NSString *, void (^completionHandler)(BOOL)) {
+        completionHandler(YES);
+    };
+    __weak TestUIDelegate *weakUIDelegate = uiDelegate.get();
+    __weak TestNavigationDelegate *weakNavigationDelegate = navigationDelegate.get();
+    uiDelegate.get().createWebViewWithConfiguration = ^WKWebView *(WKWebViewConfiguration *popupConfiguration, WKNavigationAction *, WKWindowFeatures *) {
+        RetainPtr popup = adoptNS([[TestWKWebView alloc] initWithFrame:NSMakeRect(0, 0, 100, 100) configuration:popupConfiguration]);
+        [popup setNavigationDelegate:weakNavigationDelegate];
+        [popup setUIDelegate:weakUIDelegate];
+        [popups addObject:popup.get()];
+        return [popups lastObject];
+    };
+    RetainPtr webView = adoptNS([[TestWKWebView alloc] initWithFrame:NSMakeRect(0, 0, 100, 100) configuration:configuration.get()]);
+    [webView setNavigationDelegate:navigationDelegate.get()];
+    [webView setUIDelegate:uiDelegate.get()];
+    [webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"https://top.example/"]]];
+    [navigationDelegate waitForDidFinishNavigation];
+
+    // The page reports what each step answered, in a fixed order, and alerts it once every step has run.
+    NSString *script = [NSString stringWithFormat:@"(async () => {"
+        "const login = navigator.login || navigator;"
+        "const report = [];"
+        "for (let round = 0; round < %u; ++round) {"
+        "  await Promise.all(Array.from({ length: %u }, (_, i) => fetch('https://sub' + round + '-' + i + '.example/pixel', { mode: 'no-cors' }).then(() => 1, () => 0)));"
+        "  internals.notifyResourceLoadObserver();"
+        "  let status;"
+        "  await new Promise(resolve => internals.withUserGesture(() => { try { login.setStatus(round %% 2 ? 'logged-out' : 'logged-in').then(() => { status = 'set'; resolve(); }, () => { status = 'rejected'; resolve(); }); } catch (e) { status = 'error'; resolve(); } }));"
+        "  let loggedIn;"
+        "  try { loggedIn = await login.isLoggedIn(); } catch (e) { loggedIn = 'error'; }"
+        "  report.push('login' + round + ':' + status + ':' + loggedIn);"
+        "}"
+        "const collect = (prefix, count, start) => new Promise(resolve => {"
+        "  const results = [];"
+        "  const listener = event => { if (!String(event.data).startsWith(prefix)) return; results.push(event.data); if (results.length == count) { removeEventListener('message', listener); resolve(results.sort()); } };"
+        "  addEventListener('message', listener);"
+        "  start();"
+        "});"
+        "report.push(...await collect('frame:', %u, () => { for (let i = 0; i < %u; ++i) { const frame = document.createElement('iframe'); frame.src = 'https://third' + i + '.example/frame'; document.body.appendChild(frame); } }));"
+        "report.push(...await collect('popup:', %u, () => { for (let i = 0; i < %u; ++i) internals.withUserGesture(() => { window.open('https://popup' + i + '.example/popup'); }); }));"
+        "for (const frame of [...document.querySelectorAll('iframe')]) frame.remove();"
+        "try { await login.isLoggedIn(); } catch (e) { }"
+        "return report.join('|');"
+        "})().then(result => alert(result), error => alert('error:' + error)); true",
+        webProcessRounds, webProcessHostsPerRound, webProcessFrames, webProcessFrames, webProcessPopups, webProcessPopups];
+    [webView evaluateJavaScript:script completionHandler:nil];
+    NSString *report = [uiDelegate waitForAlert];
+
+    {
+        Pending pending;
+        for (unsigned frame = 0; frame < webProcessFrames; ++frame) {
+            auto subFrame = wkString("https://third" + std::to_string(frame) + ".example/");
+            WKWebsiteDataStoreSetStorageAccessPermissionForTesting(storeRef, [webView _pageRefForTransitionToWKWebView], frame % 3, wkString("https://top.example/").get(), subFrame.get(), pending.context(), Pending::done);
+        }
+        pending.wait();
+    }
+    struct Entries {
+        std::vector<std::string> domains;
+        bool finished { false };
+    } entries;
+    WKWebsiteDataStoreGetAllStorageAccessEntries(storeRef, [webView _pageRefForTransitionToWKWebView], &entries, [](void* context, WKArrayRef domains) {
+        auto& entries = *static_cast<Entries*>(context);
+        for (size_t i = 0; domains && i < WKArrayGetSize(domains); ++i)
+            entries.domains.push_back(toStdString((WKStringRef)WKArrayGetItemAtIndex(domains, i)));
+        entries.finished = true;
+    });
+    Util::run(&entries.finished);
+    std::ranges::sort(entries.domains);
+    std::string dump;
+    if (persistence == Persistence::Persistent)
+        dump = dumpOf(storeRef);
+
+    if (checksum) {
+        checksum->add(std::string(report.UTF8String));
+        checksum->add(entries.domains.size());
+        for (auto& domain : entries.domains)
+            checksum->add(domain);
+        saveDump(dump);
+        checksum->add(dump);
+    }
+
+    if (persistence == Persistence::Persistent && checksum)
+        printNetworkFootprint(currentShape, [dataStore _networkProcessIdentifier]);
+    for (WKWebView *popup in popups.get())
+        [popup _close];
+    webView = nil;
+    popups = nil;
+    dataStore = nil;
+    if (storeDirectory)
+        [[NSFileManager defaultManager] removeItemAtURL:storeDirectory.get() error:nil];
+}
+
+static void runPageBenchmark(ASCIILiteral name, Persistence persistence, uint64_t expectedChecksum)
+{
+    currentShape = name;
+    Checksum checksum;
+    auto firstStart = MonotonicTime::now();
+    webProcessPass(persistence, &checksum);
+    double firstMilliseconds = (MonotonicTime::now() - firstStart).seconds() * 1000;
+    EXPECT_EQ(checksum.value(), expectedChecksum) << name.characters();
+    if (!runsBenchmarks()) {
+        SAFE_PRINTF("%s: first pass %.1f ms checksum=%016llx\n", name, firstMilliseconds, static_cast<unsigned long long>(checksum.value()));
+        fflush(stdout);
+        return;
+    }
+    // One fresh page per process: a second page in the same process never finishes its script (its alert does not
+    // arrive), so the full run times the first pass, which takes over a second.
+    SAFE_PRINTF("%s: %.1f ms %.6f MB/s checksum=%016llx\n", name, firstMilliseconds, webProcessMessagesPerPass / firstMilliseconds, static_cast<unsigned long long>(checksum.value()));
+    fflush(stdout);
 }
 
 } // namespace TestWebKitAPI::ResourceLoadStatisticsBench
@@ -619,6 +1200,52 @@ TEST(ResourceLoadStatisticsBench, StorageAccessDecisions)
 
     SAFE_PRINTF("StorageAccessDecisions: %.1f ms %.2f MB/s checksum=%016llx\n", seconds * 1000, storageAccessFrames * storageAccessChecksPerFrame / (seconds * 1000), static_cast<unsigned long long>(checksum.value()));
     fflush(stdout);
+}
+
+// Each path of the statistics messages of NetworkProcess and NetworkConnectionToWebProcess, through the testing entry points and the pages that send them.
+TEST(ResourceLoadStatisticsBench, StatisticsQueries)
+{
+    runBenchmark("StatisticsQueries"_s, 2, 0xb891008bb8cc5862ull, statisticsQueries);
+}
+
+TEST(ResourceLoadStatisticsBench, PrevalenceAndInteraction)
+{
+    runBenchmark("PrevalenceAndInteraction"_s, 1, 0x3abf3d560f3cd78full, prevalenceAndInteraction);
+}
+
+TEST(ResourceLoadStatisticsBench, TestingSetters)
+{
+    runBenchmark("TestingSetters"_s, 1, 0x474e24c81f2399f1ull, testingSetters);
+}
+
+TEST(ResourceLoadStatisticsBench, PruneEntries)
+{
+    runBenchmark("PruneEntries"_s, 2, 0xac4c2d006e674af7ull, pruneEntries);
+}
+
+TEST(ResourceLoadStatisticsBench, ThirdPartyDataSummary)
+{
+    runBenchmark("ThirdPartyDataSummary"_s, 3, 0x6857199e2ab7f049ull, thirdPartyDataSummary);
+}
+
+TEST(ResourceLoadStatisticsBench, RemoveWebsiteData)
+{
+    runBenchmark("RemoveWebsiteData"_s, 1, 0x1b443d46b2ae37d6ull, removeWebsiteData);
+}
+
+TEST(ResourceLoadStatisticsBench, EphemeralSession)
+{
+    runBenchmark("EphemeralSession"_s, 4, 0xe9c1dd05687cb783ull, ephemeralSession, Persistence::Ephemeral);
+}
+
+TEST(ResourceLoadStatisticsBench, WebProcessMessages)
+{
+    runPageBenchmark("WebProcessMessages"_s, Persistence::Persistent, 0xcd4c4495a98cc24eull);
+}
+
+TEST(ResourceLoadStatisticsBench, WebProcessMessagesEphemeral)
+{
+    runPageBenchmark("WebProcessMessagesEphemeral"_s, Persistence::Ephemeral, 0xeb12f32141581033ull);
 }
 
 } // namespace TestWebKitAPI

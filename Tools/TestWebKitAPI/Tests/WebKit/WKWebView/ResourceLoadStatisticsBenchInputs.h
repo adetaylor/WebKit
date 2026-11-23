@@ -48,6 +48,24 @@ inline constexpr unsigned storageAccessChecksPerFrame = 700; // document.hasStor
 inline constexpr unsigned deletePasses = 5;
 inline constexpr unsigned dumpPasses = 5;
 
+// The message shapes: every statistics message of NetworkProcess and NetworkConnectionToWebProcess, each through its
+// testing entry point or the web page that sends it.
+inline constexpr unsigned queryPasses = 3; // StatisticsQueries: nine queries per domain per pass
+inline constexpr unsigned unknownDomainEvery = 10; // every 10th query names a domain the store has never seen
+inline constexpr unsigned interactionPasses = 3; // PrevalenceAndInteraction
+inline constexpr unsigned setterRounds = 40; // TestingSetters: rounds of every parameter setter
+inline constexpr unsigned setterDomains = 50; // domains merged between setter rounds
+inline constexpr unsigned pruneMaximumEntries = 400; // PruneEntries: populated at one below, at and above it
+inline constexpr unsigned pruneEntriesDownTo = 300;
+inline constexpr unsigned summaryPasses = 10; // ThirdPartyDataSummary
+inline constexpr unsigned removalStride = 7; // RemoveWebsiteData: every 7th record removed through website data removal
+inline constexpr unsigned itpRemovalStride = 11; // and every 11th through removeITPDataForDomain
+inline constexpr unsigned ephemeralDomains = 500; // EphemeralSession
+inline constexpr unsigned webProcessRounds = 12; // WebProcessMessages: rounds of subresource loads and login status
+inline constexpr unsigned webProcessHostsPerRound = 25; // third-party subresource hosts loaded per round
+inline constexpr unsigned webProcessFrames = 8; // third-party subframes querying the storage-access permission
+inline constexpr unsigned webProcessPopups = 6; // cross-site popups with a user gesture (requestStorageAccessUnderOpener)
+
 // Seconds a statistic is aged, kept away from the 24-hour boundary the dump prints ("within 24 hours"), so a dump
 // is the same on every run.
 inline constexpr double recentAgeSeconds = 3600;
