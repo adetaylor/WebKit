@@ -56,8 +56,9 @@ SWIFT_IMPLEMENTATION_ATTRIBUTE = 'SwiftImplementation'
 # makes for the first of them and keeps, without the receiver, unless the message is 'WantsReceiver'. Its messages must
 # all be dispatched on one serial queue, as a stream receiver's are.
 SWIFT_STATE_ATTRIBUTE = 'SwiftState'
-# On a Swift stream or WorkQueue receiver: 'SwiftTarget=Target' names the Swift class its generated forwarder dispatches to, when that isn't the
-# receiver's name because a C++ class of that name stays for C++ callers and owns the Swift receiver.
+# On a Swift receiver: 'SwiftTarget=Target' names the Swift class its generated forwarder dispatches to, when that isn't the
+# receiver's name because a C++ class of that name stays for C++ callers and owns the Swift receiver. A main-thread
+# receiver's forwarder asks C++ for its target, so there the Swift class is visible to C++ under that name.
 SWIFT_TARGET_ATTRIBUTE = 'SwiftTarget'
 # On a message that takes Swift types, to a receiver with 'SwiftState=': its handler is a method of the receiver's Swift
 # extension, as it is without 'SwiftState='.
@@ -186,8 +187,8 @@ class MessageReceiver(object):
         self._enforce_swift_implementation_constraints()
         if self.has_swift_receiver_owner() and (not self.is_swift_receiver() or not self.has_attribute(STREAM_ATTRIBUTE) or self.swift_receiver_state_lender):
             raise Exception("ERROR: Receiver %s has '%s', which is for Swift stream receivers without a state lender" % (self.name, SWIFT_RECEIVER_OWNER_ATTRIBUTE))
-        if self.swift_target and not (self.is_swift_receiver() and not self.is_swift_implementation() and (self.has_attribute(WORK_QUEUE_ATTRIBUTE) or self.has_attribute(STREAM_ATTRIBUTE))):
-            raise Exception("ERROR: Receiver %s has '%s=', which is for Swift stream or WorkQueue receivers" % (self.name, SWIFT_TARGET_ATTRIBUTE))
+        if self.swift_target and not (self.is_swift_receiver() and not self.is_swift_implementation()):
+            raise Exception("ERROR: Receiver %s has '%s=', which is for Swift receivers" % (self.name, SWIFT_TARGET_ATTRIBUTE))
         if self.swift_types and not (self.is_swift_receiver() or self.is_swift_implementation()):
             raise Exception("ERROR: Receiver %s has 'SwiftTypes' but is not a Swift receiver: it also needs 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy='" % self.name)
         if self.has_attribute(WORK_QUEUE_ATTRIBUTE) and not (self.is_swift_receiver() or self.is_swift_implementation()):

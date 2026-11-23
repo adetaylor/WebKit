@@ -53,7 +53,7 @@ void TestWithSwiftConditionallyAndEnabledBy::didReceiveMessage(IPC::Connection& 
         decoder.markInvalid();
         return;
     }
-    auto sharedPreferences = target->sharedPreferencesForWebProcess(connection);
+    auto sharedPreferences = target->sharedPreferencesForWebProcess(&connection);
 #else // ENABLE(SWIFT_TEST_CONDITION)
     auto sharedPreferences = sharedPreferencesForWebProcess(connection);
 #endif // ENABLE(SWIFT_TEST_CONDITION)
@@ -89,7 +89,7 @@ void TestWithSwiftConditionallyAndEnabledBy::didReceiveSyncMessage(IPC::Connecti
         decoder.markInvalid();
         return;
     }
-    auto sharedPreferences = target->sharedPreferencesForWebProcess(connection);
+    auto sharedPreferences = target->sharedPreferencesForWebProcess(&connection);
 #else // ENABLE(SWIFT_TEST_CONDITION)
     auto sharedPreferences = sharedPreferencesForWebProcess(connection);
 #endif // ENABLE(SWIFT_TEST_CONDITION)

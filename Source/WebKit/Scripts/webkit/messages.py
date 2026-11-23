@@ -1028,6 +1028,9 @@ def forward_declarations_and_headers(receiver):
         handler_namespace_name = 'WebKit'  # hard coded for now
         swift_extra_types_by_namespace[handler_namespace_name].add(('class', weak_ref_class))
         swift_extra_types_by_namespace[handler_namespace_name].add(('class', class_name))
+        if not swift_receiver_runs_on_work_queue(receiver):
+            # A main-thread forwarder's getMessageTarget() returns the Swift class it dispatches to.
+            swift_extra_types_by_namespace[handler_namespace_name].add(('class', swift_receiver_target_class(receiver)))
         swift_extra_types_by_namespace[handler_namespace_name].add(('class', forwarder_class))
         if receiver.is_recordable():
             swift_extra_types_by_namespace[handler_namespace_name].add(('class', recorder_weak_ref_class(receiver)))
@@ -1542,7 +1545,7 @@ def generate_messages_header(receiver):
         result.append('private:\n')
         result.append('    ' + forwarder_class + '(' + handler_namespace + '::' + weak_ref_class + '* WTF_NONNULL);\n')
         if not swift_receiver_runs_on_work_queue(receiver):
-            result.append('    std::optional<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
+            result.append('    std::optional<' + handler_namespace + '::' + swift_receiver_target_class(receiver) + '> getMessageTarget();\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
         if is_stream and receiver_needs_shared_preferences(receiver):
             result.append('    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;\n')
@@ -1646,7 +1649,7 @@ def generate_messages_header(receiver):
     return ''.join(result)
 
 
-_SWIFT_WRAPPER_TEMPLATES = ('Ref', 'RefPtr', 'Vector', 'std::optional')
+_SWIFT_WRAPPER_TEMPLATES = ('Ref', 'RefPtr', 'Vector', 'std::optional', 'IPC::Untrusted')
 
 # C++ types that Swift imports as noncopyable, which a Swift parameter has to say it borrows.
 _SWIFT_NONCOPYABLE_TYPES = frozenset(['IPC::Semaphore', 'WebCore::SharedMemory::Handle'])
@@ -1655,8 +1658,18 @@ _SWIFT_NONCOPYABLE_TYPES = frozenset(['IPC::Semaphore', 'WebCore::SharedMemory::
 def swift_borrowing_prefix(cpp_type):
     return 'borrowing ' if _strip_cpp_type_decorations(cpp_type) in _SWIFT_NONCOPYABLE_TYPES else ''
 
-# The prefix of the alias Swift names a wrapper template's instantiation with: NS::OptionalT for std::optional<NS::T>.
-_SWIFT_WRAPPER_ALIAS_PREFIXES = {'std::optional': 'Optional'}
+
+# The prefix of the alias Swift names a wrapper template's instantiation with: NS::OptionalT for std::optional<NS::T>,
+# NS::UntrustedT for IPC::Untrusted<NS::T>. An IPC::Untrusted<> parameter reaches only a message whose arguments C++
+# decodes (model.py refuses it on one that takes Swift types), and its Swift handler opens it only through the
+# validation functions C++ declares for Swift, as a C++ handler does through validate().
+_SWIFT_WRAPPER_ALIAS_PREFIXES = {'std::optional': 'Optional', 'IPC::Untrusted': 'Untrusted'}
+
+
+# The Swift class a Swift receiver's forwarder dispatches to: its 'SwiftTarget=', when a C++ class keeps the receiver's name.
+def swift_receiver_target_class(receiver):
+    return receiver.swift_target or receiver.name
+
 
 # Plain C structs that a Swift bridge header declares outside any namespace.
 _SWIFT_GLOBAL_TYPES = frozenset(['CGRendererColorValue'])
@@ -2849,7 +2862,8 @@ def generate_target_and_enabled_by_statements(receiver, messages):
         result.append('        return;\n')
         result.append('    }\n')
         if needs_shared_preferences:
-            result.append('    auto sharedPreferences = target->sharedPreferencesForWebProcess(%s);\n' % connection_argument)
+            # The Swift target takes the connection as a pointer (IPC::Connection is a Swift-imported reference type).
+            result.append('    auto sharedPreferences = target->sharedPreferencesForWebProcess(%s);\n' % ('&' + connection_argument if connection_argument else ''))
 
     def append_cpp_statements(result):
         result.append('    auto sharedPreferences = sharedPreferencesForWebProcess(%s);\n' % connection_argument)
@@ -3044,7 +3058,7 @@ def generate_message_handler(receiver):
                 result.append('\n')
 
         if not swift_receiver_runs_on_work_queue(receiver):
-            result.append('std::optional<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
+            result.append('std::optional<%s> %s::getMessageTarget()\n' % (swift_receiver_target_class(receiver), forwarder_class))
             result.append('{\n')
             result.append('    if (!m_handler->hasMessageTarget())\n')
             result.append('        return std::nullopt;\n')

@@ -35,7 +35,7 @@ from io import StringIO
 module_directory = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.abspath(os.path.join(module_directory, os.path.pardir)))
-from webkit import parser  # noqa: E402
+from webkit import messages, parser  # noqa: E402
 
 tests_directory = os.path.join(module_directory, 'tests')
 
@@ -447,6 +447,21 @@ class SwiftTypesTest(unittest.TestCase):
     def test_error_synchronous_without_reply(self):
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported for a 'Synchronous' message without a reply"):
             parse_swift_receiver(['Message(uint32_t value) Synchronous'])
+
+    def test_untrusted_parameter_decoded_by_cxx(self):
+        receiver = parse_swift_receiver(['Message(IPC::Untrusted<WebCore::SecurityOriginData> origin, IPC::Untrusted<std::optional<WebCore::SecurityOriginData>> parentOrigin)'], extended_attributes=('SwiftReceiver',))
+        self.assertEqual(messages.swift_type_aliases(receiver), {'WebCore': {
+            'UntrustedSecurityOriginData': 'IPC::Untrusted<WebCore::SecurityOriginData>',
+            'UntrustedOptionalSecurityOriginData': 'IPC::Untrusted<std::optional<WebCore::SecurityOriginData>>',
+        }})
+
+    def test_swift_target_on_main_thread_receiver(self):
+        receiver = parse_swift_receiver(['Message(uint32_t value)'], extended_attributes=('SwiftReceiver', 'SwiftTarget=TestReceiverTarget'))
+        self.assertEqual(messages.swift_receiver_target_class(receiver), 'TestReceiverTarget')
+
+    def test_error_swift_target_without_swift_receiver(self):
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftTarget=', which is for Swift receivers"):
+            parse_swift_receiver(['Message(uint32_t value)'], extended_attributes=('SwiftTarget=TestReceiverTarget',))
 
     def test_error_untrusted_parameter(self):
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with an IPC::Untrusted<> parameter 'value'"):

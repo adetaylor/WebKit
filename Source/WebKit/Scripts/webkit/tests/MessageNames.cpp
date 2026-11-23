@@ -193,6 +193,9 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
 #endif
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithoutReply"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithSwiftUntrusted_UntrustedOptionalOriginReply"_s, ReceiverName::TestWithSwiftUntrusted, false, false, true, ProcessName::UI, ProcessName::WebContent },
+    MessageDescription { "TestWithSwiftUntrusted_UntrustedOriginReply"_s, ReceiverName::TestWithSwiftUntrusted, false, false, true, ProcessName::UI, ProcessName::WebContent },
+    MessageDescription { "TestWithSwiftUntrusted_UntrustedOriginWithoutReply"_s, ReceiverName::TestWithSwiftUntrusted, false, false, false, ProcessName::WebContent, ProcessName::UI },
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxDecodedReply"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxString"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxStringAsyncReply"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
@@ -323,6 +326,8 @@ const MessageDescriptionsArray messageDescriptions {
 #if PLATFORM(COCOA)
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
 #endif
+    MessageDescription { "TestWithSwiftUntrusted_UntrustedOptionalOrigin"_s, ReceiverName::TestWithSwiftUntrusted, false, false, false, ProcessName::WebContent, ProcessName::UI },
+    MessageDescription { "TestWithSwiftUntrusted_UntrustedOrigin"_s, ReceiverName::TestWithSwiftUntrusted, false, false, false, ProcessName::WebContent, ProcessName::UI },
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxDecoded"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxStringAsync"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftWorkQueue_SendEmptyAsync"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
