@@ -200,11 +200,13 @@ static BOOL NFHardwareManagerAreFeaturesSupported(id, SEL, NFFeature, NSError**)
     return YES;
 }
 
-static void NFHardwareManagerStartReaderSessionWithBusyError(id, SEL, void (^callback)(NFReaderSession*, NSError*)) {
+static id NFHardwareManagerStartReaderSessionWithBusyError(id, SEL, void (^callback)(NFReaderSession*, NSError*))
+{
     dispatch_async(globalDispatchQueueSingleton(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSError *error = [NSError errorWithDomain:@"com.apple.nfcd" code:2 userInfo:@{ NSLocalizedDescriptionKey: @"Busy" }];
         callback(nil, error);
     });
+    return nil;
 }
 
 static IMP originalSharedHardwareManager;

@@ -89,7 +89,7 @@ NS_ASSUME_NONNULL_BEGIN
     }
 }
 
-- (void)authorizationPresenter:(ASCAuthorizationPresenter *)presenter validateUserEnteredPIN:(NSString *)pin completionHandler:(void (^)(id <ASCCredentialProtocol> credential, NSError *error))completionHandler
+- (void)authorizationPresenter:(ASCAuthorizationPresenter *)presenter validateUserEnteredPIN:(NSString *)pin completionHandler:(void (^)(id<ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler
 {
     auto requestHandler = [completionHandler = makeBlockPtr(completionHandler)] (ASCAppleIDCredential *credential, NSError *error) {
         completionHandler(credential, error);

@@ -1642,6 +1642,7 @@
 		57B826412304EB3E00B72EB0 /* NearFieldSPI.h in Headers */ = {isa = PBXBuildFile; fileRef = 57B826402304EB3E00B72EB0 /* NearFieldSPI.h */; };
 		57B826442304F14000B72EB0 /* NearFieldSoftLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 57B826422304F14000B72EB0 /* NearFieldSoftLink.h */; };
 		57B826452304F14000B72EB0 /* NearFieldSoftLink.mm in Sources */ = {isa = PBXBuildFile; fileRef = 57B826432304F14000B72EB0 /* NearFieldSoftLink.mm */; };
+		6D5E1F02A70E40EA91DACD92 /* WebAuthnSoftLinkForSwift.mm in Sources */ = {isa = PBXBuildFile; fileRef = B0C88AAC14264F1593DD65E3 /* WebAuthnSoftLinkForSwift.mm */; };
 		57B8264823050C5100B72EB0 /* FidoService.h in Headers */ = {isa = PBXBuildFile; fileRef = 57B8264623050C5100B72EB0 /* FidoService.h */; };
 		57B8264C230603C100B72EB0 /* MockNfcService.h in Headers */ = {isa = PBXBuildFile; fileRef = 57B8264A230603C100B72EB0 /* MockNfcService.h */; };
 		57BBEA6D22BC0BFE00273995 /* SOAuthorizationLoadPolicy.h in Headers */ = {isa = PBXBuildFile; fileRef = 57BBEA6C22BC0BFE00273995 /* SOAuthorizationLoadPolicy.h */; };
@@ -6915,6 +6916,8 @@
 		1EC49B43B1534FF4844C0537 /* WebAuthnKeychainShims.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthnKeychainShims.h; sourceTree = "<group>"; };
 		D52709638E77434BAFC1A8D1 /* WebAuthenticationPanelCredentials.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticationPanelCredentials.h; sourceTree = "<group>"; };
 		B30949EF75FB415EA09EFD70 /* WebAuthnKeychainShims.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAuthnKeychainShims.mm; sourceTree = "<group>"; };
+		F63643BE22734C83B413BBD9 /* WebAuthnSoftLinkForSwift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthnSoftLinkForSwift.h; sourceTree = "<group>"; };
+		B0C88AAC14264F1593DD65E3 /* WebAuthnSoftLinkForSwift.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAuthnSoftLinkForSwift.mm; sourceTree = "<group>"; };
 		57DCEDA42149E64A0016B847 /* Authenticator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Authenticator.cpp; sourceTree = "<group>"; };
 		57DCEDA62149F9DA0016B847 /* WebAuthenticationRequestData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticationRequestData.h; sourceTree = "<group>"; };
 		57DCEDA7214A568B0016B847 /* LocalConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalConnection.h; sourceTree = "<group>"; };
@@ -15438,6 +15441,8 @@
 				0DCBF4D926E2ED3200EA0E07 /* WebAuthenticatorCoordinatorProxy.mm */,
 				1EC49B43B1534FF4844C0537 /* WebAuthnKeychainShims.h */,
 				B30949EF75FB415EA09EFD70 /* WebAuthnKeychainShims.mm */,
+				F63643BE22734C83B413BBD9 /* WebAuthnSoftLinkForSwift.h */,
+				B0C88AAC14264F1593DD65E3 /* WebAuthnSoftLinkForSwift.mm */,
 				577739932580388F0059348B /* WKASCAuthorizationPresenterDelegate.h */,
 				577739942580388F0059348B /* WKASCAuthorizationPresenterDelegate.mm */,
 				570DAAC423037F7E00E8FC04 /* WKNFReaderSessionDelegate.h */,
@@ -22971,6 +22976,7 @@
 				07D1FE3E79C141B7B597EEBA /* MomentumEventDispatcher.swift in Sources */,
 				9A10C3E5A1F04B2E8D6C7B01 /* ScrollingAccelerationCurve.swift in Sources */,
 				57B826452304F14000B72EB0 /* NearFieldSoftLink.mm in Sources */,
+				6D5E1F02A70E40EA91DACD92 /* WebAuthnSoftLinkForSwift.mm in Sources */,
 				C1C1B30F2540F50D00D9100B /* NetworkConnectionToWebProcessMac.mm in Sources */,
 				41E242E026E0C908009A8C64 /* NetworkRTCUtilitiesCocoa.mm in Sources */,
 				FA5AAE9C2E6A217A00FE693D /* NetworkSoftLink.mm in Sources */,

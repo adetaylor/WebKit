@@ -35,6 +35,28 @@ DECLARE_SYSTEM_HEADER
 
 #else
 
+// Swift refers to these classes through objc_lookUpClass instead of a class symbol, which the soft link does not
+// provide. A lookup made before the framework is loaded misses, and the class lookup hook WebKit installs at
+// initialization (WebAuthnSoftLinkForSwift.h) then loads it through the soft-link getter, which traps if it cannot.
+// Objective-C++ is unaffected.
+#ifndef WK_SOFT_LINKED_OBJC_CLASS
+#if defined(__swift__)
+#define WK_SOFT_LINKED_OBJC_CLASS __attribute__((objc_runtime_visible))
+#else
+#define WK_SOFT_LINKED_OBJC_CLASS
+#endif
+#endif
+
+// NFHardwareManager is optional (on Mac, and the mock registers one where NearField has none), so the hook leaves
+// it alone, and it is unavailable to Swift, which reaches it only through the helpers in WebAuthnSoftLinkForSwift.h.
+#ifndef WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE
+#if defined(__swift__)
+#define WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE NS_SWIFT_UNAVAILABLE("The class is optional; use the helper in WebAuthnSoftLinkForSwift.h")
+#else
+#define WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE
+#endif
+#endif
+
 typedef NS_OPTIONS(NSUInteger, NFFeature) {
     NFFeatureReaderMode                 = 1 << 0,
 };
@@ -82,6 +104,7 @@ typedef NS_ENUM(uint32_t, NFNdefAvailability) {
 - (BOOL)isEqualToNFTag:(id<NFTag>)tag;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface NFTag : NSObject <NSSecureCoding, NFTag, NFTagA, NFTagB, NFTagF>
 @end
 
@@ -89,8 +112,9 @@ typedef NS_ENUM(uint32_t, NFNdefAvailability) {
 - (void)endSession;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface NFSession : NSObject <NFSession>
-- (void)endSessionWithCompletion:(void(^)(void))theCallback;
+- (void)endSessionWithCompletion:(NS_SWIFT_SENDABLE void(^)(void))theCallback;
 @end
 
 @protocol NFReaderSessionDelegate;
@@ -99,6 +123,7 @@ typedef NS_ENUM(NSInteger, NFReaderSessionUI) {
     NFReaderSessionUINone
 };
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface NFReaderSession : NFSession
 @property (assign) id<NFReaderSessionDelegate> delegate;
 
@@ -115,9 +140,10 @@ typedef NS_ENUM(NSInteger, NFReaderSessionUI) {
 - (void)readerSession:(NFReaderSession*)theSession didDetectTags:(NSArray<NFTag *> *)tags;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE
 @interface NFHardwareManager : NSObject
 + (instancetype)sharedHardwareManager;
-- (NSObject<NFSession> *)startReaderSession:(void(^)(NFReaderSession *session, NSError *error))theStartCallback;
+- (NSObject<NFSession> *)startReaderSession:(NS_SWIFT_SENDABLE void(^)(NFReaderSession *session, NSError *error))theStartCallback;
 - (BOOL)areFeaturesSupported:(NFFeature)featureMask outError:(NSError**)outError;
 @end
 

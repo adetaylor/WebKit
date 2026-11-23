@@ -733,6 +733,7 @@ UIProcess/WebAuthentication/Cocoa/WKASCAuthorizationPresenterDelegate.mm @nonARC
 UIProcess/WebAuthentication/Cocoa/WKNFReaderSessionDelegate.mm @nonARC
 UIProcess/WebAuthentication/Cocoa/WebAuthenticationPanelClient.mm @nonARC
 UIProcess/WebAuthentication/Cocoa/WebAuthnKeychainShims.mm
+UIProcess/WebAuthentication/Cocoa/WebAuthnSoftLinkForSwift.mm @nonARC @no-unify // Outside the unified bundles, as the soft-link sources it reaches into are.
 
 UIProcess/WebAuthentication/Mock/MockLocalConnection.mm @nonARC
 UIProcess/WebAuthentication/Mock/MockLocalService.mm @nonARC

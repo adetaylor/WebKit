@@ -27,6 +27,10 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#if defined(__swift__)
+#error "Swift reaches the soft-linked frameworks through WebAuthnSoftLinkForSwift.h: this header's alloc<Class>Instance() would give it an object whose initializer never ran."
+#endif
+
 #import "NearFieldSPI.h"
 #import <wtf/SoftLinking.h>
 

@@ -27,6 +27,7 @@
 #import "WebKit2Initialize.h"
 
 #import "SecurityFlagsController.h"
+#import "WebAuthnSoftLinkForSwift.h"
 #import <JavaScriptCore/InitializeThreading.h>
 #import <WebCore/CommonAtomStrings.h>
 #import <WebCore/WebCoreJITOperations.h>
@@ -74,6 +75,13 @@ static void runInitializationCode(void* = nullptr)
     // Every auxiliary process entry point calls setAuxiliaryProcessType() before this, so this is the UIProcess.
     if (!isInAuxiliaryProcess())
         SecurityFlagsController::initialize();
+
+#if ENABLE(WEB_AUTHN)
+    // The UI process's Swift looks soft-linked classes up by name; the hook loads a class's framework when its lookup
+    // misses, and costs nothing otherwise. No other process's Swift names them, so no other process installs it.
+    if (!isInAuxiliaryProcess())
+        installSoftLinkedClassLookupHook();
+#endif
 }
 
 void InitializeWebKit2()
