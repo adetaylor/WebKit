@@ -1939,6 +1939,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     loader/PolicyChecker.h
     loader/PolicyContainer.h
     loader/PrivateClickMeasurement.h
+    loader/PrivateClickMeasurementSwift.h
     loader/ProgressTracker.h
     loader/ProgressTrackerClient.h
     loader/ResourceCryptographicDigest.h

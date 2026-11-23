@@ -75,7 +75,7 @@ public:
     
     NODELETE WEBCORE_EXPORT static const Seconds maxAge();
     WEBCORE_EXPORT bool isNeitherSameSiteNorCrossSiteTriggeringEvent(const RegistrableDomain& redirectDomain, const URL& firstPartyURL, const PCM::AttributionTriggerData&);
-    WEBCORE_EXPORT static std::expected<PCM::AttributionTriggerData, String> parseAttributionRequest(const URL& redirectURL);
+    WEBCORE_EXPORT static std::expected<PCM::AttributionTriggerData, String> parseAttributionRequest(URL redirectURL);
     WEBCORE_EXPORT PCM::AttributionSecondsUntilSendData attributeAndGetEarliestTimeToSend(PCM::AttributionTriggerData&&, IsRunningLayoutTest);
     NODELETE WEBCORE_EXPORT bool hasHigherPriorityThan(const PrivateClickMeasurement&) const;
     WEBCORE_EXPORT URL attributionReportClickSourceURL() const;
@@ -83,14 +83,22 @@ public:
     WEBCORE_EXPORT Ref<JSON::Object> attributionReportJSON() const;
     const PCM::SourceSite& sourceSite() const { return m_sourceSite; };
     const PCM::AttributionDestinationSite& destinationSite() const { return m_destinationSite; };
+    // Swift imports the const& accessors as unsafe pointers; these return copies.
+    PCM::SourceSite sourceSiteCopy() const { return m_sourceSite; }
+    PCM::AttributionDestinationSite destinationSiteCopy() const { return m_destinationSite; }
     WallTime timeOfAdClick() const { return m_timeOfAdClick; }
     NODELETE WEBCORE_EXPORT bool hasPreviouslyBeenReported();
     PCM::AttributionTimeToSendData timesToSend() const { return m_timesToSend; };
     void setTimesToSend(PCM::AttributionTimeToSendData data) { m_timesToSend = data; }
     const SourceID& sourceID() const LIFETIME_BOUND { return m_sourceID; }
     const std::optional<PCM::AttributionTriggerData>& attributionTriggerData() const LIFETIME_BOUND { return m_attributionTriggerData; }
+    // Swift imports the const& accessor above as an unsafe pointer; this copies it to out.
+    using OptionalAttributionTriggerData = std::optional<PCM::AttributionTriggerData>;
+    void copyAttributionTriggerData(OptionalAttributionTriggerData& out) const { out = m_attributionTriggerData; }
     void setAttribution(PCM::AttributionTriggerData&& attributionTriggerData) { m_attributionTriggerData = WTF::move(attributionTriggerData); }
     const String& sourceApplicationBundleID() const LIFETIME_BOUND { return m_sourceApplicationBundleID; }
+    // Swift imports the const& accessor above as an unsafe pointer; this returns a copy.
+    String sourceApplicationBundleIDCopy() const { return m_sourceApplicationBundleID; }
     WEBCORE_EXPORT void setSourceApplicationBundleIDForTesting(const String&);
 
     PCM::AttributionEphemeral isEphemeral() const { return m_isEphemeral; }
@@ -98,9 +106,9 @@ public:
 
     // MARK: - Fraud Prevention
     WEBCORE_EXPORT std::optional<URL> tokenPublicKeyURL() const;
-    WEBCORE_EXPORT static std::optional<URL> tokenPublicKeyURL(const RegistrableDomain&);
+    WEBCORE_EXPORT static std::optional<URL> tokenPublicKeyURL(RegistrableDomain);
     WEBCORE_EXPORT std::optional<URL> tokenSignatureURL() const;
-    WEBCORE_EXPORT static std::optional<URL> tokenSignatureURL(const RegistrableDomain&);
+    WEBCORE_EXPORT static std::optional<URL> tokenSignatureURL(RegistrableDomain);
 
     WEBCORE_EXPORT Ref<JSON::Object> tokenSignatureJSON() const;
 
@@ -110,7 +118,7 @@ public:
 
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT std::optional<String> calculateAndUpdateSourceUnlinkableToken(const String& serverPublicKeyBase64URL);
-    WEBCORE_EXPORT static std::expected<PCM::DestinationUnlinkableToken, String> calculateAndUpdateDestinationUnlinkableToken(const String& serverPublicKeyBase64URL);
+    WEBCORE_EXPORT static std::expected<PCM::DestinationUnlinkableToken, String> calculateAndUpdateDestinationUnlinkableToken(String serverPublicKeyBase64URL);
     WEBCORE_EXPORT std::optional<String> calculateAndUpdateSourceSecretToken(const String& serverResponseBase64URL);
     WEBCORE_EXPORT static std::expected<PCM::DestinationSecretToken, String> calculateAndUpdateDestinationSecretToken(const String& serverResponseBase64URL, PCM::DestinationUnlinkableToken&);
 #endif
@@ -118,10 +126,12 @@ public:
     PCM::SourceUnlinkableToken& sourceUnlinkableToken() LIFETIME_BOUND { return m_sourceUnlinkableToken; }
     void setSourceUnlinkableTokenValue(const String& value) { m_sourceUnlinkableToken.valueBase64URL = value; }
     const std::optional<PCM::SourceSecretToken>& sourceSecretToken() const LIFETIME_BOUND { return m_sourceSecretToken; }
+    // Swift imports the const& accessor above as an unsafe pointer; this returns a copy.
+    std::optional<PCM::SourceSecretToken> sourceSecretTokenCopy() const { return m_sourceSecretToken; }
     WEBCORE_EXPORT void setSourceSecretToken(PCM::SourceSecretToken&&);
     WEBCORE_EXPORT void setDestinationSecretToken(PCM::DestinationSecretToken&&);
 
-    static std::optional<uint64_t> appStoreURLAdamID(const URL&);
+    static std::optional<uint64_t> appStoreURLAdamID(URL);
     bool isSKAdNetworkAttribution() const { return !!m_adamID; }
     std::optional<uint64_t> adamID() const { return m_adamID; };
     void setAdamID(uint64_t adamID) { m_adamID = adamID; };
@@ -130,13 +140,7 @@ public:
     WEBCORE_EXPORT PrivateClickMeasurement isolatedCopy() &&;
 
 private:
-    static std::expected<PCM::AttributionTriggerData, String> parseAttributionRequestQuery(const URL&);
     bool isValid() const;
-
-#if PLATFORM(COCOA)
-    static std::optional<String> calculateAndUpdateUnlinkableToken(const String& serverPublicKeyBase64URL, PCM::UnlinkableToken&, const String& contextForLogMessage);
-    static std::optional<String> calculateAndUpdateSecretToken(const String& serverResponseBase64URL, PCM::UnlinkableToken&, PCM::SecretToken&, const String& contextForLogMessage);
-#endif
 
     SourceID m_sourceID;
     PCM::SourceSite m_sourceSite;
