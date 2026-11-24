@@ -712,6 +712,15 @@ public:
         return std::exchange(m_encoder, nullptr);
     }
 
+    // Called when the value that holds the reply to a main-thread handler's asynchronous message is destroyed: a reply
+    // never sent is dropped, sending nothing, as a C++ handler's dropped CompletionHandler does.
+    void endAsyncReply()
+    {
+        ASSERT_WITH_MESSAGE(!m_asyncReply && !m_encoder, "Completion handler should always be called");
+        m_asyncReply.reset();
+        m_encoder = nullptr;
+    }
+
     // Called when the dispatch of a stream message ends: replies with the default reply if generated Swift
     // didn't reply, and makes later use crash, since the stream buffer is no longer the reply's.
     void endStreamDispatch()

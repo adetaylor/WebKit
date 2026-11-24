@@ -51,6 +51,14 @@ void TestWithSwiftImplementation::didReceiveMessage(IPC::Connection& connection,
         IPC::handleSwiftMessage<Messages::TestWithSwiftImplementation::SendDirect>(connection, decoder, this, &SwiftDispatch::TestWithSwiftImplementation::dispatchSendDirect);
         return;
     }
+    if (decoder.messageName() == Messages::TestWithSwiftImplementation::AsyncReplyValue::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftImplementation::AsyncReplyValue>(connection, decoder, this, &SwiftDispatch::TestWithSwiftImplementation::dispatchAsyncReplyValue);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftImplementation::AsyncEmptyReplyValue::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftImplementation::AsyncEmptyReplyValue>(connection, decoder, this, &SwiftDispatch::TestWithSwiftImplementation::dispatchAsyncEmptyReplyValue);
+        return;
+    }
     if (decoder.messageName() == Messages::TestWithSwiftImplementation::SendCxxString::name()) {
         IPC::handleMessage<Messages::TestWithSwiftImplementation::SendCxxString>(connection, decoder, this, &TestWithSwiftImplementation::sendCxxString);
         return;
@@ -102,6 +110,22 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SendDirect::Arguments>(globalObject, decoder);
 }
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncReplyValue>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncReplyValue::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_AsyncReplyValue>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncReplyValue::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncEmptyReplyValue::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncEmptyReplyValue::ReplyArguments>(globalObject, decoder);
+}
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendCxxString>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SendCxxString::Arguments>(globalObject, decoder);
@@ -109,6 +133,14 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendStringAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SendStringAsyncReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncReplyValueReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncReplyValueReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValueReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncEmptyReplyValueReply::Arguments>(globalObject, decoder);
 }
 
 }

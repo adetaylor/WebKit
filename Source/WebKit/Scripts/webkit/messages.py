@@ -1909,6 +1909,12 @@ def gives_swift_reply_value(message):
     return message.has_attribute(SWIFT_REPLY_VALUE_ATTRIBUTE) or message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)
 
 
+# Whether a message's Swift reply value, dropped unsent, sends nothing, as a C++ handler's dropped completion handler
+# does: the asynchronous reply of a main-thread receiver's SwiftSyncHandler. The others send the default reply.
+def drops_unsent_swift_reply_value(receiver, message):
+    return message.has_attribute(SWIFT_REPLY_VALUE_ATTRIBUTE) and not (swift_receiver_runs_on_work_queue(receiver) or message.has_attribute(SYNCHRONOUS_ATTRIBUTE))
+
+
 # How the Invocation of a message that takes Swift types encodes the handler's return value: the value
 # itself for a single reply, or each element of the tuple returned for several.
 def swift_reply_encoding_statements(message, reply_variable, encoder):
@@ -3445,7 +3451,7 @@ def generate_swift_message_handler(receiver):
             result.append('        return target\n')
             result.append('    }\n')
 
-    stream_reply_values = []
+    reply_values = []
     completion_handler_replies = []
 
     # A Swift handler cannot throw across the C++ boundary - swiftc will not represent a throwing
@@ -3642,7 +3648,7 @@ def generate_swift_message_handler(receiver):
                 arguments.append('reply: %s(replyEncoder: replyEncoder)' % reply_value_type)
                 reply_statements = []
                 cancel_statements = []
-                stream_reply_values.append((message, reply_value_type, encoding_statements))
+                reply_values.append((message, reply_value_type, encoding_statements, drops_unsent_swift_reply_value(receiver, message)))
             elif is_stream and message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and not message.has_attribute(NOT_STREAM_ENCODABLE_REPLY_ATTRIBUTE):
                 # A Synchronous reply that doesn't fit in the stream buffer is encoded a second time, out of stream.
                 reply_statements = encoding_statements + ['if !replyEncoder.send() {'] + ['    %s' % statement for statement in encoding_statements] + ['    replyEncoder.send()', '}']
@@ -3653,7 +3659,7 @@ def generate_swift_message_handler(receiver):
                 arguments.append('reply: %s(replyEncoder: replyEncoder)' % reply_value_type)
                 reply_statements = []
                 cancel_statements = []
-                stream_reply_values.append((message, reply_value_type, encoding_statements))
+                reply_values.append((message, reply_value_type, encoding_statements, False))
         elif has_reply:
             reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]
             cancel_statements = swift_failed_check_reply_statements(receiver, message)
@@ -3810,7 +3816,7 @@ def generate_swift_message_handler(receiver):
         result += state_result
         result.append('}\n')
 
-    for message, reply_value_type, encoding_statements in stream_reply_values:
+    for message, reply_value_type, encoding_statements, ends_unsent in reply_values:
         cxx_encoded_reply = message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)
         reply_types = [] if cxx_encoded_reply else [swift_types.swift_type_and_coder(parameter.type)[0] for parameter in message.reply_parameters]
         if cxx_encoded_reply:
@@ -3841,9 +3847,23 @@ def generate_swift_message_handler(receiver):
             result.append('        %s\n' % statement)
         result.append('        replyEncoder.send()\n')
         result.append('    }\n')
+        if ends_unsent and not cxx_encoded_reply:
+            # A main-thread handler passes its reply on to a callback as this function.
+            if not reply_types:
+                function_type = '() -> Void'
+            elif len(reply_types) == 1:
+                function_type = '(%s%s) -> Void' % ('consuming ' if swift_types.is_owned_type(message.reply_parameters[0].type) else '', reply_types[0])
+            else:
+                function_type = '((%s)) -> Void' % ', '.join('%s: %s' % (parameter.name, swift_type) for parameter, swift_type in zip(message.reply_parameters, reply_types))
+            result.append('\n')
+            result.append('    // send() as a completion handler, which sends the reply the first time it is called.\n')
+            result.append('    consuming func completionHandler() -> %s {\n' % function_type)
+            result.append('        var reply = Optional(self)\n')
+            result.append('        return { reply.take()?.send(%s) }\n' % ('$0' if reply_types else ''))
+            result.append('    }\n')
         result.append('\n')
         result.append('    deinit {\n')
-        result.append('        replyEncoder.cancel()\n')
+        result.append('        replyEncoder.%s()\n' % ('endAsyncReply' if ends_unsent else 'cancel'))
         result.append('    }\n')
         result.append('}\n')
         if message.condition:

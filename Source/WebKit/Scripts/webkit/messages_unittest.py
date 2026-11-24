@@ -844,9 +844,18 @@ messages -> TestReceiver Stream {
             self.assertIn('IPC::handleSwiftMessageSynchronous<Messages::TestReceiver::Message>(connection, decoder, replyEncoder, %s);\n' % target, messages.generate_message_handler(work_queue_synchronous))
             self.assertNotIn('handleSwiftMessageSynchronousWithReplyValue', messages.generate_message_handler(work_queue_synchronous))
             self.assertIn('reply: TestReceiverMessageReply(replyEncoder: replyEncoder)', messages.generate_swift_message_handler(work_queue_synchronous))
-        # SwiftReplyValue stays Synchronous-only.
-        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftReplyValue', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types"):
+        # On a stream, SwiftReplyValue stays Synchronous-only.
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftReplyValue', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types, or asynchronous ones with 'SwiftSyncHandler' to a main-thread receiver"):
             parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) SwiftReplyValue')
+        # On a main-thread receiver, an asynchronous reply value needs a synchronous handler.
+        for attributes in (['SwiftReceiver', 'SwiftTypes'], ['SwiftImplementation', 'SwiftTypes']):
+            with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftReplyValue', which is for an asynchronous message to a main-thread receiver only with 'SwiftSyncHandler'"):
+                parse_receiver(attributes, '', '    Message(uint32_t value) -> (uint32_t reply) SwiftReplyValue')
+            main_thread = parse_receiver(attributes, '', '    Message(uint32_t value) -> (uint32_t reply) SwiftSyncHandler SwiftReplyValue')
+            self.assertIn('IPC::handleSwiftMessageAsync<Messages::TestReceiver::Message>', messages.generate_message_handler(main_thread))
+            swift = messages.generate_swift_message_handler(main_thread)
+            self.assertIn('reply: TestReceiverMessageReply(replyEncoder: replyEncoder)', swift)
+            self.assertNotIn('Task', swift)
 
     def test_conditional_completion_handlers(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """

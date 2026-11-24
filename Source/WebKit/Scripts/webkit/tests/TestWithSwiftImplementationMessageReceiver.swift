@@ -240,4 +240,111 @@ extension SwiftDispatch.TestWithSwiftImplementation {
         }
         return true
     }
+
+    @cxx
+    @implementation
+    static func dispatchAsyncReplyValue(
+        _ target: sending WebKit.TestWithSwiftImplementation,
+        _ connection: sending IPC.Connection,
+        _ decoder: IPC.SwiftDecoder,
+        _ replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        var decoder = decoder
+        let value: UInt32
+        do {
+            value = try UInt32.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            do throws(InvalidMessage) {
+                try mayThrowInvalidMessage(
+                    target.asyncReplyValue(
+                        connection: connection,
+                        value: value,
+                        reply: TestWithSwiftImplementationAsyncReplyValueReply(replyEncoder: replyEncoder)
+                    )
+                )
+            } catch {
+                markMessageInvalid(error, on: connection)
+            }
+        }
+        return true
+    }
+
+    @cxx
+    @implementation
+    static func dispatchAsyncEmptyReplyValue(
+        _ target: sending WebKit.TestWithSwiftImplementation,
+        _ connection: sending IPC.Connection,
+        _ decoder: IPC.SwiftDecoder,
+        _ replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        var decoder = decoder
+        let value: UInt32
+        do {
+            value = try UInt32.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            do throws(InvalidMessage) {
+                try mayThrowInvalidMessage(
+                    target.asyncEmptyReplyValue(
+                        connection: connection,
+                        value: value,
+                        reply: TestWithSwiftImplementationAsyncEmptyReplyValueReply(replyEncoder: replyEncoder)
+                    )
+                )
+            } catch {
+                markMessageInvalid(error, on: connection)
+            }
+        }
+        return true
+    }
+}
+
+struct TestWithSwiftImplementationAsyncReplyValueReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send(_ reply: Bool) {
+        Bool.encode(reply, to: replyEncoder)
+        replyEncoder.send()
+    }
+
+    // send() as a completion handler, which sends the reply the first time it is called.
+    consuming func completionHandler() -> (Bool) -> Void {
+        var reply = Optional(self)
+        return { reply.take()?.send($0) }
+    }
+
+    deinit {
+        replyEncoder.endAsyncReply()
+    }
+}
+
+struct TestWithSwiftImplementationAsyncEmptyReplyValueReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send() {
+        replyEncoder.send()
+    }
+
+    // send() as a completion handler, which sends the reply the first time it is called.
+    consuming func completionHandler() -> () -> Void {
+        var reply = Optional(self)
+        return { reply.take()?.send() }
+    }
+
+    deinit {
+        replyEncoder.endAsyncReply()
+    }
 }

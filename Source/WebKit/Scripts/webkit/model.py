@@ -101,7 +101,9 @@ SWIFT_DECODE_CONTEXT_ATTRIBUTE_PREFIX = 'SwiftDecodeContext='
 NOT_RECORDED_ATTRIBUTE = 'NotRecorded'
 # On a Synchronous message to a stream receiver that takes Swift types, whose reply isn't stream-encodable: its Swift
 # handler is given the reply as a value, which it may send after it returns, as a C++ handler may call its completion
-# handler later, or drop to send the default reply.
+# handler later, or drop to send the default reply. Also on an asynchronous message with a reply that takes Swift types
+# and has 'SwiftSyncHandler', to a main-thread receiver: its handler, which can't wait for the reply, is given it the same way,
+# except that dropping it sends nothing, as dropping a C++ handler's completion handler does.
 SWIFT_REPLY_VALUE_ATTRIBUTE = 'SwiftReplyValue'
 # The same, for a reply whose types have no Swift form: C++ encodes it, with the reply encoder the value gives it.
 CXX_ENCODED_REPLY_ATTRIBUTE = 'CxxEncodedReply'
@@ -300,10 +302,15 @@ class MessageReceiver(object):
             # Asynchronous replies of any Swift receiver, and synchronous ones of a WorkQueue receiver, which C++ encodes.
             if attribute == CXX_ENCODED_REPLY_ATTRIBUTE and self.takes_swift_types(message) and message.reply_parameters and (not message.has_attribute(SYNCHRONOUS_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE)):
                 continue
+            # Asynchronous replies of a main-thread receiver's synchronous Swift handler.
+            if attribute == SWIFT_REPLY_VALUE_ATTRIBUTE and self.takes_swift_types(message) and message.reply_parameters is not None and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and not (self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE)):
+                if not message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE):
+                    raise Exception("ERROR: Message %s has '%s', which is for an asynchronous message to a main-thread receiver only with '%s'" % (description, attribute, SWIFT_SYNC_HANDLER_ATTRIBUTE))
+                continue
             if not (self.takes_swift_types(message) and self.has_attribute(STREAM_ATTRIBUTE) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and message.has_attribute('NotStreamEncodableReply')):
                 if attribute == CXX_ENCODED_REPLY_ATTRIBUTE:
                     raise Exception("ERROR: Message %s has '%s', which is for messages with a reply that take Swift types: asynchronous ones, Synchronous ones to a WorkQueue receiver, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver" % (description, attribute))
-                raise Exception("ERROR: Message %s has '%s', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types" % (description, attribute))
+                raise Exception("ERROR: Message %s has '%s', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types, or asynchronous ones with '%s' to a main-thread receiver" % (description, attribute, SWIFT_SYNC_HANDLER_ATTRIBUTE))
         if message.has_attribute(SWIFT_COMPLETION_HANDLER_ATTRIBUTE) and (message.reply_parameters is None or self.takes_swift_types(message) or not self.is_swift_receiver() or self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE)):
             raise Exception("ERROR: Message %s has '%s', which is for messages with a reply, to a main-thread Swift receiver, that take no Swift types" % (description, SWIFT_COMPLETION_HANDLER_ATTRIBUTE))
         if message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) and not (self.is_swift_receiver() or self.is_swift_implementation()):

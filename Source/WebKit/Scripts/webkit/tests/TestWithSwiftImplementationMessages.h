@@ -150,6 +150,66 @@ private:
     uint32_t m_value;
 };
 
+class AsyncReplyValue {
+public:
+    using Arguments = std::tuple<uint32_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftImplementation_AsyncReplyValue; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftImplementation_AsyncReplyValueReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<bool>;
+    using Reply = CompletionHandler<void(bool)>;
+    using Promise = WTF::NativePromise<bool, IPC::Error>;
+    explicit AsyncReplyValue(uint32_t value)
+        : m_value(value)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_value;
+    }
+
+private:
+    uint32_t m_value;
+};
+
+class AsyncEmptyReplyValue {
+public:
+    using Arguments = std::tuple<uint32_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValueReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<>;
+    using Reply = CompletionHandler<void()>;
+    using Promise = WTF::NativePromise<void, IPC::Error>;
+    explicit AsyncEmptyReplyValue(uint32_t value)
+        : m_value(value)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_value;
+    }
+
+private:
+    uint32_t m_value;
+};
+
 class SendCxxString {
 public:
     using Arguments = std::tuple<String>;
@@ -200,6 +260,53 @@ private:
     const String& m_reply;
 };
 
+class AsyncReplyValueReply {
+public:
+    using Arguments = std::tuple<bool>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftImplementation_AsyncReplyValueReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit AsyncReplyValueReply(bool reply)
+        : m_reply(reply)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_reply;
+    }
+
+private:
+    bool m_reply;
+};
+
+class AsyncEmptyReplyValueReply {
+public:
+    using Arguments = std::tuple<>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValueReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    AsyncEmptyReplyValueReply()
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+    }
+
+private:
+};
+
 } // namespace TestWithSwiftImplementation
 } // namespace Messages
 namespace WebKit {
@@ -215,6 +322,8 @@ bool dispatchSendString(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::C
 bool dispatchSendStringAsync(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);
 bool dispatchSendStringSync(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);
 bool dispatchSendDirect(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder);
+bool dispatchAsyncReplyValue(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);
+bool dispatchAsyncEmptyReplyValue(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);
 
 } // namespace TestWithSwiftImplementation
 } // namespace SwiftDispatch
