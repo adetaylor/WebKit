@@ -4517,6 +4517,20 @@ else ()
             platform/mock/MockVideoSettings.h)
     endif ()
 
+    if (ENABLE_WEBGL)
+        # WebGL's Swift module, WebCoreWebGL, as on the Apple ports. WebCore is an object library here, so the libraries
+        # that link its objects link the module's archive whole: the linker would drop the members that hold only
+        # types and conformances.
+        add_subdirectory(platform/graphics/angle/swift)
+        target_link_libraries(WebCore PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,WebCoreWebGL>")
+        # The images that link WebCore's objects link the archive whole, above: an ELF object's auto-link of it
+        # (WEBKIT_LINK_SWIFT_RUNTIME) would put it on the link line a second time, ahead of the whole one.
+        webkit_target_add_swift_options(WebCore
+            "-I${WebCoreWebGL_SWIFT_MODULE_DIR}"
+            "-Xcc -I${WebCoreWebGL_INTEROP_MODULE_DIR}"
+            "-Xfrontend -disable-autolink-library -Xfrontend WebCoreWebGL")
+    endif ()
+
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
     string(APPEND _webcore_swift_modules
         "    explicit module HTMLFastPathParserTypes {\n"
@@ -5155,6 +5169,9 @@ else ()
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${_webcore_swift_module_dir}"
         "WebCoreSwift-Generated.h")
+    if (ENABLE_WEBGL)
+        add_dependencies(WebCore_SwiftGeneratedDeps WebCoreWebGL)
+    endif ()
 
     if (WIN32)
         # The shared importer flags declare WebCore's and PAL's exports __declspec(dllimport), as every
