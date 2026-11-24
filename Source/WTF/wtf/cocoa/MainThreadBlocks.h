@@ -31,16 +31,20 @@
 
 namespace WTF {
 
-// Block versions of callOnMainThread() and ensureOnMainThread(), for Swift. Swift sees the
+// Block versions of callOnMainThread(), ensureOnMainThread(), callOnMainRunLoop() and ensureOnMainRunLoop(), for Swift. Swift sees the
 // block as a @Sendable closure, so it checks what the closure captures. The block, and what
 // it captures, is released on whichever thread drops the last reference to it, which may be
 // the calling thread.
 WTF_EXPORT_PRIVATE void callOnMainThreadWithBlock(void (^ __attribute__((swift_attr("@Sendable"))) _Nonnull block)(void));
 WTF_EXPORT_PRIVATE void ensureOnMainThreadWithBlock(void (^ __attribute__((swift_attr("@Sendable"))) _Nonnull block)(void));
+WTF_EXPORT_PRIVATE void callOnMainRunLoopWithBlock(void (^ __attribute__((swift_attr("@Sendable"))) _Nonnull block)(void));
+WTF_EXPORT_PRIVATE void ensureOnMainRunLoopWithBlock(void (^ __attribute__((swift_attr("@Sendable"))) _Nonnull block)(void));
 
 } // namespace WTF
 
 using WTF::callOnMainThreadWithBlock;
 using WTF::ensureOnMainThreadWithBlock;
+using WTF::callOnMainRunLoopWithBlock;
+using WTF::ensureOnMainRunLoopWithBlock;
 
 #endif // __BLOCKS__

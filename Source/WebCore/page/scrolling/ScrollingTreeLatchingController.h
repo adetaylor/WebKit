@@ -38,20 +38,11 @@
 
 namespace WebCore {
 
-class PlatformWheelEvent;
 enum class WheelEventProcessingSteps : uint8_t;
 class ScrollingTreeWheelState;
 
-enum class LatchedToUnscrollableRoot : bool { No, Yes };
-
 class ScrollingTreeLatchingController {
 public:
-    struct ScrollingNodeAndProcessingSteps {
-        ScrollingNodeID scrollingNodeID;
-        OptionSet<WheelEventProcessingSteps> processingSteps;
-        LatchedToUnscrollableRoot latchedToUnscrollableRoot { LatchedToUnscrollableRoot::No };
-    };
-
     NODELETE ScrollingTreeLatchingController();
     ~ScrollingTreeLatchingController();
     ScrollingTreeLatchingController(const ScrollingTreeLatchingController&) = delete;
@@ -60,19 +51,14 @@ public:
     // The latching and gesture state, and the tree's wheel event handling (ScrollingTreeLatchingController.swift).
     ScrollingTreeWheelState& wheelState() const LIFETIME_BOUND;
 
-    void receivedWheelEvent(const PlatformWheelEvent&, OptionSet<WheelEventProcessingSteps>, bool allowLatching);
-
-    std::optional<ScrollingNodeAndProcessingSteps> latchingDataForEvent(const PlatformWheelEvent&, bool allowLatching) const;
-
-    NODELETE std::optional<ScrollingNodeID> latchedNodeID() const;
-    NODELETE bool isLatchedToUnscrollableRoot() const;
-
-    NODELETE void nodeWasRemoved(ScrollingNodeID);
-    NODELETE void clearLatchedNode();
-
 private:
-    // Keeps the size and alignment of the members above, as ScrollingTree's layout does (ScrollingTree.h).
+    // Gives the class the size and alignment that ScrollingTree's layout expects (ScrollingTree.h).
     struct StateLayout {
+        struct ScrollingNodeAndProcessingSteps {
+            ScrollingNodeID scrollingNodeID;
+            OptionSet<WheelEventProcessingSteps> processingSteps;
+            bool latchedToUnscrollableRoot;
+        };
         Lock latchedNodeLock;
         std::optional<ScrollingNodeAndProcessingSteps> latchedNodeAndSteps;
         std::optional<OptionSet<WheelEventProcessingSteps>> processingStepsForCurrentGesture;

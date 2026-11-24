@@ -26,7 +26,6 @@
 #include "config.h"
 #include "ScrollbarsControllerGeneric.h"
 
-#include "ScrollAnimationKinetic.h"
 #include "ScrollAnimationSmooth.h"
 #include "ScrollableArea.h"
 #include "ScrollbarTheme.h"

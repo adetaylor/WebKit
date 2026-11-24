@@ -3468,9 +3468,9 @@ def generate_swift_message_handler(receiver):
                     result.append('        var %sPosition = IPC.LentBytesPosition()\n' % name)
                     continue
                 result.append('        let %s: %s\n' % (name, swift_type))
-            # Lent bytes and C++-decoded arguments decode without throwing, so a message with lent bytes and no other
-            # Swift-decoded argument has no do block, whose catch would be unreachable.
-            needs_do = not lent_parameters or any(coder and coder != LENT_BYTES_CODER for _, _, coder in decoded_parameters)
+            # Lent bytes and C++-decoded arguments decode without throwing, so a message with no Swift-decoded
+            # argument has no do block, whose catch would be unreachable.
+            needs_do = any(coder and coder != LENT_BYTES_CODER for _, _, coder in decoded_parameters)
             # Swift can't destroy a ~Copyable value on some paths out of a block and not others, so each argument of a
             # message with an owned argument is decoded in a block of its own, out of which every path either returns
             # or leaves it decoded.

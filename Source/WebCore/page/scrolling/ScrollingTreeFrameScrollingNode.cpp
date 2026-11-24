@@ -50,68 +50,28 @@ ScrollingTreeFrameScrollingNode::~ScrollingTreeFrameScrollingNode() = default;
 
 bool ScrollingTreeFrameScrollingNode::commitStateBeforeChildren(const ScrollingStateNode& stateNode)
 {
-    if (!ScrollingTreeScrollingNode::commitStateBeforeChildren(stateNode))
+    auto* scrollingStateNode = dynamicDowncast<ScrollingStateScrollingNode>(stateNode);
+    if (!scrollingStateNode)
         return false;
 
+    auto changedProperties = stateNode.changedProperties().toRaw();
     auto* state = dynamicDowncast<ScrollingStateFrameScrollingNode>(stateNode);
-    if (!state)
+    if (!state) {
+        commitScrollingNodeState(*scrollingStateNode, changedProperties);
         return false;
+    }
 
-    if (state->hasChangedProperty(ScrollingStateNode::Property::FrameScaleFactor))
-        m_frameScaleFactor = state->frameScaleFactor();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::HeaderHeight))
-        m_headerHeight = state->headerHeight();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::FooterHeight))
-        m_footerHeight = state->footerHeight();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::BehaviorForFixedElements))
-        m_behaviorForFixed = state->scrollBehaviorForFixedElements();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::ObscuredContentInsets))
-        m_obscuredContentInsets = state->obscuredContentInsets();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::InsetForLeftScrollbarSpace))
-        m_insetForLeftScrollbarSpace = state->insetForLeftScrollbarSpace();
-
-#if HAVE(NSREFRESHCONTROLLER)
-    if (state->hasChangedProperty(ScrollingStateNode::Property::TopScrollStretchForRefreshController))
-        m_topScrollStretchForRefreshController = state->topScrollStretchForRefreshController();
-#endif
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::VisualViewportIsSmallerThanLayoutViewport))
-        m_visualViewportIsSmallerThanLayoutViewport = state->visualViewportIsSmallerThanLayoutViewport();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::LayoutViewport))
-        m_layoutViewport = state->layoutViewport();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::SizeForVisibleContent))
-        m_sizeForVisibleContent = state->sizeForVisibleContent();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::MinLayoutViewportOrigin))
-        m_minLayoutViewportOrigin = state->minLayoutViewportOrigin();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::MaxLayoutViewportOrigin))
-        m_maxLayoutViewportOrigin = state->maxLayoutViewportOrigin();
-
-    if (state->hasChangedProperty(ScrollingStateNode::Property::OverrideVisualViewportSize))
-        m_overrideVisualViewportSize = state->overrideVisualViewportSize();
+    commitFrameScrollingNodeState(*state, changedProperties);
+    commitScrollingNodeState(*scrollingStateNode, changedProperties);
 
     if (state->hasChangedProperty(ScrollingStateNode::Property::LayoutViewport)) {
         // This requires that minLayoutViewportOrigin and maxLayoutViewportOrigin have been updated.
         updateViewportForCurrentScrollPosition({ });
     }
-    
     return true;
 }
 
-bool ScrollingTreeFrameScrollingNode::scrollPositionAndLayoutViewportMatch(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport)
-{
-    return position == currentScrollPosition() && (!overrideLayoutViewport || overrideLayoutViewport.value() == m_layoutViewport);
-}
-
-FloatRect ScrollingTreeFrameScrollingNode::layoutViewportForScrollPosition(const FloatPoint& visibleContentOrigin, float scale, ScrollBehaviorForFixedElements fixedBehavior) const
+FloatRect ScrollingTreeFrameScrollingNode::layoutViewportForScrollPosition(FloatPoint visibleContentOrigin, float scale, ScrollBehaviorForFixedElements fixedBehavior) const
 {
     FloatSize visualViewportSize = m_overrideVisualViewportSize.value_or(scrollableAreaSize());
     FloatRect visibleContentRect(visibleContentOrigin, visualViewportSize);
@@ -133,102 +93,14 @@ FloatRect ScrollingTreeFrameScrollingNode::layoutViewportForScrollPosition(const
     return layoutViewport;
 }
 
-void ScrollingTreeFrameScrollingNode::updateViewportForCurrentScrollPosition(std::optional<FloatRect> overrideLayoutViewport)
-{
-    if (overrideLayoutViewport)
-        setLayoutViewport(overrideLayoutViewport.value());
-    else
-        setLayoutViewport(layoutViewportForScrollPosition(currentScrollPosition(), frameScaleFactor()));
-}
-
-FloatRect ScrollingTreeFrameScrollingNode::layoutViewportRespectingRubberBanding() const
-{
-    return layoutViewportForScrollPosition(currentScrollPosition(), frameScaleFactor(), ScrollBehaviorForFixedElements::StickToViewportBounds);
-}
-
-float ScrollingTreeFrameScrollingNode::delegatedPageScaleFactor() const
-{
-    return m_delegatedPageScaleFactor;
-}
-
-void ScrollingTreeFrameScrollingNode::setDelegatedPageScaleFactor(float scale)
-{
-    m_delegatedPageScaleFactor = scale;
-}
-
 void ScrollingTreeFrameScrollingNode::repositionScrollingLayersForDelegatedScaleChange()
 {
     repositionScrollingLayers();
 }
 
-int ScrollingTreeFrameScrollingNode::insetForLeftScrollbarSpace() const
-{
-    return m_insetForLeftScrollbarSpace;
-}
-
-FloatSize ScrollingTreeFrameScrollingNode::sizeForVisibleContent() const
-{
-    return m_sizeForVisibleContent;
-}
-
-FloatSize ScrollingTreeFrameScrollingNode::viewToContentsOffset(const FloatPoint& scrollPosition) const
-{
-    auto obscuredContentInsets = this->obscuredContentInsets();
-    return toFloatSize(scrollPosition) - FloatSize(insetForLeftScrollbarSpace() + obscuredContentInsets.left(), headerHeight() + obscuredContentInsets.top());
-}
-
-FloatPoint ScrollingTreeFrameScrollingNode::viewToContentsPoint(const FloatPoint& pointInViewCoordinates, const FloatPoint& scrollPosition) const
-{
-    // The insets and the header aren't zoomed, so they come off before undoing the zoom. The scroll position
-    // is already in contents coordinates, so it goes on after. A no-op at scale 1.
-    auto obscuredContentInsets = this->obscuredContentInsets();
-    auto point = pointInViewCoordinates;
-    point.move(-(insetForLeftScrollbarSpace() + obscuredContentInsets.left()), -(headerHeight() + obscuredContentInsets.top()));
-    point.scale(1 / delegatedPageScaleFactor());
-    point.moveBy(scrollPosition);
-    return point;
-}
-
 void ScrollingTreeFrameScrollingNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {
-    ts << "frame scrolling node"_s;
-    ScrollingTreeScrollingNode::dumpProperties(ts, behavior);
-
-    ts.dumpProperty("layout viewport"_s, m_layoutViewport);
-
-    if (m_layoutViewport.size() != m_sizeForVisibleContent)
-        ts.dumpProperty("size for visible content"_s, m_sizeForVisibleContent);
-
-    ts.dumpProperty("min layoutViewport origin"_s, m_minLayoutViewportOrigin);
-    ts.dumpProperty("max layoutViewport origin"_s, m_maxLayoutViewportOrigin);
-
-    if (m_overrideVisualViewportSize)
-        ts.dumpProperty("override visual viewport size"_s, m_overrideVisualViewportSize.value());
-
-    if (m_frameScaleFactor != 1)
-        ts.dumpProperty("frame scale factor"_s, m_frameScaleFactor);
-
-    if (m_obscuredContentInsets.top())
-        ts.dumpProperty("top content inset"_s, m_obscuredContentInsets.top());
-    if (m_obscuredContentInsets.bottom())
-        ts.dumpProperty("bottom content inset"_s, m_obscuredContentInsets.bottom());
-    if (m_obscuredContentInsets.left())
-        ts.dumpProperty("left content inset"_s, m_obscuredContentInsets.left());
-    if (m_obscuredContentInsets.right())
-        ts.dumpProperty("right content inset"_s, m_obscuredContentInsets.right());
-#if HAVE(NSREFRESHCONTROLLER)
-    if (m_topScrollStretchForRefreshController)
-        ts.dumpProperty("top scroll stretch for refresh controller"_s, m_topScrollStretchForRefreshController);
-#endif
-
-    if (m_headerHeight)
-        ts.dumpProperty("header height"_s, m_headerHeight);
-    if (m_footerHeight)
-        ts.dumpProperty("footer height"_s, m_footerHeight);
-
-    ts.dumpProperty("behavior for fixed"_s, m_behaviorForFixed);
-    if (m_visualViewportIsSmallerThanLayoutViewport)
-        ts.dumpProperty("visual viewport is smaller than layout viewport"_s, m_visualViewportIsSmallerThanLayoutViewport);
+    ts << frameScrollingNodePropertiesText(behavior, ts.indent(), ts.formattingFlags(), ts.containerSizeLimit());
 }
 
 

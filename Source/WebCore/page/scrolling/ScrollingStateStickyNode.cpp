@@ -70,18 +70,6 @@ Ref<ScrollingStateNode> ScrollingStateStickyNode::clone(ScrollingStateTree& adop
     return adoptRef(*new ScrollingStateStickyNode(*this, adoptiveTree));
 }
 
-OptionSet<ScrollingStateNode::Property> ScrollingStateStickyNode::applicableProperties() const
-{
-    static constexpr OptionSet nodeProperties = {
-        Property::ViewportAnchorLayer,
-        Property::ViewportConstraints,
-    };
-
-    auto properties = ScrollingStateNode::applicableProperties();
-    properties.add(nodeProperties);
-    return properties;
-}
-
 void ScrollingStateStickyNode::setViewportAnchorLayer(const LayerRepresentation& layer)
 {
     if (layer == m_viewportAnchorLayer)
@@ -102,7 +90,7 @@ void ScrollingStateStickyNode::updateConstraints(const StickyPositionViewportCon
     setPropertyChanged(Property::ViewportConstraints);
 }
 
-FloatPoint ScrollingStateStickyNode::computeAnchorLayerPosition(const LayoutRect& viewportRect) const
+FloatPoint ScrollingStateStickyNode::computeAnchorLayerPosition(LayoutRect viewportRect) const
 {
     // This logic follows ScrollingTreeStickyNode::computeConstrainingRectAndAnchorLayerPosition().
     FloatSize offsetFromStickyAncestors;
@@ -141,7 +129,7 @@ FloatPoint ScrollingStateStickyNode::computeAnchorLayerPosition(const LayoutRect
     return m_constraints.layerPositionAtLastLayout();
 }
 
-FloatPoint ScrollingStateStickyNode::computeClippingLayerPosition(const LayoutRect& viewportRect) const
+FloatPoint ScrollingStateStickyNode::computeClippingLayerPosition(LayoutRect viewportRect) const
 {
     if (!hasViewportClippingLayer()) {
         ASSERT_NOT_REACHED();
@@ -151,7 +139,7 @@ FloatPoint ScrollingStateStickyNode::computeClippingLayerPosition(const LayoutRe
     return m_constraints.viewportRelativeLayerPosition(viewportRect);
 }
 
-void ScrollingStateStickyNode::reconcileLayerPositionForViewportRect(const LayoutRect& viewportRect, ScrollingLayerPositionAction action)
+void ScrollingStateStickyNode::reconcileLayerPositionForViewportRect(LayoutRect viewportRect, ScrollingLayerPositionAction action)
 {
     auto updateLayerPosition = [&](const LayerRepresentation& representation, const FloatPoint& position) {
         if (!representation.representsGraphicsLayer())
@@ -192,47 +180,9 @@ bool ScrollingStateStickyNode::hasViewportClippingLayer() const
     return m_viewportAnchorLayer && layer() != m_viewportAnchorLayer;
 }
 
-FloatSize ScrollingStateStickyNode::scrollDeltaSinceLastCommit(const LayoutRect& viewportRect) const
+FloatSize ScrollingStateStickyNode::scrollDeltaSinceLastCommit(LayoutRect viewportRect) const
 {
     return computeAnchorLayerPosition(viewportRect) - m_constraints.anchorLayerPositionAtLastLayout();
-}
-
-void ScrollingStateStickyNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
-{
-    ts << "Sticky node"_s;
-    ScrollingStateNode::dumpProperties(ts, behavior);
-
-    if (m_constraints.anchorEdges()) {
-        TextStream::GroupScope scope(ts);
-        ts << "anchor edges: "_s;
-        if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeLeft))
-            ts << "AnchorEdgeLeft "_s;
-        if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeRight))
-            ts << "AnchorEdgeRight "_s;
-        if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeTop))
-            ts << "AnchorEdgeTop "_s;
-        if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeBottom))
-            ts << "AnchorEdgeBottom"_s;
-    }
-
-    if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeLeft))
-        ts.dumpProperty("left offset"_s, m_constraints.leftOffset());
-    if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeRight))
-        ts.dumpProperty("right offset"_s, m_constraints.rightOffset());
-    if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeTop))
-        ts.dumpProperty("top offset"_s, m_constraints.topOffset());
-    if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeBottom))
-        ts.dumpProperty("bottom offset"_s, m_constraints.bottomOffset());
-
-    ts.dumpProperty("containing block rect"_s, m_constraints.containingBlockRect());
-
-    ts.dumpProperty("sticky box rect"_s, m_constraints.stickyBoxRect());
-
-    ts.dumpProperty("constraining rect"_s, m_constraints.constrainingRectAtLastLayout());
-
-    ts.dumpProperty("sticky offset at last layout"_s, m_constraints.stickyOffsetAtLastLayout());
-
-    ts.dumpProperty("layer position at last layout"_s, m_constraints.layerPositionAtLastLayout());
 }
 
 } // namespace WebCore

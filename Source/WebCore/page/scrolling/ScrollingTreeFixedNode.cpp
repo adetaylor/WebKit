@@ -50,18 +50,6 @@ ScrollingTreeFixedNode::ScrollingTreeFixedNode(ScrollingTree& scrollingTree, Scr
 
 ScrollingTreeFixedNode::~ScrollingTreeFixedNode() = default;
 
-bool ScrollingTreeFixedNode::commitStateBeforeChildren(const ScrollingStateNode& stateNode)
-{
-    auto* fixedStateNode = dynamicDowncast<ScrollingStateFixedNode>(stateNode);
-    if (!fixedStateNode)
-        return false;
-
-    if (stateNode.hasChangedProperty(ScrollingStateNode::Property::ViewportConstraints))
-        m_constraints = fixedStateNode->viewportConstraints();
-
-    return true;
-}
-
 void ScrollingTreeFixedNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {
     ts << "fixed node"_s;

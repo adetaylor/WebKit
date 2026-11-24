@@ -541,6 +541,15 @@ RetainPtr<CALayer> RemoteLayerTreeHost::layerWithIDForTesting(WebCore::PlatformL
     return layerForID(layerID);
 }
 
+Vector<WebCore::PlatformLayerIdentifier> RemoteLayerTreeHost::layerIDsForTesting() const
+{
+    auto layerIDs = copyToVector(m_nodes.keys());
+    std::ranges::sort(layerIDs, [](auto& a, auto& b) {
+        return std::tuple { a.processIdentifier().toUInt64(), a.object().toUInt64() } < std::tuple { b.processIdentifier().toUInt64(), b.object().toUInt64() };
+    });
+    return layerIDs;
+}
+
 RetainPtr<CALayer> RemoteLayerTreeHost::layerForID(std::optional<WebCore::PlatformLayerIdentifier> layerID) const
 {
     RefPtr node = nodeForID(layerID);

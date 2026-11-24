@@ -39,29 +39,30 @@
 
 namespace WebCore {
 
-class ScrollingTreeStickyNode : public ScrollingTreeViewportConstrainedNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeStickyNode.swift") ScrollingTreeStickyNode : public ScrollingTreeViewportConstrainedNode {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreeStickyNode);
 public:
     virtual ~ScrollingTreeStickyNode();
 
-    FloatSize scrollDeltaSinceLastCommit() const;
-    WEBCORE_EXPORT bool isCurrentlySticking() const;
+    SWIFT_UNSAFE FloatSize scrollDeltaSinceLastCommit() const;
+    SWIFT_UNSAFE WEBCORE_EXPORT bool isCurrentlySticking() const;
 
 protected:
     ScrollingTreeStickyNode(ScrollingTree&, ScrollingNodeID);
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
 
-    FloatPoint computeClippingLayerPosition() const;
-    std::optional<FloatRect> findConstrainingRect() const;
-    std::pair<std::optional<FloatRect>, FloatPoint> computeConstrainingRectAndAnchorLayerPosition() const;
+    SWIFT_UNSAFE FloatPoint computeClippingLayerPosition() const;
+    SWIFT_UNSAFE std::optional<FloatRect> findConstrainingRect() const;
+    SWIFT_UNSAFE std::pair<std::optional<FloatRect>, FloatPoint> computeConstrainingRectAndAnchorLayerPosition() const;
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String stickyNodePropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     virtual FloatPoint layerTopLeft() const = 0;
     virtual bool hasViewportClippingLayer() const { return false; }
     const ViewportConstraints& constraints() const LIFETIME_BOUND final { return m_constraints; }
 
-    NODELETE bool isCurrentlySticking(const FloatRect& constrainingRect) const;
+    NODELETE bool isCurrentlySticking(FloatRect constrainingRect) const;
 
     StickyPositionViewportConstraints m_constraints;
 };

@@ -104,6 +104,12 @@ public:
     WTF_EXPORT_PRIVATE TextStream& operator<<(id);
 #endif
 
+    // For Swift, which imports the TextStream& the operators return as an unsafe pointer: each writes as the
+    // operator does, and returns nothing.
+    template<typename T>
+    void append(const T& value) { *this << value; }
+    void appendUTF8([[clang::noescape]] std::span<const uint8_t> characters) { *this << String::fromUTF8(characters); }
+
     OptionSet<Formatting> formattingFlags() const { return m_formattingFlags; }
     void setFormattingFlags(OptionSet<Formatting> flags) { m_formattingFlags = flags; }
 

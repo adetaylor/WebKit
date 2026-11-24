@@ -31,7 +31,6 @@
 #include "Logging.h"
 #include "ScrollingStatePositionedNode.h"
 #include "ScrollingTree.h"
-#include "ScrollingTreeOverflowScrollingNode.h"
 #include "ScrollingTreeScrollingNode.h"
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/text/TextStream.h>
@@ -65,34 +64,9 @@ bool ScrollingTreePositionedNode::commitStateBeforeChildren(const ScrollingState
     return true;
 }
 
-FloatSize ScrollingTreePositionedNode::scrollDeltaSinceLastCommit() const
-{
-    FloatSize delta;
-    for (auto nodeID : m_relatedOverflowScrollingNodes) {
-        if (auto* node = dynamicDowncast<ScrollingTreeOverflowScrollingNode>(scrollingTree()->nodeForID(nodeID)))
-            delta += node->scrollDeltaSinceLastCommit();
-    }
-
-    // Positioned nodes compensate for scrolling, so negate the scroll delta.
-    return -delta;
-}
-
 void ScrollingTreePositionedNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {
-    ts << "positioned node"_s;
-    ScrollingTreeNode::dumpProperties(ts, behavior);
-
-    ts.dumpProperty("layout constraints"_s, m_constraints);
-    ts.dumpProperty("related overflow nodes"_s, m_relatedOverflowScrollingNodes.size());
-
-    if (behavior & ScrollingStateTreeAsTextBehavior::IncludeNodeIDs) {
-        if (!m_relatedOverflowScrollingNodes.isEmpty()) {
-            TextStream::GroupScope scope(ts);
-            ts << "overflow nodes"_s;
-            for (auto nodeID : m_relatedOverflowScrollingNodes)
-                ts << '\n' << indent << "nodeID "_s << nodeID;
-        }
-    }
+    ts << positionedNodePropertiesText(behavior, ts.indent(), ts.formattingFlags(), ts.containerSizeLimit());
 }
 
 } // namespace WebCore

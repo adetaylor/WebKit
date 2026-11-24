@@ -198,6 +198,7 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/MarkedText.cpp
     Tests/WebCore/PlatformCAAnimationKeyPath.cpp
     Tests/WebCore/PrivateClickMeasurementBench.mm
+    Tests/WebCore/ScrollingCoordinationBench.cpp
     Tests/WebCore/SecurityPoliciesBench.cpp
     Tests/WebCore/StringUtilities.mm
     Tests/WebCore/TextBoundaries.cpp

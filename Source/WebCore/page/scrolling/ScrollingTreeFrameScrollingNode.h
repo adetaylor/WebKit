@@ -35,22 +35,27 @@
 namespace WebCore {
 
 class PlatformWheelEvent;
+class ScrollingStateFrameScrollingNode;
 class ScrollingTree;
 
-class WEBCORE_EXPORT ScrollingTreeFrameScrollingNode : public ScrollingTreeScrollingNode {
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeFrameScrollingNode.swift") ScrollingTreeFrameScrollingNode : public ScrollingTreeScrollingNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreeFrameScrollingNode, WEBCORE_EXPORT);
 public:
     virtual ~ScrollingTreeFrameScrollingNode();
 
     SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    // What commitStateBeforeChildren() commits of a frame scrolling state node's own fields, before the scrolling node's
+    // commitScrollingNodeState(). The caller casts the node and passes its changedProperties().toRaw(), as for
+    // commitScrollingNodeState(): Swift casts only through calls that retain the node and the result.
+    SWIFT_UNSAFE void commitFrameScrollingNodeState(const ScrollingStateFrameScrollingNode&, uint64_t changedProperties);
     
     bool visualViewportIsSmallerThanLayoutViewport() const { return m_visualViewportIsSmallerThanLayoutViewport; }
 
-    NODELETE FloatSize viewToContentsOffset(const FloatPoint& scrollPosition) const;
+    NODELETE FloatSize viewToContentsOffset(FloatPoint scrollPosition) const;
 
     // Converts a point in the view coordinates events arrive in to the unscaled contents coordinates the tree
     // hit-tests in. viewToContentsOffset() can't undo the zoom on its own.
-    NODELETE FloatPoint viewToContentsPoint(const FloatPoint& pointInViewCoordinates, const FloatPoint& scrollPosition) const;
+    NODELETE FloatPoint viewToContentsPoint(FloatPoint pointInViewCoordinates, FloatPoint scrollPosition) const;
 
     FloatRect layoutViewport() const { return m_layoutViewport; };
     void setLayoutViewport(const FloatRect& r) { m_layoutViewport = r; };
@@ -97,10 +102,11 @@ protected:
 
 private:
     void updateViewportForCurrentScrollPosition(std::optional<FloatRect>) override;
-    NODELETE bool scrollPositionAndLayoutViewportMatch(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport) override;
-    FloatRect layoutViewportForScrollPosition(const FloatPoint&, float scale, ScrollBehaviorForFixedElements = ScrollBehaviorForFixedElements::StickToDocumentBounds) const;
+    NODELETE bool scrollPositionAndLayoutViewportMatch(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport) override;
+    FloatRect layoutViewportForScrollPosition(FloatPoint, float scale, ScrollBehaviorForFixedElements = ScrollBehaviorForFixedElements::StickToDocumentBounds) const;
 
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String frameScrollingNodePropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     FloatRect m_layoutViewport;
     FloatSize m_sizeForVisibleContent;
@@ -130,9 +136,7 @@ SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ScrollingTreeFrameScrollingNode, isFrameSc
 
 namespace WebCore {
 // For Swift, which cannot convert a C++ class to its base: the frame scrolling node as a scrolling node.
-inline RefPtr<ScrollingTreeScrollingNode> asScrollingTreeScrollingNode(ScrollingTreeFrameScrollingNode& node) { return &node; }
-// For Swift, which cannot cast between C++ classes: the node as a frame scrolling node, or null.
-inline RefPtr<ScrollingTreeFrameScrollingNode> asScrollingTreeFrameScrollingNode(ScrollingTreeNode& node) { return dynamicDowncast<ScrollingTreeFrameScrollingNode>(node); }
+inline ScrollingTreeScrollingNode* asScrollingTreeScrollingNode(ScrollingTreeFrameScrollingNode& node) { return &node; }
 }
 
 #endif // ENABLE(ASYNC_SCROLLING)

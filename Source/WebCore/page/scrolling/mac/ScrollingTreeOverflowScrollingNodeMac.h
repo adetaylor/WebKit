@@ -36,7 +36,7 @@ namespace WebCore {
 
 class ScrollingTreeScrollingNodeDelegateMac;
 
-class WEBCORE_EXPORT ScrollingTreeOverflowScrollingNodeMac : public ScrollingTreeOverflowScrollingNode {
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeScrollingNodeMac.swift") ScrollingTreeOverflowScrollingNodeMac : public ScrollingTreeOverflowScrollingNode {
 public:
     static Ref<ScrollingTreeOverflowScrollingNodeMac> create(ScrollingTree&, ScrollingNodeID);
     virtual ~ScrollingTreeOverflowScrollingNodeMac();
@@ -44,20 +44,20 @@ public:
 protected:
     ScrollingTreeOverflowScrollingNodeMac(ScrollingTree&, ScrollingNodeID);
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
 
     void currentScrollPositionChanged(ScrollType, ScrollingLayerPositionAction) final;
     void willDoProgrammaticScroll(const FloatPoint&) final;
 
-    void repositionScrollingLayers() override;
-    void repositionRelatedLayers() override;
+    SWIFT_UNSAFE void repositionScrollingLayers() override;
+    SWIFT_UNSAFE void repositionRelatedLayers() override;
 
-    WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting) override;
+    SWIFT_UNSAFE WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting) override;
 
 private:
     NODELETE ScrollingTreeScrollingNodeDelegateMac& delegate() const;
 
-    void willBeDestroyed() final;
+    SWIFT_UNSAFE void willBeDestroyed() final;
 };
 
 } // namespace WebKit

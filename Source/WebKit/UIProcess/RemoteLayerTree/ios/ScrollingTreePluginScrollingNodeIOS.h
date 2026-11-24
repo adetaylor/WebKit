@@ -52,7 +52,7 @@ private:
     bool commitStateBeforeChildren(const WebCore::ScrollingStateNode&) final;
     bool commitStateAfterChildren(const WebCore::ScrollingStateNode&) final;
 
-    void repositionScrollingLayers() final;
+    SWIFT_UNSAFE void repositionScrollingLayers() final;
 };
 
 } // namespace WebKit

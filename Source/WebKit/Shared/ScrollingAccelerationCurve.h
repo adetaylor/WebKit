@@ -45,7 +45,7 @@ public:
 
     static std::optional<ScrollingAccelerationCurve> fromNativeWheelEvent(const NativeWebWheelEvent&);
 
-    static ScrollingAccelerationCurve interpolate(const ScrollingAccelerationCurve& from, const ScrollingAccelerationCurve& to, float amount);
+    static ScrollingAccelerationCurve interpolate(ScrollingAccelerationCurve from, ScrollingAccelerationCurve to, float amount);
 
     float gainLinear() const { return m_parameters.gainLinear; }
     float gainParabolic() const { return m_parameters.gainParabolic; }
@@ -56,11 +56,8 @@ public:
     float resolution() const { return m_parameters.resolution; }
     float frameRate() const { return m_parameters.frameRate; }
 
-    float accelerationFactor(float);
-
     friend bool operator==(const ScrollingAccelerationCurve& a, const ScrollingAccelerationCurve& b)
     {
-        // Does not check m_intermediates.
         return a.m_parameters == b.m_parameters;
     }
 
@@ -68,10 +65,6 @@ public:
 
 private:
     friend TextStream& operator<<(TextStream&, const ScrollingAccelerationCurve&);
-
-    void computeIntermediateValuesIfNeeded();
-
-    NODELETE float evaluateQuartic(float) const;
 
     struct Parameters {
         float gainLinear { 0 };
@@ -89,17 +82,6 @@ private:
         friend bool operator==(const Parameters&, const Parameters&) = default;
     };
     Parameters m_parameters;
-
-    struct ComputedIntermediateValues {
-        float tangentStartX { 0 };
-        float tangentSlope { 0 };
-        float tangentIntercept { 0 };
-        float falloffStartX { 0 };
-        float falloffSlope { 0 };
-        float falloffIntercept { 0 };
-    };
-
-    std::optional<ComputedIntermediateValues> m_intermediates;
 };
 
 constexpr ScrollingAccelerationCurve::ScrollingAccelerationCurve(float gainLinear, float gainParabolic, float gainCubic, float gainQuartic, float tangentSpeedLinear, float tangentSpeedParabolicRoot, float resolution, float frameRate)

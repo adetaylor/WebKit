@@ -39,7 +39,9 @@
 #include <WebCore/RubberbandingState.h>
 #include <WebCore/ScrollTypes.h>
 #include <WebCore/ScrollingCoordinatorTypes.h>
+#include <WebCore/ScrollingLockedAccess.h>
 #include <WebCore/ScrollingTreeLatchingController.h>
+#include <WebCore/ScrollingTreeNode.h>
 #include <WebCore/WheelEventTestMonitor.h>
 #include <wtf/ForbidHeapAllocation.h>
 #include <wtf/HashMap.h>
@@ -65,9 +67,23 @@ class ScrollingTreePositionedNode;
 class ScrollingTreeScrollingNode;
 class ScrollingTreeFrameHostingNode;
 class ScrollingTreeLockedAccess;
+class ScrollingTreeStateAccess;
+
+// The node sets of a scrolling tree's tree state, which ScrollingTreeStateAccess reaches one operation at a time.
+enum class ScrollingTreeNodeSet : uint8_t { ActiveRubberBanding, ActiveScrollSnap, ActiveUserScrolls, ActiveScrollAnimations };
 
 // Whether a ScrollingTreeLockedAccess was made for the commit of tree state, which may change the tree's structure.
 enum class ScrollingTreeAccessMode : bool { Event, Commit };
+
+// What the commit of one scrolling state tree did: failed, committed it, or found no hosting node for the hosted
+// subtree it holds, which the caller keeps until that node is committed.
+enum class ScrollingTreeCommitResult : uint8_t { Failed, Committed, NeedsHostingNode };
+
+// Names for Swift, which cannot spell a class template specialization.
+using OptionalLayerHostingContextIdentifier = std::optional<LayerHostingContextIdentifier>;
+using OptionalWheelScrollGestureState = std::optional<WheelScrollGestureState>;
+using RectEdgesBool = RectEdges<bool>;
+using RectEdgesRubberBandingBehavior = RectEdges<RubberBandingBehavior>;
 
 enum class EventListenerRegionType : uint64_t;
 
@@ -82,10 +98,12 @@ enum class RequestsScrollHandling : uint8_t {
     Delayed
 };
 
-class ScrollingTree : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingTree> {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTree.swift") ScrollingTree : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<ScrollingTree> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTree, WEBCORE_EXPORT);
     friend class ScrollingTreeLatchingController;
     friend class ScrollingTreeLockedAccess;
+    friend class ScrollingTreeStateAccess;
+    template<typename, typename> friend class ScrollingLockedValue;
 public:
     WEBCORE_EXPORT ScrollingTree();
     WEBCORE_EXPORT virtual ~ScrollingTree();
@@ -108,11 +126,11 @@ public:
 
     SWIFT_UNSAFE WEBCORE_EXPORT bool isUserScrollInProgressAtEventLocation(const PlatformWheelEvent&);
     SWIFT_UNSAFE WEBCORE_EXPORT OptionSet<WheelEventProcessingSteps> determineWheelEventProcessing(const PlatformWheelEvent&);
-    WEBCORE_EXPORT virtual WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, OptionSet<WheelEventProcessingSteps> = { });
+    SWIFT_UNSAFE WEBCORE_EXPORT virtual WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, OptionSet<WheelEventProcessingSteps> = { });
 #if PLATFORM(MAC)
     // Stops spring animations in the scroller under the wheel event and in the scrollers that enclose it. This hit tests the
-    // same way as handleWheelEvent(), so call it with the same locks held.
-    WEBCORE_EXPORT void stopSpringAnimationsForWheelEvent(const PlatformWheelEvent&);
+    // same way as handleWheelEvent(), so call it with the same locks held. Swift calls the overload below.
+    SWIFT_UNSAFE WEBCORE_EXPORT void stopSpringAnimationsForWheelEvent(const PlatformWheelEvent&);
 #endif
 
     NODELETE bool isRubberBandInProgressForNode(std::optional<ScrollingNodeID>);
@@ -137,14 +155,20 @@ public:
 
     SWIFT_UNSAFE virtual void invalidate() { }
     WEBCORE_EXPORT bool commitTreeState(std::unique_ptr<ScrollingStateTree>&&, std::optional<LayerHostingContextIdentifier> = std::nullopt);
-    SWIFT_UNSAFE bool commitTreeStateInternal(std::unique_ptr<ScrollingStateTree>&&, std::optional<LayerHostingContextIdentifier>) WTF_REQUIRES_LOCK(m_treeLock);
 
     WEBCORE_EXPORT virtual void applyLayerPositions();
     void setNeedsApplyLayerPositions() { m_needsApplyLayerPositions = true; }
 
     virtual Ref<ScrollingTreeNode> createScrollingTreeNode(ScrollingNodeType, ScrollingNodeID) = 0;
     
-    SWIFT_UNSAFE WEBCORE_EXPORT ScrollingTreeNode* nodeForID(std::optional<ScrollingNodeID>) const;
+    // Inline, so that the lookups ScrollingTreeLockedAccess makes for Swift are inlined too.
+    SWIFT_UNSAFE ScrollingTreeNode* nodeForID(std::optional<ScrollingNodeID> nodeID) const
+    {
+        if (!nodeID)
+            return nullptr;
+
+        return m_nodeMap.get(*nodeID);
+    }
 
     using VisitorFunction = Function<void(ScrollingNodeID, ScrollingNodeType, std::optional<FloatPoint> scrollPosition, std::optional<FloatPoint> layoutViewportOrigin, bool scrolledSinceLastCommit)>;
     void traverseScrollingTree(NOESCAPE const VisitorFunction&);
@@ -158,8 +182,8 @@ public:
     virtual void scrollingTreeNodeDidStopWheelEventScroll(ScrollingTreeScrollingNode&) { }
 
     // Called for requested scroll position updates. Returns true if handled.
-    SWIFT_UNSAFE virtual RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, const RequestedScrollData&) { return RequestsScrollHandling::Unhandled; }
-    SWIFT_UNSAFE virtual bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, const RequestedKeyboardScrollData&) { return false; }
+    SWIFT_UNSAFE virtual RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, RequestedScrollData) { return RequestsScrollHandling::Unhandled; }
+    SWIFT_UNSAFE virtual bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, RequestedKeyboardScrollData) { return false; }
 
     virtual void didHandleScrollRequestForNode(ScrollingNodeID, ScrollRequestType, FloatPoint, ShouldFireScrollEnd, Markable<ScrollRequestIdentifier>) { }
 
@@ -239,10 +263,10 @@ public:
     // A map of overflow scrolling nodes to positioned nodes which need to be updated
     // when the scroller changes, but are not descendants.
     using RelatedNodesMap = HashMap<ScrollingNodeID, Vector<ScrollingNodeID>>;
-    RelatedNodesMap& overflowRelatedNodes() LIFETIME_BOUND { return m_overflowRelatedNodesMap; }
+    SWIFT_UNAVAILABLE_IN_SWIFT RelatedNodesMap& overflowRelatedNodes() LIFETIME_BOUND { return m_overflowRelatedNodesMap; }
 
-    HashSet<Ref<ScrollingTreeOverflowScrollProxyNode>>& activeOverflowScrollProxyNodes() LIFETIME_BOUND { return m_activeOverflowScrollProxyNodes; }
-    HashSet<Ref<ScrollingTreePositionedNode>>& activePositionedNodes() LIFETIME_BOUND { return m_activePositionedNodes; }
+    SWIFT_UNAVAILABLE_IN_SWIFT HashSet<Ref<ScrollingTreeOverflowScrollProxyNode>>& activeOverflowScrollProxyNodes() LIFETIME_BOUND { return m_activeOverflowScrollProxyNodes; }
+    SWIFT_UNAVAILABLE_IN_SWIFT HashSet<Ref<ScrollingTreePositionedNode>>& activePositionedNodes() LIFETIME_BOUND { return m_activePositionedNodes; }
 
     SWIFT_UNSAFE WEBCORE_EXPORT String scrollingTreeAsText(OptionSet<ScrollingStateTreeAsTextBehavior> = { });
 
@@ -259,21 +283,60 @@ public:
     SWIFT_UNSAFE virtual void lockLayersForHitTesting() { }
     SWIFT_UNSAFE virtual void unlockLayersForHitTesting() { }
 
-    class HitTestLocker {
+    // Holds the tree's layers for hit testing while it lives. Swift constructs one, and the members that hit test for
+    // Swift take one as their proof, so a Swift body that hit tests holds the layers for the whole of its scope
+    // (ScrollingLockedAccess.h).
+    // It holds the tree, so the hold outlives no tree.
+    class SCROLLING_LOCK_HOLDER_ATTRIBUTES HitTestLocker {
         WTF_MAKE_NONCOPYABLE(HitTestLocker);
+        WTF_FORBID_HEAP_ALLOCATION;
     public:
-        HitTestLocker(ScrollingTree& tree)
+        SCROLLING_UNAVAILABLE_FROM_ASYNC HitTestLocker(ScrollingTree& tree)
             : m_tree(tree)
         {
             m_tree->lockLayersForHitTesting();
         }
+        // Swift imports a noncopyable class only if it has a move constructor, so one is declared; it traps.
+        [[noreturn]] HitTestLocker(HitTestLocker&& other)
+            : m_tree(other.m_tree)
+        {
+            RELEASE_ASSERT_NOT_REACHED();
+        }
+        HitTestLocker& operator=(HitTestLocker&&) = delete;
+        HitTestLocker() = delete;
         ~HitTestLocker()
         {
             m_tree->unlockLayersForHitTesting();
         }
+
+        // Whether this holds tree's layers, for a member that takes one as its proof.
+        bool holdsLayersOf(const ScrollingTree& tree) const { return m_tree.ptr() == &tree; }
     private:
         const Ref<ScrollingTree> m_tree;
     };
+
+#if PLATFORM(MAC)
+    // For Swift: stopSpringAnimationsForWheelEvent() with the hold of this tree's layers as its proof.
+    void stopSpringAnimationsForWheelEvent(const HitTestLocker& hitTest, const PlatformWheelEvent& wheelEvent)
+    {
+        RELEASE_ASSERT(hitTest.holdsLayersOf(*this));
+        stopSpringAnimationsForWheelEvent(wheelEvent);
+    }
+#endif
+
+    struct SwipeState {
+        RectEdges<RubberBandingBehavior> clientAllowedRubberBandableEdges  { RubberBandingBehavior::Always, RubberBandingBehavior::Always, RubberBandingBehavior::Always, RubberBandingBehavior::Always };
+        RectEdges<bool> mainFramePinnedState { true, true, true, true };
+        ScrollPinningBehavior scrollPinningBehavior { ScrollPinningBehavior::DoNotPin };
+    };
+    // Take the tree's state, swipe state and last wheel event time locks for Swift; each is held until the returned
+    // object is destroyed.
+    SCROLLING_UNAVAILABLE_FROM_ASYNC inline ScrollingTreeStateAccess lockTreeState();
+    SCROLLING_UNAVAILABLE_FROM_ASYNC inline ScrollingLockedValue<ScrollingTree, SwipeState> lockSwipeState();
+    SCROLLING_UNAVAILABLE_FROM_ASYNC inline ScrollingLockedValue<ScrollingTree, MonotonicTime> lockLastWheelEventTime();
+    // Takes m_treeLock for a ScrollingTreeLockedAccess of mode Event. The holder must not be alive across a call that
+    // waits on one of m_treeLock's Conditions.
+    SCROLLING_UNAVAILABLE_FROM_ASYNC inline ScrollingTreeLockedAccess lockTree();
 
     SWIFT_UNSAFE virtual bool isScrollingSynchronizedWithMainThread() WTF_REQUIRES_LOCK(m_treeLock) { return true; }
 
@@ -340,43 +403,45 @@ public:
     NODELETE WEBCORE_EXPORT std::optional<FrameIdentifier> frameIDForScrollingNodeID(ScrollingNodeID);
 
 protected:
-    WEBCORE_EXPORT WheelEventHandlingResult handleWheelEventWithNode(const PlatformWheelEvent&, OptionSet<WheelEventProcessingSteps>, ScrollingTreeNode*, EventTargeting = EventTargeting::Propagate);
+    SWIFT_UNSAFE WEBCORE_EXPORT WheelEventHandlingResult handleWheelEventWithNode(const PlatformWheelEvent&, OptionSet<WheelEventProcessingSteps>, ScrollingTreeNode*, EventTargeting = EventTargeting::Propagate);
 
     NODELETE void setMainFrameScrollPosition(FloatPoint);
 
     NODELETE WEBCORE_EXPORT void setGestureState(std::optional<WheelScrollGestureState>);
     NODELETE WEBCORE_EXPORT std::optional<WheelScrollGestureState> gestureState();
-    WEBCORE_EXPORT RefPtr<ScrollingTreeFrameScrollingNode> hostedRootNodeForFrame(FrameIdentifier) const WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE WEBCORE_EXPORT RefPtr<ScrollingTreeFrameScrollingNode> hostedRootNodeForFrame(FrameIdentifier) const WTF_REQUIRES_LOCK(m_treeLock);
 
     NODELETE std::optional<FramesPerSecond> nominalFramesPerSecond();
 
-    WEBCORE_EXPORT virtual void applyLayerPositionsInternal() WTF_REQUIRES_LOCK(m_treeLock);
-    WEBCORE_EXPORT void removeAllNodes() WTF_REQUIRES_LOCK(m_treeLock);
-    void removeFromActiveNodes(ScrollingTreeNode&);
+    SWIFT_UNSAFE WEBCORE_EXPORT virtual void applyLayerPositionsInternal() WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE WEBCORE_EXPORT void removeAllNodes() WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void removeFromActiveNodes(ScrollingTreeNode&);
 
     virtual void hasNodeWithAnimatedScrollChanged(bool /* hasNodeWithAnimatedScroll */) { }
 
     bool hasProcessedWheelEventsRecently();
 
     HashSet<ScrollingNodeID> nodesWithActiveScrollAnimations();
-    WEBCORE_EXPORT void serviceScrollAnimations(MonotonicTime) WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE WEBCORE_EXPORT void serviceScrollAnimations(MonotonicTime) WTF_REQUIRES_LOCK(m_treeLock);
 
 #if ENABLE(COORDINATED_TOUCH_EVENTS)
     std::optional<FloatSize> mainFrameScrollOffset() const;
 #endif
 
-    void addPendingScrollUpdateInternal(ScrollUpdate&&);
-    WEBCORE_EXPORT void addPendingScrollUpdate(ScrollUpdate&&);
+    SWIFT_UNSAFE void addPendingScrollUpdateInternal(ScrollUpdate);
+    WEBCORE_EXPORT void addPendingScrollUpdate(ScrollUpdate);
     virtual void didAddPendingScrollUpdate() { }
 
-    mutable Lock m_treeLock; // Protects the scrolling tree.
+    SWIFT_UNAVAILABLE_IN_SWIFT mutable Lock m_treeLock; // Protects the scrolling tree.
 
 private:
-    virtual void propagateSynchronousScrollingReasons(const HashSet<ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) { }
+    SWIFT_UNSAFE virtual void propagateSynchronousScrollingReasons(const HashSet<ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) { }
+    SWIFT_UNSAFE void captureMainFrameRubberbandingState(bool rootStateNodeChanged) WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void updateTreeStateFromRootStateNode(const ScrollingStateTree*, bool rootStateNodeChanged);
 
-    void applyLayerPositionsRecursive(ScrollingTreeNode&) WTF_REQUIRES_LOCK(m_treeLock);
-    void notifyRelatedNodesRecursive(ScrollingTreeNode&);
-    void traverseScrollingTreeRecursive(ScrollingTreeNode&, NOESCAPE const VisitorFunction&) WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void applyLayerPositionsRecursive(ScrollingTreeNode&) WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void notifyRelatedNodesRecursive(ScrollingTreeNode&);
+    SWIFT_UNSAFE void traverseScrollingTreeRecursive(ScrollingTreeNode&, NOESCAPE const VisitorFunction&) WTF_REQUIRES_LOCK(m_treeLock);
     
     NODELETE void setOverlayScrollbarsEnabled(bool);
 
@@ -387,15 +452,15 @@ private:
     SWIFT_UNSAFE WEBCORE_EXPORT virtual OptionSet<EventListenerRegionType> eventListenerRegionTypesForPoint(FloatPoint) const;
 #endif
 
-    OptionSet<WheelEventProcessingSteps> computeWheelProcessingSteps(const PlatformWheelEvent&) WTF_REQUIRES_LOCK(m_treeStateLock);
+    SWIFT_UNSAFE OptionSet<WheelEventProcessingSteps> computeWheelProcessingSteps(const PlatformWheelEvent&) WTF_REQUIRES_LOCK(m_treeStateLock);
 
-    RefPtr<ScrollingTreeFrameScrollingNode> m_rootNode;
+    SWIFT_UNAVAILABLE_IN_SWIFT RefPtr<ScrollingTreeFrameScrollingNode> m_rootNode;
 
     using ScrollingTreeNodeMap = HashMap<ScrollingNodeID, Ref<ScrollingTreeNode>>;
-    ScrollingTreeNodeMap m_nodeMap;
+    SWIFT_UNAVAILABLE_IN_SWIFT ScrollingTreeNodeMap m_nodeMap;
 
-    Lock m_frameIDMapLock;
-    HashMap<FrameIdentifier, HashSet<ScrollingNodeID>> m_nodeMapPerFrame WTF_GUARDED_BY_LOCK(m_frameIDMapLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT Lock m_frameIDMapLock;
+    SWIFT_UNAVAILABLE_IN_SWIFT HashMap<FrameIdentifier, HashSet<ScrollingNodeID>> m_nodeMapPerFrame WTF_GUARDED_BY_LOCK(m_frameIDMapLock);
 
     ScrollingTreeLatchingController m_latchingController;
     // The gesture state is kept with the latching state (ScrollingTreeLatchingController.swift). This storage keeps
@@ -406,12 +471,12 @@ private:
         Markable<ScrollingNodeID> mayBeginNodeID;
         Markable<ScrollingNodeID> activeNodeID;
     };
-    [[maybe_unused]] alignas(GestureStateLayout) std::array<std::byte, sizeof(GestureStateLayout)> m_gestureStateStorage { };
+    [[maybe_unused]] SWIFT_UNAVAILABLE_IN_SWIFT alignas(GestureStateLayout) std::array<std::byte, sizeof(GestureStateLayout)> m_gestureStateStorage { };
 
-    RelatedNodesMap m_overflowRelatedNodesMap;
+    SWIFT_UNAVAILABLE_IN_SWIFT RelatedNodesMap m_overflowRelatedNodesMap;
 
-    HashSet<Ref<ScrollingTreeOverflowScrollProxyNode>> m_activeOverflowScrollProxyNodes;
-    HashSet<Ref<ScrollingTreePositionedNode>> m_activePositionedNodes;
+    SWIFT_UNAVAILABLE_IN_SWIFT HashSet<Ref<ScrollingTreeOverflowScrollProxyNode>> m_activeOverflowScrollProxyNodes;
+    SWIFT_UNAVAILABLE_IN_SWIFT HashSet<Ref<ScrollingTreePositionedNode>> m_activePositionedNodes;
 
     struct TreeState {
         EventTrackingRegions eventTrackingRegions;
@@ -425,30 +490,24 @@ private:
         HashSet<ScrollingNodeID> nodesWithActiveScrollAnimations;
     };
     
-    mutable Lock m_treeStateLock;
-    TreeState m_treeState WTF_GUARDED_BY_LOCK(m_treeStateLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT mutable Lock m_treeStateLock;
+    SWIFT_UNAVAILABLE_IN_SWIFT TreeState m_treeState WTF_GUARDED_BY_LOCK(m_treeStateLock);
 
-    struct SwipeState {
-        RectEdges<RubberBandingBehavior> clientAllowedRubberBandableEdges  { RubberBandingBehavior::Always, RubberBandingBehavior::Always, RubberBandingBehavior::Always, RubberBandingBehavior::Always };
-        RectEdges<bool> mainFramePinnedState { true, true, true, true };
-        ScrollPinningBehavior scrollPinningBehavior { ScrollPinningBehavior::DoNotPin };
-    };
+    SWIFT_UNAVAILABLE_IN_SWIFT Lock m_swipeStateLock;
+    SWIFT_UNAVAILABLE_IN_SWIFT SwipeState m_swipeState WTF_GUARDED_BY_LOCK(m_swipeStateLock);
 
-    Lock m_swipeStateLock;
-    SwipeState m_swipeState WTF_GUARDED_BY_LOCK(m_swipeStateLock);
-
-    Lock m_pendingScrollUpdatesLock;
-    Vector<ScrollUpdate> m_pendingScrollUpdates WTF_GUARDED_BY_LOCK(m_pendingScrollUpdatesLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT Lock m_pendingScrollUpdatesLock;
+    SWIFT_UNAVAILABLE_IN_SWIFT Vector<ScrollUpdate> m_pendingScrollUpdates WTF_GUARDED_BY_LOCK(m_pendingScrollUpdatesLock);
 
 #if HAVE(RUBBER_BANDING)
-    std::optional<RubberbandingState> m_pendingMainFrameRubberbandingState WTF_GUARDED_BY_LOCK(m_treeLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT std::optional<RubberbandingState> m_pendingMainFrameRubberbandingState WTF_GUARDED_BY_LOCK(m_treeLock);
 #endif
 
-    Lock m_lastWheelEventTimeLock;
-    MonotonicTime m_lastWheelEventTime WTF_GUARDED_BY_LOCK(m_lastWheelEventTimeLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT Lock m_lastWheelEventTimeLock;
+    SWIFT_UNAVAILABLE_IN_SWIFT MonotonicTime m_lastWheelEventTime WTF_GUARDED_BY_LOCK(m_lastWheelEventTimeLock);
 
-    HashMap<LayerHostingContextIdentifier, Vector<std::unique_ptr<ScrollingStateTree>>> m_hostedSubtreesNeedingPairing;
-    HashMap<LayerHostingContextIdentifier, Ref<ScrollingTreeFrameHostingNode>> m_hostedSubtrees;
+    SWIFT_UNAVAILABLE_IN_SWIFT HashMap<LayerHostingContextIdentifier, Vector<std::unique_ptr<ScrollingStateTree>>> m_hostedSubtreesNeedingPairing;
+    SWIFT_UNAVAILABLE_IN_SWIFT HashMap<LayerHostingContextIdentifier, Ref<ScrollingTreeFrameHostingNode>> m_hostedSubtrees;
 
 protected:
     // Read on the event handling thread while the scrolling thread changes it.
@@ -456,7 +515,7 @@ protected:
     static_assert(sizeof(std::atomic<bool>) == sizeof(bool) && alignof(std::atomic<bool>) == alignof(bool));
 
 private:
-    bool m_hasLockedAccess WTF_GUARDED_BY_LOCK(m_treeLock) { false }; // Whether a ScrollingTreeLockedAccess for this tree exists.
+    SWIFT_UNAVAILABLE_IN_SWIFT bool m_hasLockedAccess WTF_GUARDED_BY_LOCK(m_treeLock) { false }; // Whether a ScrollingTreeLockedAccess for this tree exists.
     ThreadSafeWeakHashSet<ScrollingTreeNode> m_fixedOrStickyNodes;
     std::atomic<bool> m_isHandlingProgrammaticScroll { false };
     std::atomic<bool> m_isApplyingDeltaScroll { false };
@@ -469,22 +528,14 @@ private:
     bool m_inCommitTreeState { false };
 };
 
-// Witness that a scrolling tree's m_treeLock is held, for Swift: Swift calls the members of the tree and of its nodes
-// that need the lock through one of these, and cannot make one itself. Only code that holds the tree lock constructs
-// one (the constructor requires the lock, and Swift may not call it), and the lock stays held until it is destroyed:
-// it must not be constructed in a scope that drops the lock, such as the Condition waits on m_treeLock in
-// ThreadedScrollingTree::waitForEventToBeProcessedByMainThread(),
-// ThreadedScrollingTree::waitForRenderingUpdateCompletionOrTimeout() and
-// RemoteScrollingTreeMac::waitForEventDefaultHandlingCompletion(). Only one exists for a tree at a time; constructing
-// a second one while the first is alive crashes. The frame that declares the Locker holds a Ref to the tree declared
-// before the Locker, and no frame from that one down to the witness holds a reference or iterator into the tree's or
-// its nodes' storage.
-// It cannot be copied, moved or put on the heap, so it lives in the frame that holds the lock, and Swift receives it
-// borrowed for one call. Each member checks that the lock is locked and that the nodes it is given belong to its tree.
-// The code that constructs it chooses its mode: ScrollingTreeAccessMode::Commit only in ScrollingTree::commitTreeState()
-// and what it calls, the thread that writes the tree's structure, whose readers on that thread take no lock. The members
-// that change the tree's structure (the root, the node map, the hosted subtrees, a node's parent, children and hosted
-// children) and the node commit members crash on a witness of mode Event, such as one handed to the wheel event entries.
+// Swift cannot name the unspecialized RefPtr; ScrollingTreeNode.swift holds scrollingTree()'s result as this one.
+using RefPtrScrollingTree = RefPtr<ScrollingTree>;
+
+// Holder that proves m_treeLock is held, for Swift: its members check the lock and that the nodes given belong to the
+// tree. Only code that holds the lock constructs one, or lockTree(), which takes it for the holder's life; it must not
+// live across a Condition wait on m_treeLock. It cannot be copied, moved or put on the heap.
+// ScrollingTreeAccessMode::Commit is for commitTreeState() and what it calls; the members that change the tree's
+// structure and the node commit members crash on mode Event.
 class SWIFT_NONCOPYABLE __attribute__((swift_attr("~Sendable"))) WEBCORE_EXPORT ScrollingTreeLockedAccess {
     WTF_MAKE_NONCOPYABLE(ScrollingTreeLockedAccess);
     WTF_FORBID_HEAP_ALLOCATION;
@@ -495,16 +546,15 @@ public:
     ScrollingTreeLockedAccess& operator=(ScrollingTreeLockedAccess&&) = delete;
     // Swift would otherwise give the class an init() that zero-fills it.
     ScrollingTreeLockedAccess() = delete;
-    ~ScrollingTreeLockedAccess();
+    ~ScrollingTreeLockedAccess() WTF_IGNORES_THREAD_SAFETY_ANALYSIS;
 
-    RefPtr<ScrollingTreeNode> nodeForID(ScrollingNodeID) const;
+    // Unretained: the node map keeps the node while the lock is held.
+    ALWAYS_INLINE ScrollingTreeNode* nodeForID(ScrollingNodeID nodeID) const { return tree().nodeForID(nodeID); }
+    // Null when nodeID is.
+    ALWAYS_INLINE ScrollingTreeNode* nodeForID(std::optional<ScrollingNodeID> nodeID) const { return tree().nodeForID(nodeID); }
     RefPtr<ScrollingTreeFrameScrollingNode> rootNode() const;
-    // On a RemoteScrollingTreeMac the caller must also hold the layer hit-test lock, which the witness does not show.
-    SWIFT_UNSAFE RefPtr<ScrollingTreeNode> scrollingNodeForPoint(FloatPoint) const;
     void removeNode(ScrollingNodeID) const;
     void removeNode(ScrollingNodeID, ScrollingTreeFrameHostingNode&) const;
-    void addScrollingNodeToHostedSubtreeMap(LayerHostingContextIdentifier, ScrollingTreeFrameHostingNode&) const;
-    void removeFrameHostingNode(LayerHostingContextIdentifier) const;
 
     bool commitStateBeforeChildren(ScrollingTreeNode&, const ScrollingStateNode&) const;
     bool commitStateAfterChildren(ScrollingTreeNode&, const ScrollingStateNode&) const;
@@ -515,16 +565,35 @@ public:
     void appendChild(ScrollingTreeNode& parent, ScrollingTreeNode& child) const;
     void removeChild(ScrollingTreeNode& parent, ScrollingTreeNode& child) const;
     void removeAllChildren(ScrollingTreeNode&) const;
-    // The child at index of node, which must be less than childCount(node): an index past the end crashes. The result
-    // is never null. Swift iterates by index, holding no iterator into the children across calls.
-    size_t childCount(ScrollingTreeNode&) const;
-    RefPtr<ScrollingTreeNode> childAt(ScrollingTreeNode&, size_t index) const;
 
     // The tree's root node; null is allowed. The node must belong to the tree.
     void setRootNode(ScrollingTreeFrameScrollingNode*) const;
     void removeAllNodes() const;
     // Adds node to the node map under its ID, replacing any node with that ID, and to the nodes of frameID.
     void addNode(ScrollingTreeNode&, FrameIdentifier) const;
+
+    // Commits stateTree, or keeps it for its hosting node when it is a hosted subtree whose hosting node is not in
+    // the tree yet.
+    bool commitStateTree(std::unique_ptr<ScrollingStateTree>&&, std::optional<LayerHostingContextIdentifier>) const;
+    // Commits the hosted subtrees kept for the hosting node of hostingContextIdentifier.
+    bool commitHostedSubtreesNeedingPairing(LayerHostingContextIdentifier) const;
+    void discardHostedSubtreesNeedingPairing(LayerHostingContextIdentifier) const;
+    RefPtr<ScrollingTreeFrameHostingNode> hostingNodeForHostedSubtree(LayerHostingContextIdentifier) const;
+    void addHostedChild(ScrollingTreeFrameHostingNode&, ScrollingTreeNode&) const;
+    void removeHostedChildren(ScrollingTreeFrameHostingNode&) const;
+    // When a commit replaces the root node: keeps the root node's rubber banding for the new one.
+    void captureMainFrameRubberbandingState(bool rootStateNodeChanged) const;
+    // Takes the tree's flags and its tree state from the root state node, under the tree state lock.
+    void updateTreeStateFromRootStateNode(const ScrollingStateTree&, bool rootStateNodeChanged) const;
+    // Removes the overflow related nodes and the active nodes of frameID; the commit adds them back.
+    void removeActiveNodesForFrame(FrameIdentifier) const;
+    Vector<ScrollingNodeID> nodeIDsForFrame(FrameIdentifier) const;
+    // Swift has no HashSet to pass, and every override reads only whether the set is empty: the commit
+    // passes one of its nodes with synchronous scrolling reasons, if it has any, and marks the ancestors itself.
+    void propagateSynchronousScrollingReasons(std::optional<ScrollingNodeID> anySynchronousScrollingNode) const;
+    // Whether the commit marks the scrolling nodes enclosing a node with synchronous scrolling reasons.
+    bool propagatesSynchronousScrollingReasonsToAncestors() const;
+    void didCommitTree() const;
 
     WheelEventHandlingResult handleWheelEvent(ScrollingTreeScrollingNode&, const PlatformWheelEvent&, EventTargeting) const;
     void stopSpringAnimation(ScrollingTreeScrollingNode&) const;
@@ -533,43 +602,71 @@ public:
     void scrollBy(ScrollingTreeScrollingNode&, const FloatSize&, ScrollClamping) const;
     void handleWheelEventPhase(ScrollingNodeID, PlatformWheelEventPhase) const;
 
-    void setLayerHostingContextIdentifier(ScrollingTreeFrameHostingNode&, std::optional<LayerHostingContextIdentifier>) const;
-    void addHostedChild(ScrollingTreeFrameHostingNode&, ScrollingTreeNode& child) const;
-    void removeHostedChildren(ScrollingTreeFrameHostingNode&) const;
-    void removeHostedChild(ScrollingTreeFrameHostingNode&, ScrollingTreeNode& child) const;
-
 private:
-    ScrollingTree& tree() const;
+    friend class ScrollingTree;
+    // For ScrollingTree::lockTree(): takes the tree's lock, which the destructor releases.
+    explicit ScrollingTreeLockedAccess(ScrollingTree&) WTF_IGNORES_THREAD_SAFETY_ANALYSIS;
+
+    // The thread safety analysis does not follow this check to the returned tree, so callers that need its lock assert it again.
+    ALWAYS_INLINE ScrollingTree& tree() const
+    {
+        RELEASE_ASSERT(m_tree->m_treeLock.isLocked());
+        assertIsHeld(m_tree->m_treeLock);
+        return m_tree.get();
+    }
     void checkNode(const ScrollingTreeNode&) const;
     void checkCommit() const;
 
     const Ref<ScrollingTree> m_tree;
     const ScrollingTreeAccessMode m_mode;
+    const bool m_holdsTreeLock { false };
 };
 
-// What ScrollingTree::commitTreeState() records while Swift updates the tree from the state tree: the nodes it
-// visits, the nodes it orphans, the hosted subtrees it can now commit. Only the commit constructs one, on its stack,
-// and hands it to Swift for one call. It cannot be copied, moved or put on the heap.
-class SWIFT_NONCOPYABLE __attribute__((swift_attr("~Sendable"))) ScrollingTreeCommitState {
-    WTF_MAKE_NONCOPYABLE(ScrollingTreeCommitState);
-    WTF_FORBID_HEAP_ALLOCATION;
+inline ScrollingTreeLockedAccess ScrollingTree::lockTree() { return ScrollingTreeLockedAccess { *this }; }
+
+// Holder of a scrolling tree's m_treeStateLock, for Swift (ScrollingLockedAccess.h): the tree state one
+// operation at a time, by value.
+class SCROLLING_LOCK_HOLDER_ATTRIBUTES ScrollingTreeStateAccess {
+    SCROLLING_LOCK_HOLDER(ScrollingTreeStateAccess, ScrollingTree, &ScrollingTree::m_treeStateLock, ScrollingTree::TreeState, &ScrollingTree::m_treeState, state);
 public:
-    // Swift imports a noncopyable class only if it has a move constructor, so one is declared; it traps.
-    [[noreturn]] ScrollingTreeCommitState(ScrollingTreeCommitState&&);
-    ScrollingTreeCommitState& operator=(ScrollingTreeCommitState&&) = delete;
-    ~ScrollingTreeCommitState();
+    void setMainFrameScrollPosition(FloatPoint position) const { state().mainFrameScrollPosition = position; }
+    TrackingType eventTrackingTypeForPoint(EventTrackingRegionsEventType eventType, IntPoint point) const { return state().eventTrackingRegions.trackingTypeForPoint(eventType, point); }
+    PlatformDisplayID displayID() const { return state().displayID; }
+    void setDisplayID(PlatformDisplayID displayID) const { state().displayID = displayID; }
+    std::optional<FramesPerSecond> nominalFramesPerSecond() const { return state().nominalFramesPerSecond; }
+    void setNominalFramesPerSecond(std::optional<FramesPerSecond> value) const { state().nominalFramesPerSecond = value; }
+    std::optional<WheelScrollGestureState> gestureState() const { return state().gestureState; }
+    void setGestureState(std::optional<WheelScrollGestureState> value) const { state().gestureState = value; }
 
-    void didVisitNode(ScrollingNodeID);
-    // Makes node's children orphans, which are kept alive until the commit ends, and removes them from node.
-    void orphanChildren(ScrollingTreeNode&);
-    // After node and its children are committed: records node if it is a scrolling node with synchronous scrolling
-    // reasons; if it is a frame hosting node with hosted subtrees waiting for it, takes them to commit after this one;
-    // and adds it to the hosting node's hosted children when this commits a hosted subtree.
-    void didCommitNode(ScrollingTreeNode&);
+    bool contains(ScrollingTreeNodeSet set, ScrollingNodeID nodeID) const { return nodes(set).contains(nodeID); }
+    // Whether nodeID was not in the set.
+    bool add(ScrollingTreeNodeSet set, ScrollingNodeID nodeID) const { return nodes(set).add(nodeID).isNewEntry; }
+    // Whether nodeID was in the set.
+    bool remove(ScrollingTreeNodeSet set, ScrollingNodeID nodeID) const { return nodes(set).remove(nodeID); }
+    bool isEmpty(ScrollingTreeNodeSet set) const { return nodes(set).isEmpty(); }
 
-protected:
-    ScrollingTreeCommitState() = default;
+private:
+    HashSet<ScrollingNodeID>& nodes(ScrollingTreeNodeSet set) const
+    {
+        // In ScrollingTreeNodeSet's order. Swift can make a ScrollingTreeNodeSet of any raw value, so the index is checked.
+        static constexpr std::array sets { &ScrollingTree::TreeState::nodesWithActiveRubberBanding, &ScrollingTree::TreeState::nodesWithActiveScrollSnap, &ScrollingTree::TreeState::nodesWithActiveUserScrolls, &ScrollingTree::TreeState::nodesWithActiveScrollAnimations };
+        RELEASE_ASSERT(std::to_underlying(set) < sets.size());
+        return state().*sets[std::to_underlying(set)];
+    }
 };
+
+// Names for Swift, which cannot spell a class template specialization.
+using ScrollingTreeSwipeStateAccess = ScrollingLockedValue<ScrollingTree, ScrollingTree::SwipeState>;
+using ScrollingTreeLastWheelEventTimeAccess = ScrollingLockedValue<ScrollingTree, MonotonicTime>;
+
+template<> inline Lock ScrollingTree::* const ScrollingTreeSwipeStateAccess::s_lock = &ScrollingTree::m_swipeStateLock;
+template<> inline ScrollingTree::SwipeState ScrollingTree::* const ScrollingTreeSwipeStateAccess::s_value = &ScrollingTree::m_swipeState;
+template<> inline Lock ScrollingTree::* const ScrollingTreeLastWheelEventTimeAccess::s_lock = &ScrollingTree::m_lastWheelEventTimeLock;
+template<> inline MonotonicTime ScrollingTree::* const ScrollingTreeLastWheelEventTimeAccess::s_value = &ScrollingTree::m_lastWheelEventTime;
+
+inline ScrollingTreeStateAccess ScrollingTree::lockTreeState() { return ScrollingTreeStateAccess { *this }; }
+inline ScrollingTreeSwipeStateAccess ScrollingTree::lockSwipeState() { return ScrollingTreeSwipeStateAccess { *this }; }
+inline ScrollingTreeLastWheelEventTimeAccess ScrollingTree::lockLastWheelEventTime() { return ScrollingTreeLastWheelEventTimeAccess { *this }; }
 
 class ScrollingTreeWheelEventTestMonitorCompletionDeferrer {
 public:

@@ -92,7 +92,7 @@ protected:
     ScrollbarButtonPressAction handleMousePressEvent(Scrollbar&, const PlatformMouseEvent&, ScrollbarPart) override;
     bool shouldDragDocumentInsteadOfThumb(Scrollbar&, const PlatformMouseEvent&) override;
     NODELETE int scrollbarPartToHIPressedState(ScrollbarPart);
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_PRIVATE_FILEID("WebCore/ScrollbarThemeMac.swift");
 
 }
 

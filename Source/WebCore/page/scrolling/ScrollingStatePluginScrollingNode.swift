@@ -1,0 +1,49 @@
+// Copyright (C) 2014-2023 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
+#if ENABLE_ASYNC_SCROLLING
+
+internal import WebCore_Private.Core.ScrollingCoordinatorTypes
+internal import WebCore_Private.Core.ScrollingStateNode
+internal import WebCore_Private.Core.ScrollingStatePluginScrollingNode
+internal import WebCore_Private.Core.ScrollingStateScrollingNode
+internal import wtf
+
+extension WebCore.ScrollingStatePluginScrollingNode {
+    @cxx
+    @implementation
+    public override func dumpPropertiesText(
+        _ behavior: WebCore.ScrollingStateTreeAsTextBehaviors,
+        _ indent: Int32,
+        _ formattingFlags: WebCore.TextStreamFormattingFlags,
+        _ containerSizeLimit: UInt32
+    ) -> WTF.String {
+        var ts = makeScrollingDumpStream(indent, formattingFlags, containerSizeLimit)
+        ts.appendUTF8("Plugin scrolling node".utf8.span)
+
+        ts.append(scrollingNodePropertiesText(behavior, indent, formattingFlags, containerSizeLimit))
+        return ts.release()
+    }
+}
+
+#endif

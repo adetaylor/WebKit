@@ -40,11 +40,14 @@ namespace WebCore {
 
 class AsyncScrollingCoordinator;
 
+// A name for Swift, which cannot spell a class template specialization.
+using MarkableScrollRequestIdentifier = Markable<ScrollRequestIdentifier>;
+
 // The ThreadedScrollingTree class lives almost exclusively on the scrolling thread and manages the
 // hierarchy of scrollable regions on the page. It's also responsible for dispatching events
 // to the correct scrolling tree nodes or dispatching events back to the ScrollingCoordinator
 // object on the main thread if they can't be handled on the scrolling thread for various reasons.
-class ThreadedScrollingTree : public ScrollingTree {
+class SWIFT_PRIVATE_FILEID("WebCore/ThreadedScrollingTree.swift") ThreadedScrollingTree : public ScrollingTree {
     WTF_MAKE_TZONE_ALLOCATED(ThreadedScrollingTree);
 public:
     virtual ~ThreadedScrollingTree();
@@ -84,10 +87,10 @@ protected:
     void scrollingTreeNodeDidStopWheelEventScroll(ScrollingTreeScrollingNode&) override;
     void didHandleScrollRequestForNode(ScrollingNodeID, ScrollRequestType, FloatPoint, ShouldFireScrollEnd, Markable<ScrollRequestIdentifier>) override;
 
-    SWIFT_UNSAFE RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, const RequestedScrollData&) override WTF_REQUIRES_LOCK(m_treeLock);
-    SWIFT_UNSAFE bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, const RequestedKeyboardScrollData&) override WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE RequestsScrollHandling scrollingTreeNodeRequestsScroll(ScrollingNodeID, RequestedScrollData) override WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE bool scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID, RequestedKeyboardScrollData) override WTF_REQUIRES_LOCK(m_treeLock);
 
-    void addPendingScrollUpdateWithDeferReason(ScrollUpdate&&, WheelEventTestMonitor::DeferReason);
+    void addPendingScrollUpdateWithDeferReason(ScrollUpdate, WheelEventTestMonitor::DeferReason);
 
 #if PLATFORM(MAC)
     void handleWheelEventPhase(ScrollingNodeID, PlatformWheelEventPhase) override;
@@ -105,21 +108,23 @@ protected:
     void reportSynchronousScrollingReasonsChanged(MonotonicTime, OptionSet<SynchronousScrollingReason>) override;
 
     RefPtr<AsyncScrollingCoordinator> m_scrollingCoordinator;
-    mutable Lock m_layerHitTestMutex;
+    SWIFT_UNAVAILABLE_IN_SWIFT mutable Lock m_layerHitTestMutex;
 
 private:
+    // ScrollingTree's protected addPendingScrollUpdate is visible only from ScrollingTree.swift's FILEID.
+    void addPendingScrollUpdateForSwift(ScrollUpdate update) { addPendingScrollUpdate(WTF::move(update)); }
     bool isThreadedScrollingTree() const override { return true; }
-    void propagateSynchronousScrollingReasons(const HashSet<ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) override;
+    SWIFT_UNSAFE void propagateSynchronousScrollingReasons(const HashSet<ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) override;
 
     void didCommitTree() final;
-    void didCommitTreeOnScrollingThread() WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void didCommitTreeOnScrollingThread() WTF_REQUIRES_LOCK(m_treeLock);
 
     void displayDidRefreshOnScrollingThread();
-    void waitForRenderingUpdateCompletionOrTimeout() WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void waitForRenderingUpdateCompletionOrTimeout() WTF_REQUIRES_LOCK(m_treeLock);
 
-    NODELETE bool canUpdateLayersOnScrollingThread() const WTF_REQUIRES_LOCK(m_treeLock);
+    NODELETE SWIFT_UNSAFE bool canUpdateLayersOnScrollingThread() const WTF_REQUIRES_LOCK(m_treeLock);
 
-    void scheduleDelayedRenderingUpdateDetectionTimer(Seconds) WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void scheduleDelayedRenderingUpdateDetectionTimer(Seconds) WTF_REQUIRES_LOCK(m_treeLock);
     void delayedRenderingUpdateDetectionTimerFired();
 
     void hasNodeWithAnimatedScrollChanged(bool) override;
@@ -134,8 +139,17 @@ private:
     SWIFT_UNSAFE void unlockLayersForHitTesting() final WTF_RELEASES_LOCK(m_layerHitTestMutex);
 
     void scrollingTreeNodeScrollUpdated(ScrollingTreeScrollingNode&, ScrollUpdateType);
+    // Swift cannot construct ScrollUpdate's Variant member.
+    static ScrollUpdate scrollUpdate(ScrollingNodeID nodeID, ScrollUpdateType updateType) { return { .nodeID = nodeID, .scrollPosition = { }, .data = ScrollUpdateData { .updateType = updateType } }; }
+    static ScrollUpdate scrollRequestResponse(ScrollingNodeID nodeID, FloatPoint scrollPosition, ShouldFireScrollEnd shouldFireScrollEnd, ScrollRequestType requestType) { return { .nodeID = nodeID, .scrollPosition = scrollPosition, .shouldFireScrollEnd = shouldFireScrollEnd, .data = ScrollRequestResponseData { .requestType = requestType } }; }
 
     void didAddPendingScrollUpdate() override;
+
+#if __BLOCKS__
+    // For Swift, whose @Sendable blocks cannot capture the coordinator: runs block on the main run loop with the
+    // coordinator this tree has when this is called, as the C++ blocks capture it, or does nothing if it has none.
+    void dispatchToScrollingCoordinator(void (^ __attribute__((swift_attr("@Sendable"))) block)(AsyncScrollingCoordinator*)) __attribute__((nonnull(2)));
+#endif
 
     enum class SynchronizationState : uint8_t {
         Idle,
@@ -144,21 +158,21 @@ private:
         Desynchronized,
     };
 
-    SynchronizationState m_state WTF_GUARDED_BY_LOCK(m_treeLock) { SynchronizationState::Idle };
-    Condition m_stateCondition;
+    SWIFT_UNAVAILABLE_IN_SWIFT SynchronizationState m_state WTF_GUARDED_BY_LOCK(m_treeLock) { SynchronizationState::Idle };
+    SWIFT_UNAVAILABLE_IN_SWIFT Condition m_stateCondition;
 
-    bool m_receivedBeganEventFromMainThread WTF_GUARDED_BY_LOCK(m_treeLock) { false };
-    Condition m_waitingForBeganEventCondition;
+    SWIFT_UNAVAILABLE_IN_SWIFT bool m_receivedBeganEventFromMainThread WTF_GUARDED_BY_LOCK(m_treeLock) { false };
+    SWIFT_UNAVAILABLE_IN_SWIFT Condition m_waitingForBeganEventCondition;
     
     MonotonicTime m_lastDisplayDidRefreshTime;
 
     // Dynamically allocated because it has to use the ScrollingThread's runloop.
-    std::unique_ptr<RunLoop::Timer> m_delayedRenderingUpdateDetectionTimer WTF_GUARDED_BY_LOCK(m_treeLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT std::unique_ptr<RunLoop::Timer> m_delayedRenderingUpdateDetectionTimer WTF_GUARDED_BY_LOCK(m_treeLock);
 
-    HashMap<ScrollingNodeID, RequestedScrollData> m_nodesWithPendingScrollAnimations WTF_GUARDED_BY_LOCK(m_treeLock);
-    HashMap<ScrollingNodeID, RequestedKeyboardScrollData> m_nodesWithPendingKeyboardScrollAnimations WTF_GUARDED_BY_LOCK(m_treeLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT HashMap<ScrollingNodeID, RequestedScrollData> m_nodesWithPendingScrollAnimations WTF_GUARDED_BY_LOCK(m_treeLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT HashMap<ScrollingNodeID, RequestedKeyboardScrollData> m_nodesWithPendingKeyboardScrollAnimations WTF_GUARDED_BY_LOCK(m_treeLock);
     const bool m_scrollAnimatorEnabled { false };
-    bool m_hasNodesWithSynchronousScrollingReasons WTF_GUARDED_BY_LOCK(m_treeLock) { false };
+    SWIFT_UNAVAILABLE_IN_SWIFT bool m_hasNodesWithSynchronousScrollingReasons WTF_GUARDED_BY_LOCK(m_treeLock) { false };
     std::atomic<bool> m_renderingUpdateWasScheduled;
 };
 

@@ -52,7 +52,7 @@ private:
 #endif
 
     void registerForPlatformRenderingUpdateCallback();
-    void applyLayerPositionsInternal() final WTF_REQUIRES_LOCK(m_treeLock);
+    SWIFT_UNSAFE void applyLayerPositionsInternal() final WTF_REQUIRES_LOCK(m_treeLock);
 
     void didCompleteRenderingUpdate() final;
 };

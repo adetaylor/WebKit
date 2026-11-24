@@ -32,8 +32,6 @@
 #import "ScrollingStateOverflowScrollingNode.h"
 #import "ScrollingTree.h"
 #import "ScrollingTreeScrollingNodeDelegateMac.h"
-#import "WebCoreCALayerExtras.h"
-#import <wtf/BlockObjCExceptions.h>
 #import <wtf/text/TextStream.h>
 
 namespace WebCore {
@@ -56,11 +54,6 @@ ScrollingTreeScrollingNodeDelegateMac& ScrollingTreeOverflowScrollingNodeMac::de
     return *static_cast<ScrollingTreeScrollingNodeDelegateMac*>(m_delegate.get());
 }
 
-void ScrollingTreeOverflowScrollingNodeMac::willBeDestroyed()
-{
-    delegate().nodeWillBeDestroyed();
-}
-
 bool ScrollingTreeOverflowScrollingNodeMac::commitStateBeforeChildren(const ScrollingStateNode& stateNode)
 {
     if (!ScrollingTreeOverflowScrollingNode::commitStateBeforeChildren(stateNode))
@@ -74,17 +67,6 @@ bool ScrollingTreeOverflowScrollingNodeMac::commitStateBeforeChildren(const Scro
     return true;
 }
 
-WheelEventHandlingResult ScrollingTreeOverflowScrollingNodeMac::handleWheelEvent(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting)
-{
-    if (hasNonRepaintSynchronousScrollingReasons() && eventTargeting != EventTargeting::NodeOnly)
-        return { { WheelEventProcessingSteps::SynchronousScrolling, WheelEventProcessingSteps::NonBlockingDOMEventDispatch }, false };
-
-    if (!canHandleWheelEvent(wheelEvent, eventTargeting))
-        return WheelEventHandlingResult::unhandled();
-
-    return WheelEventHandlingResult::result(delegate().handleWheelEvent(wheelEvent));
-}
-
 void ScrollingTreeOverflowScrollingNodeMac::willDoProgrammaticScroll(const FloatPoint& targetScrollPosition)
 {
     delegate().willDoProgrammaticScroll(targetScrollPosition);
@@ -94,18 +76,6 @@ void ScrollingTreeOverflowScrollingNodeMac::currentScrollPositionChanged(ScrollT
 {
     ScrollingTreeOverflowScrollingNode::currentScrollPositionChanged(scrollType, action);
     delegate().currentScrollPositionChanged();
-}
-
-void ScrollingTreeOverflowScrollingNodeMac::repositionScrollingLayers()
-{
-    BEGIN_BLOCK_OBJC_EXCEPTIONS
-    [protect(static_cast<CALayer*>(scrollContainerLayer())) _web_setLayerBoundsOrigin:currentScrollOffset()];
-    END_BLOCK_OBJC_EXCEPTIONS
-}
-
-void ScrollingTreeOverflowScrollingNodeMac::repositionRelatedLayers()
-{
-    delegate().updateScrollbarPainters();
 }
 
 } // namespace WebCore

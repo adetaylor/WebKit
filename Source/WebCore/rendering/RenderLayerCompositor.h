@@ -706,13 +706,10 @@ private:
     RenderLayerWeakList layersWithUnresolvedRelationsForSwift() const;
     void clearLayersWithUnresolvedRelationsForSwift();
     RenderElementList slowRepaintObjectsForSwift() const;
-    static void setRelatedOverflowScrollingNodesForSwift(ScrollingCoordinator&, ScrollingNodeID, ScrollingNodeIDList);
-    static void setRelatedOverflowScrollingNodeForSwift(ScrollingCoordinator&, ScrollingNodeID, ScrollingNodeID relatedNodeID);
     static bool isSameScrollingNodeIDForSwift(std::optional<ScrollingNodeID> a, std::optional<ScrollingNodeID> b) { return a == b; }
     void addScrollingNodeLayerForSwift(ScrollingNodeID, RenderLayer&);
     void removeScrollingNodeLayerForSwift(ScrollingNodeID);
     void addLayerWithUnresolvedRelationsForSwift(RenderLayer&);
-    static void setNodeLayersForSwift(ScrollingCoordinator&, ScrollingNodeID, GraphicsLayer*, GraphicsLayer* scrollContainerLayer, GraphicsLayer* scrolledContentsLayer, GraphicsLayer* counterScrollingLayer, GraphicsLayer* insetClipLayer, GraphicsLayer* rootContentsLayer, GraphicsLayer* horizontalScrollbarLayer, GraphicsLayer* verticalScrollbarLayer, GraphicsLayer* viewportAnchorLayer);
     static void setScrollingNodeScrollableAreaGeometryForSwift(ScrollingCoordinator&, ScrollingNodeID, RenderLayerScrollableArea&);
     static void setScrollingNodeScrollableAreaGeometryForSwift(ScrollingCoordinator&, ScrollingNodeID, LocalFrameView&);
     void ensureScrollbarsControllerForSwift(RenderLayerScrollableArea&);

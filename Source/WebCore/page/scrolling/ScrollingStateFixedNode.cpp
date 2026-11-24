@@ -62,15 +62,6 @@ Ref<ScrollingStateNode> ScrollingStateFixedNode::clone(ScrollingStateTree& adopt
     return adoptRef(*new ScrollingStateFixedNode(*this, adoptiveTree));
 }
 
-OptionSet<ScrollingStateNode::Property> ScrollingStateFixedNode::applicableProperties() const
-{
-    constexpr OptionSet<Property> nodeProperties = { Property::ViewportConstraints };
-
-    auto properties = ScrollingStateNode::applicableProperties();
-    properties.add(nodeProperties);
-    return properties;
-}
-
 void ScrollingStateFixedNode::updateConstraints(const FixedPositionViewportConstraints& constraints)
 {
     if (m_constraints == constraints)
@@ -82,7 +73,7 @@ void ScrollingStateFixedNode::updateConstraints(const FixedPositionViewportConst
     setPropertyChanged(Property::ViewportConstraints);
 }
 
-void ScrollingStateFixedNode::reconcileLayerPositionForViewportRect(const LayoutRect& viewportRect, ScrollingLayerPositionAction action)
+void ScrollingStateFixedNode::reconcileLayerPositionForViewportRect(LayoutRect viewportRect, ScrollingLayerPositionAction action)
 {
     auto position = m_constraints.viewportRelativeLayerPosition(viewportRect);
     if (layer().representsGraphicsLayer()) {
@@ -108,34 +99,6 @@ void ScrollingStateFixedNode::reconcileLayerPositionForViewportRect(const Layout
             break;
         }
     }
-}
-
-void ScrollingStateFixedNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
-{
-    ts << "Fixed node"_s;
-    ScrollingStateNode::dumpProperties(ts, behavior);
-
-    if (m_constraints.anchorEdges()) {
-        TextStream::GroupScope scope(ts);
-        ts << "anchor edges: "_s;
-        if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeLeft))
-            ts << "AnchorEdgeLeft "_s;
-        if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeRight))
-            ts << "AnchorEdgeRight "_s;
-        if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeTop))
-            ts << "AnchorEdgeTop"_s;
-        if (m_constraints.hasAnchorEdge(ViewportConstraints::AnchorEdgeBottom))
-            ts << "AnchorEdgeBottom"_s;
-    }
-
-    if (!m_constraints.alignmentOffset().isEmpty())
-        ts.dumpProperty("alignment offset"_s, m_constraints.alignmentOffset());
-
-    if (!m_constraints.viewportRectAtLastLayout().isEmpty())
-        ts.dumpProperty("viewport rect at last layout"_s, m_constraints.viewportRectAtLastLayout());
-
-    if (m_constraints.layerPositionAtLastLayout() != FloatPoint())
-        ts.dumpProperty("layer position at last layout"_s, m_constraints.layerPositionAtLastLayout());
 }
 
 } // namespace WebCore

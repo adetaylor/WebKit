@@ -338,14 +338,14 @@ public:
     WEBCORE_EXPORT FloatQuad rootViewToContents(const FloatQuad&) const;
     WEBCORE_EXPORT FloatQuad contentsToRootView(const FloatQuad&) const;
 
-    WEBCORE_EXPORT IntPoint viewToContents(const IntPoint&) const;
-    WEBCORE_EXPORT IntPoint contentsToView(const IntPoint&) const;
+    WEBCORE_EXPORT IntPoint viewToContents(IntPoint) const;
+    WEBCORE_EXPORT IntPoint contentsToView(IntPoint) const;
 
-    WEBCORE_EXPORT FloatPoint viewToContents(const FloatPoint&) const;
-    WEBCORE_EXPORT FloatPoint contentsToView(const FloatPoint&) const;
+    WEBCORE_EXPORT FloatPoint viewToContents(FloatPoint) const;
+    WEBCORE_EXPORT FloatPoint contentsToView(FloatPoint) const;
 
-    WEBCORE_EXPORT DoublePoint viewToContents(const DoublePoint&) const;
-    WEBCORE_EXPORT DoublePoint contentsToView(const DoublePoint&) const;
+    WEBCORE_EXPORT DoublePoint viewToContents(DoublePoint) const;
+    WEBCORE_EXPORT DoublePoint contentsToView(DoublePoint) const;
 
     WEBCORE_EXPORT IntRect viewToContents(IntRect) const;
     WEBCORE_EXPORT IntRect contentsToView(IntRect) const;
@@ -359,7 +359,7 @@ public:
     WEBCORE_EXPORT IntPoint contentsToContainingViewContents(const IntPoint&) const;
     WEBCORE_EXPORT IntRect contentsToContainingViewContents(IntRect) const;
 
-    WEBCORE_EXPORT IntPoint rootViewToTotalContents(const IntPoint&) const;
+    WEBCORE_EXPORT IntPoint rootViewToTotalContents(IntPoint) const;
 
     // Event coordinates are assumed to be in the coordinate space of a window that contains
     // the entire widget hierarchy. It is up to the platform to decide what the precise definition
@@ -620,7 +620,7 @@ private:
 
     bool m_paintsEntireContents { false };
 
-}; // class ScrollView
+} SWIFT_PRIVATE_FILEID("WebCore/ScrollView.swift"); // class ScrollView
 
 } // namespace WebCore
 

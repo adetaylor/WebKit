@@ -30,6 +30,7 @@
 #include "Timer.h"
 #include <wtf/CanMakeWeakPtr.h>
 #include <wtf/RefPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
 
@@ -48,7 +49,7 @@ class PlatformWheelEvent;
 class ScrollableArea;
 class WeakPtrImplWithEventTargetData;
 
-class ScrollLatchingController : public CanMakeWeakPtr<ScrollLatchingController> {
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/ScrollLatchingController.swift") ScrollLatchingController : public CanMakeWeakPtr<ScrollLatchingController> {
     WTF_MAKE_TZONE_ALLOCATED(ScrollLatchingController);
 public:
     explicit ScrollLatchingController(Page&);
@@ -56,10 +57,10 @@ public:
 
     void clear();
 
-    NODELETE void ref() const;
-    void deref() const;
+    NODELETE SWIFT_UNSAFE void ref() const;
+    SWIFT_UNSAFE void deref() const;
 
-    void receivedWheelEvent(const PlatformWheelEvent&);
+    void receivedWheelEvent(PlatformWheelEvent);
     FloatSize cumulativeEventDelta() const { return m_cumulativeEventDelta; }
 
     // Frame containing latched scroller (may be the frame or some sub-scroller).
@@ -85,7 +86,7 @@ private:
         bool isOverWidget { false };
     };
 
-    void clearOrScheduleClearIfNeeded(const PlatformWheelEvent&);
+    void clearOrScheduleClearIfNeeded(PlatformWheelEvent);
     void clearTimerFired();
 
     NODELETE bool hasStateForFrame(const LocalFrame&) const;

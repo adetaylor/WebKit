@@ -1,3 +1,4 @@
+// Copyright (C) 2014-2025 Apple Inc. All rights reserved.
 // Copyright (C) 2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -21,7 +22,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-
 import WebKit_Internal
 
 /// What RemoteScrollingCoordinator::scrollUpdateForNode() does with a scroll update from the UI process: drop it, apply
@@ -32,19 +32,38 @@ struct RemoteScrollingCoordinatorScrollUpdateAction {
     @used
     static let cxxTypeMetadata: Any.Type = Self.self
 
-    fileprivate var appliesUpdateValue = false
-    fileprivate var appliesPositionUpdateValue = false
-    fileprivate var firesScrollEndValue = false
+    fileprivate enum Kind {
+        case drop
+        case apply
+        case applyPosition(firesScrollEnd: Bool)
+    }
+
+    fileprivate var kind = Kind.drop
 
     fileprivate init() {
     }
 
     @used
-    func appliesUpdate() -> Bool { appliesUpdateValue }
+    func appliesUpdate() -> Bool {
+        switch kind {
+        case .drop: false
+        case .apply, .applyPosition: true
+        }
+    }
     @used
-    func appliesPositionUpdate() -> Bool { appliesPositionUpdateValue }
+    func appliesPositionUpdate() -> Bool {
+        if case .applyPosition = kind {
+            return true
+        }
+        return false
+    }
     @used
-    func firesScrollEnd() -> Bool { firesScrollEndValue }
+    func firesScrollEnd() -> Bool {
+        if case .applyPosition(let firesScrollEnd) = kind {
+            return firesScrollEnd
+        }
+        return false
+    }
 }
 
 /// The scroll requests one RemoteScrollingCoordinator has sent to the UI process and not yet seen answered, by
@@ -86,7 +105,9 @@ final class RemoteScrollingCoordinatorPendingScrollRequests {
         var action = RemoteScrollingCoordinatorScrollUpdateAction()
         guard isResponse else {
             // A user scroll that overlaps a scroll request in flight would apply a stale position.
-            action.appliesUpdateValue = pendingResponses[node] == nil
+            if pendingResponses[node] == nil {
+                action.kind = .apply
+            }
             return action
         }
 
@@ -111,12 +132,10 @@ final class RemoteScrollingCoordinatorPendingScrollRequests {
         pendingResponses[node] = nil
 
         if responseUpdatesPosition {
-            action.appliesUpdateValue = true
-            action.appliesPositionUpdateValue = true
-            action.firesScrollEndValue = pending.pendingScrollEnd
+            action.kind = .applyPosition(firesScrollEnd: pending.pendingScrollEnd)
         } else if pending.pendingScrollEnd {
             // This just ensures that the scrollend is fired.
-            action.appliesUpdateValue = true
+            action.kind = .apply
         }
         return action
     }
@@ -160,4 +179,32 @@ nonisolated func remoteScrollingCoordinatorScrollUpdate(
         firesScrollEnd,
         responseUpdatesPosition
     )
+}
+
+extension WebKit.RemoteScrollingCoordinator {
+    @cxx
+    @implementation
+    override func setScrollPinningBehavior(_: WebCore.ScrollPinningBehavior) {
+        // FIXME: send to the UI process.
+    }
+
+    /// Called on the web process's main thread, for a message from the UI process.
+    @cxx
+    @implementation
+    func currentSnapPointIndicesChangedForNode(
+        _ nodeID: WebCore.ScrollingNodeID,
+        _ horizontal: WebCore.OptionalSnapPointIndex,
+        _ vertical: WebCore.OptionalSnapPointIndex
+    ) {
+        setActiveScrollSnapIndices(nodeID, horizontal, vertical)
+    }
+
+    /// Called on the web process's main thread.
+    @cxx
+    @implementation
+    override func startMonitoringWheelEvents(_ clearLatchingState: Bool) {
+        if clearLatchingState {
+            m_clearScrollLatchingInNextTransaction = true
+        }
+    }
 }

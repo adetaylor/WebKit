@@ -70,12 +70,6 @@ Ref<ScrollingStateNode> ScrollingStatePluginHostingNode::clone(ScrollingStateTre
     return adoptRef(*new ScrollingStatePluginHostingNode(*this, adoptiveTree));
 }
 
-void ScrollingStatePluginHostingNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
-{
-    ts << "Plugin hosting node"_s;
-    ScrollingStateNode::dumpProperties(ts, behavior);
-}
-
 } // namespace WebCore
 
 #endif // ENABLE(ASYNC_SCROLLING)

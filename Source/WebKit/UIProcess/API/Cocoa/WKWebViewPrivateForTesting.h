@@ -314,6 +314,10 @@ WK_CLASS_AVAILABLE(macos(WK_MAC_TBA), ios(WK_IOS_TBA))
 // The handler must call sendReply to send the decision to the network process.
 - (void)_setNavigationResponseProcessSwapReplyHandlerForTesting:(NS_SWIFT_UI_ACTOR void (^ _Nullable)(_WKNavigationResponseProcessSwapDecision decision, void (^sendReply)(void)))handler;
 
+// Builds scrolling state trees from `spec`, encodes and decodes each as a RemoteScrollingCoordinatorTransaction, and
+// answers text. Mode "roundtrip" answers the decoded trees; "commit" also commits each to the page's scrolling coordinator.
+- (NSString *)_scrollingTransactionForTesting:(NSString *)spec mode:(NSString *)mode;
+
 - (void)_topDocumentURLsInBackForwardCacheAtIndexForTesting:(NSInteger)relativeIndex completionHandler:(void(^)(NSArray<NSURL *> *topDocumentURLs))completionHandler;
 
 #if TARGET_OS_IPHONE

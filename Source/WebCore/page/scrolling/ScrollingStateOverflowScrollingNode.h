@@ -39,7 +39,7 @@ public:
 
     virtual ~ScrollingStateOverflowScrollingNode();
 
-    void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const override;
 
 private:
     WEBCORE_EXPORT ScrollingStateOverflowScrollingNode(

@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2019 Apple Inc. All rights reserved.
  * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +28,6 @@
 // transition animations. Each scroller's lock and the AppKit objects used under it are a MacScrollerImpState;
 // ScrollerPairMac keeps the NSScrollerImpPair, which no lock guards.
 
-// PLATFORM(MAC), as ScrollerPairMac.mm and ScrollerMac.mm, the C++ this replaces.
 #if os(macOS)
 
 internal import AppKit
@@ -40,6 +40,7 @@ internal import WebCore_Private.Core.PlatformWheelEvent
 internal import WebCore_Private.Core.ScrollerPairMac
 internal import WebCore_Private.Core.ScrollingStateScrollingNode
 internal import WebCore_Private.Core.ScrollingTreeScrollingNode
+internal import WebCore_Private.Core.ScrollableArea
 internal import WebCore_Private.Core.ScrollTypes
 internal import WebCore_Private.Core.ScrollTypesMac
 internal import WebCore_Private.Core.UserInterfaceLayoutDirection
@@ -1334,6 +1335,74 @@ private final class WebScrollbarPartAnimationMac: NSAnimation {
     func invalidate() {
         stop()
         isInvalidated.store(true, ordering: .relaxed)
+    }
+}
+
+// MARK: - ScrollerPairMac
+
+extension WebCore.ScrollerPairMac {
+    /// The node's scrollable area size, or zero once the node is gone.
+    @cxx
+    @implementation
+    public func visibleSize() -> WebCore.FloatSize {
+        guard let node = node().get() else {
+            return WebCore.FloatSize()
+        }
+        return node.scrollableAreaSize()
+    }
+
+    /// The scroller's value and knob proportion for the node's scroll position.
+    @cxx
+    @implementation
+    public func valuesForOrientation(_ orientation: WebCore.ScrollbarOrientation) -> WebCore.ScrollerPairMac.Values {
+        guard let node = node().get() else {
+            return WebCore.ScrollerPairMac.Values()
+        }
+
+        let position: Float
+        let totalSize: Float
+        let visibleSize: Float
+        if orientation == .Vertical {
+            position = node.currentScrollOffset().y()
+            totalSize = node.totalContentsSize().height()
+            visibleSize = node.scrollableAreaSize().height()
+        } else {
+            position = node.currentScrollOffset().x()
+            totalSize = node.totalContentsSize().width()
+            visibleSize = node.scrollableAreaSize().width()
+        }
+
+        var value: Float = 0
+        var overhang: Float = 0
+        scrollableAreaComputeScrollbarValueAndOverhang(position, totalSize, visibleSize, &value, &overhang)
+
+        let proportion: Float = totalSize != 0 ? (visibleSize - overhang) / totalSize : 1
+
+        return WebCore.ScrollerPairMac.Values(value: value, proportion: proportion)
+    }
+
+    /// Sets one animated part of the scroller's NSScrollerImp.
+    @cxx
+    @implementation
+    public func setScrollerImpProgress(
+        _ orientation: WebCore.ScrollbarOrientation,
+        _ feature: WebCore.ScrollbarPartFeature,
+        _ value: Double
+    ) {
+        let scrollerImp = retainedScrollerImp(orientation)
+        let progress = CGFloat(value)
+        switch feature {
+        case .KnobAlpha:
+            scrollerImp?.knobAlpha = progress
+        case .TrackAlpha:
+            scrollerImp?.trackAlpha = progress
+        case .UIStateTransition:
+            scrollerImp?.uiStateTransitionProgress = progress
+        case .ExpansionTransition:
+            scrollerImp?.expansionTransitionProgress = progress
+        @unknown default:
+            break
+        }
     }
 }
 

@@ -38,6 +38,8 @@ namespace WebCore {
 class AsyncScrollingCoordinator;
 class ScrollingStateFrameScrollingNode;
 
+using RefPtrScrollingStateFrameScrollingNode = RefPtr<ScrollingStateFrameScrollingNode>;
+
 // The ScrollingStateTree is a tree that manages ScrollingStateNodes. The nodes keep track of the current
 // state of scrolling related properties. Whenever any properties change, the scrolling coordinator
 // will be informed and will schedule a timer that will clone the new state tree and send it over to
@@ -62,7 +64,7 @@ public:
     void detachAndDestroySubtree(std::optional<ScrollingNodeID>);
     void clear();
 
-    void setAllPropertiesChanged();
+    WEBCORE_EXPORT void setAllPropertiesChanged();
 
     // Copies the current tree state and clears the changed properties mask in the original.
     WEBCORE_EXPORT std::unique_ptr<ScrollingStateTree> commit(LayerRepresentation::Type preferredLayerRepresentation);
@@ -83,7 +85,7 @@ public:
     LayerRepresentation::Type preferredLayerRepresentation() const { return m_preferredLayerRepresentation; }
     void setPreferredLayerRepresentation(LayerRepresentation::Type representation) { m_preferredLayerRepresentation = representation; }
 
-    void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, const LayoutRect& viewportRect, ScrollingLayerPositionAction);
+    void reconcileViewportConstrainedLayerPositions(std::optional<ScrollingNodeID>, LayoutRect viewportRect, ScrollingLayerPositionAction);
 
     void scrollingNodeAdded()
     {
@@ -114,7 +116,6 @@ private:
     void willRemoveNode(ScrollingStateNode&);
     
     bool isValid() const;
-    void traverse(const ScrollingStateNode&, NOESCAPE const Function<void(const ScrollingStateNode&)>&) const;
 
     ThreadSafeWeakPtr<AsyncScrollingCoordinator> m_scrollingCoordinator;
     Markable<FrameIdentifier> m_rootFrameIdentifier;
@@ -129,7 +130,11 @@ private:
     LayerRepresentation::Type m_preferredLayerRepresentation { LayerRepresentation::GraphicsLayerRepresentation };
     bool m_hasChangedProperties { false };
     bool m_hasNewRootStateNode { false };
-};
+
+    // Swift retains and releases a state tree through its checked pointer count. If C++ destroys one while Swift holds
+    // it, its memory is zero-filled and not freed, so Swift's next use faults. A function that returns one leaves it
+    // owned by C++, and Swift retains it.
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/ScrollingStateTree.swift");
 
 } // namespace WebCore
 

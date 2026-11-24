@@ -31,7 +31,7 @@
 
 namespace WebCore {
 
-class ScrollingTreePositionedNodeCocoa : public ScrollingTreePositionedNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreePositionedNode.swift") ScrollingTreePositionedNodeCocoa : public ScrollingTreePositionedNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreePositionedNodeCocoa, WEBCORE_EXPORT);
 public:
     NODELETE WEBCORE_EXPORT static Ref<ScrollingTreePositionedNodeCocoa> create(ScrollingTree&, ScrollingNodeID);
@@ -41,9 +41,9 @@ public:
 private:
     ScrollingTreePositionedNodeCocoa(ScrollingTree&, ScrollingNodeID);
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
 
-    void applyLayerPositions() override;
+    SWIFT_UNSAFE void applyLayerPositions() override;
 
     CALayer *layer() const override { return m_layer.get(); }
 

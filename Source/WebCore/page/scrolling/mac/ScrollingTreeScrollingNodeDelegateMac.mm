@@ -98,7 +98,7 @@ void ScrollingTreeScrollingNodeDelegateMac::updateFromStateNode(const ScrollingS
 #endif
 }
 
-bool ScrollingTreeScrollingNodeDelegateMac::handleWheelEvent(const PlatformWheelEvent& wheelEvent)
+bool ScrollingTreeScrollingNodeDelegateMac::handleWheelEvent(PlatformWheelEvent wheelEvent)
 {
     return m_physics->delegate.handleWheelEvent(ScrollingTreeScrollPhysicsClientState(*this).facade(), m_scrollerPair->scrollers(), wheelEvent, wheelEvent.timestamp().secondsSinceEpoch().value());
 }

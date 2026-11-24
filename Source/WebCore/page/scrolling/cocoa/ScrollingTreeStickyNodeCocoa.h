@@ -33,7 +33,7 @@
 
 namespace WebCore {
 
-class ScrollingTreeStickyNodeCocoa : public ScrollingTreeStickyNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeStickyNode.swift") ScrollingTreeStickyNodeCocoa : public ScrollingTreeStickyNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreeStickyNodeCocoa, WEBCORE_EXPORT);
 public:
     NODELETE WEBCORE_EXPORT static Ref<ScrollingTreeStickyNodeCocoa> create(ScrollingTree&, ScrollingNodeID);
@@ -43,15 +43,15 @@ public:
 private:
     ScrollingTreeStickyNodeCocoa(ScrollingTree&, ScrollingNodeID);
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) final;
-    void applyLayerPositions() final WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) final;
+    SWIFT_UNSAFE void applyLayerPositions() final WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
 #if ENABLE(OVERLAY_REGIONS_REMOTE_EFFECT)
-    void willBeDestroyed() final;
+    SWIFT_UNSAFE void willBeDestroyed() final;
 #endif
     FloatPoint layerTopLeft() const final;
     CALayer *layer() const final { return m_layer.get(); }
     bool hasViewportClippingLayer() const final;
-    void setIsSticking(bool) WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
+    SWIFT_UNSAFE void setIsSticking(bool) WTF_REQUIRES_LOCK(scrollingTree()->treeLock());
 
     bool m_isSticking { false };
     RetainPtr<CALayer> m_layer;

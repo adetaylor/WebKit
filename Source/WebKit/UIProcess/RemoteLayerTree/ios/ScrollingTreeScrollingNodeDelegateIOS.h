@@ -51,7 +51,7 @@ class ScrollingTreeScrollingNode;
 
 namespace WebKit {
 
-class ScrollingTreeScrollingNodeDelegateIOS final : public WebCore::ScrollingTreeScrollingNodeDelegate, public CanMakeWeakPtr<ScrollingTreeScrollingNodeDelegateIOS>, public CanMakeCheckedPtr<ScrollingTreeScrollingNodeDelegateIOS> {
+class ScrollingTreeScrollingNodeDelegateIOS final : public WebCore::ScrollingTreeScrollingNodeDelegate, public CanMakeWeakPtr<ScrollingTreeScrollingNodeDelegateIOS> {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreeScrollingNodeDelegateIOS);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ScrollingTreeScrollingNodeDelegateIOS);
 public:
@@ -105,7 +105,7 @@ private:
     const RetainPtr<WKScrollingNodeScrollViewDelegate> m_scrollViewDelegate;
     OptionSet<WebCore::TouchAction> m_activeTouchActions { };
     bool m_updatingFromStateNode { false };
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 } // namespace WebKit
 

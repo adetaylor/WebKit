@@ -29,7 +29,6 @@
 #if ENABLE(ASYNC_SCROLLING)
 
 #include "ScrollingStateFixedNode.h"
-#include "ScrollingStateScrollingNode.h"
 #include "ScrollingStateTree.h"
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/text/TextStream.h>
@@ -77,20 +76,6 @@ ScrollingStateNode::ScrollingStateNode(ScrollingNodeType nodeType, ScrollingNode
 
 ScrollingStateNode::~ScrollingStateNode() = default;
 
-void ScrollingStateNode::attachAfterDeserialization(ScrollingStateTree& tree)
-{
-    ASSERT(!m_scrollingStateTree);
-    m_scrollingStateTree = &tree;
-
-    // Non-deserialization ScrollingStateScrollingNode constructors do this during construction,
-    // but since we didn't have a ScrollingStateTree pointer until attaching, do it now.
-    if (is<ScrollingStateScrollingNode>(*this))
-        tree.scrollingNodeAdded();
-
-    for (auto& child : m_children)
-        child->attachAfterDeserialization(tree);
-}
-
 void ScrollingStateNode::setChildren(Vector<Ref<ScrollingStateNode>>&& children)
 {
     m_children = WTF::move(children);
@@ -106,21 +91,6 @@ void ScrollingStateNode::traverse(NOESCAPE const Function<void(ScrollingStateNod
     function(*this);
     for (auto& child : m_children)
         child->traverse(function);
-}
-
-void ScrollingStateNode::setPropertyChanged(Property property)
-{
-    if (hasChangedProperty(property))
-        return;
-
-    setPropertyChangedInternal(property);
-    ASSERT(m_scrollingStateTree);
-    protect(m_scrollingStateTree)->setHasChangedProperties();
-}
-
-OptionSet<ScrollingStateNode::Property> ScrollingStateNode::applicableProperties() const
-{
-    return { Property::Layer, Property::ChildNodes };
 }
 
 void ScrollingStateNode::setAllApplicablePropertiesChanged()
@@ -149,35 +119,12 @@ void ScrollingStateNode::cloneAndResetChildren(ScrollingStateNode& clone, Scroll
         clone.appendChild(child->cloneAndReset(adoptiveTree));
 }
 
-void ScrollingStateNode::appendChild(Ref<ScrollingStateNode>&& childNode)
+std::optional<ScrollingNodeID> ScrollingStateNode::parentNodeID() const
 {
-    childNode->setParent(this);
-
-    m_children.append(WTF::move(childNode));
-    setPropertyChanged(Property::ChildNodes);
-}
-
-void ScrollingStateNode::insertChild(Ref<ScrollingStateNode>&& childNode, size_t index)
-{
-    childNode->setParent(this);
-
-    if (index > m_children.size()) {
-        ASSERT_NOT_REACHED();  // Crash data suggest we can get here.
-        m_children.append(WTF::move(childNode));
-    } else
-        m_children.insert(index, WTF::move(childNode));
-    
-    setPropertyChanged(Property::ChildNodes);
-}
-
-void ScrollingStateNode::removeFromParent()
-{
-    RefPtr parent = m_parent.get();
+    auto parent = m_parent.get();
     if (!parent)
-        return;
-
-    parent->removeChild(*this);
-    m_parent = nullptr;
+        return std::nullopt;
+    return parent->scrollingNodeID();
 }
 
 void ScrollingStateNode::removeChild(ScrollingStateNode& childNode)
@@ -187,13 +134,6 @@ void ScrollingStateNode::removeChild(ScrollingStateNode& childNode)
     });
     if (didRemove)
         setPropertyChanged(Property::ChildNodes);
-}
-
-RefPtr<ScrollingStateNode> ScrollingStateNode::childAtIndex(size_t index) const
-{
-    if (index >= m_children.size())
-        return nullptr;
-    return m_children[index].copyRef();
 }
 
 void ScrollingStateNode::setLayer(const LayerRepresentation& layerRepresentation)
@@ -208,11 +148,7 @@ void ScrollingStateNode::setLayer(const LayerRepresentation& layerRepresentation
 
 void ScrollingStateNode::dumpProperties(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
 {
-    if (behavior & ScrollingStateTreeAsTextBehavior::IncludeNodeIDs)
-        ts.dumpProperty("nodeID"_s, scrollingNodeID());
-    
-    if (behavior & ScrollingStateTreeAsTextBehavior::IncludeLayerIDs)
-        ts.dumpProperty("layerID"_s, layer().layerID());
+    ts << dumpPropertiesText(behavior, ts.indent(), ts.formattingFlags(), ts.containerSizeLimit());
 }
 
 void ScrollingStateNode::dump(TextStream& ts, OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
@@ -237,15 +173,6 @@ void ScrollingStateNode::dump(TextStream& ts, OptionSet<ScrollingStateTreeAsText
     ts << '\n';
     ts.decreaseIndent();
     ts << indent << ')';
-}
-
-String ScrollingStateNode::scrollingStateTreeAsText(OptionSet<ScrollingStateTreeAsTextBehavior> behavior) const
-{
-    TextStream ts(TextStream::LineMode::MultipleLine, TextStream::Formatting::SVGStyleRect);
-
-    dump(ts, behavior);
-    ts << '\n';
-    return ts.release();
 }
 
 #if ASSERT_ENABLED

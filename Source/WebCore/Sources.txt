@@ -2513,7 +2513,6 @@ platform/RunLoopObserver.cpp
 platform/ScreenOrientationManager.cpp
 platform/ScrollAlignment.cpp
 platform/ScrollAnimation.cpp
-platform/ScrollAnimationKinetic.cpp
 platform/ScrollAnimationSmooth.cpp
 platform/ScrollAnimator.cpp
 platform/ScrollTypes.cpp

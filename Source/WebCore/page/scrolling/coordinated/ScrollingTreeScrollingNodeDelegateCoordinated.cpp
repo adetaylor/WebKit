@@ -62,7 +62,7 @@ void ScrollingTreeScrollingNodeDelegateCoordinated::updateVisibleLengths()
 #endif
 }
 
-bool ScrollingTreeScrollingNodeDelegateCoordinated::handleWheelEvent(const PlatformWheelEvent& wheelEvent)
+bool ScrollingTreeScrollingNodeDelegateCoordinated::handleWheelEvent(PlatformWheelEvent wheelEvent)
 {
     return m_physics->delegate.handleWheelEvent(ScrollingTreeScrollPhysicsClientState(*this).facade(), wheelEvent, wheelEvent.timestamp().secondsSinceEpoch().value());
 }

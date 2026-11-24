@@ -1903,16 +1903,6 @@ bool RenderLayerCompositor::documentIsFullscreenForSwift() const
     return false;
 }
 
-void RenderLayerCompositor::setRelatedOverflowScrollingNodesForSwift(ScrollingCoordinator& scrollingCoordinator, ScrollingNodeID nodeID, ScrollingNodeIDList relatedNodeIDs)
-{
-    scrollingCoordinator.setRelatedOverflowScrollingNodes(nodeID, relatedNodeIDs.takeNodeIDs());
-}
-
-void RenderLayerCompositor::setRelatedOverflowScrollingNodeForSwift(ScrollingCoordinator& scrollingCoordinator, ScrollingNodeID nodeID, ScrollingNodeID relatedNodeID)
-{
-    scrollingCoordinator.setRelatedOverflowScrollingNodes(nodeID, { relatedNodeID });
-}
-
 RenderElement* RenderElementList::rendererAt(size_t index) const
 {
     return m_renderers[index].get();
@@ -1967,11 +1957,6 @@ void RenderLayerCompositor::removeScrollingNodeLayerForSwift(ScrollingNodeID nod
 void RenderLayerCompositor::addLayerWithUnresolvedRelationsForSwift(RenderLayer& layer)
 {
     m_layersWithUnresolvedRelations.add(layer);
-}
-
-void RenderLayerCompositor::setNodeLayersForSwift(ScrollingCoordinator& scrollingCoordinator, ScrollingNodeID nodeID, GraphicsLayer* layer, GraphicsLayer* scrollContainerLayer, GraphicsLayer* scrolledContentsLayer, GraphicsLayer* counterScrollingLayer, GraphicsLayer* insetClipLayer, GraphicsLayer* rootContentsLayer, GraphicsLayer* horizontalScrollbarLayer, GraphicsLayer* verticalScrollbarLayer, GraphicsLayer* viewportAnchorLayer)
-{
-    scrollingCoordinator.setNodeLayers(nodeID, { layer, scrollContainerLayer, scrolledContentsLayer, counterScrollingLayer, insetClipLayer, rootContentsLayer, horizontalScrollbarLayer, verticalScrollbarLayer, viewportAnchorLayer });
 }
 
 void RenderLayerCompositor::setScrollingNodeScrollableAreaGeometryForSwift(ScrollingCoordinator& scrollingCoordinator, ScrollingNodeID nodeID, RenderLayerScrollableArea& scrollableArea)

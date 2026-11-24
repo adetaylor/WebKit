@@ -67,25 +67,25 @@ struct ScrollbarEnabledState {
     bool verticalScrollbarIsEnabled { false };
 };
 
-class ScrollingStateScrollingNode : public ScrollingStateNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingStateScrollingNode.swift") ScrollingStateScrollingNode : public ScrollingStateNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStateScrollingNode, WEBCORE_EXPORT);
 public:
     virtual ~ScrollingStateScrollingNode();
 
-    const FloatSize& scrollableAreaSize() const LIFETIME_BOUND { return m_scrollableAreaSize; }
-    WEBCORE_EXPORT void setScrollableAreaSize(const FloatSize&);
+    FloatSize scrollableAreaSize() const { return m_scrollableAreaSize; }
+    WEBCORE_EXPORT void setScrollableAreaSize(FloatSize);
 
-    const FloatSize& totalContentsSize() const LIFETIME_BOUND { return m_totalContentsSize; }
-    WEBCORE_EXPORT void setTotalContentsSize(const FloatSize&);
+    FloatSize totalContentsSize() const { return m_totalContentsSize; }
+    WEBCORE_EXPORT void setTotalContentsSize(FloatSize);
 
-    const FloatSize& reachableContentsSize() const LIFETIME_BOUND { return m_reachableContentsSize; }
-    WEBCORE_EXPORT void setReachableContentsSize(const FloatSize&);
+    FloatSize reachableContentsSize() const { return m_reachableContentsSize; }
+    WEBCORE_EXPORT void setReachableContentsSize(FloatSize);
 
-    const FloatPoint& scrollPosition() const LIFETIME_BOUND { return m_scrollPosition; }
-    WEBCORE_EXPORT void setScrollPosition(const FloatPoint&);
+    FloatPoint scrollPosition() const { return m_scrollPosition; }
+    WEBCORE_EXPORT void setScrollPosition(FloatPoint);
 
-    const IntPoint& scrollOrigin() const LIFETIME_BOUND { return m_scrollOrigin; }
-    WEBCORE_EXPORT void setScrollOrigin(const IntPoint&);
+    IntPoint scrollOrigin() const { return m_scrollOrigin; }
+    WEBCORE_EXPORT void setScrollOrigin(IntPoint);
 
     const FloatScrollSnapOffsetsInfo& snapOffsetsInfo() const LIFETIME_BOUND { return m_snapOffsetsInfo; }
     WEBCORE_EXPORT void setSnapOffsetsInfo(const FloatScrollSnapOffsetsInfo& newOffsetsInfo);
@@ -105,8 +105,8 @@ public:
     bool hasSynchronousScrollingReasons() const { return !m_synchronousScrollingReasons.isEmpty(); }
 #endif
 
-    const RequestedKeyboardScrollData& keyboardScrollData() const LIFETIME_BOUND { return m_keyboardScrollData; }
-    WEBCORE_EXPORT void setKeyboardScrollData(const RequestedKeyboardScrollData&);
+    RequestedKeyboardScrollData keyboardScrollData() const { return m_keyboardScrollData; }
+    WEBCORE_EXPORT void setKeyboardScrollData(RequestedKeyboardScrollData);
 
     const ScrollRequestData& requestedScrollData() const LIFETIME_BOUND { return m_requestedScrollData; }
 
@@ -151,8 +151,8 @@ public:
     WEBCORE_EXPORT void setMouseIsOverContentArea(bool);
     bool mouseIsOverContentArea() const { return m_mouseIsOverContentArea; }
 
-    WEBCORE_EXPORT void setMouseMovedInContentArea(const MouseLocationState&);
-    const MouseLocationState& mouseLocationState() const LIFETIME_BOUND { return m_mouseLocationState; }
+    WEBCORE_EXPORT void setMouseMovedInContentArea(MouseLocationState);
+    MouseLocationState mouseLocationState() const { return m_mouseLocationState; }
 
     WEBCORE_EXPORT void setScrollbarLayoutDirection(UserInterfaceLayoutDirection);
     UserInterfaceLayoutDirection scrollbarLayoutDirection() const { return m_scrollbarLayoutDirection; }
@@ -207,10 +207,12 @@ protected:
     ScrollingStateScrollingNode(const ScrollingStateScrollingNode&, ScrollingStateTree&);
 
     OptionSet<Property> applicableProperties() const override;
-    void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const override;
 
 private:
-    void mergeOrAppendScrollRequest(RequestedScrollData&&);
+    void mergeOrAppendScrollRequest(RequestedScrollData);
+    // The snap offsets part of dumpPropertiesText(), for Swift, which reaches the snap offset vectors only through unsafe API.
+    String snapOffsetsPropertiesText(int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     FloatSize m_scrollableAreaSize;
     FloatSize m_totalContentsSize;

@@ -46,7 +46,7 @@ namespace WebKit {
 class RemoteLayerTreeDrawingAreaProxyIOS;
 class RemoteLayerTreeNode;
 
-class RemoteScrollingCoordinatorProxyIOS final : public RemoteScrollingCoordinatorProxy {
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteScrollingCoordinatorProxyIOS.swift") RemoteScrollingCoordinatorProxyIOS final : public RemoteScrollingCoordinatorProxy {
     WTF_MAKE_TZONE_ALLOCATED(RemoteScrollingCoordinatorProxyIOS);
 public:
     explicit RemoteScrollingCoordinatorProxyIOS(WebPageProxy&);

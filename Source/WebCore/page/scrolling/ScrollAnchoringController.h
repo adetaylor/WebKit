@@ -27,11 +27,13 @@
 
 #include "FloatRect.h"
 #include "ScrollTypes.h"
+#include "ScrollableArea.h"
 #include <wtf/ApproximateTime.h>
 #include <wtf/CheckedRef.h>
 #include <wtf/Markable.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
+#include <wtf/text/TextStream.h>
 
 namespace WebCore {
 
@@ -128,6 +130,26 @@ private:
     NODELETE bool anchoringSuppressedByStyleChange() const;
     void updateScrollableAreaRegistration();
 
+    // Swift imports ScrollableArea as a value type, so it reaches the owning scrollable area through these.
+    ScrollPosition owningScrollPosition() const { return m_owningScrollableArea->scrollPosition(); }
+    ScrollPosition owningConstrainedScrollPosition(ScrollPosition position) const { return m_owningScrollableArea->constrainedScrollPosition(position); }
+    ScrollType owningScrollType() const { return m_owningScrollableArea->currentScrollType(); }
+    bool owningScrollableAreaIsScrollView() const { return m_owningScrollableArea->isScrollView(); }
+    bool owningScrollableAreaIsRenderLayer() const { return m_owningScrollableArea->isRenderLayer(); }
+    void queueForScrollPositionUpdate();
+    void scrollOwningScrollableArea(ScrollPosition, FloatSize originalScrollDelta);
+
+    // Swift has no address of a foreign reference to log.
+    void writeAddress(TextStream& ts) const { ts << this; }
+
+    // Swift cannot read RenderStyle or Quirks, or downcast to RenderBlockFlow.
+    static bool hasOverflowAnchorNone(const RenderElement&);
+    static bool shouldDisableScrollAnchoringQuirk(const RenderBox&);
+    static bool shouldDescendIntoObjectWithEmptyLayoutOverflow(const RenderObject&);
+
+    // Swift finds FrameView::frame(), not the LocalFrame& override, so it cannot reach the frame's document.
+    Document* frameDocument() const;
+
     CheckedRef<ScrollableArea> m_owningScrollableArea;
     SingleThreadWeakPtr<RenderObject> m_anchorObject;
     FloatPoint m_lastAnchorOffset;
@@ -139,6 +161,6 @@ private:
     bool m_anchoringSuppressedByStyleChange { false };
     unsigned m_inScrollEventCount { 0 };
     unsigned m_suppressionCount { 0 };
-};
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/ScrollAnchoringController.swift");
 
 } // namespace WebCore

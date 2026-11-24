@@ -33,7 +33,7 @@
 
 namespace WebCore {
 
-class ScrollingTreeOverflowScrollProxyNode : public ScrollingTreeNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeOverflowScrollProxyNode.swift") ScrollingTreeOverflowScrollProxyNode : public ScrollingTreeNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreeOverflowScrollProxyNode, WEBCORE_EXPORT);
 public:
     WEBCORE_EXPORT virtual ~ScrollingTreeOverflowScrollProxyNode();
@@ -42,16 +42,17 @@ public:
 
     virtual ScrollingPlatformLayer* layer() const = 0;
 
-    FloatSize scrollDeltaSinceLastCommit() const;
+    SWIFT_UNSAFE FloatSize scrollDeltaSinceLastCommit() const;
 
 protected:
     WEBCORE_EXPORT ScrollingTreeOverflowScrollProxyNode(ScrollingTree&, ScrollingNodeID);
 
-    FloatPoint computeLayerPosition() const;
+    SWIFT_UNSAFE FloatPoint computeLayerPosition() const;
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
 
     WEBCORE_EXPORT void dumpProperties(TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    SWIFT_UNSAFE String overflowScrollProxyNodePropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     Markable<ScrollingNodeID> m_overflowScrollingNodeID;
 };
@@ -59,10 +60,5 @@ protected:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ScrollingTreeOverflowScrollProxyNode, isOverflowScrollProxyNode())
-
-namespace WebCore {
-// For Swift, which cannot cast between C++ classes: the node as an overflow scroll proxy node, or null.
-inline RefPtr<ScrollingTreeOverflowScrollProxyNode> asScrollingTreeOverflowScrollProxyNode(ScrollingTreeNode& node) { return dynamicDowncast<ScrollingTreeOverflowScrollProxyNode>(node); }
-}
 
 #endif // ENABLE(ASYNC_SCROLLING)

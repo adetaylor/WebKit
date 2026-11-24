@@ -32,7 +32,7 @@
 
 namespace WebCore {
 
-class ThreadedScrollingCoordinator : public AsyncScrollingCoordinator {
+class SWIFT_PRIVATE_FILEID("WebCore/ThreadedScrollingCoordinator.swift") ThreadedScrollingCoordinator : public AsyncScrollingCoordinator {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ThreadedScrollingCoordinator, WEBCORE_EXPORT);
 protected:
     explicit ThreadedScrollingCoordinator(Page*);

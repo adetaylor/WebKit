@@ -3997,6 +3997,7 @@ if (APPLE)
         ${WEBCORE_DIR}/page/scrolling/mac/MacScrollerImpState.swift
         ${WEBCORE_DIR}/page/scrolling/mac/ScrollerPairMac.swift
         ${WEBCORE_DIR}/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/ScrollingTreeScrollingNodeMac.swift
         ${WEBCORE_DIR}/platform/KeyboardScrollingAnimator.swift
         ${WEBCORE_DIR}/platform/ScrollAnimator.swift
         ${WEBCORE_DIR}/platform/ScrollAnimatorScrollPhysicsClient.swift
@@ -4006,16 +4007,47 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/ScrollPhysicsGeometry.swift
         ${WEBCORE_DIR}/platform/ScrollSnapAnimationState.swift
         ${WEBCORE_DIR}/platform/ScrollView.swift
+        ${WEBCORE_DIR}/platform/Scrollbar.swift
+        ${WEBCORE_DIR}/platform/ScrollbarThemeComposite.swift
         ${WEBCORE_DIR}/platform/ScrollableArea.swift
         ${WEBCORE_DIR}/platform/graphics/transforms/TransformationMatrix.swift
         ${WEBCORE_DIR}/style/values/transforms/StyleTransformFunctionSwift.swift
         ${WEBCORE_DIR}/style/values/transforms/StyleTransformListSwift.swift
         ${WEBCORE_DIR}/platform/mac/ScrollbarsControllerMac.swift
+        ${WEBCORE_DIR}/platform/mac/ScrollbarThemeMac.swift
         ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
     )
     target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/page/scrolling/AsyncScrollingCoordinator.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingCoordinator.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollLatchingController.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollAnchoringController.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateFixedNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateFrameHostingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateFrameScrollingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateOverflowScrollProxyNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateOverflowScrollingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStatePluginHostingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStatePluginScrollingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStatePositionedNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateScrollingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateStickyNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingStateTree.swift
         ${WEBCORE_DIR}/page/scrolling/ScrollingTree.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeFixedNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeFrameHostingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeFrameScrollingNode.swift
         ${WEBCORE_DIR}/page/scrolling/ScrollingTreeLatchingController.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeOverflowScrollProxyNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreePluginHostingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreePositionedNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeScrollingNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeStickyNode.swift
+        ${WEBCORE_DIR}/page/scrolling/ThreadedScrollingCoordinator.swift
+        ${WEBCORE_DIR}/page/scrolling/ThreadedScrollingTree.swift
+        ${WEBCORE_DIR}/page/scrolling/ThreadedScrollingTreeScrollingNodeDelegate.swift
     )
 
     # The Swift port of ImageDecoderCG, as in WebCore.xcodeproj.
@@ -4074,6 +4106,11 @@ if (APPLE)
     # The scroll physics' Swift is compiled under the conditions of the C++ it replaced, which PlatformEnableCocoa.h
     # sets on every Apple port.
     webkit_target_add_swift_options(WebCore "-D ENABLE_ASYNC_SCROLLING" "-D ENABLE_KINETIC_SCROLLING")
+    # The scrolling thread, which PlatformEnableCocoa.h turns on for PLATFORM(MAC), as WebCore.xcconfig's
+    # platform-enabled-swift-args.resp gives it.
+    if (NOT WEBKIT_SDK_IS_IOS_FAMILY)
+        webkit_target_add_swift_options(WebCore "-D ENABLE_SCROLLING_THREAD")
+    endif ()
     # WebCore soft-links these frameworks, so its Swift doesn't autolink them or their overlays, and a stray use of
     # their symbols fails the link. As WebCore.xcconfig's WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS. The check at the end of
     # this file keeps the list complete for direct imports; MediaToolbox and VideoToolbox come through the C++ modules,
@@ -4318,14 +4355,45 @@ else ()
         ${WEBCORE_DIR}/platform/ScrollPhysicsGeometry.swift
         ${WEBCORE_DIR}/platform/ScrollSnapAnimationState.swift
         ${WEBCORE_DIR}/platform/ScrollView.swift
+        ${WEBCORE_DIR}/platform/Scrollbar.swift
+        ${WEBCORE_DIR}/platform/ScrollbarThemeComposite.swift
         ${WEBCORE_DIR}/platform/ScrollableArea.swift
+        # Outside ENABLE_ASYNC_SCROLLING, as ScrollingCoordinator.cpp is.
+        ${WEBCORE_DIR}/page/scrolling/ScrollingCoordinator.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollAnchoringController.swift
         ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
     )
     if (ENABLE_ASYNC_SCROLLING)
         # The scrolling tree, which only its C++ (ENABLE(ASYNC_SCROLLING)) calls.
         target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/page/scrolling/AsyncScrollingCoordinator.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateFixedNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateFrameHostingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateFrameScrollingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateOverflowScrollProxyNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateOverflowScrollingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStatePluginHostingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStatePluginScrollingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStatePositionedNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateScrollingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateStickyNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingStateTree.swift
             ${WEBCORE_DIR}/page/scrolling/ScrollingTree.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreeFixedNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreeFrameHostingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreeFrameScrollingNode.swift
             ${WEBCORE_DIR}/page/scrolling/ScrollingTreeLatchingController.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollLatchingController.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreeNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreeOverflowScrollProxyNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreePluginHostingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreePositionedNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreeScrollingNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ScrollingTreeStickyNode.swift
+            ${WEBCORE_DIR}/page/scrolling/ThreadedScrollingCoordinator.swift
+            ${WEBCORE_DIR}/page/scrolling/ThreadedScrollingTree.swift
+            ${WEBCORE_DIR}/page/scrolling/ThreadedScrollingTreeScrollingNodeDelegate.swift
         )
     endif ()
     # USE(COORDINATED_GRAPHICS), which the compositing Swift (RenderLayerCompositor, RenderLayerBacking) tests.
@@ -4520,6 +4588,58 @@ else ()
         platform/sql/SQLiteDatabase.h
         platform/sql/SQLiteStatement.h
         platform/sql/SQLiteTransaction.h)
+    # The headers the scrollbar, scrolling coordinator and scroll anchoring Swift imports one by one.
+    list(APPEND _webcore_swift_core_submodules
+        dom/DocumentClasses.h
+        editing/Editing.h
+        page/DeprecatedGlobalSettings.h
+        page/LocalFrame.h
+        page/LocalFrameView.h
+        page/Page.h
+        page/scrolling/ScrollAnchoringController.h
+        page/scrolling/ScrollingCoordinator.h
+        platform/Logging.h
+        platform/Scrollbar.h
+        platform/ScrollbarTheme.h
+        platform/ScrollbarThemeComposite.h
+        platform/graphics/GraphicsLayer.h
+        rendering/RenderBlock.h
+        rendering/RenderBox.h
+        rendering/RenderElement.h
+        rendering/RenderLayer.h
+        rendering/RenderLayerModelObject.h
+        rendering/RenderLayerScrollableArea.h
+        rendering/RenderObject.h
+        rendering/RenderObjectStyle.h)
+    if (ENABLE_ASYNC_SCROLLING)
+        # The headers the scrolling state and scrolling tree Swift imports one by one.
+        list(APPEND _webcore_swift_core_submodules
+            page/Frame.h
+            page/scrolling/AsyncScrollingCoordinator.h
+            page/scrolling/ScrollingConstraints.h
+            page/scrolling/ScrollingStateFixedNode.h
+            page/scrolling/ScrollingStateFrameHostingNode.h
+            page/scrolling/ScrollingStateFrameScrollingNode.h
+            page/scrolling/ScrollingStateOverflowScrollProxyNode.h
+            page/scrolling/ScrollingStateOverflowScrollingNode.h
+            page/scrolling/ScrollingStatePluginHostingNode.h
+            page/scrolling/ScrollingStatePluginScrollingNode.h
+            page/scrolling/ScrollingStatePositionedNode.h
+            page/scrolling/ScrollingStateScrollingNode.h
+            page/scrolling/ScrollingStateStickyNode.h
+            page/scrolling/ScrollingStateTree.h
+            page/scrolling/ScrollingTreeFixedNode.h
+            page/scrolling/ScrollingTreeOverflowScrollingNode.h
+            page/scrolling/ScrollingTreePluginHostingNode.h
+            page/scrolling/ScrollingTreePositionedNode.h
+            page/scrolling/ScrollingTreeStickyNode.h
+            page/scrolling/ScrollingTreeViewportConstrainedNode.h
+            page/scrolling/ThreadedScrollingCoordinator.h
+            page/scrolling/ThreadedScrollingTree.h
+            page/scrolling/ThreadedScrollingTreeScrollingNodeDelegate.h
+            platform/LayoutUnit.h
+            rendering/RenderLayerCompositor.h)
+    endif ()
     string(APPEND _webcore_swift_modules
         "    explicit module ScrollPhysicsTypes {\n"
         "        header \"${WEBCORE_DIR}/platform/ScrollPhysicsTypes.h\"\n"
@@ -4810,6 +4930,10 @@ else ()
     endif ()
     if (ENABLE_SMOOTH_SCROLLING)
         webkit_target_add_swift_options(WebCore "-D ENABLE_SMOOTH_SCROLLING")
+    endif ()
+    # The scrolling thread, which PlatformEnableGlib.h turns on with coordinated graphics and PlayStation's options set.
+    if (ENABLE_SCROLLING_THREAD OR ((PORT STREQUAL "GTK" OR PORT STREQUAL "WPE") AND USE_COORDINATED_GRAPHICS))
+        webkit_target_add_swift_options(WebCore "-D ENABLE_SCROLLING_THREAD")
     endif ()
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
         webkit_target_add_swift_options(WebCore ${WEBKIT_SWIFT_X86_64_SIMD_FLAGS})

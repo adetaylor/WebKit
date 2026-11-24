@@ -36,7 +36,7 @@ namespace WebKit {
 
 class ScrollingTreeScrollingNodeDelegateIOS;
 
-class ScrollingTreeFrameScrollingNodeRemoteIOS : public WebCore::ScrollingTreeFrameScrollingNode {
+class SWIFT_PRIVATE_FILEID("WebKit/ScrollingTreeScrollingNodeRemoteIOS.swift") ScrollingTreeFrameScrollingNodeRemoteIOS : public WebCore::ScrollingTreeFrameScrollingNode {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreeFrameScrollingNodeRemoteIOS);
 public:
     static Ref<ScrollingTreeFrameScrollingNodeRemoteIOS> create(WebCore::ScrollingTree&, WebCore::ScrollingNodeType, WebCore::ScrollingNodeID);
@@ -52,14 +52,14 @@ private:
 
     bool isScrollingTreeFrameScrollingNodeIOS() const final { return true; }
 
-    bool commitStateBeforeChildren(const WebCore::ScrollingStateNode&) override;
-    bool commitStateAfterChildren(const WebCore::ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const WebCore::ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateAfterChildren(const WebCore::ScrollingStateNode&) override;
 
     WebCore::FloatPoint minimumScrollPosition() const override;
     WebCore::FloatPoint maximumScrollPosition() const override;
 
-    void repositionScrollingLayers() override;
-    void repositionRelatedLayers() override;
+    SWIFT_UNSAFE void repositionScrollingLayers() override;
+    SWIFT_UNSAFE void repositionRelatedLayers() override;
 
     RetainPtr<CALayer> m_counterScrollingLayer;
     RetainPtr<CALayer> m_headerLayer;

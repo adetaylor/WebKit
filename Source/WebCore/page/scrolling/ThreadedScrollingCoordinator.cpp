@@ -102,11 +102,6 @@ void ThreadedScrollingCoordinator::wheelEventWasProcessedByMainThread(const Plat
     threadedScrollingTree->wheelEventWasProcessedByMainThread(wheelEvent, gestureState);
 }
 
-void ThreadedScrollingCoordinator::scheduleTreeStateCommit()
-{
-    scheduleRenderingUpdate();
-}
-
 void ThreadedScrollingCoordinator::didScheduleRenderingUpdate()
 {
     auto* threadedScrollingTree = downcast<ThreadedScrollingTree>(scrollingTree());
@@ -135,22 +130,6 @@ void ThreadedScrollingCoordinator::didCompleteRenderingUpdate()
     // will end up triggering these anyway.
     if (threadedScrollingTree->hasNodeWithActiveScrollAnimations())
         scheduleRenderingUpdate();
-}
-
-void ThreadedScrollingCoordinator::hasNodeWithAnimatedScrollChanged(bool hasAnimatingNode)
-{
-    // This is necessary to trigger a rendering update, after which the code in
-    // AsyncScrollingCoordinator::didCompleteRenderingUpdate() triggers the rest.
-    if (hasAnimatingNode)
-        scheduleRenderingUpdate();
-}
-
-void ThreadedScrollingCoordinator::startMonitoringWheelEvents(bool clearLatchingState)
-{
-    // setIsMonitoringWheelEvents() is called on the root node via AsyncScrollingCoordinator::frameViewLayoutUpdated().
-
-    if (clearLatchingState)
-        protect(scrollingTree())->clearLatchedNode();
 }
 
 } // namespace WebCore

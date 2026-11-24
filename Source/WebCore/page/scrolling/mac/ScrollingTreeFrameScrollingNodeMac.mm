@@ -32,7 +32,6 @@
 #import "LocalFrameView.h"
 #import "Logging.h"
 #import "PlatformWheelEvent.h"
-#import "ScrollableArea.h"
 #import "ScrollingCoordinator.h"
 #import "ScrollingStateTree.h"
 #import "ScrollingThread.h"
@@ -66,21 +65,6 @@ ScrollingTreeFrameScrollingNodeMac::~ScrollingTreeFrameScrollingNodeMac() = defa
 ScrollingTreeScrollingNodeDelegateMac& ScrollingTreeFrameScrollingNodeMac::delegate() const
 {
     return *static_cast<ScrollingTreeScrollingNodeDelegateMac*>(m_delegate.get());
-}
-
-void ScrollingTreeFrameScrollingNodeMac::startRubberBandSnapBack()
-{
-    delegate().startRubberBandSnapBack();
-}
-
-void ScrollingTreeFrameScrollingNodeMac::rubberBandTargetOffsetDidChange()
-{
-    delegate().rubberBandTargetOffsetDidChange();
-}
-
-void ScrollingTreeFrameScrollingNodeMac::willBeDestroyed()
-{
-    delegate().nodeWillBeDestroyed();
 }
 
 bool ScrollingTreeFrameScrollingNodeMac::commitStateBeforeChildren(const ScrollingStateNode& stateNode)
@@ -139,27 +123,6 @@ bool ScrollingTreeFrameScrollingNodeMac::commitStateAfterChildren(const Scrollin
         updateMainFramePinAndRubberbandState();
 
     return true;
-}
-
-WheelEventHandlingResult ScrollingTreeFrameScrollingNodeMac::handleWheelEvent(const PlatformWheelEvent& wheelEvent, EventTargeting eventTargeting)
-{
-    if (!canHandleWheelEvent(wheelEvent, eventTargeting))
-        return WheelEventHandlingResult::unhandled();
-
-#if HAVE(RUBBER_BANDING)
-    // FIXME: <https://webkit.org/b/310912> Stale momentum events from scroll gestures continue
-    // to dispatch across page reloads. Until this problem is solved, absorb wheel events during
-    // rubberband restoration to prevent interference.
-    if (restoredRubberbandingInProgress())
-        return WheelEventHandlingResult::handled();
-#endif
-
-    // The event deltas are in view pixels but this tree scrolls in unscaled content coordinates, so without
-    // this a tick would cover scale times too much content.
-    auto scale = delegatedPageScaleFactor();
-    bool handled = delegate().handleWheelEvent(scale == 1 ? wheelEvent : wheelEvent.copyScalingDeltas(scale));
-    delegate().updateSnapScrollState();
-    return WheelEventHandlingResult::result(handled);
 }
 
 void ScrollingTreeFrameScrollingNodeMac::willDoProgrammaticScroll(const FloatPoint& targetScrollPosition)
@@ -253,33 +216,6 @@ void ScrollingTreeFrameScrollingNodeMac::repositionRelatedLayers()
     END_BLOCK_OBJC_EXCEPTIONS
 
     delegate().updateScrollbarPainters();
-}
-
-FloatPoint ScrollingTreeFrameScrollingNodeMac::minimumScrollPosition() const
-{
-    FloatPoint position = ScrollableArea::scrollPositionFromOffset(FloatPoint(), toFloatSize(scrollOrigin()));
-    
-    if (isRootNode() && scrollingTree()->scrollPinningBehavior() == ScrollPinningBehavior::PinToBottom)
-        position.setY(maximumScrollPosition().y());
-
-    return position;
-}
-
-FloatPoint ScrollingTreeFrameScrollingNodeMac::maximumScrollPosition() const
-{
-    FloatPoint position = ScrollableArea::scrollPositionFromOffset(FloatPoint(totalContentsSizeForRubberBand() - scrollableAreaSize()), toFloatSize(scrollOrigin()));
-    position = position.expandedTo(FloatPoint());
-
-    if (isRootNode() && scrollingTree()->scrollPinningBehavior() == ScrollPinningBehavior::PinToTop)
-        position.setY(minimumScrollPosition().y());
-
-    return position;
-}
-
-void ScrollingTreeFrameScrollingNodeMac::updateMainFramePinAndRubberbandState()
-{
-    ASSERT(isRootNode());
-    scrollingTree()->setMainFramePinnedState(edgePinnedState());
 }
 
 unsigned ScrollingTreeFrameScrollingNodeMac::exposedUnfilledArea() const

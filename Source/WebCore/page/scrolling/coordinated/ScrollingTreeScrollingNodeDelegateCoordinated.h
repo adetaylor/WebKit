@@ -36,12 +36,13 @@ namespace WebCore {
 class ScrollerPairCoordinated;
 
 class ScrollingTreeScrollingNodeDelegateCoordinated final : public ThreadedScrollingTreeScrollingNodeDelegate {
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ScrollingTreeScrollingNodeDelegateCoordinated);
 public:
     explicit ScrollingTreeScrollingNodeDelegateCoordinated(ScrollingTreeScrollingNode&, bool scrollAnimatorEnabled);
     virtual ~ScrollingTreeScrollingNodeDelegateCoordinated();
 
     void updateVisibleLengths();
-    bool handleWheelEvent(const PlatformWheelEvent&);
+    bool handleWheelEvent(PlatformWheelEvent);
 
 private:
 #if USE(COORDINATED_GRAPHICS_ASYNC_SCROLLBAR)

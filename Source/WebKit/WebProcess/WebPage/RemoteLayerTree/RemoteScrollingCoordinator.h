@@ -43,7 +43,7 @@ class RemoteScrollingCoordinatorTransaction;
 class RemoteScrollingUIState;
 class RemoteScrollingCoordinatorPendingScrollRequests;
 
-class RemoteScrollingCoordinator final : public WebCore::AsyncScrollingCoordinator, public IPC::MessageReceiver {
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteScrollingCoordinator.swift") RemoteScrollingCoordinator final : public WebCore::AsyncScrollingCoordinator, public IPC::MessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteScrollingCoordinator);
 public:
     static Ref<RemoteScrollingCoordinator> create(WebPage* page)

@@ -224,7 +224,7 @@ void RemoteScrollingCoordinatorProxy::establishLayerTreeScrollingRelations(IPC::
 }
 
 
-void RemoteScrollingCoordinatorProxy::adjustMainFrameDelegatedScrollPosition(ScrollRequestData&& requestData)
+void RemoteScrollingCoordinatorProxy::adjustMainFrameDelegatedScrollPosition(ScrollRequestData requestData)
 {
     // Note that this comes from the scrolling tree, and is not updated live when -requestScroll is called below.
     auto scrollPosition = currentMainFrameScrollPosition();
@@ -262,7 +262,7 @@ void RemoteScrollingCoordinatorProxy::stickyScrollingTreeNodeBeganSticking(Scrol
     protect(webPageProxy())->stickyScrollingTreeNodeBeganSticking();
 }
 
-void RemoteScrollingCoordinatorProxy::handleWheelEvent(Ref<WebWheelEvent>&& wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
+void RemoteScrollingCoordinatorProxy::handleWheelEvent(Ref<WebWheelEvent> wheelEvent, RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges)
 {
 #if !(PLATFORM(MAC) && ENABLE(UI_SIDE_COMPOSITING))
     auto platformWheelEvent = platform(wheelEvent);
@@ -290,7 +290,7 @@ void RemoteScrollingCoordinatorProxy::handleWheelEvent(Ref<WebWheelEvent>&& whee
 #endif
 }
 
-void RemoteScrollingCoordinatorProxy::continueWheelEventHandling(Ref<WebWheelEvent>&& wheelEvent, WheelEventHandlingResult result)
+void RemoteScrollingCoordinatorProxy::continueWheelEventHandling(Ref<WebWheelEvent> wheelEvent, WheelEventHandlingResult result)
 {
     bool willStartSwipe = m_scrollingTree->willWheelEventStartSwipeGesture(platform(wheelEvent));
     protect(webPageProxy())->continueWheelEventHandling(WTF::move(wheelEvent), result, willStartSwipe);
@@ -311,7 +311,7 @@ bool RemoteScrollingCoordinatorProxy::isPointInScrollbar(FloatPoint p)
     return m_scrollingTree->isPointInScrollbar(p);
 }
 
-void RemoteScrollingCoordinatorProxy::viewportChangedViaDelegatedScrolling(const FloatPoint& scrollPosition, const FloatRect& layoutViewport, double scale)
+void RemoteScrollingCoordinatorProxy::viewportChangedViaDelegatedScrolling(FloatPoint scrollPosition, FloatRect layoutViewport, double scale)
 {
     m_scrollingTree->mainFrameViewportChangedViaDelegatedScrolling(scrollPosition, layoutViewport, scale);
 }
@@ -404,7 +404,7 @@ void RemoteScrollingCoordinatorProxy::receivedLastScrollingTreeNodeUpdateReply()
     });
 }
 
-RequestsScrollHandling RemoteScrollingCoordinatorProxy::scrollingTreeNodeRequestsScroll(ScrollingNodeID scrolledNodeID, const RequestedScrollData& request)
+RequestsScrollHandling RemoteScrollingCoordinatorProxy::scrollingTreeNodeRequestsScroll(ScrollingNodeID scrolledNodeID, RequestedScrollData request)
 {
     if (scrolledNodeID == rootScrollingNodeID()) {
         m_scrollRequestData.append(request);
@@ -414,7 +414,7 @@ RequestsScrollHandling RemoteScrollingCoordinatorProxy::scrollingTreeNodeRequest
     return RequestsScrollHandling::Unhandled;
 }
 
-bool RemoteScrollingCoordinatorProxy::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID scrolledNodeID, const RequestedKeyboardScrollData&)
+bool RemoteScrollingCoordinatorProxy::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID scrolledNodeID, RequestedKeyboardScrollData)
 {
     return false;
 }

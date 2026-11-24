@@ -49,13 +49,6 @@ internal import WebCore_Private.ScrollPhysicsTypes
 // Int sums and differences in these conversions wrap where IntPoint's and IntRect's int arithmetic would overflow,
 // which is undefined in C++.
 
-// documentScrollPositionRelativeToViewOrigin(): the scroll position less the view's inset offset. A difference
-// outside the int range wraps (IntPoint's int arithmetic, undefined on overflow).
-@inline(always)
-private func documentPosition(_ scrollPosition: WebCore.IntPoint, _ insetOffset: WebCore.IntSize) -> WebCore.IntPoint {
-    WebCore.IntPoint(scrollPosition.x() &- insetOffset.width(), scrollPosition.y() &- insetOffset.height())
-}
-
 // clampTo<int>() of a float already rounded to an integer (by roundf() or ceilf()): values above the int range give
 // INT_MAX, and NaN and values below it give INT_MIN.
 @inline(always)
@@ -65,10 +58,10 @@ private func clampRoundedToInt32(_ value: Float) -> Int32 {
 
 // roundedIntPoint(const FloatPoint&).
 @inline(always)
-private func roundedIntPoint(_ x: Float, _ y: Float) -> WebCore.IntPoint {
+private func roundedIntPoint(_ point: WebCore.FloatPoint) -> WebCore.IntPoint {
     WebCore.IntPoint(
-        clampRoundedToInt32(x.rounded(.toNearestOrAwayFromZero)),
-        clampRoundedToInt32(y.rounded(.toNearestOrAwayFromZero))
+        clampRoundedToInt32(point.x().rounded(.toNearestOrAwayFromZero)),
+        clampRoundedToInt32(point.y().rounded(.toNearestOrAwayFromZero))
     )
 }
 
@@ -82,253 +75,246 @@ private func truncatedToInt32(_ value: Float) -> Int32 {
     return value.isNaN ? 0 : (value > 0 ? .max : .min)
 }
 
-// viewToContents(const FloatPoint&) at a scale other than 1.
-@inline(always)
-private func viewToContentsScaled(
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ x: Float,
-    _ y: Float
-) -> WebCore.FloatPoint {
-    let inverse = 1 / scale
-    let contentsX = (x - Float(insetOffset.width())) * inverse
-    let contentsY = (y - Float(insetOffset.height())) * inverse
-    return WebCore.FloatPoint(contentsX + Float(scrollPosition.x()), contentsY + Float(scrollPosition.y()))
-}
+// The scale and the offsets that relate a view's coordinates to its contents' coordinates.
+private struct ViewContentsMapping {
+    let scale: Float
+    let scrollPosition: WebCore.IntPoint
+    let insetOffset: WebCore.IntSize
 
-// contentsToView(const FloatPoint&) at a scale other than 1.
-@inline(always)
-private func contentsToViewScaled(
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ x: Float,
-    _ y: Float
-) -> WebCore.FloatPoint {
-    let viewX = (x - Float(scrollPosition.x())) * scale
-    let viewY = (y - Float(scrollPosition.y())) * scale
-    return WebCore.FloatPoint(viewX + Float(insetOffset.width()), viewY + Float(insetOffset.height()))
-}
+    // documentScrollPositionRelativeToViewOrigin(): the scroll position less the view's inset offset. A difference
+    // outside the int range wraps (IntPoint's int arithmetic, undefined on overflow).
+    var documentPosition: WebCore.IntPoint {
+        WebCore.IntPoint(scrollPosition.x() &- insetOffset.width(), scrollPosition.y() &- insetOffset.height())
+    }
 
-@_expose(Cxx)
-func scrollViewViewToContentsIntPoint(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ point: WebCore.IntPoint
-) -> WebCore.IntPoint {
-    if delegatesScrollingToNativeView {
-        return point
+    // viewToContents(const FloatPoint&) at a scale other than 1.
+    func scaledToContents(_ x: Float, _ y: Float) -> WebCore.FloatPoint {
+        let inverse = 1 / scale
+        let contentsX = (x - Float(insetOffset.width())) * inverse
+        let contentsY = (y - Float(insetOffset.height())) * inverse
+        return WebCore.FloatPoint(contentsX + Float(scrollPosition.x()), contentsY + Float(scrollPosition.y()))
     }
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.IntPoint(point.x() &+ document.x(), point.y() &+ document.y())
-    }
-    let contents = viewToContentsScaled(scale, scrollPosition, insetOffset, Float(point.x()), Float(point.y()))
-    return roundedIntPoint(contents.x(), contents.y())
-}
 
-@_expose(Cxx)
-func scrollViewViewToContentsFloatPoint(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ point: WebCore.FloatPoint
-) -> WebCore.FloatPoint {
-    if delegatesScrollingToNativeView {
-        return point
+    // contentsToView(const FloatPoint&) at a scale other than 1.
+    func scaledToView(_ x: Float, _ y: Float) -> WebCore.FloatPoint {
+        let viewX = (x - Float(scrollPosition.x())) * scale
+        let viewY = (y - Float(scrollPosition.y())) * scale
+        return WebCore.FloatPoint(viewX + Float(insetOffset.width()), viewY + Float(insetOffset.height()))
     }
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.FloatPoint(point.x() + Float(document.x()), point.y() + Float(document.y()))
-    }
-    return viewToContentsScaled(scale, scrollPosition, insetOffset, point.x(), point.y())
-}
 
-@_expose(Cxx)
-func scrollViewViewToContentsDoublePoint(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ point: WebCore.DoublePoint
-) -> WebCore.DoublePoint {
-    if delegatesScrollingToNativeView {
-        return point
-    }
-    let scale = Double(scale)
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.DoublePoint(point.x() + Double(document.x()), point.y() + Double(document.y()))
-    }
-    let inverse = 1 / scale
-    let contentsX = (point.x() - Double(insetOffset.width())) * inverse
-    let contentsY = (point.y() - Double(insetOffset.height())) * inverse
-    return WebCore.DoublePoint(contentsX + Double(scrollPosition.x()), contentsY + Double(scrollPosition.y()))
-}
-
-@_expose(Cxx)
-func scrollViewViewToContentsIntRect(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ rect: WebCore.IntRect
-) -> WebCore.IntRect {
-    if delegatesScrollingToNativeView {
-        return rect
-    }
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.IntRect(rect.x() &+ document.x(), rect.y() &+ document.y(), rect.width(), rect.height())
-    }
-    let floatRect = WebCore.FloatRect(Float(rect.x()), Float(rect.y()), Float(rect.width()), Float(rect.height()))
-    return WebCore.enclosingIntRect(scrollViewViewToContentsFloatRect(false, scale, scrollPosition, insetOffset, floatRect))
-}
-
-@_expose(Cxx)
-func scrollViewViewToContentsFloatRect(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ rect: WebCore.FloatRect
-) -> WebCore.FloatRect {
-    if delegatesScrollingToNativeView {
-        return rect
-    }
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.FloatRect(rect.x() + Float(document.x()), rect.y() + Float(document.y()), rect.width(), rect.height())
-    }
     // The size scales along with the location, since a view pixel covers less content once it's magnified.
-    let location = viewToContentsScaled(scale, scrollPosition, insetOffset, rect.x(), rect.y())
-    let inverse = 1 / scale
-    return WebCore.FloatRect(location.x(), location.y(), rect.width() * inverse, rect.height() * inverse)
+    func scaledToContents(_ rect: WebCore.FloatRect) -> WebCore.FloatRect {
+        let location = scaledToContents(rect.x(), rect.y())
+        let inverse = 1 / scale
+        return WebCore.FloatRect(location.x(), location.y(), rect.width() * inverse, rect.height() * inverse)
+    }
+
+    func scaledToView(_ rect: WebCore.FloatRect) -> WebCore.FloatRect {
+        let location = scaledToView(rect.x(), rect.y())
+        return WebCore.FloatRect(location.x(), location.y(), rect.width() * scale, rect.height() * scale)
+    }
 }
 
-@_expose(Cxx)
-func scrollViewContentsToViewIntPoint(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ point: WebCore.IntPoint
-) -> WebCore.IntPoint {
-    if delegatesScrollingToNativeView {
-        return point
+// swift-format-ignore: AllPublicDeclarationsHaveDocumentation
+extension WebCore.ScrollView {
+    private var viewContentsMapping: ViewContentsMapping {
+        ViewContentsMapping(
+            scale: visibleContentScaleFactor(),
+            scrollPosition: scrollPosition(),
+            insetOffset: viewToContentsInsetOffset()
+        )
     }
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.IntPoint(point.x() &- document.x(), point.y() &- document.y())
+
+    @cxx
+    @implementation
+    public func viewToContents(_ point: WebCore.IntPoint) -> WebCore.IntPoint {
+        if delegatesScrollingToNativeView() {
+            return point
+        }
+        let mapping = viewContentsMapping
+        if mapping.scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.IntPoint(point.x() &+ document.x(), point.y() &+ document.y())
+        }
+        return roundedIntPoint(mapping.scaledToContents(Float(point.x()), Float(point.y())))
     }
-    let view = contentsToViewScaled(scale, scrollPosition, insetOffset, Float(point.x()), Float(point.y()))
-    return roundedIntPoint(view.x(), view.y())
+
+    @cxx
+    @implementation
+    public func viewToContents(_ point: WebCore.FloatPoint) -> WebCore.FloatPoint {
+        if delegatesScrollingToNativeView() {
+            return point
+        }
+        let mapping = viewContentsMapping
+        if mapping.scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.FloatPoint(point.x() + Float(document.x()), point.y() + Float(document.y()))
+        }
+        return mapping.scaledToContents(point.x(), point.y())
+    }
+
+    @cxx
+    @implementation
+    public func viewToContents(_ point: WebCore.DoublePoint) -> WebCore.DoublePoint {
+        if delegatesScrollingToNativeView() {
+            return point
+        }
+        let mapping = viewContentsMapping
+        let scale = Double(mapping.scale)
+        if scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.DoublePoint(point.x() + Double(document.x()), point.y() + Double(document.y()))
+        }
+        let inverse = 1 / scale
+        let contentsX = (point.x() - Double(mapping.insetOffset.width())) * inverse
+        let contentsY = (point.y() - Double(mapping.insetOffset.height())) * inverse
+        return WebCore.DoublePoint(
+            contentsX + Double(mapping.scrollPosition.x()),
+            contentsY + Double(mapping.scrollPosition.y())
+        )
+    }
+
+    @cxx
+    @implementation
+    public func viewToContents(_ rect: WebCore.IntRect) -> WebCore.IntRect {
+        if delegatesScrollingToNativeView() {
+            return rect
+        }
+        let mapping = viewContentsMapping
+        if mapping.scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.IntRect(rect.x() &+ document.x(), rect.y() &+ document.y(), rect.width(), rect.height())
+        }
+        return WebCore.enclosingIntRect(mapping.scaledToContents(floatRect(rect)))
+    }
+
+    @cxx
+    @implementation
+    public func viewToContents(_ rect: WebCore.FloatRect) -> WebCore.FloatRect {
+        if delegatesScrollingToNativeView() {
+            return rect
+        }
+        let mapping = viewContentsMapping
+        if mapping.scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.FloatRect(
+                rect.x() + Float(document.x()),
+                rect.y() + Float(document.y()),
+                rect.width(),
+                rect.height()
+            )
+        }
+        return mapping.scaledToContents(rect)
+    }
+
+    @cxx
+    @implementation
+    public func contentsToView(_ point: WebCore.IntPoint) -> WebCore.IntPoint {
+        if delegatesScrollingToNativeView() {
+            return point
+        }
+        let mapping = viewContentsMapping
+        if mapping.scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.IntPoint(point.x() &- document.x(), point.y() &- document.y())
+        }
+        return roundedIntPoint(mapping.scaledToView(Float(point.x()), Float(point.y())))
+    }
+
+    @cxx
+    @implementation
+    public func contentsToView(_ point: WebCore.FloatPoint) -> WebCore.FloatPoint {
+        if delegatesScrollingToNativeView() {
+            return point
+        }
+        let mapping = viewContentsMapping
+        if mapping.scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.FloatPoint(point.x() - Float(document.x()), point.y() - Float(document.y()))
+        }
+        return mapping.scaledToView(point.x(), point.y())
+    }
+
+    @cxx
+    @implementation
+    public func contentsToView(_ point: WebCore.DoublePoint) -> WebCore.DoublePoint {
+        if delegatesScrollingToNativeView() {
+            return point
+        }
+        let mapping = viewContentsMapping
+        let scale = Double(mapping.scale)
+        if scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.DoublePoint(point.x() - Double(document.x()), point.y() - Double(document.y()))
+        }
+        let viewX = (point.x() - Double(mapping.scrollPosition.x())) * scale
+        let viewY = (point.y() - Double(mapping.scrollPosition.y())) * scale
+        return WebCore.DoublePoint(
+            viewX + Double(mapping.insetOffset.width()),
+            viewY + Double(mapping.insetOffset.height())
+        )
+    }
+
+    @cxx
+    @implementation
+    public func contentsToView(_ rect: WebCore.IntRect) -> WebCore.IntRect {
+        if delegatesScrollingToNativeView() {
+            return rect
+        }
+        let mapping = viewContentsMapping
+        if mapping.scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.IntRect(rect.x() &- document.x(), rect.y() &- document.y(), rect.width(), rect.height())
+        }
+        return WebCore.enclosingIntRect(mapping.scaledToView(floatRect(rect)))
+    }
+
+    @cxx
+    @implementation
+    public func contentsToView(_ rect: WebCore.FloatRect) -> WebCore.FloatRect {
+        if delegatesScrollingToNativeView() {
+            return rect
+        }
+        let mapping = viewContentsMapping
+        if mapping.scale == 1 {
+            let document = mapping.documentPosition
+            return WebCore.FloatRect(
+                rect.x() - Float(document.x()),
+                rect.y() - Float(document.y()),
+                rect.width(),
+                rect.height()
+            )
+        }
+        return mapping.scaledToView(rect)
+    }
+
+    @cxx
+    @implementation
+    public func documentScrollPositionRelativeToViewOrigin() -> WebCore.IntPoint {
+        viewContentsMapping.documentPosition
+    }
+
+    // Like rootViewToContents(), but ignores the header and the left scrollbar space. The insets convert to int by
+    // truncation, and the sums wrap (undefined on overflow).
+    @cxx
+    @implementation
+    public func rootViewToTotalContents(_ rootViewPoint: WebCore.IntPoint) -> WebCore.IntPoint {
+        let viewPoint = convertFromRootView(rootViewPoint)
+        if delegatesScrollingToNativeView() {
+            return viewPoint
+        }
+        let position = scrollPosition()
+        let insets = obscuredContentInsets(.WebCoreOrPlatformInset)
+        let x = viewPoint.x() &+ position.x() &- truncatedToInt32(insets[.Left])
+        let y = viewPoint.y() &+ position.y() &- truncatedToInt32(insets[.Top])
+        return WebCore.IntPoint(x, y)
+    }
 }
 
-@_expose(Cxx)
-func scrollViewContentsToViewFloatPoint(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ point: WebCore.FloatPoint
-) -> WebCore.FloatPoint {
-    if delegatesScrollingToNativeView {
-        return point
-    }
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.FloatPoint(point.x() - Float(document.x()), point.y() - Float(document.y()))
-    }
-    return contentsToViewScaled(scale, scrollPosition, insetOffset, point.x(), point.y())
-}
-
-@_expose(Cxx)
-func scrollViewContentsToViewDoublePoint(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ point: WebCore.DoublePoint
-) -> WebCore.DoublePoint {
-    if delegatesScrollingToNativeView {
-        return point
-    }
-    let scale = Double(scale)
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.DoublePoint(point.x() - Double(document.x()), point.y() - Double(document.y()))
-    }
-    let viewX = (point.x() - Double(scrollPosition.x())) * scale
-    let viewY = (point.y() - Double(scrollPosition.y())) * scale
-    return WebCore.DoublePoint(viewX + Double(insetOffset.width()), viewY + Double(insetOffset.height()))
-}
-
-@_expose(Cxx)
-func scrollViewContentsToViewIntRect(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ rect: WebCore.IntRect
-) -> WebCore.IntRect {
-    if delegatesScrollingToNativeView {
-        return rect
-    }
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.IntRect(rect.x() &- document.x(), rect.y() &- document.y(), rect.width(), rect.height())
-    }
-    let floatRect = WebCore.FloatRect(Float(rect.x()), Float(rect.y()), Float(rect.width()), Float(rect.height()))
-    return WebCore.enclosingIntRect(scrollViewContentsToViewFloatRect(false, scale, scrollPosition, insetOffset, floatRect))
-}
-
-@_expose(Cxx)
-func scrollViewContentsToViewFloatRect(
-    _ delegatesScrollingToNativeView: Bool,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize,
-    _ rect: WebCore.FloatRect
-) -> WebCore.FloatRect {
-    if delegatesScrollingToNativeView {
-        return rect
-    }
-    if scale == 1 {
-        let document = documentPosition(scrollPosition, insetOffset)
-        return WebCore.FloatRect(rect.x() - Float(document.x()), rect.y() - Float(document.y()), rect.width(), rect.height())
-    }
-    let location = contentsToViewScaled(scale, scrollPosition, insetOffset, rect.x(), rect.y())
-    return WebCore.FloatRect(location.x(), location.y(), rect.width() * scale, rect.height() * scale)
-}
-
-@_expose(Cxx)
-func scrollViewDocumentScrollPositionRelativeToViewOrigin(
-    _ scrollPosition: WebCore.IntPoint,
-    _ insetOffset: WebCore.IntSize
-) -> WebCore.IntPoint {
-    documentPosition(scrollPosition, insetOffset)
-}
-
-// Like rootViewToContents(), but ignores the header and the left scrollbar space. The insets convert to int by
-// truncation, and the sums wrap (undefined on overflow).
-@_expose(Cxx)
-func scrollViewRootViewToTotalContents(
-    _ delegatesScrollingToNativeView: Bool,
-    _ viewPoint: WebCore.IntPoint,
-    _ scrollPosition: WebCore.IntPoint,
-    _ insets: WebCore.FloatBoxExtent
-) -> WebCore.IntPoint {
-    if delegatesScrollingToNativeView {
-        return viewPoint
-    }
-    let x = viewPoint.x() &+ scrollPosition.x() &- truncatedToInt32(insets[.Left])
-    let y = viewPoint.y() &+ scrollPosition.y() &- truncatedToInt32(insets[.Top])
-    return WebCore.IntPoint(x, y)
+// FloatRect(IntRect), spelled through its four components: Swift finds `WebCore.FloatRect(rect)` ambiguous
+// between FloatRect's one-argument constructors.
+private func floatRect(_ rect: WebCore.IntRect) -> WebCore.FloatRect {
+    WebCore.FloatRect(Float(rect.x()), Float(rect.y()), Float(rect.width()), Float(rect.height()))
 }
 
 // Scrollbars are positioned in the view's own coordinates; other children are in its contents. Int sums and
@@ -479,18 +465,21 @@ func scrollViewManagesScrollbars(
     return true
 }
 
-@_expose(Cxx)
-func scrollViewUnobscuredContentRect(
-    _ unobscuredSize: WebCore.IntSize,
-    _ scale: Float,
-    _ scrollPosition: WebCore.IntPoint
-) -> WebCore.IntRect {
-    let inverse = 1 / scale
-    let width = Float(unobscuredSize.width()) * inverse
-    let height = Float(unobscuredSize.height()) * inverse
-    let expandedWidth = clampRoundedToInt32(width.rounded(.up))
-    let expandedHeight = clampRoundedToInt32(height.rounded(.up))
-    return WebCore.IntRect(scrollPosition.x(), scrollPosition.y(), expandedWidth, expandedHeight)
+// swift-format-ignore: AllPublicDeclarationsHaveDocumentation
+extension WebCore.ScrollView {
+    @cxx
+    @implementation
+    public func unobscuredContentRectInternal(
+        _ scrollbarInclusion: WebCore.ScrollView.VisibleContentRectIncludesScrollbars
+    ) -> WebCore.IntRect {
+        let unobscuredSize = sizeForUnobscuredContent(scrollbarInclusion)
+        let inverse = 1 / visibleContentScaleFactor()
+        let width = Float(unobscuredSize.width()) * inverse
+        let height = Float(unobscuredSize.height()) * inverse
+        let expandedWidth = clampRoundedToInt32(width.rounded(.up))
+        let expandedHeight = clampRoundedToInt32(height.rounded(.up))
+        return WebCore.IntRect(m_scrollPosition.x(), m_scrollPosition.y(), expandedWidth, expandedHeight)
+    }
 }
 
 @_expose(Cxx)
@@ -1214,18 +1203,30 @@ func scrollViewSetScrollbarModes(
 }
 
 // ScrollView::setCanHaveScrollbars()'s mode for one orientation, from the current one.
-@_expose(Cxx)
-func scrollViewCanHaveScrollbarsMode(
-    _ canScroll: Bool,
-    _ mode: WebCore.ScrollbarMode
-) -> WebCore.ScrollbarMode {
-    if canScroll && mode == .AlwaysOff {
-        return .Auto
+extension WebCore.ScrollbarMode {
+    fileprivate func allowingScrollbars(_ canScroll: Bool) -> Self {
+        if canScroll && self == .AlwaysOff {
+            return .Auto
+        }
+        if !canScroll {
+            return .AlwaysOff
+        }
+        return self
     }
-    if !canScroll {
-        return .AlwaysOff
+}
+
+// swift-format-ignore: AllPublicDeclarationsHaveDocumentation
+extension WebCore.ScrollView {
+    @cxx
+    @implementation
+    public func setCanHaveScrollbars(_ canScroll: Bool) {
+        setScrollbarModes(
+            horizontalScrollbarMode().allowingScrollbars(canScroll),
+            verticalScrollbarMode().allowingScrollbars(canScroll),
+            false,
+            false
+        )
     }
-    return mode
 }
 
 // Whether setScrollbarsSuppressed() changes the view's state.

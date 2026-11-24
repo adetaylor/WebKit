@@ -49,12 +49,15 @@ struct ScrollPropagationInfo {
     bool isHandled { false };
 };
 
+// For Swift, which cannot name std::optional<FloatRect>.
+using OptionalFloatRect = std::optional<FloatRect>;
+
 enum class AnimatedScrollType : uint8_t {
     User,
     Programmatic
 };
 
-class WEBCORE_EXPORT ScrollingTreeScrollingNode : public ScrollingTreeNode {
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeScrollingNode.swift") ScrollingTreeScrollingNode : public ScrollingTreeNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingTreeScrollingNode, WEBCORE_EXPORT);
     friend class ScrollingTreeScrollingNodeDelegate;
 #if PLATFORM(MAC)
@@ -71,10 +74,17 @@ public:
 
     SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
     SWIFT_UNSAFE bool commitStateAfterChildren(const ScrollingStateNode&) override;
+    // What commitStateBeforeChildren() commits of a scrolling state node; its overrides cast the state node, since Swift
+    // can cast it only through a call that retains the node and the result. The caller passes the node's
+    // changedProperties().toRaw(): Swift reads the bits on a derived node, and tests them in an OptionSet, only through
+    // calls, and retains both nodes around them.
+    SWIFT_UNSAFE void commitScrollingNodeState(const ScrollingStateScrollingNode&, uint64_t changedProperties);
     NODELETE SWIFT_UNSAFE void didCompleteCommitForNode() final;
 
-    virtual bool canHandleWheelEvent(const PlatformWheelEvent&, EventTargeting) const;
-    SWIFT_UNSAFE virtual WheelEventHandlingResult handleWheelEvent(const PlatformWheelEvent&, EventTargeting = EventTargeting::Propagate);
+    virtual bool canHandleWheelEvent(PlatformWheelEvent, EventTargeting) const;
+    // As minimumScrollPositionForSwift() does.
+    bool canHandleWheelEventForSwift(PlatformWheelEvent wheelEvent, EventTargeting eventTargeting) const { return canHandleWheelEvent(wheelEvent, eventTargeting); }
+    SWIFT_UNSAFE virtual WheelEventHandlingResult handleWheelEvent(PlatformWheelEvent, EventTargeting = EventTargeting::Propagate);
     virtual void handleWheelEventPhase(const PlatformWheelEventPhase) { }
     
     FloatPoint currentScrollPosition() const { return m_currentScrollPosition; }
@@ -106,19 +116,20 @@ public:
     SWIFT_UNSAFE virtual void serviceScrollAnimation(MonotonicTime);
 
     // These are imperative; they adjust the scrolling layers.
-    SWIFT_UNSAFE void scrollTo(const FloatPoint&, ScrollType = ScrollType::User, ScrollClamping = ScrollClamping::Clamped);
-    SWIFT_UNSAFE void scrollBy(const FloatSize&, ScrollClamping = ScrollClamping::Clamped);
+    SWIFT_UNSAFE void scrollTo(FloatPoint, ScrollType = ScrollType::User, ScrollClamping = ScrollClamping::Clamped);
+    SWIFT_UNSAFE void scrollBy(FloatSize, ScrollClamping = ScrollClamping::Clamped);
 
     SWIFT_UNSAFE void handleScrollPositionRequests(const ScrollRequestData&);
 
-    SWIFT_UNSAFE void handleKeyboardScrollRequest(const RequestedKeyboardScrollData&);
-    SWIFT_UNSAFE void requestKeyboardScroll(const RequestedKeyboardScrollData&);
+    SWIFT_UNSAFE void handleKeyboardScrollRequest(RequestedKeyboardScrollData);
+    SWIFT_UNSAFE void requestKeyboardScroll(RequestedKeyboardScrollData);
 
-    SWIFT_UNSAFE void wasScrolledByDelegatedScrolling(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport = { }, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync);
+    SWIFT_UNSAFE void wasScrolledByDelegatedScrolling(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport = { }, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync);
     
 #if ENABLE(SCROLLING_THREAD)
     OptionSet<SynchronousScrollingReason> synchronousScrollingReasons() const { return m_synchronousScrollingReasons; }
     void addSynchronousScrollingReason(SynchronousScrollingReason reason) { m_synchronousScrollingReasons.add(reason); }
+    void removeSynchronousScrollingReason(SynchronousScrollingReason reason) { m_synchronousScrollingReasons.remove(reason); }
     bool hasSynchronousScrollingReasons() const { return !m_synchronousScrollingReasons.isEmpty(); }
     bool hasNonRepaintSynchronousScrollingReasons() const { return !(m_synchronousScrollingReasons - SynchronousScrollingReason::HasSlowRepaintObjects).isEmpty(); }
 #endif
@@ -140,12 +151,15 @@ public:
     NODELETE void setCurrentHorizontalSnapPointIndex(std::optional<unsigned>);
     NODELETE void setCurrentVerticalSnapPointIndex(std::optional<unsigned>);
 
-    bool eventCanScrollContents(const PlatformWheelEvent&) const;
+    bool eventCanScrollContents(PlatformWheelEvent) const;
     
     bool scrolledSinceLastCommit() const { return m_scrolledSinceLastCommit; }
 
     const LayerRepresentation& scrollContainerLayer() const LIFETIME_BOUND { return m_scrollContainerLayer; }
     const LayerRepresentation& scrolledContentsLayer() const LIFETIME_BOUND { return m_scrolledContentsLayer; }
+    // By value, for Swift, which imports neither the references above nor LayerRepresentation's explicit conversion.
+    // Out of line: Swift compiles an inline body again under ARC, and ThinLTO then miscompiles it into an over-release.
+    ScrollingPlatformLayer* scrollContainerPlatformLayer() const;
     
     OverscrollBehavior horizontalOverscrollBehavior() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior; }
     OverscrollBehavior verticalOverscrollBehavior() const { return m_scrollableAreaParameters.verticalOverscrollBehavior; }
@@ -164,6 +178,9 @@ public:
 
     virtual FloatPoint minimumScrollPosition() const;
     virtual FloatPoint maximumScrollPosition() const;
+    // For Swift, which cannot call a virtual function that is defined in Swift: calls it through the vtable.
+    FloatPoint minimumScrollPositionForSwift() const { return minimumScrollPosition(); }
+    FloatPoint maximumScrollPositionForSwift() const { return maximumScrollPosition(); }
 
     void willStartAnimatedScroll();
     void didStopAnimatedScroll();
@@ -181,51 +198,73 @@ public:
 protected:
     ScrollingTreeScrollingNode(ScrollingTree&, ScrollingNodeType, ScrollingNodeID);
 
-    FloatPoint clampScrollPosition(const FloatPoint&) const;
+    FloatPoint clampScrollPosition(FloatPoint) const;
     
     virtual void willDoProgrammaticScroll(const FloatPoint&) { }
     
-    FloatPoint adjustedScrollPosition(const FloatPoint&, ScrollClamping = ScrollClamping::Clamped) const;
+    FloatPoint adjustedScrollPosition(FloatPoint, ScrollClamping = ScrollClamping::Clamped) const;
 
     void didStopProgrammaticScroll();
 
     virtual void currentScrollPositionChanged(ScrollType, ScrollingLayerPositionAction = ScrollingLayerPositionAction::Sync);
     virtual void updateViewportForCurrentScrollPosition(std::optional<FloatRect> = { }) { }
-    virtual bool scrollPositionAndLayoutViewportMatch(const FloatPoint& position, std::optional<FloatRect> overrideLayoutViewport);
+    virtual bool scrollPositionAndLayoutViewportMatch(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport);
+    // As minimumScrollPositionForSwift() does.
+    void updateViewportForCurrentScrollPositionForSwift(std::optional<FloatRect> overrideLayoutViewport) { updateViewportForCurrentScrollPosition(overrideLayoutViewport); }
+    void currentScrollPositionChangedForSwift(ScrollType scrollType, ScrollingLayerPositionAction action) { currentScrollPositionChanged(scrollType, action); }
+    bool scrollPositionAndLayoutViewportMatchForSwift(FloatPoint position, std::optional<FloatRect> overrideLayoutViewport) { return scrollPositionAndLayoutViewportMatch(position, overrideLayoutViewport); }
 
-    virtual void repositionScrollingLayers() { }
-    virtual void repositionRelatedLayers() { }
+    // Overrides read the tree's lock-guarded layers and state: callers hold the tree lock.
+    SWIFT_UNSAFE virtual void repositionScrollingLayers() { }
+    SWIFT_UNSAFE virtual void repositionRelatedLayers() { }
 
-    void applyLayerPositions() override;
+    SWIFT_UNSAFE void applyLayerPositions() override;
 
-    const FloatSize& reachableContentsSize() const LIFETIME_BOUND { return m_reachableContentsSize; }
+    FloatSize reachableContentsSize() const { return m_reachableContentsSize; }
     
     bool isLatchedNode() const;
 
+    // Public for the tree's wheel event handling in Swift (ScrollingTreeLatchingController.swift).
+public:
     // If the totalContentsSize changes in the middle of a rubber-band, we still want to use the old totalContentsSize for the sake of
     // computing the stretchAmount(). Using the old value will keep the animation smooth. When there is no rubber-band in progress at
     // all, m_totalContentsSizeForRubberBand should be equivalent to m_totalContentsSize.
-    const FloatSize& totalContentsSizeForRubberBand() const LIFETIME_BOUND { return m_totalContentsSizeForRubberBand; }
+    // Public for the iOS frame node's maximumScrollPosition() in WebKit's Swift, which cannot reach a protected member.
+    FloatSize totalContentsSizeForRubberBand() const { return m_totalContentsSizeForRubberBand; }
 
-    // Public for the tree's wheel event handling in Swift (ScrollingTreeLatchingController.swift).
-public:
     bool horizontalOverscrollBehaviorPreventsPropagation() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior != OverscrollBehavior::Auto; }
     bool verticalOverscrollBehaviorPreventsPropagation() const { return m_scrollableAreaParameters.verticalOverscrollBehavior != OverscrollBehavior::Auto; }
 
     bool overscrollBehaviorAllowsHorizontalRubberBand() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior != OverscrollBehavior::None; }
     bool overscrollBehaviorAllowsVerticalRubberBand() const { return m_scrollableAreaParameters.verticalOverscrollBehavior != OverscrollBehavior::None; }
 
-    NODELETE PlatformWheelEvent eventForPropagation(const PlatformWheelEvent&) const;
+    NODELETE PlatformWheelEvent eventForPropagation(PlatformWheelEvent) const;
 protected:
     bool overscrollBehaviorAllowsRubberBand() const { return m_scrollableAreaParameters.horizontalOverscrollBehavior != OverscrollBehavior::None ||  m_scrollableAreaParameters.verticalOverscrollBehavior != OverscrollBehavior::None; }
 
-    bool shouldRubberBand(const PlatformWheelEvent&, EventTargeting) const;
+    bool shouldRubberBand(PlatformWheelEvent, EventTargeting) const;
 
-    void handleScrollPositionRequest(const RequestedScrollData&);
+    void handleScrollPositionRequest(RequestedScrollData);
+
+    // What commitStateAfterChildren() commits of a scrolling state node. The overrides cast the state node, since
+    // Swift can cast it only through a call that retains the node and the result; the caller passes its
+    // changedProperties().toRaw(), as for commitScrollingNodeState().
+    SWIFT_UNSAFE void commitScrollingNodeStateAfterChildren(const ScrollingStateScrollingNode&, uint64_t changedProperties);
+
+    // For Swift, which reads the state node's non-trivial members only as unsafe pointers (their getters return
+    // references): what commitStateBeforeChildren() copies of the snap offsets, the scrollable area parameters and
+    // the layers, when the state node changed them.
+    SWIFT_UNSAFE void commitNonTrivialStateProperties(const ScrollingStateScrollingNode&);
+    // For Swift, which reads requestedScrollData() only as an unsafe pointer (it returns a reference to a non-trivial
+    // value): what commitStateAfterChildren() does with the state node's scroll requests.
+    SWIFT_UNSAFE void handleRequestedScrollPositions(const ScrollingStateScrollingNode&);
 
     float rubberbandHyperbolicCoefficientForTesting() const;
 
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
+    String scrollingNodePropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
+    // The snap offsets part of it, for Swift, which reaches the snap offset vectors only through unsafe API.
+    String snapOffsetsPropertiesText(int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const;
 
     std::unique_ptr<ScrollingTreeScrollingNodeDelegate> m_delegate;
 
@@ -260,8 +299,16 @@ private:
 SPECIALIZE_TYPE_TRAITS_SCROLLING_NODE(ScrollingTreeScrollingNode, isScrollingNode())
 
 namespace WebCore {
-// For Swift, which cannot cast between C++ classes: the node as a scrolling node, or null.
-inline RefPtr<ScrollingTreeScrollingNode> asScrollingTreeScrollingNode(ScrollingTreeNode& node) { return dynamicDowncast<ScrollingTreeScrollingNode>(node); }
+#if ENABLE(SCROLLING_THREAD)
+// For Swift, which can cast a node only through a call that retains the node and the result: whether the node is a
+// scrolling node with synchronous scrolling reasons.
+inline bool scrollingTreeNodeHasSynchronousScrollingReasons(const ScrollingTreeNode& node)
+{
+    auto* scrollingNode = dynamicDowncast<ScrollingTreeScrollingNode>(node);
+    return scrollingNode && scrollingNode->hasSynchronousScrollingReasons();
+}
+#endif
+
 // For Swift: offers the event to the tree's node with the ID if it is a scrolling node, and returns whether it is.
 inline bool handleWheelEventOnScrollingNodeForID(const ScrollingTreeLockedAccess& locked, ScrollingNodeID nodeID, const PlatformWheelEvent& wheelEvent, WheelEventHandlingResult& result)
 {

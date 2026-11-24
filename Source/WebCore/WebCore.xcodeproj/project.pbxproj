@@ -769,7 +769,7 @@
 		0FDA7C271883333200C954B5 /* JSWebKitPlaybackTargetAvailabilityEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FDA7C251883333200C954B5 /* JSWebKitPlaybackTargetAvailabilityEvent.h */; };
 		0FDCD7F31D47E655009F08BC /* LogInitialization.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FDCD7F21D47E655009F08BC /* LogInitialization.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FE27FCB2717D5FF0003AAAE /* KeyboardScroll.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FE27FC72717ADF70003AAAE /* KeyboardScroll.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		0FE5806419327A6200DE32EB /* ScrollingTreeMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FE5806219327A6200DE32EB /* ScrollingTreeMac.h */; };
+		0FE5806419327A6200DE32EB /* ScrollingTreeMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FE5806219327A6200DE32EB /* ScrollingTreeMac.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FE5FBD31C3DD51E0007A2CA /* DisplayList.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FE5FBCB1C3DD51E0007A2CA /* DisplayList.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FE5FBD51C3DD51E0007A2CA /* DisplayListItems.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FE5FBCD1C3DD51E0007A2CA /* DisplayListItems.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FE5FBD71C3DD51E0007A2CA /* DisplayListRecorderImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FE5FBCF1C3DD51E0007A2CA /* DisplayListRecorderImpl.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -788,6 +788,7 @@
 		0FF835C31EE354DA008B4CC7 /* DOMQuad.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FF835BE1EE354DA008B4CC7 /* DOMQuad.h */; };
 		0FF835C51EE354DA008B4CC7 /* DOMQuadInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FF835C01EE354DA008B4CC7 /* DOMQuadInit.h */; };
 		0FFD45AA243C3027000D4BEA /* ScrollingTreeLatchingController.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FFD45A7243BF257000D4BEA /* ScrollingTreeLatchingController.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		2659DCBDE95DC60112C87248 /* ScrollLatchingController.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F9510F024F4769C001F52DC /* ScrollLatchingController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FFD4D6118651FA300512F6E /* AsyncScrollingCoordinator.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FFD4D5F18651FA300512F6E /* AsyncScrollingCoordinator.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		10FB084B14E15C7E00A3DB98 /* PublicURLManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 10FB084A14E15C7E00A3DB98 /* PublicURLManager.h */; };
 		111FA1C726F0F30F003B8F16 /* InlineInvalidation.h in Headers */ = {isa = PBXBuildFile; fileRef = 111FA1C526F0F30F003B8F16 /* InlineInvalidation.h */; };
@@ -862,7 +863,7 @@
 		1921327511C0E6BB00456238 /* SVGFEConvolveMatrixElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 1921327211C0E6BB00456238 /* SVGFEConvolveMatrixElement.h */; };
 		197B180C1506353200E4ADA8 /* SVGRenderingContext.h in Headers */ = {isa = PBXBuildFile; fileRef = 197B180B150634C000E4ADA8 /* SVGRenderingContext.h */; };
 		19BFF64F11C0F2AC00B8C04D /* JSSVGFEConvolveMatrixElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 19BFF64A11C0F2AC00B8C04D /* JSSVGFEConvolveMatrixElement.h */; };
-		1A05BAD7289A513500BF0D87 /* ScrollAnchoringController.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A05BAD6289A190B00BF0D87 /* ScrollAnchoringController.h */; };
+		1A05BAD7289A513500BF0D87 /* ScrollAnchoringController.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A05BAD6289A190B00BF0D87 /* ScrollAnchoringController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1A08FEDD1D592B8B008BA8CB /* PluginInfoProvider.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A08FEDB1D592B8B008BA8CB /* PluginInfoProvider.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1A1414B513A0F0500019996C /* WebKitFontFamilyNames.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A1414B313A0F0500019996C /* WebKitFontFamilyNames.cpp */; };
 		1A1414B613A0F0500019996C /* WebKitFontFamilyNames.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A1414B413A0F0500019996C /* WebKitFontFamilyNames.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -2872,13 +2873,45 @@
 		5C0A1D000000000000000002 /* ScrollbarsControllerMacTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A1D000000000000000001 /* ScrollbarsControllerMacTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C0A1D000000000000000004 /* ScrollbarsControllerMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A1D000000000000000003 /* ScrollbarsControllerMac.swift */; };
 		5C0A1C000000000000000002 /* ScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A1C000000000000000001 /* ScrollView.swift */; };
+		2157802879D2BA102B06A476 /* ScrollLatchingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15B8840F6398E25DD567C69 /* ScrollLatchingController.swift */; };
+		27D69448AD968AEC6AEA6DD5 /* ScrollAnchoringController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 232C05ADEB2229F90E708D72 /* ScrollAnchoringController.swift */; };
+		AD4A20E008E8ACF7AF8DD493 /* ScrollbarThemeMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A0551CEDA2D789E53D7424 /* ScrollbarThemeMac.swift */; };
+		2881ECBBA023640AA13D6581 /* ScrollbarThemeComposite.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCFF2FA1F7B6BB67AE1FE9EC /* ScrollbarThemeComposite.swift */; };
+		80D370C6D029F1302F67F832 /* Scrollbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0E562320D9AAFB64DE66A8 /* Scrollbar.swift */; };
 		5C0A18000000000000000006 /* ScrollAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A18000000000000000005 /* ScrollAnimator.swift */; };
 		5C0A18000000000000000008 /* KeyboardScrollingAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A18000000000000000007 /* KeyboardScrollingAnimator.swift */; };
 		5C0A16000000000000000002 /* ScrollingTreeScrollPhysicsClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A16000000000000000001 /* ScrollingTreeScrollPhysicsClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C0A16000000000000000004 /* ScrollingTreeScrollPhysicsDelegateHolder.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A16000000000000000003 /* ScrollingTreeScrollPhysicsDelegateHolder.h */; };
 		5C0A16000000000000000006 /* ScrollingTreeScrollingNodeDelegateMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0A16000000000000000005 /* ScrollingTreeScrollingNodeDelegateMac.swift */; };
+		BF16E6C24C65489E9F2CD60A /* ScrollingTreeScrollingNodeMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A0458F258D14941ADF7F867 /* ScrollingTreeScrollingNodeMac.swift */; };
 		76B37E8F84B3451587255CA4 /* ScrollingTreeLatchingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 006B7582FC9F48D4A72E17A8 /* ScrollingTreeLatchingController.swift */; };
 		080A195D8A0745058214F772 /* ScrollingTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F57CEAF64CC4CDC89B4D98F /* ScrollingTree.swift */; };
+		BCD8D8F645CA45B78FBFF380 /* ScrollingTreeFixedNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5FF45AAF7A74527AB190C77 /* ScrollingTreeFixedNode.swift */; };
+		F08D8BE1735549ADB0207A04 /* ThreadedScrollingTreeScrollingNodeDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE3CBAEF0FC84917808868B8 /* ThreadedScrollingTreeScrollingNodeDelegate.swift */; };
+		9EC7159B0CD04669ABB47A96 /* ThreadedScrollingTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FF31379BD324F13A6DD3AD9 /* ThreadedScrollingTree.swift */; };
+		7E21467992D34C7C8CDDF547 /* ThreadedScrollingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E004A5BBD75425EA747A8BB /* ThreadedScrollingCoordinator.swift */; };
+		241446AD8FD3424A893FE228 /* ScrollingTreeNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7604781DBDEB4552A927942E /* ScrollingTreeNode.swift */; };
+		928897241E234B4EA0B25B6A /* ScrollingTreeScrollingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013A9C2540F24EC8B1B8C2C6 /* ScrollingTreeScrollingNode.swift */; };
+		4CCF62A24D254C3D874928F3 /* ScrollingTreeFrameScrollingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91DC527B2E14C86993E51DB /* ScrollingTreeFrameScrollingNode.swift */; };
+		145165BE864247CCAC3CAE92 /* ScrollingTreeStickyNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B23E94A3404802BDB7DC84 /* ScrollingTreeStickyNode.swift */; };
+		F1B1393A96214C4BB9183B24 /* ScrollingTreePositionedNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CFA125AAA5406AAB4D3143 /* ScrollingTreePositionedNode.swift */; };
+		A2D133D7C9DC7EDE47D1DA91 /* ScrollingTreeOverflowScrollProxyNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521946F12D43E25FA16B15EB /* ScrollingTreeOverflowScrollProxyNode.swift */; };
+		F75A930D50EE48949EABC1E5 /* ScrollingTreeFrameHostingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C116DE18BB87414484EBD107 /* ScrollingTreeFrameHostingNode.swift */; };
+		5C280C3C12314243A2CD2FA1 /* ScrollingTreePluginHostingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3AF96F8D1249239B6F4A0C /* ScrollingTreePluginHostingNode.swift */; };
+		2840CE27EDA544009B54E770 /* ScrollingStateTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA1395A2B464467A756719F /* ScrollingStateTree.swift */; };
+		4B06F2130295EFF0476985A4 /* AsyncScrollingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFF65EADF914CA682D8BBE5 /* AsyncScrollingCoordinator.swift */; };
+		BE27E0C524B9D43F8E26E5C1 /* ScrollingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C00D3C611AB0FFCB85F7657 /* ScrollingCoordinator.swift */; };
+		27120BE817D6456796B55F58 /* ScrollingStateFrameHostingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC1037E4382E4CFB968E5306 /* ScrollingStateFrameHostingNode.swift */; };
+		743F970C73C3448CA8D1B737 /* ScrollingStatePluginHostingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4BB9BEE561441DC8B9E61B1 /* ScrollingStatePluginHostingNode.swift */; };
+		A2FFF7E0B7534260841B028C /* ScrollingStateNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8920B20E5581416DBB5A7909 /* ScrollingStateNode.swift */; };
+		C8D14819F18B455B8040055C /* ScrollingStateFixedNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 858DCE3511764FD8867EFBBF /* ScrollingStateFixedNode.swift */; };
+		4DC83D6BBFC44D6385F62188 /* ScrollingStateOverflowScrollProxyNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D85A6EDD29E4E2387D228E4 /* ScrollingStateOverflowScrollProxyNode.swift */; };
+		668B5D5D1A8044D9AED05FC5 /* ScrollingStatePositionedNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5235289615C4A5B88FFD112 /* ScrollingStatePositionedNode.swift */; };
+		B0BB92F040764E9EA0D4065B /* ScrollingStateScrollingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6902F813F2E449783EFF8AB /* ScrollingStateScrollingNode.swift */; };
+		320EE8C0149E429D8DDC108C /* ScrollingStateFrameScrollingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C94CE96DCDCE495D93D21AA9 /* ScrollingStateFrameScrollingNode.swift */; };
+		3B05F17C3BCB4CCA816D24F6 /* ScrollingStateOverflowScrollingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDE38936406341E0806A8177 /* ScrollingStateOverflowScrollingNode.swift */; };
+		5606F53A14624D298E616808 /* ScrollingStatePluginScrollingNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C29DC53F39754DA0982CD32C /* ScrollingStatePluginScrollingNode.swift */; };
+		E728BD95FEF64049B933E478 /* ScrollingStateStickyNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36D0590ED5A34CA499454FEE /* ScrollingStateStickyNode.swift */; };
 		5C0A17000000000000000002 /* ScrollerPairMacTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A17000000000000000001 /* ScrollerPairMacTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C0A17000000000000000004 /* ScrollerImpDelegateBinding.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A17000000000000000003 /* ScrollerImpDelegateBinding.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C0A17000000000000000006 /* ScrollerPairMacState.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C0A17000000000000000005 /* ScrollerPairMacState.h */; };
@@ -3160,6 +3193,7 @@
 		712BE4881FE8686A002031CC /* JSFillMode.h in Headers */ = {isa = PBXBuildFile; fileRef = 712BE4851FE86818002031CC /* JSFillMode.h */; };
 		712BE4891FE86875002031CC /* JSPlaybackDirection.h in Headers */ = {isa = PBXBuildFile; fileRef = 712BE4861FE86859002031CC /* JSPlaybackDirection.h */; };
 		712DBA4921F8AD83008F36B2 /* ScrollingCoordinatorTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 712DBA4721F8AD79008F36B2 /* ScrollingCoordinatorTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		25D010729C379A3E88A20731 /* ScrollingLockedAccess.h in Headers */ = {isa = PBXBuildFile; fileRef = 221729936E9B0E20045CC28E /* ScrollingLockedAccess.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		713171341FBE78DB00F758DE /* StyleInterpolationClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 713171321FBE78C500F758DE /* StyleInterpolationClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7132445120109DA500AE7FB2 /* WebAnimationUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 7132444F20109D9B00AE7FB2 /* WebAnimationUtilities.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7134496E146941B300720312 /* SVGLengthContext.h in Headers */ = {isa = PBXBuildFile; fileRef = 7134496C146941B300720312 /* SVGLengthContext.h */; };
@@ -9087,8 +9121,6 @@
 		0FC276BA26DAF9E90093E8ED /* ReferencedSVGResources.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ReferencedSVGResources.cpp; sourceTree = "<group>"; };
 		0FC276BC26DB19000093E8ED /* SVGResourceElementClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SVGResourceElementClient.h; sourceTree = "<group>"; };
 		0FC5FB6429C4D7EC001EDFE5 /* RenderingMode.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RenderingMode.cpp; sourceTree = "<group>"; };
-		0FC692BA257C0F400098E3F9 /* ScrollAnimationKinetic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollAnimationKinetic.h; sourceTree = "<group>"; };
-		0FC692BC257C0F410098E3F9 /* ScrollAnimationKinetic.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScrollAnimationKinetic.cpp; sourceTree = "<group>"; };
 		0FC692BD257C0F410098E3F9 /* ScrollAnimationSmooth.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScrollAnimationSmooth.cpp; sourceTree = "<group>"; };
 		0FC692BE257C0F420098E3F9 /* ScrollAnimationSmooth.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollAnimationSmooth.h; sourceTree = "<group>"; };
 		0FC692EA2585C9670098E3F9 /* GridBaselineAlignment.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GridBaselineAlignment.cpp; sourceTree = "<group>"; };
@@ -14019,13 +14051,45 @@
 		5C0A1D000000000000000001 /* ScrollbarsControllerMacTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollbarsControllerMacTypes.h; sourceTree = "<group>"; };
 		5C0A1D000000000000000003 /* ScrollbarsControllerMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollbarsControllerMac.swift; sourceTree = "<group>"; };
 		5C0A1C000000000000000001 /* ScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollView.swift; sourceTree = "<group>"; };
+		D15B8840F6398E25DD567C69 /* ScrollLatchingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollLatchingController.swift; sourceTree = "<group>"; };
+		232C05ADEB2229F90E708D72 /* ScrollAnchoringController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollAnchoringController.swift; sourceTree = "<group>"; };
+		00A0551CEDA2D789E53D7424 /* ScrollbarThemeMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollbarThemeMac.swift; sourceTree = "<group>"; };
+		DCFF2FA1F7B6BB67AE1FE9EC /* ScrollbarThemeComposite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollbarThemeComposite.swift; sourceTree = "<group>"; };
+		EF0E562320D9AAFB64DE66A8 /* Scrollbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scrollbar.swift; sourceTree = "<group>"; };
 		5C0A18000000000000000005 /* ScrollAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollAnimator.swift; sourceTree = "<group>"; };
 		5C0A18000000000000000007 /* KeyboardScrollingAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardScrollingAnimator.swift; sourceTree = "<group>"; };
 		5C0A16000000000000000001 /* ScrollingTreeScrollPhysicsClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollingTreeScrollPhysicsClient.h; sourceTree = "<group>"; };
 		5C0A16000000000000000003 /* ScrollingTreeScrollPhysicsDelegateHolder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollingTreeScrollPhysicsDelegateHolder.h; sourceTree = "<group>"; };
 		5C0A16000000000000000005 /* ScrollingTreeScrollingNodeDelegateMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeScrollingNodeDelegateMac.swift; sourceTree = "<group>"; };
+		6A0458F258D14941ADF7F867 /* ScrollingTreeScrollingNodeMac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeScrollingNodeMac.swift; sourceTree = "<group>"; };
 		006B7582FC9F48D4A72E17A8 /* ScrollingTreeLatchingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeLatchingController.swift; sourceTree = "<group>"; };
 		5F57CEAF64CC4CDC89B4D98F /* ScrollingTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTree.swift; sourceTree = "<group>"; };
+		B5FF45AAF7A74527AB190C77 /* ScrollingTreeFixedNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeFixedNode.swift; sourceTree = "<group>"; };
+		CE3CBAEF0FC84917808868B8 /* ThreadedScrollingTreeScrollingNodeDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadedScrollingTreeScrollingNodeDelegate.swift; sourceTree = "<group>"; };
+		5FF31379BD324F13A6DD3AD9 /* ThreadedScrollingTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadedScrollingTree.swift; sourceTree = "<group>"; };
+		3E004A5BBD75425EA747A8BB /* ThreadedScrollingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadedScrollingCoordinator.swift; sourceTree = "<group>"; };
+		7604781DBDEB4552A927942E /* ScrollingTreeNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeNode.swift; sourceTree = "<group>"; };
+		013A9C2540F24EC8B1B8C2C6 /* ScrollingTreeScrollingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeScrollingNode.swift; sourceTree = "<group>"; };
+		E91DC527B2E14C86993E51DB /* ScrollingTreeFrameScrollingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeFrameScrollingNode.swift; sourceTree = "<group>"; };
+		76B23E94A3404802BDB7DC84 /* ScrollingTreeStickyNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeStickyNode.swift; sourceTree = "<group>"; };
+		39CFA125AAA5406AAB4D3143 /* ScrollingTreePositionedNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreePositionedNode.swift; sourceTree = "<group>"; };
+		521946F12D43E25FA16B15EB /* ScrollingTreeOverflowScrollProxyNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeOverflowScrollProxyNode.swift; sourceTree = "<group>"; };
+		C116DE18BB87414484EBD107 /* ScrollingTreeFrameHostingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreeFrameHostingNode.swift; sourceTree = "<group>"; };
+		6C3AF96F8D1249239B6F4A0C /* ScrollingTreePluginHostingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingTreePluginHostingNode.swift; sourceTree = "<group>"; };
+		CEA1395A2B464467A756719F /* ScrollingStateTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateTree.swift; sourceTree = "<group>"; };
+		5EFF65EADF914CA682D8BBE5 /* AsyncScrollingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncScrollingCoordinator.swift; sourceTree = "<group>"; };
+		9C00D3C611AB0FFCB85F7657 /* ScrollingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingCoordinator.swift; sourceTree = "<group>"; };
+		EC1037E4382E4CFB968E5306 /* ScrollingStateFrameHostingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateFrameHostingNode.swift; sourceTree = "<group>"; };
+		C4BB9BEE561441DC8B9E61B1 /* ScrollingStatePluginHostingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStatePluginHostingNode.swift; sourceTree = "<group>"; };
+		8920B20E5581416DBB5A7909 /* ScrollingStateNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateNode.swift; sourceTree = "<group>"; };
+		858DCE3511764FD8867EFBBF /* ScrollingStateFixedNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateFixedNode.swift; sourceTree = "<group>"; };
+		4D85A6EDD29E4E2387D228E4 /* ScrollingStateOverflowScrollProxyNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateOverflowScrollProxyNode.swift; sourceTree = "<group>"; };
+		E5235289615C4A5B88FFD112 /* ScrollingStatePositionedNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStatePositionedNode.swift; sourceTree = "<group>"; };
+		F6902F813F2E449783EFF8AB /* ScrollingStateScrollingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateScrollingNode.swift; sourceTree = "<group>"; };
+		C94CE96DCDCE495D93D21AA9 /* ScrollingStateFrameScrollingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateFrameScrollingNode.swift; sourceTree = "<group>"; };
+		EDE38936406341E0806A8177 /* ScrollingStateOverflowScrollingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateOverflowScrollingNode.swift; sourceTree = "<group>"; };
+		C29DC53F39754DA0982CD32C /* ScrollingStatePluginScrollingNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStatePluginScrollingNode.swift; sourceTree = "<group>"; };
+		36D0590ED5A34CA499454FEE /* ScrollingStateStickyNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingStateStickyNode.swift; sourceTree = "<group>"; };
 		5C0A17000000000000000001 /* ScrollerPairMacTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollerPairMacTypes.h; sourceTree = "<group>"; };
 		5C0A17000000000000000003 /* ScrollerImpDelegateBinding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollerImpDelegateBinding.h; sourceTree = "<group>"; };
 		5C0A17000000000000000005 /* ScrollerPairMacState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScrollerPairMacState.h; sourceTree = "<group>"; };
@@ -14632,6 +14696,7 @@
 		712BE4861FE86859002031CC /* JSPlaybackDirection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSPlaybackDirection.h; sourceTree = "<group>"; };
 		712BE4871FE8685A002031CC /* JSPlaybackDirection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSPlaybackDirection.cpp; sourceTree = "<group>"; };
 		712DBA4721F8AD79008F36B2 /* ScrollingCoordinatorTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollingCoordinatorTypes.h; sourceTree = "<group>"; };
+		221729936E9B0E20045CC28E /* ScrollingLockedAccess.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScrollingLockedAccess.h; sourceTree = "<group>"; };
 		7130141D1DC9C08600CA3A88 /* pip-support.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "pip-support.js"; sourceTree = "<group>"; };
 		713171321FBE78C500F758DE /* StyleInterpolationClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StyleInterpolationClient.h; sourceTree = "<group>"; };
 		7132444F20109D9B00AE7FB2 /* WebAnimationUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebAnimationUtilities.h; sourceTree = "<group>"; };
@@ -26514,6 +26579,7 @@
 				0FFD4D5E18651FA300512F6E /* AsyncScrollingCoordinator.cpp */,
 				0FFD4D5F18651FA300512F6E /* AsyncScrollingCoordinator.h */,
 				1A05BAD5289A190900BF0D87 /* ScrollAnchoringController.cpp */,
+				232C05ADEB2229F90E708D72 /* ScrollAnchoringController.swift */,
 				1A05BAD6289A190B00BF0D87 /* ScrollAnchoringController.h */,
 				0F605AEA15F94848004DF0C0 /* ScrollingConstraints.cpp */,
 				0F605AEB15F94848004DF0C0 /* ScrollingConstraints.h */,
@@ -26521,6 +26587,7 @@
 				1AF62EE514DA22A70041556C /* ScrollingCoordinator.h */,
 				0FBCF1BF29498EBE0088936F /* ScrollingCoordinatorTypes.cpp */,
 				712DBA4721F8AD79008F36B2 /* ScrollingCoordinatorTypes.h */,
+				221729936E9B0E20045CC28E /* ScrollingLockedAccess.h */,
 				12BB61202B6426090048B442 /* ScrollingNodeID.h */,
 				7AD41E7D2C7607AA00ED9467 /* ScrollingPlatformLayer.h */,
 				93C38BFC164473C700091EB2 /* ScrollingStateFixedNode.cpp */,
@@ -26553,6 +26620,32 @@
 				1AAADDA214DB409F00AF64B3 /* ScrollingTree.h */,
 				5F57CEAF64CC4CDC89B4D98F /* ScrollingTree.swift */,
 				7AB978AC28FD5EFB003E2202 /* ScrollingTreeFixedNode.cpp */,
+				B5FF45AAF7A74527AB190C77 /* ScrollingTreeFixedNode.swift */,
+				CE3CBAEF0FC84917808868B8 /* ThreadedScrollingTreeScrollingNodeDelegate.swift */,
+				5FF31379BD324F13A6DD3AD9 /* ThreadedScrollingTree.swift */,
+				3E004A5BBD75425EA747A8BB /* ThreadedScrollingCoordinator.swift */,
+				7604781DBDEB4552A927942E /* ScrollingTreeNode.swift */,
+				013A9C2540F24EC8B1B8C2C6 /* ScrollingTreeScrollingNode.swift */,
+				E91DC527B2E14C86993E51DB /* ScrollingTreeFrameScrollingNode.swift */,
+				76B23E94A3404802BDB7DC84 /* ScrollingTreeStickyNode.swift */,
+				39CFA125AAA5406AAB4D3143 /* ScrollingTreePositionedNode.swift */,
+				521946F12D43E25FA16B15EB /* ScrollingTreeOverflowScrollProxyNode.swift */,
+				C116DE18BB87414484EBD107 /* ScrollingTreeFrameHostingNode.swift */,
+				6C3AF96F8D1249239B6F4A0C /* ScrollingTreePluginHostingNode.swift */,
+				CEA1395A2B464467A756719F /* ScrollingStateTree.swift */,
+				5EFF65EADF914CA682D8BBE5 /* AsyncScrollingCoordinator.swift */,
+				9C00D3C611AB0FFCB85F7657 /* ScrollingCoordinator.swift */,
+				EC1037E4382E4CFB968E5306 /* ScrollingStateFrameHostingNode.swift */,
+				C4BB9BEE561441DC8B9E61B1 /* ScrollingStatePluginHostingNode.swift */,
+				8920B20E5581416DBB5A7909 /* ScrollingStateNode.swift */,
+				858DCE3511764FD8867EFBBF /* ScrollingStateFixedNode.swift */,
+				4D85A6EDD29E4E2387D228E4 /* ScrollingStateOverflowScrollProxyNode.swift */,
+				E5235289615C4A5B88FFD112 /* ScrollingStatePositionedNode.swift */,
+				F6902F813F2E449783EFF8AB /* ScrollingStateScrollingNode.swift */,
+				C94CE96DCDCE495D93D21AA9 /* ScrollingStateFrameScrollingNode.swift */,
+				EDE38936406341E0806A8177 /* ScrollingStateOverflowScrollingNode.swift */,
+				C29DC53F39754DA0982CD32C /* ScrollingStatePluginScrollingNode.swift */,
+				36D0590ED5A34CA499454FEE /* ScrollingStateStickyNode.swift */,
 				7AB978AD28FD5F0E003E2202 /* ScrollingTreeFixedNode.h */,
 				0FD41E6721F80282000C006D /* ScrollingTreeFrameHostingNode.cpp */,
 				0FD41E6621F80282000C006D /* ScrollingTreeFrameHostingNode.h */,
@@ -26586,6 +26679,7 @@
 				F4F0E2752DBC69A200E2F385 /* ScrollingTreeViewportConstrainedNode.h */,
 				0F9510F224F4769C001F52DC /* ScrollLatchingController.cpp */,
 				0F9510F024F4769C001F52DC /* ScrollLatchingController.h */,
+				D15B8840F6398E25DD567C69 /* ScrollLatchingController.swift */,
 				5B7AB9F62567DB7E006592D0 /* ScrollSnapOffsetsInfo.cpp */,
 				F46729251E0DE5AB00ACC3D8 /* ScrollSnapOffsetsInfo.h */,
 				7A8DCBA028DC5E7C003AB8F6 /* ThreadedScrollingCoordinator.cpp */,
@@ -26622,6 +26716,7 @@
 				0F37F0842202ACB700A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h */,
 				0F37F0832202AC8F00A89C0B /* ScrollingTreeScrollingNodeDelegateMac.mm */,
 				5C0A16000000000000000005 /* ScrollingTreeScrollingNodeDelegateMac.swift */,
+				6A0458F258D14941ADF7F867 /* ScrollingTreeScrollingNodeMac.swift */,
 			);
 			path = mac;
 			sourceTree = "<group>";
@@ -31839,6 +31934,7 @@
 				5C0A1D000000000000000001 /* ScrollbarsControllerMacTypes.h */,
 				BC8B853C0E7C7F1100AB6984 /* ScrollbarThemeMac.h */,
 				BCEF869E0E844E9D00A85CD5 /* ScrollbarThemeMac.mm */,
+				00A0551CEDA2D789E53D7424 /* ScrollbarThemeMac.swift */,
 				5B1E0E4325D1629B00272281 /* ScrollingEffectsController.mm */,
 				0F99059C26F6BE950054FBE0 /* ScrollingMomentumCalculatorMac.mm */,
 				F47C590D29D2303800F07A3B /* ScrollTypesMac.h */,
@@ -40764,8 +40860,6 @@
 				5B2D767027B1460800F9BA3C /* ScrollAlignment.h */,
 				0F6EAD6626FE728000064D03 /* ScrollAnimation.cpp */,
 				0FA61B0C26F43212001AADB6 /* ScrollAnimation.h */,
-				0FC692BC257C0F410098E3F9 /* ScrollAnimationKinetic.cpp */,
-				0FC692BA257C0F400098E3F9 /* ScrollAnimationKinetic.h */,
 				0FC692BD257C0F410098E3F9 /* ScrollAnimationSmooth.cpp */,
 				0FC692BE257C0F420098E3F9 /* ScrollAnimationSmooth.h */,
 				CA3BF67B10D99BAE00E6CE53 /* ScrollAnimator.cpp */,
@@ -40774,6 +40868,7 @@
 				5C0A18000000000000000001 /* ScrollAnimatorScrollPhysicsClient.h */,
 				5C0A18000000000000000003 /* ScrollAnimatorScrollPhysicsClient.swift */,
 				BCAA90C20A7EBA60008B1229 /* Scrollbar.cpp */,
+				EF0E562320D9AAFB64DE66A8 /* Scrollbar.swift */,
 				BC7B2AF80450824100A8000F /* Scrollbar.h */,
 				46C8C3D62E80E824005507BE /* ScrollbarInlines.h */,
 				9B1D979F2DCC7F98003B118C /* ScrollbarMode.h */,
@@ -40783,6 +40878,7 @@
 				0FE71415142189FC00DB33BA /* ScrollbarTheme.cpp */,
 				BC8B854A0E7C7F5600AB6984 /* ScrollbarTheme.h */,
 				BC1402880E83680800319717 /* ScrollbarThemeComposite.cpp */,
+				DCFF2FA1F7B6BB67AE1FE9EC /* ScrollbarThemeComposite.swift */,
 				BC1402890E83680800319717 /* ScrollbarThemeComposite.h */,
 				CD1F9B4C270D03A900617EB6 /* ScrollExtents.h */,
 				F7E9EB0035992A8FE989EEE4 /* ScrollingEffectsClock.h */,
@@ -50038,6 +50134,7 @@
 				1AF62EE814DA22A70041556C /* ScrollingCoordinator.h in Headers */,
 				9391A991162746CB00297330 /* ScrollingCoordinatorMac.h in Headers */,
 				712DBA4921F8AD83008F36B2 /* ScrollingCoordinatorTypes.h in Headers */,
+				25D010729C379A3E88A20731 /* ScrollingLockedAccess.h in Headers */,
 				1D345737494ECF6CB328807A /* ScrollingEffectsClock.h in Headers */,
 				5B46656325D14C0A000CFE14 /* ScrollingEffectsController.h in Headers */,
 				0F99059A26F6BE850054FBE0 /* ScrollingMomentumCalculator.h in Headers */,
@@ -50064,6 +50161,7 @@
 				93C4A4151629DF5A00C3EB6E /* ScrollingTreeFrameScrollingNodeMac.h in Headers */,
 				0FD975D5245CCB4700C42299 /* ScrollingTreeGestureState.h in Headers */,
 				0FFD45AA243C3027000D4BEA /* ScrollingTreeLatchingController.h in Headers */,
+				2659DCBDE95DC60112C87248 /* ScrollLatchingController.h in Headers */,
 				0FE5806419327A6200DE32EB /* ScrollingTreeMac.h in Headers */,
 				1AAADDE414DC8C8F00AF64B3 /* ScrollingTreeNode.h in Headers */,
 				0FEA3E80191B3169000F1B55 /* ScrollingTreeOverflowScrollingNode.h in Headers */,
@@ -52677,8 +52775,35 @@
 				BD3DD043845E40D5AA07BBE6 /* SecurityPolicy.swift in Sources */,
 				5C0A17000000000000000008 /* ScrollerPairMac.swift in Sources */,
 				080A195D8A0745058214F772 /* ScrollingTree.swift in Sources */,
+				BCD8D8F645CA45B78FBFF380 /* ScrollingTreeFixedNode.swift in Sources */,
+				F08D8BE1735549ADB0207A04 /* ThreadedScrollingTreeScrollingNodeDelegate.swift in Sources */,
+				9EC7159B0CD04669ABB47A96 /* ThreadedScrollingTree.swift in Sources */,
+				7E21467992D34C7C8CDDF547 /* ThreadedScrollingCoordinator.swift in Sources */,
+				241446AD8FD3424A893FE228 /* ScrollingTreeNode.swift in Sources */,
+				928897241E234B4EA0B25B6A /* ScrollingTreeScrollingNode.swift in Sources */,
+				4CCF62A24D254C3D874928F3 /* ScrollingTreeFrameScrollingNode.swift in Sources */,
+				145165BE864247CCAC3CAE92 /* ScrollingTreeStickyNode.swift in Sources */,
+				F1B1393A96214C4BB9183B24 /* ScrollingTreePositionedNode.swift in Sources */,
+				A2D133D7C9DC7EDE47D1DA91 /* ScrollingTreeOverflowScrollProxyNode.swift in Sources */,
+				F75A930D50EE48949EABC1E5 /* ScrollingTreeFrameHostingNode.swift in Sources */,
+				5C280C3C12314243A2CD2FA1 /* ScrollingTreePluginHostingNode.swift in Sources */,
+				2840CE27EDA544009B54E770 /* ScrollingStateTree.swift in Sources */,
+				4B06F2130295EFF0476985A4 /* AsyncScrollingCoordinator.swift in Sources */,
+				BE27E0C524B9D43F8E26E5C1 /* ScrollingCoordinator.swift in Sources */,
+				27120BE817D6456796B55F58 /* ScrollingStateFrameHostingNode.swift in Sources */,
+				743F970C73C3448CA8D1B737 /* ScrollingStatePluginHostingNode.swift in Sources */,
+				A2FFF7E0B7534260841B028C /* ScrollingStateNode.swift in Sources */,
+				C8D14819F18B455B8040055C /* ScrollingStateFixedNode.swift in Sources */,
+				4DC83D6BBFC44D6385F62188 /* ScrollingStateOverflowScrollProxyNode.swift in Sources */,
+				668B5D5D1A8044D9AED05FC5 /* ScrollingStatePositionedNode.swift in Sources */,
+				B0BB92F040764E9EA0D4065B /* ScrollingStateScrollingNode.swift in Sources */,
+				320EE8C0149E429D8DDC108C /* ScrollingStateFrameScrollingNode.swift in Sources */,
+				3B05F17C3BCB4CCA816D24F6 /* ScrollingStateOverflowScrollingNode.swift in Sources */,
+				5606F53A14624D298E616808 /* ScrollingStatePluginScrollingNode.swift in Sources */,
+				E728BD95FEF64049B933E478 /* ScrollingStateStickyNode.swift in Sources */,
 				76B37E8F84B3451587255CA4 /* ScrollingTreeLatchingController.swift in Sources */,
 				5C0A16000000000000000006 /* ScrollingTreeScrollingNodeDelegateMac.swift in Sources */,
+				BF16E6C24C65489E9F2CD60A /* ScrollingTreeScrollingNodeMac.swift in Sources */,
 				5C0A11000000000000000008 /* ScrollPhysicsAnimations.swift in Sources */,
 				5C0A1100000000000000000E /* ScrollPhysicsClientProtocol.swift in Sources */,
 				5C0A11000000000000000006 /* ScrollPhysicsController.swift in Sources */,
@@ -52699,6 +52824,11 @@
 				5C0A1100000000000000000A /* ScrollPhysicsGeometry.swift in Sources */,
 				5C0A1100000000000000000C /* ScrollSnapAnimationState.swift in Sources */,
 				5C0A1C000000000000000002 /* ScrollView.swift in Sources */,
+				2157802879D2BA102B06A476 /* ScrollLatchingController.swift in Sources */,
+				27D69448AD968AEC6AEA6DD5 /* ScrollAnchoringController.swift in Sources */,
+				AD4A20E008E8ACF7AF8DD493 /* ScrollbarThemeMac.swift in Sources */,
+				2881ECBBA023640AA13D6581 /* ScrollbarThemeComposite.swift in Sources */,
+				80D370C6D029F1302F67F832 /* Scrollbar.swift in Sources */,
 				43B85ED418CBEC5200E31AF4 /* SelectorPseudoClassAndCompatibilityElementMap.cpp in Sources */,
 				26AA0F9E18D2A18B00419381 /* SelectorPseudoElementMap.cpp in Sources */,
 				5CFC9C842B71AE1800F8D289 /* SerializedPlatformDataCueValue.mm in Sources */,

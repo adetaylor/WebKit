@@ -28,10 +28,6 @@
 
 #if ENABLE(ASYNC_SCROLLING)
 
-#include "FloatPoint.h"
-#include "Logging.h"
-#include "PlatformWheelEvent.h"
-#include "ScrollingThread.h"
 #include "ScrollingTree.h"
 #include "WebCore-Swift.h"
 
@@ -51,45 +47,6 @@ ScrollingTreeLatchingController::~ScrollingTreeLatchingController() = default;
 ScrollingTreeWheelState& ScrollingTreeLatchingController::wheelState() const
 {
     return *m_state;
-}
-
-void ScrollingTreeLatchingController::receivedWheelEvent(const PlatformWheelEvent& wheelEvent, OptionSet<WheelEventProcessingSteps> processingSteps, bool allowLatching)
-{
-    m_state->receivedWheelEvent(wheelEvent.isGestureStart(), processingSteps.toRaw(), allowLatching);
-}
-
-std::optional<ScrollingTreeLatchingController::ScrollingNodeAndProcessingSteps> ScrollingTreeLatchingController::latchingDataForEvent(const PlatformWheelEvent& wheelEvent, bool allowLatching) const
-{
-    ScrollingNodeID nodeID { WTF::HashTableDeletedValue };
-    uint8_t processingSteps = 0;
-    bool latchedToUnscrollableRoot = false;
-    if (!m_state->latchingDataForEvent(wheelEvent.useLatchedEventElement(), wheelEvent.isGestureStart(), allowLatching, nodeID, processingSteps, latchedToUnscrollableRoot))
-        return std::nullopt;
-    return ScrollingNodeAndProcessingSteps { nodeID, OptionSet<WheelEventProcessingSteps>::fromRaw(processingSteps), latchedToUnscrollableRoot ? LatchedToUnscrollableRoot::Yes : LatchedToUnscrollableRoot::No };
-}
-
-std::optional<ScrollingNodeID> ScrollingTreeLatchingController::latchedNodeID() const
-{
-    ScrollingNodeID nodeID { WTF::HashTableDeletedValue };
-    uint8_t processingSteps = 0;
-    if (!m_state->latchedNodeAndSteps(nodeID, processingSteps))
-        return std::nullopt;
-    return nodeID;
-}
-
-bool ScrollingTreeLatchingController::isLatchedToUnscrollableRoot() const
-{
-    return m_state->isLatchedToUnscrollableRoot();
-}
-
-void ScrollingTreeLatchingController::nodeWasRemoved(ScrollingNodeID nodeID)
-{
-    m_state->nodeWasRemoved(nodeID);
-}
-
-void ScrollingTreeLatchingController::clearLatchedNode()
-{
-    m_state->clearLatchedNode();
 }
 
 } // namespace WebCore

@@ -38,7 +38,7 @@ namespace WebCore {
 
 class FixedPositionViewportConstraints;
 
-class ScrollingTreeFixedNode : public ScrollingTreeViewportConstrainedNode {
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingTreeFixedNode.swift") ScrollingTreeFixedNode : public ScrollingTreeViewportConstrainedNode {
     WTF_MAKE_TZONE_ALLOCATED(ScrollingTreeFixedNode);
 public:
     virtual ~ScrollingTreeFixedNode();
@@ -48,7 +48,7 @@ protected:
 
     const ViewportConstraints& constraints() const LIFETIME_BOUND final { return m_constraints; }
 
-    bool commitStateBeforeChildren(const ScrollingStateNode&) override;
+    SWIFT_UNSAFE bool commitStateBeforeChildren(const ScrollingStateNode&) override;
     void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
 
     FixedPositionViewportConstraints m_constraints;

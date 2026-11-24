@@ -26,13 +26,9 @@
 #import "config.h"
 #import "ScrollingTreeStickyNodeCocoa.h"
 
-#import "Logging.h"
 #import "ScrollingStateStickyNode.h"
-#import "ScrollingThread.h"
 #import "ScrollingTree.h"
-#import "WebCoreCALayerExtras.h"
 #import <wtf/TZoneMalloc.h>
-#import <wtf/text/TextStream.h>
 
 namespace WebCore {
 
@@ -59,34 +55,6 @@ bool ScrollingTreeStickyNodeCocoa::commitStateBeforeChildren(const ScrollingStat
     }
 
     return ScrollingTreeStickyNode::commitStateBeforeChildren(stateNode);
-}
-
-void ScrollingTreeStickyNodeCocoa::applyLayerPositions()
-{
-#if ENABLE(SCROLLING_THREAD)
-    if (ScrollingThread::isCurrentThread()) {
-        // Match the behavior of ScrollingTreeFrameScrollingNodeMac::repositionScrollingLayers().
-        if (!scrollingTree()->isScrollingSynchronizedWithMainThread()) {
-            [m_layer _web_setLayerTopLeftPosition:CGPointZero];
-            if (hasViewportClippingLayer())
-                [m_viewportAnchorLayer _web_setLayerTopLeftPosition:CGPointZero];
-        }
-    }
-#endif
-
-    auto [constrainingRect, anchorLayerPosition] = computeConstrainingRectAndAnchorLayerPosition();
-    LOG_WITH_STREAM(Scrolling, stream << "ScrollingTreeStickyNodeCocoa::applyLayerPositions() " << scrollingNodeID() << " constrainingRectAtLastLayout " << m_constraints.constrainingRectAtLastLayout() << " last layer pos " << m_constraints.layerPositionAtLastLayout());
-    if (hasViewportClippingLayer()) {
-        auto clippingLayerPosition = computeClippingLayerPosition();
-        [m_layer _web_setLayerTopLeftPosition:clippingLayerPosition];
-        LOG_WITH_STREAM(Scrolling, stream << "ScrollingTreeStickyNodeCocoa::applyLayerPositions() " << scrollingNodeID() << " clippingLayerPosition " << clippingLayerPosition);
-        anchorLayerPosition.moveBy(-clippingLayerPosition);
-    }
-    LOG_WITH_STREAM(Scrolling, stream << "ScrollingTreeStickyNodeCocoa::applyLayerPositions() " << scrollingNodeID() << " clippingLayerPosition " << anchorLayerPosition);
-    [m_viewportAnchorLayer _web_setLayerTopLeftPosition:anchorLayerPosition - m_constraints.alignmentOffset()];
-
-    if (constrainingRect)
-        setIsSticking(isCurrentlySticking(*constrainingRect));
 }
 
 #if ENABLE(OVERLAY_REGIONS_REMOTE_EFFECT)
@@ -121,19 +89,6 @@ void ScrollingTreeStickyNodeCocoa::setIsSticking(bool isSticking)
             scrollingTree->stickyScrollingTreeNodeEndedSticking(nodeID);
 #endif
     });
-}
-
-bool ScrollingTreeStickyNodeCocoa::hasViewportClippingLayer() const
-{
-    return m_viewportAnchorLayer && m_layer != m_viewportAnchorLayer;
-}
-
-FloatPoint ScrollingTreeStickyNodeCocoa::layerTopLeft() const
-{
-    FloatRect layerBounds = [m_layer bounds];
-    FloatPoint anchorPoint = [m_layer anchorPoint];
-    FloatPoint position = [m_layer position];
-    return position - toFloatSize(anchorPoint) * layerBounds.size() + m_constraints.alignmentOffset();
 }
 
 } // namespace WebCore

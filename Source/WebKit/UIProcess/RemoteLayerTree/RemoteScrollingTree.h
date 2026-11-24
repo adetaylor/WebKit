@@ -70,13 +70,13 @@ public:
 
     virtual bool isPointInScrollbar(WebCore::FloatPoint locationInViewCoordinates) { return false; }
 
-    NODELETE RemoteScrollingCoordinatorProxy* scrollingCoordinatorProxy() const;
+    SWIFT_UNSAFE NODELETE RemoteScrollingCoordinatorProxy* scrollingCoordinatorProxy() const;
 
     void scrollingTreeNodeDidScroll(WebCore::ScrollingTreeScrollingNode&, WebCore::ScrollingLayerPositionAction = WebCore::ScrollingLayerPositionAction::Sync) override;
     void scrollingTreeNodeDidStopAnimatedScroll(WebCore::ScrollingTreeScrollingNode&) override;
     void scrollingTreeNodeDidStopWheelEventScroll(WebCore::ScrollingTreeScrollingNode&) override;
-    SWIFT_UNSAFE WebCore::RequestsScrollHandling scrollingTreeNodeRequestsScroll(WebCore::ScrollingNodeID, const WebCore::RequestedScrollData&) override;
-    SWIFT_UNSAFE bool scrollingTreeNodeRequestsKeyboardScroll(WebCore::ScrollingNodeID, const WebCore::RequestedKeyboardScrollData&) override;
+    SWIFT_UNSAFE WebCore::RequestsScrollHandling scrollingTreeNodeRequestsScroll(WebCore::ScrollingNodeID, WebCore::RequestedScrollData) override;
+    SWIFT_UNSAFE bool scrollingTreeNodeRequestsKeyboardScroll(WebCore::ScrollingNodeID, WebCore::RequestedKeyboardScrollData) override;
 
     void didHandleScrollRequestForNode(WebCore::ScrollingNodeID, WebCore::ScrollRequestType, WebCore::FloatPoint scrollPosition, WebCore::ShouldFireScrollEnd, Markable<WebCore::ScrollRequestIdentifier>) override;
 
@@ -127,11 +127,11 @@ protected:
     void receivedWheelEventWithPhases(WebCore::PlatformWheelEventPhase phase, WebCore::PlatformWheelEventPhase momentumPhase) override;
     void deferWheelEventTestCompletionForReason(WebCore::ScrollingNodeID, WebCore::WheelEventTestMonitor::DeferReason) override;
     void removeWheelEventTestCompletionDeferralForReason(WebCore::ScrollingNodeID, WebCore::WheelEventTestMonitor::DeferReason) override;
-    void propagateSynchronousScrollingReasons(const HashSet<WebCore::ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) override;
+    SWIFT_UNSAFE void propagateSynchronousScrollingReasons(const HashSet<WebCore::ScrollingNodeID>&) WTF_REQUIRES_LOCK(m_treeLock) override;
 
     // This gets nulled out via invalidate(), since the scrolling thread can hold a ref to the ScrollingTree after the RemoteScrollingCoordinatorProxy has gone away.
-    WeakPtr<RemoteScrollingCoordinatorProxy> m_scrollingCoordinatorProxy;
-    bool m_hasNodesWithSynchronousScrollingReasons WTF_GUARDED_BY_LOCK(m_treeLock) { false };
+    SWIFT_UNAVAILABLE_IN_SWIFT WeakPtr<RemoteScrollingCoordinatorProxy> m_scrollingCoordinatorProxy;
+    SWIFT_UNAVAILABLE_IN_SWIFT bool m_hasNodesWithSynchronousScrollingReasons WTF_GUARDED_BY_LOCK(m_treeLock) { false };
 #if HAVE(NSREFRESHCONTROLLER)
     float m_topScrollStretchForRefreshController { 0 };
     float m_refreshControllerSnappingThreshold { 0 };
@@ -145,9 +145,9 @@ private:
     void didAddPendingScrollUpdate() override;
 
     mutable Lock m_progressBasedTimelineRegistryLock;
-    std::unique_ptr<RemoteProgressBasedTimelineRegistry> m_progressBasedTimelineRegistry WTF_GUARDED_BY_LOCK(m_progressBasedTimelineRegistryLock);
+    SWIFT_UNAVAILABLE_IN_SWIFT std::unique_ptr<RemoteProgressBasedTimelineRegistry> m_progressBasedTimelineRegistry WTF_GUARDED_BY_LOCK(m_progressBasedTimelineRegistryLock);
 #endif
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

@@ -120,7 +120,7 @@ void RemoteScrollingTree::scrollingTreeNodeDidStopWheelEventScroll(WebCore::Scro
     addPendingScrollUpdate(WTF::move(scrollUpdate));
 }
 
-RequestsScrollHandling RemoteScrollingTree::scrollingTreeNodeRequestsScroll(ScrollingNodeID nodeID, const RequestedScrollData& request)
+RequestsScrollHandling RemoteScrollingTree::scrollingTreeNodeRequestsScroll(ScrollingNodeID nodeID, RequestedScrollData request)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
 
@@ -131,7 +131,7 @@ RequestsScrollHandling RemoteScrollingTree::scrollingTreeNodeRequestsScroll(Scro
     return scrollingCoordinatorProxy->scrollingTreeNodeRequestsScroll(nodeID, request);
 }
 
-bool RemoteScrollingTree::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID nodeID, const RequestedKeyboardScrollData& request)
+bool RemoteScrollingTree::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID nodeID, RequestedKeyboardScrollData request)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
 

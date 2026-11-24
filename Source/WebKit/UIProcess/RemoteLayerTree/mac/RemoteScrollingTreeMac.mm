@@ -91,38 +91,10 @@ void RemoteScrollingTreeMac::displayDidRefresh(PlatformDisplayID)
     serviceScrollAnimations(MonotonicTime::now()); // FIXME: Share timestamp with the rest of the update.
 }
 
-void RemoteScrollingTreeMac::scrollingTreeNodeWillStartScroll(ScrollingNodeID nodeID)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, this, nodeID] {
-        RemoteScrollingTree::scrollingTreeNodeWillStartScroll(nodeID);
-    });
-}
-
-void RemoteScrollingTreeMac::scrollingTreeNodeDidEndScroll(ScrollingNodeID nodeID)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, this, nodeID] {
-        RemoteScrollingTree::scrollingTreeNodeDidEndScroll(nodeID);
-    });
-}
-
 void RemoteScrollingTreeMac::clearNodesWithUserScrollInProgress()
 {
     RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, this] {
         RemoteScrollingTree::clearNodesWithUserScrollInProgress();
-    });
-}
-
-void RemoteScrollingTreeMac::scrollingTreeNodeDidBeginScrollSnapping(ScrollingNodeID nodeID)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, this, nodeID] {
-        RemoteScrollingTree::scrollingTreeNodeDidBeginScrollSnapping(nodeID);
-    });
-}
-
-void RemoteScrollingTreeMac::scrollingTreeNodeDidEndScrollSnapping(ScrollingNodeID nodeID)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, this, nodeID] {
-        RemoteScrollingTree::scrollingTreeNodeDidEndScrollSnapping(nodeID);
     });
 }
 
@@ -191,14 +163,6 @@ void RemoteScrollingTreeMac::startPendingScrollAnimations()
     }
 }
 
-void RemoteScrollingTreeMac::hasNodeWithAnimatedScrollChanged(bool hasNodeWithAnimatedScroll)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, hasNodeWithAnimatedScroll] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->hasNodeWithAnimatedScrollChanged(hasNodeWithAnimatedScroll);
-    });
-}
-
 void RemoteScrollingTreeMac::setRubberBandingInProgressForNode(ScrollingNodeID nodeID, bool isRubberBanding)
 {
     ScrollingTree::setRubberBandingInProgressForNode(nodeID, isRubberBanding);
@@ -263,21 +227,7 @@ void RemoteScrollingTreeMac::scrollingTreeNodeDidStopWheelEventScroll(WebCore::S
     addPendingScrollUpdate(WTF::move(scrollUpdate));
 }
 
-void RemoteScrollingTreeMac::didAddPendingScrollUpdate()
-{
-    if (RunLoop::isMain()) {
-        if (RefPtr scrollingCoordinatorProxy = this->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->scrollingThreadAddedPendingUpdate();
-        return;
-    }
-
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->scrollingThreadAddedPendingUpdate();
-    });
-}
-
-RequestsScrollHandling RemoteScrollingTreeMac::scrollingTreeNodeRequestsScroll(ScrollingNodeID nodeID, const RequestedScrollData& request)
+RequestsScrollHandling RemoteScrollingTreeMac::scrollingTreeNodeRequestsScroll(ScrollingNodeID nodeID, RequestedScrollData request)
 {
     if (isAnimatedUpdate(request.requestType)) {
         ASSERT_WITH_SECURITY_IMPLICATION(m_treeLock.isLocked());
@@ -287,43 +237,11 @@ RequestsScrollHandling RemoteScrollingTreeMac::scrollingTreeNodeRequestsScroll(S
     return RequestsScrollHandling::Unhandled;
 }
 
-bool RemoteScrollingTreeMac::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID nodeID, const RequestedKeyboardScrollData& request)
+bool RemoteScrollingTreeMac::scrollingTreeNodeRequestsKeyboardScroll(ScrollingNodeID nodeID, RequestedKeyboardScrollData request)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(m_treeLock.isLocked());
     m_nodesWithPendingKeyboardScrollAnimations.set(nodeID, request);
     return true;
-}
-
-void RemoteScrollingTreeMac::currentSnapPointIndicesDidChange(ScrollingNodeID nodeID, std::optional<unsigned> horizontal, std::optional<unsigned> vertical)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, nodeID, horizontal, vertical] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->currentSnapPointIndicesDidChange(nodeID, horizontal, vertical);
-    });
-}
-
-void RemoteScrollingTreeMac::reportExposedUnfilledArea(MonotonicTime time, unsigned unfilledArea)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, time, unfilledArea] {
-        if (auto* scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->reportExposedUnfilledArea(time, unfilledArea);
-    });
-}
-
-void RemoteScrollingTreeMac::reportSynchronousScrollingReasonsChanged(MonotonicTime timestamp, OptionSet<SynchronousScrollingReason> reasons)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, timestamp, reasons] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->reportSynchronousScrollingReasonsChanged(timestamp, reasons);
-    });
-}
-
-void RemoteScrollingTreeMac::receivedWheelEventWithPhases(PlatformWheelEventPhase phase, PlatformWheelEventPhase momentumPhase)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, phase, momentumPhase] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->receivedWheelEventWithPhases(phase, momentumPhase);
-    });
 }
 
 void RemoteScrollingTreeMac::willSendEventForDefaultHandling(const PlatformWheelEvent&)
@@ -418,28 +336,6 @@ WheelEventHandlingResult RemoteScrollingTreeMac::handleWheelEventAfterDefaultHan
     RefPtr<ScrollingTreeNode> targetNode = nodeForID(*targetNodeID);
     bool hostedRootNodeCannotScroll { hostedRootNode && targetNodeID == hostedRootNode->scrollingNodeID() && !hostedRootNode->allowsHorizontalScrolling() && !hostedRootNode->allowsVerticalScrolling() };
     return handleWheelEventWithNode(wheelEvent, processingSteps, targetNode.get(), hostedRootNodeCannotScroll ? EventTargeting::Propagate : EventTargeting::NodeOnly);
-}
-
-void RemoteScrollingTreeMac::deferWheelEventTestCompletionForReason(ScrollingNodeID nodeID, WheelEventTestMonitor::DeferReason reason)
-{
-    if (!isMonitoringWheelEvents())
-        return;
-
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, nodeID, reason] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->deferWheelEventTestCompletionForReason(nodeID, reason);
-    });
-}
-
-void RemoteScrollingTreeMac::removeWheelEventTestCompletionDeferralForReason(ScrollingNodeID nodeID, WheelEventTestMonitor::DeferReason reason)
-{
-    if (!isMonitoringWheelEvents())
-        return;
-
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, nodeID, reason] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->removeWheelEventTestCompletionDeferralForReason(nodeID, reason);
-    });
 }
 
 void RemoteScrollingTreeMac::lockLayersForHitTesting()
@@ -614,22 +510,6 @@ OptionSet<EventListenerRegionType> RemoteScrollingTreeMac::eventListenerRegionTy
     }).value_or(OptionSet<EventListenerRegionType> { });
 }
 #endif
-
-void RemoteScrollingTreeMac::scrollingTreeNodeScrollbarVisibilityDidChange(ScrollingNodeID nodeID, ScrollbarOrientation orientation, bool isVisible)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, nodeID, orientation, isVisible] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->scrollingTreeNodeScrollbarVisibilityDidChange(nodeID, orientation, isVisible);
-    });
-}
-
-void RemoteScrollingTreeMac::scrollingTreeNodeScrollbarMinimumThumbLengthDidChange(ScrollingNodeID nodeID, ScrollbarOrientation orientation, int minimumThumbLength)
-{
-    RunLoop::mainSingleton().dispatch([protectedThis = Ref { *this }, nodeID, orientation, minimumThumbLength] {
-        if (RefPtr scrollingCoordinatorProxy = protectedThis->scrollingCoordinatorProxy())
-            scrollingCoordinatorProxy->scrollingTreeNodeScrollbarMinimumThumbLengthDidChange(nodeID, orientation, minimumThumbLength);
-    });
-}
 
 void RemoteScrollingTreeMac::triggerMainFrameRubberBandSnapBack()
 {

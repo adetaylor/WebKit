@@ -26,11 +26,9 @@
 #import "config.h"
 #import "ScrollingTreeOverflowScrollProxyNodeCocoa.h"
 
-#import "Logging.h"
 #import "ScrollingStateOverflowScrollProxyNode.h"
 #import "ScrollingStateTree.h"
 #import "ScrollingTree.h"
-#import "WebCoreCALayerExtras.h"
 #import <wtf/TZoneMallocInlines.h>
 
 namespace WebCore {
@@ -55,14 +53,6 @@ bool ScrollingTreeOverflowScrollProxyNodeCocoa::commitStateBeforeChildren(const 
         m_layer = static_cast<CALayer*>(stateNode.layer());
 
     return ScrollingTreeOverflowScrollProxyNode::commitStateBeforeChildren(stateNode);
-}
-
-void ScrollingTreeOverflowScrollProxyNodeCocoa::applyLayerPositions()
-{
-    FloatPoint scrollOffset = computeLayerPosition();
-
-    LOG_WITH_STREAM(ScrollingTree, stream << "ScrollingTreeOverflowScrollProxyNodeCocoa " << scrollingNodeID() << " applyLayerPositions: setting bounds origin to " << scrollOffset);
-    [m_layer _web_setLayerBoundsOrigin:scrollOffset];
 }
 
 } // namespace WebCore

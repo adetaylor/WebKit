@@ -39,7 +39,9 @@ namespace WebCore {
 
 class Scrollbar;
 
-class ScrollingStateFrameScrollingNode final : public ScrollingStateScrollingNode {
+using OptionalFloatSize = std::optional<FloatSize>;
+
+class SWIFT_PRIVATE_FILEID("WebCore/ScrollingStateFrameScrollingNode.swift") ScrollingStateFrameScrollingNode final : public ScrollingStateScrollingNode {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ScrollingStateFrameScrollingNode, WEBCORE_EXPORT);
 public:
     template<typename... Args> static Ref<ScrollingStateFrameScrollingNode> create(Args&&... args) { return adoptRef(*new ScrollingStateFrameScrollingNode(std::forward<Args>(args)...)); }
@@ -58,16 +60,16 @@ public:
     WEBCORE_EXPORT void setScrollBehaviorForFixedElements(ScrollBehaviorForFixedElements);
 
     FloatRect layoutViewport() const { return m_layoutViewport; };
-    WEBCORE_EXPORT void setLayoutViewport(const FloatRect&);
+    WEBCORE_EXPORT void setLayoutViewport(FloatRect);
 
     FloatSize sizeForVisibleContent() const { return m_sizeForVisibleContent; }
-    WEBCORE_EXPORT void setSizeForVisibleContent(const FloatSize&);
+    WEBCORE_EXPORT void setSizeForVisibleContent(FloatSize);
 
     FloatPoint minLayoutViewportOrigin() const { return m_minLayoutViewportOrigin; }
-    WEBCORE_EXPORT void setMinLayoutViewportOrigin(const FloatPoint&);
+    WEBCORE_EXPORT void setMinLayoutViewportOrigin(FloatPoint);
 
     FloatPoint maxLayoutViewportOrigin() const { return m_maxLayoutViewportOrigin; }
-    WEBCORE_EXPORT void setMaxLayoutViewportOrigin(const FloatPoint&);
+    WEBCORE_EXPORT void setMaxLayoutViewportOrigin(FloatPoint);
 
     std::optional<FloatSize> overrideVisualViewportSize() const { return m_overrideVisualViewportSize; };
     WEBCORE_EXPORT void setOverrideVisualViewportSize(std::optional<FloatSize>);
@@ -79,7 +81,7 @@ public:
     WEBCORE_EXPORT void setFooterHeight(int);
 
     FloatBoxExtent obscuredContentInsets() const { return m_obscuredContentInsets; }
-    WEBCORE_EXPORT void setObscuredContentInsets(const FloatBoxExtent&);
+    WEBCORE_EXPORT void setObscuredContentInsets(FloatBoxExtent);
 
     // The horizontal space taken up by a vertical scrollbar placed on the left, which the contents are shifted right by.
     int insetForLeftScrollbarSpace() const { return m_insetForLeftScrollbarSpace; }
@@ -134,10 +136,10 @@ public:
     WEBCORE_EXPORT void setOverlayScrollbarsEnabled(bool);
 
     NODELETE WEBCORE_EXPORT bool isMainFrame() const;
-    
-    void dumpProperties(WTF::TextStream&, OptionSet<ScrollingStateTreeAsTextBehavior>) const override;
 
 private:
+    String dumpPropertiesText(ScrollingStateTreeAsTextBehaviors, int indent, TextStreamFormattingFlags, unsigned containerSizeLimit) const final;
+
     WEBCORE_EXPORT ScrollingStateFrameScrollingNode(
         bool isMainFrame,
         ScrollingNodeID,
@@ -236,5 +238,10 @@ private:
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_SCROLLING_STATE_NODE(ScrollingStateFrameScrollingNode, isFrameScrollingNode())
+
+namespace WebCore {
+// For Swift, which cannot convert a C++ class to its base: the frame scrolling node as a state node.
+inline ScrollingStateNode* asScrollingStateNode(ScrollingStateFrameScrollingNode& node) { return &node; }
+}
 
 #endif // ENABLE(ASYNC_SCROLLING)

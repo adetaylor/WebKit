@@ -27,9 +27,12 @@
 #import "WKWebViewPrivateForTesting.h"
 
 #import "AudioSessionRoutingArbitratorProxy.h"
+#import "Decoder.h"
 #import "DisplayListDataTester.h"
+#import "Encoder.h"
 #import "EditingRange.h"
 #import "EndowmentStateTracker.h"
+#import "GeneratedSerializers.h"
 #import "GPUProcessProxy.h"
 #import "LogStream.h"
 #import "MediaPermissionPromptCustomization.h"
@@ -40,7 +43,9 @@
 #import "PrintInfo.h"
 #import "RemoteLayerTreeDrawingAreaProxy.h"
 #import "RemoteLayerTreeNode.h"
+#import "RemoteLayerTreeHost.h"
 #import "RemoteScrollingCoordinatorProxy.h"
+#import "RemoteScrollingCoordinatorTransaction.h"
 #import "SuspendedPageProxy.h"
 #import "UserMediaProcessManager.h"
 #import "VideoPresentationManagerProxy.h"
@@ -66,6 +71,9 @@
 #import <WebCore/HighlightVisibility.h>
 #import <WebCore/NowPlayingInfo.h>
 #import <WebCore/ScrollingNodeID.h>
+#import <WebCore/ScrollingStateFrameScrollingNode.h>
+#import <WebCore/ScrollingStateScrollingNode.h>
+#import <WebCore/ScrollingStateTree.h>
 #import <WebCore/SharedBuffer.h>
 #import <WebCore/TextIndicator.h>
 #import <WebCore/ValidationBubble.h>
@@ -82,6 +90,7 @@
 #import <wtf/spi/darwin/XPCSPI.h>
 #endif
 #import <wtf/text/MakeString.h>
+#import <wtf/text/StringToIntegerConversion.h>
 
 #if HAVE(LIBPROC)
 #include <libproc.h>
@@ -287,6 +296,261 @@ static RetainPtr<NSArray<NSDictionary<NSString *, NSString *> *>> devicesForTest
 }
 
 @end
+
+#if ENABLE(UI_SIDE_COMPOSITING)
+// The scrolling transaction testing SPI: builds scrolling state trees from a text spec in the UI process, encodes
+// each into a RemoteScrollingCoordinatorTransaction, decodes it as the UI process would, and for "commit" hands the
+// decoded transaction to the page's RemoteScrollingCoordinatorProxy.
+namespace WebKit {
+namespace ScrollingTransactionTesting {
+
+using namespace WebCore;
+
+struct NodeSpec {
+    HashMap<String, String> fields;
+};
+
+struct TransactionSpec {
+    HashMap<String, String> fields;
+    Vector<NodeSpec> nodes;
+    Vector<String> ops;
+};
+
+static String field(const HashMap<String, String>& fields, const String& key, const String& fallback = "none"_s)
+{
+    auto it = fields.find(key);
+    return it == fields.end() ? fallback : it->value;
+}
+
+static Vector<TransactionSpec> parseSpec(const String& spec)
+{
+    Vector<TransactionSpec> transactions;
+    Vector<String> pendingOps;
+    std::optional<TransactionSpec> current;
+    for (auto line : StringView(spec).splitAllowingEmptyEntries('\n')) {
+        auto hash = line.find('#');
+        if (hash != notFound)
+            line = line.left(hash);
+        Vector<String> tokens;
+        for (auto token : line.split(' '))
+            tokens.append(token.toString());
+        if (tokens.isEmpty())
+            continue;
+        if (tokens[0] == "op"_s) {
+            pendingOps.append(makeStringByJoining(tokens.subvector(1), " "_s));
+            continue;
+        }
+        if (tokens[0] == "tx"_s) {
+            current = TransactionSpec { };
+            current->ops = std::exchange(pendingOps, { });
+            for (size_t i = 1; i < tokens.size(); ++i) {
+                auto equals = tokens[i].find('=');
+                if (equals != notFound)
+                    current->fields.set(tokens[i].left(equals), tokens[i].substring(equals + 1));
+            }
+            continue;
+        }
+        if (tokens[0] == "node"_s && current) {
+            NodeSpec node;
+            for (size_t i = 1; i < tokens.size(); ++i) {
+                auto equals = tokens[i].find('=');
+                if (equals != notFound)
+                    node.fields.set(tokens[i].left(equals), tokens[i].substring(equals + 1));
+            }
+            current->nodes.append(WTF::move(node));
+            continue;
+        }
+        if (tokens[0] == "end"_s && current) {
+            transactions.append(WTF::move(*current));
+            current = std::nullopt;
+        }
+    }
+    return transactions;
+}
+
+static std::optional<uint64_t> number(StringView text)
+{
+    return parseInteger<uint64_t>(text);
+}
+
+struct Context {
+    ProcessIdentifier ownProcess;
+    ProcessIdentifier otherProcess;
+    Vector<PlatformLayerIdentifier> hostLayers;
+};
+
+static ScrollingNodeID nodeID(const Context& context, const String& token)
+{
+    bool foreign = token.startsWith('f');
+    auto raw = number(foreign ? StringView(token).substring(1) : StringView(token)).value_or(1);
+    return { ObjectIdentifier<ScrollingNodeIDType>(raw ? raw : 1), foreign ? context.otherProcess : context.ownProcess };
+}
+
+static std::optional<ScrollingNodeID> optionalNodeID(const Context& context, const String& token)
+{
+    if (token == "none"_s)
+        return std::nullopt;
+    return nodeID(context, token);
+}
+
+static std::optional<PlatformLayerIdentifier> layerID(const Context& context, const String& token)
+{
+    if (token.length() < 2)
+        return std::nullopt;
+    auto raw = number(StringView(token).substring(1)).value_or(0);
+    constexpr uint64_t unusedBase = 0x70000000;
+    switch (token[0]) {
+    case 'r':
+        if (context.hostLayers.isEmpty())
+            return std::nullopt;
+        return context.hostLayers[raw % context.hostLayers.size()];
+    case 'u':
+        return PlatformLayerIdentifier { ObjectIdentifier<PlatformLayerIdentifierType>(unusedBase + raw), context.ownProcess };
+    case 'x':
+        return PlatformLayerIdentifier { ObjectIdentifier<PlatformLayerIdentifierType>(unusedBase + raw), context.otherProcess };
+    default:
+        return std::nullopt;
+    }
+}
+
+static std::optional<FrameIdentifier> frameID(const String& token)
+{
+    auto raw = number(token);
+    if (!raw || !*raw)
+        return std::nullopt;
+    return ObjectIdentifier<FrameIdentifierType>(*raw);
+}
+
+static float geometryValue(const String& geometry, float ok)
+{
+    if (geometry == "zero"_s)
+        return 0;
+    if (geometry == "neg"_s)
+        return -1;
+    if (geometry == "nan"_s)
+        return std::numeric_limits<float>::quiet_NaN();
+    if (geometry == "inf"_s)
+        return std::numeric_limits<float>::infinity();
+    if (geometry == "ninf"_s)
+        return -std::numeric_limits<float>::infinity();
+    if (geometry == "huge"_s)
+        return 1e30f;
+    if (geometry == "tiny"_s)
+        return 1e-30f;
+    return ok;
+}
+
+static int originValue(float value)
+{
+    if (std::isnan(value))
+        return 0;
+    return clampTo<int>(static_cast<double>(value));
+}
+
+static std::optional<RequestedScrollData> requestedScrollData(const String& token)
+{
+    if (token == "none"_s)
+        return std::nullopt;
+    auto parts = token.split(':');
+    if (parts.size() != 4)
+        return std::nullopt;
+    RequestedScrollData data;
+    auto& kind = parts[0];
+    bool isDelta = false;
+    if (kind == "pos"_s)
+        data.requestType = ScrollRequestType::PositionUpdate;
+    else if (kind == "apos"_s)
+        data.requestType = ScrollRequestType::AnimatedPositionUpdate;
+    else if (kind == "delta"_s) {
+        data.requestType = ScrollRequestType::DeltaUpdate;
+        isDelta = true;
+    } else if (kind == "adelta"_s) {
+        data.requestType = ScrollRequestType::AnimatedDeltaUpdate;
+        isDelta = true;
+    } else if (kind == "cancel"_s)
+        data.requestType = ScrollRequestType::CancelAnimatedScroll;
+    else if (kind == "implicit"_s) {
+        data.requestType = ScrollRequestType::ImplicitDeltaUpdate;
+        isDelta = true;
+    } else
+        return std::nullopt;
+    float x = parseIntegerAllowingTrailingJunk<int>(StringView(parts[1])).value_or(0);
+    float y = parseIntegerAllowingTrailingJunk<int>(StringView(parts[2])).value_or(0);
+    if (isDelta)
+        data.scrollPositionOrDelta = FloatSize { x, y };
+    else
+        data.scrollPositionOrDelta = FloatPoint { x, y };
+    if (auto identifier = number(parts[3]); identifier && *identifier)
+        data.identifier = ObjectIdentifier<ScrollRequestIdentifierType>(*identifier);
+    return data;
+}
+
+static std::optional<ScrollingNodeType> nodeType(const String& type)
+{
+    if (type == "main"_s)
+        return ScrollingNodeType::MainFrame;
+    if (type == "sub"_s)
+        return ScrollingNodeType::Subframe;
+    if (type == "overflow"_s)
+        return ScrollingNodeType::Overflow;
+    if (type == "fixed"_s)
+        return ScrollingNodeType::Fixed;
+    if (type == "sticky"_s)
+        return ScrollingNodeType::Sticky;
+    if (type == "positioned"_s)
+        return ScrollingNodeType::Positioned;
+    if (type == "proxy"_s)
+        return ScrollingNodeType::OverflowProxy;
+    return std::nullopt;
+}
+
+static UniqueRef<ScrollingStateTree> buildTree(const Context& context, const TransactionSpec& transaction)
+{
+    auto tree = ScrollingStateTree::create();
+    for (auto& nodeSpec : transaction.nodes) {
+        auto& fields = nodeSpec.fields;
+        auto type = nodeType(field(fields, "type"_s));
+        if (!type)
+            continue;
+        auto id = nodeID(context, field(fields, "id"_s));
+        auto index = number(field(fields, "index"_s, "0"_s)).value_or(0);
+        // A node whose insertion fails is skipped, as the web process could not have sent it.
+        if (!tree->insertNode(*type, id, optionalNodeID(context, field(fields, "parent"_s)), index))
+            continue;
+        RefPtr node = tree->stateNodeForID(id);
+        if (!node)
+            continue;
+        node->setLayer(LayerRepresentation { layerID(context, field(fields, "layer"_s)) });
+        if (RefPtr scrollingNode = dynamicDowncast<ScrollingStateScrollingNode>(node.get())) {
+            auto geometry = field(fields, "geom"_s, "ok"_s);
+            scrollingNode->setScrollContainerLayer(LayerRepresentation { layerID(context, field(fields, "container"_s)) });
+            scrollingNode->setScrolledContentsLayer(LayerRepresentation { layerID(context, field(fields, "contents"_s)) });
+            scrollingNode->setScrollableAreaSize({ geometryValue(geometry, 800), geometryValue(geometry, 600) });
+            scrollingNode->setTotalContentsSize({ geometryValue(geometry, 800), geometryValue(geometry, 2400) });
+            scrollingNode->setScrollPosition({ geometryValue(geometry, 0), geometryValue(geometry, 10) });
+            scrollingNode->setScrollOrigin({ originValue(geometryValue(geometry, 0)), originValue(geometryValue(geometry, 0)) });
+            if (auto request = requestedScrollData(field(fields, "req"_s)))
+                scrollingNode->setRequestedScrollData(WTF::move(*request));
+        }
+        if (RefPtr frameNode = dynamicDowncast<ScrollingStateFrameScrollingNode>(node.get())) {
+            frameNode->setHeaderLayer(LayerRepresentation { layerID(context, field(fields, "header"_s)) });
+            frameNode->setFooterLayer(LayerRepresentation { layerID(context, field(fields, "footer"_s)) });
+        }
+    }
+    if (field(transaction.fields, "full"_s, "0"_s) == "1"_s)
+        tree->setAllPropertiesChanged();
+    return tree;
+}
+
+static void describe(StringBuilder& builder, const RemoteScrollingCoordinatorTransaction& transaction)
+{
+    CheckedRef tree = *transaction.scrollingStateTree();
+    builder.append(tree->scrollingStateTreeAsText({ ScrollingStateTreeAsTextBehavior::IncludeNodeIDs, ScrollingStateTreeAsTextBehavior::IncludeLayerIDs }), "hasChanged="_s, tree->hasChangedProperties() ? 1 : 0, " newRoot="_s, tree->hasNewRootStateNode() ? 1 : 0, '\n');
+}
+
+} // namespace ScrollingTransactionTesting
+} // namespace WebKit
+#endif // ENABLE(UI_SIDE_COMPOSITING)
 
 @implementation WKWebView (WKTesting)
 
@@ -703,6 +967,65 @@ static void dumpCALayer(TextStream& ts, CALayer *layer, bool traverse, _WKCALaye
         return @"";
 
     return coordinator->scrollingTreeIncludingNodeIDsAsText().createNSString().autorelease();
+}
+
+- (NSString *)_scrollingTransactionForTesting:(NSString *)spec mode:(NSString *)mode
+{
+#if ENABLE(UI_SIDE_COMPOSITING)
+    using namespace WebKit::ScrollingTransactionTesting;
+    using namespace WebCore;
+
+    RefPtr coordinator = _page->scrollingCoordinatorProxy();
+    if (!coordinator || !coordinator->layerTreeHost())
+        return @"";
+
+    bool commit = [mode isEqualToString:@"commit"];
+    Ref process = _page->legacyMainFrameProcess();
+    Context context { process->coreProcessIdentifier(), ObjectIdentifier<ProcessIdentifierType>(process->coreProcessIdentifier().toUInt64() + 1000000), coordinator->layerTreeHost()->layerIDsForTesting() };
+
+    StringBuilder answer;
+    size_t index = 0;
+    for (auto& transactionSpec : parseSpec(spec)) {
+        for (auto& op : transactionSpec.ops) {
+            auto words = op.split(' ');
+            if (commit && words.size() == 2 && words[0] == "awaitFull"_s) {
+                if (auto frame = frameID(words[1]))
+                    coordinator->requestFullScrollingTreeCommitForFrame(*frame);
+            }
+        }
+
+        auto root = frameID(field(transactionSpec.fields, "root"_s, "none"_s));
+        bool full = field(transactionSpec.fields, "full"_s, "0"_s) == "1"_s;
+        bool clearLatch = field(transactionSpec.fields, "clearLatch"_s, "0"_s) == "1"_s;
+        bool hosted = field(transactionSpec.fields, "hosted"_s, "1"_s) == "1"_s;
+        if (commit && field(transactionSpec.fields, "awaitFull"_s, "0"_s) == "1"_s && root)
+            coordinator->requestFullScrollingTreeCommitForFrame(*root);
+
+        WebKit::RemoteScrollingCoordinatorTransaction transaction { buildTree(context, transactionSpec).moveToUniquePtr(), clearLatch, root, full, WebKit::RemoteScrollingCoordinatorTransaction::FromDeserialization::No };
+
+        IPC::Encoder encoder(IPC::MessageName::RemoteLayerTreeDrawingAreaProxy_CommitLayerTree, 0);
+        encoder << transaction;
+        auto decoder = IPC::Decoder::create(encoder.span(), encoder.releaseAttachments());
+        auto decoded = decoder ? decoder->decode<WebKit::RemoteScrollingCoordinatorTransaction>() : std::nullopt;
+
+        answer.append("tx "_s, index++, " decode="_s, decoded ? "ok"_s : "rejected"_s, '\n');
+        if (!decoded)
+            continue;
+        describe(answer, *decoded);
+
+        if (commit) {
+            IPC::Connection& connection = process->connection();
+            IPC::Connection::MessageDispatchScope scope(connection);
+            coordinator->commitScrollingTreeState(connection, *decoded, hosted ? std::optional { LayerHostingContextIdentifier { 1 } } : std::nullopt);
+            answer.append("invalidMessage="_s, scope.didReceiveInvalidMessage() ? 1 : 0, '\n', coordinator->scrollingTreeAsText(), '\n');
+        }
+    }
+    return answer.toString().createNSString().autorelease();
+#else
+    UNUSED_PARAM(spec);
+    UNUSED_PARAM(mode);
+    return @"";
+#endif
 }
 
 - (double)_rubberbandHyperbolicCoefficientForTesting

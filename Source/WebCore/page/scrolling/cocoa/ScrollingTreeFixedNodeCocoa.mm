@@ -61,23 +61,6 @@ bool ScrollingTreeFixedNodeCocoa::commitStateBeforeChildren(const ScrollingState
     return ScrollingTreeFixedNode::commitStateBeforeChildren(stateNode);
 }
 
-void ScrollingTreeFixedNodeCocoa::applyLayerPositions()
-{
-    auto layerPosition = computeLayerPosition();
-
-    LOG_WITH_STREAM(Scrolling, stream << "ScrollingTreeFixedNode " << scrollingNodeID() << " relatedNodeScrollPositionDidChange: viewportRectAtLastLayout " << m_constraints.viewportRectAtLastLayout() << " last layer pos " << m_constraints.layerPositionAtLastLayout() << " layerPosition " << layerPosition);
-
-#if ENABLE(SCROLLING_THREAD)
-    if (ScrollingThread::isCurrentThread()) {
-        // Match the behavior of ScrollingTreeFrameScrollingNodeMac::repositionScrollingLayers().
-        if (!scrollingTree()->isScrollingSynchronizedWithMainThread())
-            [m_layer _web_setLayerTopLeftPosition:CGPointZero];
-    }
-#endif
-
-    [m_layer _web_setLayerTopLeftPosition:layerPosition - m_constraints.alignmentOffset()];
-}
-
 #if ENABLE(OVERLAY_REGIONS_REMOTE_EFFECT)
 void ScrollingTreeFixedNodeCocoa::willBeDestroyed()
 {

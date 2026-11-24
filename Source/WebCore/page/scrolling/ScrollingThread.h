@@ -34,21 +34,22 @@
 #include <wtf/Lock.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/RunLoop.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/Threading.h>
 #include <wtf/Vector.h>
 
 namespace WebCore {
 
-class ScrollingThread {
+class SWIFT_IMMORTAL_REFERENCE ScrollingThread {
     WTF_MAKE_NONCOPYABLE(ScrollingThread);
 
 public:
     WEBCORE_EXPORT static bool isCurrentThread();
-    WEBCORE_EXPORT static void dispatch(Function<void ()>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT static void dispatch(Function<void ()>&&);
 
     // Will dispatch the given function on the main thread once all pending functions
     // on the scrolling thread have finished executing. Used for synchronization purposes.
-    WEBCORE_EXPORT static void dispatchBarrier(Function<void ()>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT static void dispatchBarrier(Function<void ()>&&);
 
 private:
     friend NeverDestroyed<ScrollingThread>;

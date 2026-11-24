@@ -94,8 +94,8 @@ public:
     }
 
     // Inform the web process that the scroll position changed (called from the scrolling tree)
-    virtual WebCore::RequestsScrollHandling scrollingTreeNodeRequestsScroll(WebCore::ScrollingNodeID, const WebCore::RequestedScrollData&);
-    virtual bool scrollingTreeNodeRequestsKeyboardScroll(WebCore::ScrollingNodeID, const WebCore::RequestedKeyboardScrollData&);
+    virtual WebCore::RequestsScrollHandling scrollingTreeNodeRequestsScroll(WebCore::ScrollingNodeID, WebCore::RequestedScrollData);
+    virtual bool scrollingTreeNodeRequestsKeyboardScroll(WebCore::ScrollingNodeID, WebCore::RequestedKeyboardScrollData);
 
     void scrollingThreadAddedPendingUpdate();
 
@@ -105,7 +105,7 @@ public:
     bool isPointInScrollbar(WebCore::FloatPoint);
 
     // Called externally when native views move around.
-    void viewportChangedViaDelegatedScrolling(const WebCore::FloatPoint& scrollPosition, const WebCore::FloatRect& layoutViewport, double scale);
+    void viewportChangedViaDelegatedScrolling(WebCore::FloatPoint scrollPosition, WebCore::FloatRect layoutViewport, double scale);
 
     virtual void applyScrollingTreeLayerPositionsAfterCommit();
     virtual void flushMainThreadTransactionIfNeeded() { }
@@ -113,8 +113,8 @@ public:
     void currentSnapPointIndicesDidChange(WebCore::ScrollingNodeID, std::optional<unsigned> horizontal, std::optional<unsigned> vertical);
 
     virtual void cacheWheelEventScrollingAccelerationCurve(const NativeWebWheelEvent&) { }
-    virtual void handleWheelEvent(Ref<WebWheelEvent>&&, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges);
-    void continueWheelEventHandling(Ref<WebWheelEvent>&&, WebCore::WheelEventHandlingResult);
+    virtual void handleWheelEvent(Ref<WebWheelEvent>, WebCore::RectEdges<WebCore::RubberBandingBehavior> rubberBandableEdges);
+    void continueWheelEventHandling(Ref<WebWheelEvent>, WebCore::WheelEventHandlingResult);
     virtual void wheelEventHandlingCompleted(const WebCore::PlatformWheelEvent&, std::optional<WebCore::FrameIdentifier> /* defaultHandlingFrameID */, std::optional<WebCore::ScrollingNodeID>, std::optional<WebCore::WheelScrollGestureState>, bool /* wasHandled */) { }
 
     virtual WebCore::PlatformWheelEvent filteredWheelEvent(const WebCore::PlatformWheelEvent& wheelEvent) { return wheelEvent; }
@@ -131,7 +131,7 @@ public:
 #endif
 
     WebCore::ScrollRequestData commitScrollingTreeState(IPC::Connection&, const RemoteScrollingCoordinatorTransaction&, std::optional<WebCore::LayerHostingContextIdentifier> = std::nullopt);
-    void adjustMainFrameDelegatedScrollPosition(WebCore::ScrollRequestData&&);
+    void adjustMainFrameDelegatedScrollPosition(WebCore::ScrollRequestData);
 
     bool hasFixedOrSticky() const;
     bool hasScrollableMainFrame() const;
@@ -257,7 +257,7 @@ protected:
     bool m_waitingForDidScrollReply { false };
     bool m_isInvalidated { false };
     HashSet<WebCore::PlatformLayerIdentifier> m_layersWithScrollingRelations;
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 
