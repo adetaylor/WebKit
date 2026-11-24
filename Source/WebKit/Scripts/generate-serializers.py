@@ -2419,6 +2419,8 @@ class SwiftMember(object):
         self.index = index
         # Whether its Swift form is ~Copyable (swift_types.is_owned_type).
         self.owned = False
+        # Whether it is a WebCore type that C++ decodes (swift_types.is_cxx_decoded).
+        self.cxx_decoded = False
         # The member's SwiftValidator: a Swift expression that must be true once it is decoded.
         self.validator = None
         # Its Check and Normalize (decode_policy.CompiledPolicy), Normalize first.
@@ -2589,8 +2591,8 @@ def check_swift_type_references(cpp_type, context, swift_names, template=None):
     """Checks that each type that cpp_type names, which swift_types maps to IPCTypes by its unqualified name,
     is the C++ type that has that Swift form, and is held as C++ holds it."""
     cpp_type = swift_types.strip_cpp_type_decorations(cpp_type)
-    # SwiftCoding.swift defines these, not a .serialization.in file.
-    if swift_types.is_owned_primitive(cpp_type) or swift_types.is_hand_written(cpp_type):
+    # SwiftCoding.swift defines these, and C++ decodes the rest.
+    if swift_types.is_owned_primitive(cpp_type) or swift_types.is_hand_written(cpp_type) or swift_types.is_cxx_decoded(cpp_type):
         return
     match = re.fullmatch(r'([A-Za-z_][A-Za-z_0-9:]*)<(.+)>', cpp_type)
     if match:
@@ -2692,6 +2694,7 @@ def swift_members(type, context, swift_names):
         swift_type, swift_coder = swift_type_and_coder(member.type, member_context, swift_names)
         swift_member = SwiftMember(match.group(1), swift_type, swift_coder)
         swift_member.owned = swift_types.is_owned_type(member.type)
+        swift_member.cxx_decoded = swift_types.is_cxx_decoded(member.type) and swift_type.startswith('WebCore.')
         for attribute in member.attributes:
             validator = re.fullmatch(r"SwiftValidator='(.*)'", attribute)
             if validator:
@@ -2845,7 +2848,13 @@ def generate_swift_struct(type, swift_names):
 
     result = []
     result.append(f'extension {swift_types.SWIFT_TYPES_NAMESPACE} {{')
-    result.append(f'    struct {name}: ' + ('~Copyable, Sendable {' if owned else 'Sendable, Equatable {'))
+    conformances = 'Sendable, Equatable'
+    if owned:
+        conformances = '~Copyable, Sendable'
+    elif any(member.cxx_decoded for member in members):
+        # Swift does not compare the C++ objects that C++-decoded WebCore types hold.
+        conformances = 'Sendable'
+    result.append(f'    struct {name}: {conformances} {{')
     result.extend(f'        var {swift_identifier(member.name)}: {member.type}' for member in members)
     result.append('    }')
     result.append('}')
