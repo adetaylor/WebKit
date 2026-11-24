@@ -38,9 +38,6 @@
 
 namespace WebCore {
 
-class KeyedDecoder;
-class KeyedEncoder;
-
 enum class NavigatorAPIsAccessed : uint64_t {
     AppVersion = 1 << 0,
     UserAgent = 1 << 1,
@@ -77,12 +74,7 @@ struct ResourceLoadStatistics {
 
     WEBCORE_EXPORT static WallTime reduceTimeResolution(WallTime);
 
-    WEBCORE_EXPORT void encode(KeyedEncoder&) const;
-    WEBCORE_EXPORT bool decode(KeyedDecoder&, unsigned modelVersion);
-
     WEBCORE_EXPORT String toString() const;
-
-    WEBCORE_EXPORT void merge(const ResourceLoadStatistics&);
 
     RegistrableDomain registrableDomain;
 

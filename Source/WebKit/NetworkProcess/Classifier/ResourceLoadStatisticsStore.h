@@ -33,6 +33,7 @@
 #include <JavaScriptCore/ConsoleTypes.h>
 #include <WebCore/FrameIdentifier.h>
 #include <pal/SessionID.h>
+#include <wtf/FileSystem.h>
 #include <wtf/Forward.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/StdSet.h>
@@ -62,6 +63,58 @@ using DomainIDVector = Vector<unsigned>;
 using ITPThirdPartyDataVector = Vector<ITPThirdPartyData>;
 using ITPThirdPartyDataForSpecificFirstPartyVector = Vector<ITPThirdPartyDataForSpecificFirstParty>;
 
+// A Vector from Swift made a HashSet again: the size reserved when under reserveLimit (no limit,
+// ArgumentCoder<HashSet>'s cap for a decoded set, or 0), then each domain added in order.
+inline HashSet<WebCore::RegistrableDomain> registrableDomainHashSetFromVector(RegistrableDomainVector&& domains, size_t reserveLimit = std::numeric_limits<size_t>::max())
+{
+    HashSet<WebCore::RegistrableDomain> set;
+    if (domains.size() < reserveLimit) [[likely]]
+        set.reserveInitialCapacity(domains.size());
+    for (auto& domain : domains)
+        set.add(WTF::move(domain));
+    return set;
+}
+
+// A main-thread post the store's C++ or its `@cxx` Swift members make inside a statistics actor job. The actor takes
+// them in order and sends them on before its own next main hop for the store and at the end of the job, so they keep their
+// order relative to the actor's replies. It holds only values Swift converts, never the main side.
+struct StatisticsStorePost {
+    enum class Kind : uint8_t { ConsoleMessage, CacheMaxAgeCap, CookieBlocking, StatisticsProcessingRequest, PrivateClickMeasurementMigration };
+    Kind kind { Kind::ConsoleMessage };
+    uint8_t consoleMessageSource { 0 };
+    uint8_t consoleMessageLevel { 0 };
+    String consoleMessage;
+    Seconds seconds;
+    uint64_t statisticsProcessingRequestIdentifier { 0 };
+    // The migrated measurements stay in ResourceLoadStatisticsStore.cpp's table; only their key crosses.
+    uint64_t privateClickMeasurementMigrationIdentifier { 0 };
+    RegistrableDomainsToBlockCookiesFor domainsToBlock;
+};
+using StatisticsStorePostVector = Vector<StatisticsStorePost>;
+
+class ResourceLoadStatisticsStore;
+
+// The dumpResourceLoadStatistics calls a data-record removal held back, taken when the removal ends and run after its
+// own completion, on the store that holds them (ResourceLoadStatisticsStore.swift, removeDataRecords(on:then:)).
+class StatisticsDataRecordRemovalWaiters {
+    WTF_MAKE_NONCOPYABLE(StatisticsDataRecordRemovalWaiters);
+public:
+    explicit StatisticsDataRecordRemovalWaiters(Vector<CompletionHandler<void(ResourceLoadStatisticsStore&)>>&& handlers)
+        : m_handlers(WTF::move(handlers))
+    {
+    }
+    StatisticsDataRecordRemovalWaiters(StatisticsDataRecordRemovalWaiters&&) = default;
+
+    void run(ResourceLoadStatisticsStore& store)
+    {
+        for (auto& handler : std::exchange(m_handlers, { }))
+            handler(store);
+    }
+
+private:
+    Vector<CompletionHandler<void(ResourceLoadStatisticsStore&)>> m_handlers;
+};
+
 // Any value is safe to pass: the store checks the slot and its generation on every use, so a stale or made-up handle
 // traps or names a live statement of the same store.
 struct SQLStatementHandle {
@@ -70,128 +123,8 @@ struct SQLStatementHandle {
     uint64_t m_generation { 0 };
 };
 
-#define FOR_EACH_RESOURCE_LOAD_STATISTICS_CACHED_STATEMENT(macro) \
-    macro(ObservedDomainCount, observedDomainCountQuery) \
-    macro(InsertObservedDomain, insertObservedDomainQuery) \
-    macro(DomainIDFromString, domainIDFromStringQuery) \
-    macro(SubframeUnderTopFrameDomainExists, subframeUnderTopFrameDomainExistsQuery) \
-    macro(SubresourceUnderTopFrameDomainExists, subresourceUnderTopFrameDomainExistsQuery) \
-    macro(SubresourceUniqueRedirectsToExists, subresourceUniqueRedirectsToExistsQuery) \
-    macro(MostRecentUserInteraction, mostRecentUserInteractionQuery) \
-    macro(UpdateLastSeen, updateLastSeenQuery) \
-    macro(UpdateDataRecordsRemoved, updateDataRecordsRemovedQuery) \
-    macro(UpdatePrevalentResource, updatePrevalentResourceQuery) \
-    macro(IsPrevalentResource, isPrevalentResourceQuery) \
-    macro(UpdateVeryPrevalentResource, updateVeryPrevalentResourceQuery) \
-    macro(IsVeryPrevalentResource, isVeryPrevalentResourceQuery) \
-    macro(ClearPrevalentResource, clearPrevalentResourceQuery) \
-    macro(HadUserInteraction, hadUserInteractionQuery) \
-    macro(UpdateGrandfathered, updateGrandfatheredQuery) \
-    macro(IsScheduledForAllButCookieDataRemoval, isScheduledForAllButCookieDataRemovalQuery) \
-    macro(UpdateIsScheduledForAllButCookieDataRemoval, updateIsScheduledForAllButCookieDataRemovalQuery) \
-    macro(UpdateMostRecentWebPushInteractionTime, updateMostRecentWebPushInteractionTimeQuery) \
-    macro(IsGrandfathered, isGrandfatheredQuery) \
-    macro(GetResourceDataByDomainName, getResourceDataByDomainNameQuery) \
-    macro(GetAllDomains, getAllDomainsQuery) \
-    macro(DomainStringFromDomainID, domainStringFromDomainIDQuery) \
-    macro(GetAllSubStatistics, getAllSubStatisticsUnderDomainQuery) \
-    macro(StorageAccessExists, storageAccessExistsQuery) \
-    macro(GetMostRecentlyUpdatedTimestamp, getMostRecentlyUpdatedTimestampQuery) \
-    macro(LinkDecorationExists, linkDecorationExistsQuery) \
-    macro(ScriptLoadExists, scriptLoadExistsQuery) \
-    macro(SubFrameExists, subFrameExistsQuery) \
-    macro(SubResourceExists, subResourceExistsQuery) \
-    macro(UniqueRedirectExists, uniqueRedirectExistsQuery) \
-    macro(ObservedDomainsExists, observedDomainsExistsQuery) \
-    macro(RemoveAllData, removeAllDataQuery) \
-    macro(CheckIfTableExists, checkIfTableExistsQuery)
-
-enum class ResourceLoadStatisticsCachedStatement : uint8_t {
-#define DECLARE_CACHED_STATEMENT(name, query) name,
-    FOR_EACH_RESOURCE_LOAD_STATISTICS_CACHED_STATEMENT(DECLARE_CACHED_STATEMENT)
-#undef DECLARE_CACHED_STATEMENT
-};
-
-#define COUNT_CACHED_STATEMENT(name, query) + 1
-static constexpr size_t resourceLoadStatisticsCachedStatementCount = 0 FOR_EACH_RESOURCE_LOAD_STATISTICS_CACHED_STATEMENT(COUNT_CACHED_STATEMENT);
-#undef COUNT_CACHED_STATEMENT
-
-// The names ResourceLoadStatisticsStore.swift logs when a cached statement fails to prepare, passed as an index so that
-// opening a statement builds no String.
-#define FOR_EACH_RESOURCE_LOAD_STATISTICS_STATEMENT_LOG_LABEL(macro) \
-    macro(TableExists, "tableExists"_s) \
-    macro(IsEmpty, "isEmpty"_s) \
-    macro(DomainID, "domainID"_s) \
-    macro(HasStorageAccess, "hasStorageAccess"_s) \
-    macro(IsPrevalentResource, "isPrevalentResource"_s) \
-    macro(IsVeryPrevalentResource, "isVeryPrevalentResource"_s) \
-    macro(IsScheduledForAllButCookieDataRemoval, "isScheduledForAllButCookieDataRemoval"_s) \
-    macro(IsRegisteredAsSubresourceUnder, "isRegisteredAsSubresourceUnder"_s) \
-    macro(IsRegisteredAsSubFrameUnder, "isRegisteredAsSubFrameUnder"_s) \
-    macro(IsRegisteredAsRedirectingTo, "isRegisteredAsRedirectingTo"_s) \
-    macro(IsGrandfathered, "isGrandfathered"_s) \
-    macro(RemoveDataForDomain, "removeDataForDomain"_s) \
-    macro(AllDomains, "allDomains"_s) \
-    macro(GetDomainStringFromDomainID, "getDomainStringFromDomainID"_s) \
-    macro(DomainIDExistsInDatabase, "domainIDExistsInDatabase"_s) \
-    macro(DomainIDExistsInDatabaseLinkDecorationExistsStatement, "domainIDExistsInDatabase linkDecorationExistsStatement"_s) \
-    macro(DomainIDExistsInDatabaseSubFrameExistsStatement, "domainIDExistsInDatabase subFrameExistsStatement"_s) \
-    macro(DomainIDExistsInDatabaseSubResourceExistsStatement, "domainIDExistsInDatabase subResourceExistsStatement"_s) \
-    macro(DomainIDExistsInDatabaseUniqueRedirectExistsStatement, "domainIDExistsInDatabase uniqueRedirectExistsStatement"_s) \
-    macro(DomainIDExistsInDatabaseObservedDomainsExistsStatement, "domainIDExistsInDatabase observedDomainsExistsStatement"_s) \
-    macro(InsertObservedDomain, "insertObservedDomain"_s) \
-    macro(SetUserInteraction, "setUserInteraction"_s) \
-    macro(ClearPrevalentResource, "clearPrevalentResource"_s) \
-    macro(SetGrandfathered, "setGrandfathered"_s) \
-    macro(SetIsScheduledForAllScriptWrittenStorageRemoval, "setIsScheduledForAllScriptWrittenStorageRemoval"_s) \
-    macro(SetMostRecentWebPushInteractionTime, "setMostRecentWebPushInteractionTime"_s) \
-    macro(EnsureResourceStatisticsForRegistrableDomain, "ensureResourceStatisticsForRegistrableDomain"_s) \
-    macro(UpdateLastSeen, "updateLastSeen"_s) \
-    macro(UpdateDataRecordsRemoved, "updateDataRecordsRemoved"_s) \
-    macro(SetPrevalentResource, "setPrevalentResource"_s) \
-    macro(SetPrevalentResourceUpdateVeryPrevalentResource, "setPrevalentResource updateVeryPrevalentResource"_s) \
-    macro(PruneStatisticsIfNeeded, "pruneStatisticsIfNeeded"_s) \
-    macro(MergeStatistic, "mergeStatistic"_s) \
-    macro(HasHadUserInteraction, "hasHadUserInteraction"_s) \
-    macro(GetThirdPartyDataForSpecificFirstPartyDomains, "getThirdPartyDataForSpecificFirstPartyDomains"_s) \
-    macro(GetMostRecentlyUpdatedTimestamp, "getMostRecentlyUpdatedTimestamp"_s) \
-    macro(ResourceToString, "resourceToString"_s) \
-    macro(DumpResourceLoadStatistics, "dumpResourceLoadStatistics"_s) \
-    macro(InsertExpiredStatisticForTesting, "insertExpiredStatisticForTesting"_s)
-
-enum class ResourceLoadStatisticsStatementLogLabel : uint8_t {
-#define DECLARE_STATEMENT_LOG_LABEL(name, text) name,
-    FOR_EACH_RESOURCE_LOAD_STATISTICS_STATEMENT_LOG_LABEL(DECLARE_STATEMENT_LOG_LABEL)
-#undef DECLARE_STATEMENT_LOG_LABEL
-};
-
-#define COUNT_STATEMENT_LOG_LABEL(name, text) + 1
-static constexpr size_t resourceLoadStatisticsStatementLogLabelCount = 0 FOR_EACH_RESOURCE_LOAD_STATISTICS_STATEMENT_LOG_LABEL(COUNT_STATEMENT_LOG_LABEL);
-#undef COUNT_STATEMENT_LOG_LABEL
-
-// The relationship inserts' query prefixes, which openRelationshipStatement completes with one placeholder per domain,
-// passed as an index so that ResourceLoadStatisticsStore.swift builds no SQL of its own.
-#define FOR_EACH_RESOURCE_LOAD_STATISTICS_RELATIONSHIP_QUERY(macro) \
-    macro(StorageAccessUnderTopFrameDomains, "INSERT OR IGNORE INTO StorageAccessUnderTopFrameDomains (domainID, topLevelDomainID) SELECT ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "_s) \
-    macro(TopFrameUniqueRedirectsTo, "INSERT OR IGNORE into TopFrameUniqueRedirectsTo (sourceDomainID, toDomainID) SELECT ?, domainID FROM ObservedDomains where registrableDomain in ( "_s) \
-    macro(TopFrameUniqueRedirectsToSinceSameSiteStrictEnforcement, "INSERT OR IGNORE into TopFrameUniqueRedirectsToSinceSameSiteStrictEnforcement (sourceDomainID, toDomainID) SELECT ?, domainID FROM ObservedDomains where registrableDomain in ( "_s) \
-    macro(TopFrameUniqueRedirectsFrom, "INSERT OR IGNORE INTO TopFrameUniqueRedirectsFrom (targetDomainID, fromDomainID) SELECT ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "_s) \
-    macro(TopFrameLoadedThirdPartyScripts, "INSERT OR IGNORE into TopFrameLoadedThirdPartyScripts (topFrameDomainID, subresourceDomainID) SELECT ?, domainID FROM ObservedDomains where registrableDomain in ( "_s) \
-    macro(SubresourceUniqueRedirectsFrom, "INSERT OR IGNORE INTO SubresourceUniqueRedirectsFrom (subresourceDomainID, fromDomainID) SELECT ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "_s) \
-    macro(SubframeUnderTopFrameDomains, "INSERT OR REPLACE into SubframeUnderTopFrameDomains (subFrameDomainID, lastUpdated, topFrameDomainID) SELECT ?, ?, domainID FROM ObservedDomains where registrableDomain in ( "_s) \
-    macro(TopFrameLinkDecorationsFrom, "INSERT OR REPLACE INTO TopFrameLinkDecorationsFrom (toDomainID, lastUpdated, fromDomainID) SELECT ?, ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "_s) \
-    macro(SubresourceUnderTopFrameDomains, "INSERT OR REPLACE INTO SubresourceUnderTopFrameDomains (subresourceDomainID, lastUpdated, topFrameDomainID) SELECT ?, ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "_s) \
-    macro(SubresourceUniqueRedirectsTo, "INSERT OR REPLACE INTO SubresourceUniqueRedirectsTo (subresourceDomainID, lastUpdated, toDomainID) SELECT ?, ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "_s)
-
-enum class ResourceLoadStatisticsRelationshipQuery : uint8_t {
-#define DECLARE_RELATIONSHIP_QUERY(name, query) name,
-    FOR_EACH_RESOURCE_LOAD_STATISTICS_RELATIONSHIP_QUERY(DECLARE_RELATIONSHIP_QUERY)
-#undef DECLARE_RELATIONSHIP_QUERY
-};
-
-#define COUNT_RELATIONSHIP_QUERY(name, query) + 1
-static constexpr size_t resourceLoadStatisticsRelationshipQueryCount = 0 FOR_EACH_RESOURCE_LOAD_STATISTICS_RELATIONSHIP_QUERY(COUNT_RELATIONSHIP_QUERY);
-#undef COUNT_RELATIONSHIP_QUERY
+// CachedStatement.allCases.count in ResourceLoadStatisticsStore.swift, which asserts it.
+static constexpr size_t resourceLoadStatisticsCachedStatementCount = 34;
 
 class OperatingDate {
 public:
@@ -224,7 +157,7 @@ enum class CookieAccess : uint8_t { CannotRequest, BasedOnCookiePolicy, OnlyIfGr
 enum class CanRequestStorageAccessWithoutUserInteraction : bool { No, Yes };
 enum class DataRemovalFrequency : uint8_t { Never, Short, Long };
 
-// This is always constructed / used / destroyed on the WebResourceLoadStatisticsStore's statistics queue.
+// This is always constructed / used / destroyed on the statistics actor (WebResourceLoadStatisticsStore.swift).
 class SWIFT_PRIVATE_FILEID("WebKit/ResourceLoadStatisticsStore.swift") ResourceLoadStatisticsStore final : public RefCountedAndCanMakeWeakPtr<ResourceLoadStatisticsStore>,  public DatabaseUtilities {
     WTF_MAKE_TZONE_ALLOCATED(ResourceLoadStatisticsStore);
 public:
@@ -241,31 +174,42 @@ public:
     using DomainInNeedOfStorageAccess = WebCore::RegistrableDomain;
     using OpenerDomain = WebCore::RegistrableDomain;
     
-    static Ref<ResourceLoadStatisticsStore> create(WebResourceLoadStatisticsStore& webResourceLoadStatisticsStore, SuspendableWorkQueue& suspendableWorkQueue, ShouldIncludeLocalhost shouldIncludeLocalhost, const String& storageDirectoryPath, PAL::SessionID sessionID)
-    {
-        return adoptRef(*new ResourceLoadStatisticsStore(webResourceLoadStatisticsStore, suspendableWorkQueue, shouldIncludeLocalhost, storageDirectoryPath, sessionID));
-    }
+    // The store, made by the statistics actor (WebResourceLoadStatisticsStore.swift), whose alone it is.
+    static Ref<ResourceLoadStatisticsStore> createForStatisticsActor(bool includeLocalhost, const String& storageDirectoryPath, uint64_t sessionID);
 
     ~ResourceLoadStatisticsStore();
 
-    void clear(CompletionHandler<void()>&&);
     bool isEmpty() const;
     ITPThirdPartyDataVector aggregatedThirdPartyData() const;
-    void updateCookieBlocking(CompletionHandler<void()>&&);
-    void processStatisticsAndDataRecords(CompletionHandler<void()>&&);
+
+    // The statistics actor's side of the posts above, and whether a delayed processing request is still the pending
+    // one (a later request or cancelPendingStatisticsProcessingRequest() replaces it).
+    StatisticsStorePostVector takePendingPostsForSwift() { return std::exchange(m_pendingPosts, { }); }
+    bool isPendingStatisticsProcessingRequestForSwift(uint64_t identifier) const { return m_pendingStatisticsProcessingRequestIdentifier == identifier; }
+    // The second part of updateCookieBlocking's round trip, once its main part is done.
+    void logCookieBlockingDoneForSwift();
+    // The lists a cookie-blocking update sends, logged as the update logs them; all empty when there is none to send.
+    RegistrableDomainsToBlockCookiesFor domainsToBlockCookiesFor();
+    // The round trips' C++ parts, for the store's Swift on the statistics actor. Each Vector is the main part's
+    // HashSet in its order, made a HashSet again in that order.
+    void logAboutToRemoveDataRecordsForSwift(const RegistrableDomainsToDeleteOrRestrictWebsiteDataFor&);
+    void incrementRecordsDeletedCountForDomainsForSwift(RegistrableDomainVector&& domains) { incrementRecordsDeletedCountForDomains(registrableDomainHashSetFromVector(WTF::move(domains))); }
+    StatisticsDataRecordRemovalWaiters takeDataRecordRemovalWaitersForSwift() { return StatisticsDataRecordRemovalWaiters { std::exchange(m_dataRecordRemovalCompletionHandlers, { }) }; }
+    void grandfatherDataForDomainsForSwift(RegistrableDomainVector&&);
+    Seconds clientSideCookiesAgeCapForSwift() const;
+    // The statistics actor interrupts each store it holds when it suspends.
+    void interruptDatabaseForSwift() { interrupt(); }
+    // grantStorageAccessInternal's checks of a prompted grant, in builds without NDEBUG; false when they stop it.
+    bool checkPromptedStorageAccessGrantForSwift(const SubFrameDomain&, const TopFrameDomain&, CanRequestStorageAccessWithoutUserInteraction);
     NODELETE void cancelPendingStatisticsProcessingRequest();
-    void mergeStatistics(Vector<ResourceLoadStatistics>&&);
     void runIncrementalVacuumCommand();
     void dumpResourceLoadStatistics(CompletionHandler<void(String)>&&);
     bool isNewResourceLoadStatisticsDatabaseFile() const { return m_isNewResourceLoadStatisticsDatabaseFile; }
     void setIsNewResourceLoadStatisticsDatabaseFile(bool isNewResourceLoadStatisticsDatabaseFile) { m_isNewResourceLoadStatisticsDatabaseFile = isNewResourceLoadStatisticsDatabaseFile; }
 
-    void requestStorageAccessUnderOpener(DomainInNeedOfStorageAccess&&, WebPageProxyIdentifier openerWebPageProxyID, OpenerDomain&&, CanRequestStorageAccessWithoutUserInteraction);
-    void removeAllStorageAccess(CompletionHandler<void()>&&);
 
     std::optional<HashMap<RegistrableDomain, WallTime>> loadWebsitesWithUserInteraction();
 
-    void grandfatherExistingWebsiteData(CompletionHandler<void()>&&);
     void setGrandfathered(RegistrableDomain, bool value);
     bool isGrandfathered(RegistrableDomain) const;
     NODELETE void setGrandfatheringTime(Seconds);
@@ -289,7 +233,6 @@ public:
     void setTopFrameUniqueRedirectFrom(TopFrameDomain, RedirectDomain);
 
     NODELETE void setIsRunningTest(bool);
-    void logTestingEvent(String&&);
     void setTimeAdvanceForTesting(Seconds);
 
     NODELETE void setMaxStatisticsEntries(size_t maximumEntryCount);
@@ -310,28 +253,23 @@ public:
     void setFirstPartyWebsiteDataRemovalMode(WebCore::FirstPartyWebsiteDataRemovalMode mode) { m_firstPartyWebsiteDataRemovalMode = mode; }
     WebCore::FirstPartyWebsiteDataRemovalMode firstPartyWebsiteDataRemovalMode() const { return m_firstPartyWebsiteDataRemovalMode; }
     void setPersistedDomains(HashSet<RegistrableDomain>&& domains) { m_persistedDomains = WTF::move(domains); }
+    void setPersistedDomainsForSwift(RegistrableDomainVector&& domains) { setPersistedDomains(registrableDomainHashSetFromVector(WTF::move(domains))); }
     void setStandaloneApplicationDomain(RegistrableDomain&& domain) { m_standaloneApplicationDomain = WTF::move(domain); }
 #if ENABLE(APP_BOUND_DOMAINS)
-    void setAppBoundDomains(HashSet<RegistrableDomain>&&);
+    void setAppBoundDomainsForSwift(Vector<RegistrableDomain>&&);
 #endif
 #if ENABLE(MANAGED_DOMAINS)
-    void setManagedDomains(HashSet<RegistrableDomain>&&);
+    void setManagedDomainsForSwift(Vector<RegistrableDomain>&&);
 #endif
 
-    void hasStorageAccess(SubFrameDomain&&, TopFrameDomain&&, std::optional<WebCore::FrameIdentifier>, WebPageProxyIdentifier, CanRequestStorageAccessWithoutUserInteraction, CompletionHandler<void(bool)>&&);
-    void requestStorageAccess(SubFrameDomain&&, TopFrameDomain&&, WebCore::FrameIdentifier, WebPageProxyIdentifier, WebCore::StorageAccessScope, CanRequestStorageAccessWithoutUserInteraction, CompletionHandler<void(StorageAccessStatus)>&&);
-    void queryStorageAccessPermission(const SubFrameDomain&, const TopFrameDomain&, CompletionHandler<void(WebCore::PermissionState)>&&);
     enum class AddedRecord : bool { No, Yes };
     using AddedRecordAndDomainID = std::pair<AddedRecord, std::optional<unsigned>>;
     AddedRecordAndDomainID grantStorageAccessPermission(RegistrableDomain topFrameDomain, RegistrableDomain subFrameDomain);
     void revokeStorageAccessPermission(RegistrableDomain);
-    void grantStorageAccess(SubFrameDomain&&, TopFrameDomain&&, WebCore::FrameIdentifier, WebPageProxyIdentifier, WebCore::StorageAccessPromptWasShown, WebCore::StorageAccessScope, CompletionHandler<void(WebCore::StorageAccessWasGranted)>&&);
 
     void logFrameNavigation(NavigatedToDomain, TopFrameDomain, NavigatedFromDomain, bool isRedirect, bool isMainFrame, Seconds delayAfterMainFrameDocumentLoad, bool wasPotentiallyInitiatedByUser);
     void logCrossSiteLoadWithLinkDecoration(NavigatedFromDomain, NavigatedToDomain, DidFilterKnownLinkDecoration);
 
-    void logUserInteraction(const TopFrameDomain&, CompletionHandler<void()>&&);
-    void clearUserInteraction(const RegistrableDomain&, CompletionHandler<void()>&&);
     bool hasHadUserInteraction(RegistrableDomain, OperatingDatesWindow);
 
     void setLastSeen(RegistrableDomain primaryDomain, Seconds);
@@ -342,10 +280,14 @@ public:
     RegistrableDomainVector allDomains() const;
     HashMap<RegistrableDomain, WallTime> allDomainsWithLastAccessedTime() const;
     HashSet<RegistrableDomain> domainsExemptFromWebsiteDataDeletion() const;
+    // The three above flattened for the actor's domain-list answers: domains, and their times in raw seconds, in the
+    // map's or set's iteration order.
+    void domainsWithLastAccessedTimeForSwift(RegistrableDomainVector& domains, StatisticsTimeVector& times) const;
+    RegistrableDomainVector domainsExemptFromWebsiteDataDeletionForSwift() const { return copyToVector(domainsExemptFromWebsiteDataDeletion()); }
+    // false where loadWebsitesWithUserInteraction() gives std::nullopt.
+    bool websitesWithUserInteractionForSwift(RegistrableDomainVector& domains, StatisticsTimeVector& times);
 
-    void didCreateNetworkProcess();
 
-    const WebResourceLoadStatisticsStore& store() const { return m_store.get(); }
 
     bool domainIDExistsInDatabase(int);
     bool observedDomainNavigationWithLinkDecoration(int);
@@ -354,7 +296,6 @@ public:
     void includeTodayAsOperatingDateIfNecessary();
     void insertExpiredStatisticForTesting(RegistrableDomain, unsigned numberOfOperatingDaysPassed, bool hasUserInteraction,
         bool isScheduledForAllButCookieDataRemoval, bool);
-    static void interruptAllDatabases();
 
     // Public: when DomainData is private, the Swift compiler crashes while serializing the module (in SerializeSILPass).
     struct DomainData {
@@ -370,10 +311,15 @@ public:
     using DomainDataVector = Vector<DomainData>;
     DomainDataVector domains() const;
 
-private:
-    ResourceLoadStatisticsStore(WebResourceLoadStatisticsStore&, SuspendableWorkQueue&, ShouldIncludeLocalhost, const String& storageDirectoryPath, PAL::SessionID);
+    // For Swift, which imports a returned reference as a pointer.
+    static String string(const RegistrableDomain& domain) { return domain.string(); }
+    // Domains a message carried, in wire order, in the order the C++ decoder's HashSet of them iterates.
+    // An element equal to an earlier one (two lone-surrogate domains Swift made equal) is not added again.
+    static RegistrableDomainVector inDecodedHashSetOrderForSwift(RegistrableDomainVector&& domains) { return copyToVector(registrableDomainHashSetFromVector(WTF::move(domains), 1024 * 1024 / sizeof(RegistrableDomain))); }
 
-    WebResourceLoadStatisticsStore& store() { return m_store.get(); }
+private:
+    ResourceLoadStatisticsStore(ShouldIncludeLocalhost, const String& storageDirectoryPath, PAL::SessionID);
+
 
     struct Parameters {
         size_t pruneEntriesDownTo { 800 };
@@ -389,8 +335,6 @@ private:
         bool shouldClassifyResourcesBeforeDataRecordsRemoval { true };
         bool isRunningTest { false };
     };
-    // For Swift, which imports a returned reference as a pointer.
-    static String string(const RegistrableDomain& domain) { return domain.string(); }
     static String emptyString() { return WTF::emptyString(); }
     // For Swift, which does not accept a call named unchecked*.
     static RegistrableDomain registrableDomainFromHost(const String& host) { return RegistrableDomain::uncheckedCreateFromHost(host); }
@@ -433,10 +377,8 @@ private:
     static DomainIDVector hashMapIterationOrder(DomainIDVector keys);
 
     CookieAccess cookieAccess(SubResourceDomain, TopFrameDomain, CanRequestStorageAccessWithoutUserInteraction);
-    void updateCookieBlockingForDomains(RegistrableDomainsToBlockCookiesFor&&, CompletionHandler<void()>&&);
 
     void classifyPrevalentResources();
-    void grantStorageAccessInternal(SubFrameDomain&&, TopFrameDomain&&, std::optional<WebCore::FrameIdentifier>, WebPageProxyIdentifier, WebCore::StorageAccessPromptWasShown, WebCore::StorageAccessScope, CanRequestStorageAccessWithoutUserInteraction, CompletionHandler<void(WebCore::StorageAccessWasGranted)>&&);
     
     // reason is used for logging purpose.
     [[nodiscard]] AddedRecordAndDomainID ensureResourceStatisticsForRegistrableDomain(RegistrableDomain, String reason);
@@ -446,17 +388,14 @@ private:
     void setDebugLogggingEnabled(bool enabled) { m_debugLoggingEnabled  = enabled; }
     Vector<RegistrableDomain> ensurePrevalentResourcesForDebugMode();
     void setDataRecordsBeingRemoved(bool);
-    void removeDataRecords(CompletionHandler<void()>&&);
     void setCacheMaxAgeCap(Seconds);
     void updateCacheMaxAgeCap();
-    void updateClientSideCookiesAgeCap();
     const MemoryCompactLookupOnlyRobinHoodHashMap<String, TableAndIndexPair>& expectedTableAndIndexQueries() final;
     std::span<const ASCIILiteral> sortedTables() final;
     void grandfatherDataForDomains(const HashSet<RegistrableDomain>&);
     void scheduleStatisticsProcessingRequestIfNecessary();
     void pruneStatisticsIfNeeded();
 
-    void openITPDatabase();
     void clearDatabaseContents();
     bool createUniqueIndices() final;
     bool createSchema() final;
@@ -473,8 +412,19 @@ private:
     // commitTransactionForSwift(true) commits what beginTransactionIfNecessaryForSwift() started.
     bool beginTransactionIfNecessaryForSwift();
     void commitTransactionForSwift(bool didBeginTransaction);
+    void clearAppBoundDomainsForSwift() { m_appBoundDomains.clear(); }
 
-    // The columns of ObservedDomains, in the order of its CREATE TABLE and insertObservedDomainQuery.
+    // DatabaseUtilities' members Swift calls: Swift imports none of a base class it cannot copy or move.
+    bool openDatabaseAndCreateSchemaIfNecessaryForSwift() { return openDatabaseAndCreateSchemaIfNecessary() == CreatedNewFile::Yes; }
+    // columnsForTable() and addMissingColumnToTable() take ASCIILiteral, which Swift cannot make.
+    Vector<String> observedDomainsColumnsForSwift() { return columnsForTable("ObservedDomains"_s); }
+    bool addMostRecentWebPushInteractionTimeColumnForSwift() { return addMissingColumnToTable("ObservedDomains"_s, "mostRecentWebPushInteractionTime REAL DEFAULT 0.0 NOT NULL"_s); }
+    void migrateDataToNewTablesIfNecessaryForSwift() { migrateDataToNewTablesIfNecessary(); }
+    void closeForSwift() { close(); }
+    void deleteStorageFileForSwift() { FileSystem::deleteFile(m_storageFilePath); }
+    String currentTableQueryForSwift(const String& table) { return currentTableAndIndexQueries(table).first; }
+
+    // The columns of ObservedDomains, in the order of its CREATE TABLE and of CachedStatement.insertObservedDomain in Swift.
     enum class ObservedDomainsColumn : int {
         RegistrableDomain = 1,
         LastSeen = 2,
@@ -493,9 +443,9 @@ private:
     static constexpr int expectedIndexCount() { return 13; }
 
     // The SQLite access of ResourceLoadStatisticsStore.swift, through handles that the .cpp checks on every use.
-    SQLStatementHandle openCachedStatement(ResourceLoadStatisticsCachedStatement, ResourceLoadStatisticsStatementLogLabel) const;
+    // The statement cached in slot index, prepared from query on its first use.
+    SQLStatementHandle prepareCachedStatement(uint8_t index, const String& query, const String& logLabel) const;
     SQLStatementHandle openStatement(String query) const;
-    SQLStatementHandle openRelationshipStatement(ResourceLoadStatisticsRelationshipQuery, uint32_t domainCount) const;
     void closeStatement(SQLStatementHandle) const;
     int bindInt(SQLStatementHandle, int index, int value) const;
     int bindText(SQLStatementHandle, int index, String value) const;
@@ -510,8 +460,6 @@ private:
     int databaseRunIncrementalVacuumCommand() const { return m_database->runIncrementalVacuumCommand(); }
     void databaseClearAllTables() const { m_database->clearAllTables(); }
 
-    CheckedRef<WebResourceLoadStatisticsStore> m_store;
-    const Ref<SuspendableWorkQueue> m_workQueue;
 #if HAVE(CORE_PREDICTION)
     ResourceLoadStatisticsClassifierCocoa m_resourceLoadStatisticsClassifier;
 #else
@@ -534,7 +482,8 @@ private:
     };
     mutable Vector<StatementSlot> m_statements __attribute__((availability(swift, unavailable))) { Vector<StatementSlot>(resourceLoadStatisticsCachedStatementCount) };
 
-    Vector<CompletionHandler<void()>> m_dataRecordRemovalCompletionHandlers;
+    Vector<CompletionHandler<void(ResourceLoadStatisticsStore&)>> m_dataRecordRemovalCompletionHandlers;
+    StatisticsStorePostVector m_pendingPosts;
     Seconds m_timeAdvanceForTesting;
 
     PAL::SessionID m_sessionID;

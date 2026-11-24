@@ -1700,6 +1700,13 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioHardwareListenerProxy.swift
     ${WEBKIT_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeap.swift
     ${WEBKIT_DIR}/NetworkProcess/Classifier/ResourceLoadStatisticsStore.swift
+    ${WEBKIT_DIR}/NetworkProcess/Classifier/WebResourceLoadStatisticsStore+Messages.swift
+    ${WEBKIT_DIR}/NetworkProcess/Classifier/WebResourceLoadStatisticsStore+StorageAccess.swift
+    ${WEBKIT_DIR}/NetworkProcess/Classifier/WebResourceLoadStatisticsStore.swift
+    ${WEBKIT_DIR}/NetworkProcess/NetworkConnectionToWebProcess+ResourceLoadStatistics.swift
+    ${WEBKIT_DIR}/NetworkProcess/NetworkProcess+ResourceLoadStatistics.swift
+    ${WEBKIT_DIR}/NetworkProcess/NetworkProcess+StatisticsDomains.swift
+    ${WEBKIT_DIR}/NetworkProcess/NetworkConnectionToWebProcess+StatisticsUpdated.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/BackgroundFetchStoreManager.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/CacheStorageCache.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/CacheStorageDiskStore.swift

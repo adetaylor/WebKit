@@ -93,21 +93,18 @@ class BlobRegistryImpl;
 struct DigitalCredentialsRequestData;
 struct DigitalCredentialsResponseData;
 struct ExceptionData;
-class LoginStatus;
 class MockContentFilterSettings;
 class ResourceError;
 class ResourceRequest;
 class Site;
 enum class AdvancedPrivacyProtections : uint16_t;
 enum class CredentiallessSupport : bool;
-enum class StorageAccessScope : bool;
-enum class IsLoggedIn : uint8_t;
+enum class LoginStatusAuthenticationType : uint8_t;
 enum class ShouldPartitionCookie : bool;
 struct ClientOrigin;
 struct Cookie;
 struct CookieStoreGetOptions;
 struct PolicyContainer;
-struct RequestStorageAccessResult;
 struct SameSiteInfo;
 struct WebTransportOptions;
 
@@ -131,6 +128,7 @@ class NetworkSession;
 class NetworkSocketChannel;
 class NetworkTransportSession;
 class ServiceWorkerFetchTask;
+class WebResourceLoadStatisticsStore;
 class WebSWServerConnection;
 class WebSWServerToContextConnection;
 class WebSharedWorkerServerConnection;
@@ -318,6 +316,20 @@ public:
 #if ENABLE(WEB_AUTHN) && PLATFORM(COCOA)
     void presentDigitalCredentialRequest(WebPageProxyIdentifier, WebCore::DigitalCredentialsRequestData&&, Vector<WebCore::UnvalidatedDigitalCredentialRequest>&&, CompletionHandler<void(std::expected<WebCore::DigitalCredentialsResponseData, WebCore::ExceptionData>&&)>&&);
 #endif
+    // The session's statistics store, for the Swift message handlers; null without a session or a store.
+    SWIFT_MAIN_ACTOR WebResourceLoadStatisticsStore* WTF_NULLABLE resourceLoadStatisticsForSwift();
+    // The storage session's answer, for the Swift message handlers, which cannot reach NetworkStorageSession; false without a session.
+    // It completes the Swift reply waiting under `replyIdentifier` (WebResourceLoadStatisticsStore::completeStatisticsBoolReplyForSwift).
+    SWIFT_MAIN_ACTOR void hasCookiesForSwift(const WebCore::RegistrableDomain&, uint64_t replyIdentifier);
+    // Swift cannot pass this connection as its StorageAccessPermissionChangeObserver base.
+    SWIFT_MAIN_ACTOR void startListeningForStorageAccessPermissionChanges(WebResourceLoadStatisticsStore&, WebCore::RegistrableDomain&& topFrameDomain, WebCore::RegistrableDomain&& subFrameDomain);
+    SWIFT_MAIN_ACTOR void stopListeningForStorageAccessPermissionChanges(WebResourceLoadStatisticsStore&, WebCore::RegistrableDomain&& topFrameDomain, WebCore::RegistrableDomain&& subFrameDomain);
+    SWIFT_MAIN_ACTOR bool isLoginStatusAPIRequiresWebAuthnEnabled() const { return m_sharedPreferencesForWebProcess.loginStatusAPIRequiresWebAuthnEnabled; }
+    // WebCore::LoginStatus::TimeToLiveAuthentication, which Swift cannot import.
+    static Seconds loginStatusTimeToLiveAuthentication();
+    // WebCore::LoginStatusAuthenticationType::Unmanaged, for Swift callers, where the name Unmanaged reads as Swift's
+    // manually reference-counted pointer type.
+    static WebCore::LoginStatusAuthenticationType unmanagedLoginStatusAuthenticationType();
 
 private:
     NetworkConnectionToWebProcess(WebCore::ProcessIdentifier, PAL::SessionID, NetworkProcessConnectionParameters&&, IPC::Connection::Identifier&&);
@@ -457,18 +469,9 @@ private:
 
     void removeStorageAccessForFrame(WebCore::FrameIdentifier, WebPageProxyIdentifier);
 
-    void logUserInteraction(RegistrableDomain&&);
-    void resourceLoadStatisticsUpdated(Vector<WebCore::ResourceLoadStatistics>&&, CompletionHandler<void()>&&);
-    void hasStorageAccess(RegistrableDomain&& subFrameDomain, RegistrableDomain&& topFrameDomain, WebCore::FrameIdentifier, WebPageProxyIdentifier, CompletionHandler<void(bool)>&&);
-    void requestStorageAccess(RegistrableDomain&& subFrameDomain, RegistrableDomain&& topFrameDomain, WebCore::FrameIdentifier, WebPageProxyIdentifier, WebCore::StorageAccessScope, WebCore::HasUserGestureOrNoUserGestureRequired, CompletionHandler<void(WebCore::RequestStorageAccessResult)>&&);
-    void queryStorageAccessPermission(RegistrableDomain&& subFrameDomain, RegistrableDomain&& topFrameDomain, std::optional<WebPageProxyIdentifier>, CompletionHandler<void(WebCore::PermissionState)>&&);
     void storageAccessQuirkForTopFrameDomain(URL&& topFrameURL, CompletionHandler<void(Vector<RegistrableDomain>)>&&);
-    void requestStorageAccessUnderOpener(WebCore::RegistrableDomain&& domainInNeedOfStorageAccess, WebPageProxyIdentifier openerWebPageProxyID, WebCore::RegistrableDomain&& openerDomain);
 
-    void setLoginStatus(RegistrableDomain&&, WebCore::IsLoggedIn, std::optional<WebCore::LoginStatus>&&, CompletionHandler<void()>&&);
-    void isLoggedIn(RegistrableDomain&&, CompletionHandler<void(bool)>&&);
     void dropNonSerializableInProcessCache(WebCore::ProcessIdentifier, WebCore::NonSerializedDataIdentifier);
-    bool isLoginStatusAPIRequiresWebAuthnEnabled() const { return m_sharedPreferencesForWebProcess.loginStatusAPIRequiresWebAuthnEnabled; }
     void addOriginAccessAllowListEntry(const String& sourceOrigin, const String& destinationProtocol, const String& destinationHost, bool allowDestinationSubdomains);
     void removeOriginAccessAllowListEntry(const String& sourceOrigin, const String& destinationProtocol, const String& destinationHost, bool allowDestinationSubdomains);
     void resetOriginAccessAllowLists();
@@ -487,8 +490,6 @@ private:
     void allCookiesDeleted() final;
 #endif
 
-    void subscribeToStorageAccessPermissionChanges(WebCore::RegistrableDomain&& topFrameDomain, WebCore::RegistrableDomain&& subFrameDomain);
-    void unsubscribeFromStorageAccessPermissionChanges(WebCore::RegistrableDomain&& topFrameDomain, WebCore::RegistrableDomain&& subFrameDomain);
     void storageAccessPermissionChanged(const WebCore::RegistrableDomain& topFrameDomain, const WebCore::RegistrableDomain& subFrameDomain) final;
 
     // WebCore::CookiesEnabledStateObserver

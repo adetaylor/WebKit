@@ -1,3 +1,4 @@
+// Copyright (C) 2019-2025 Apple Inc. All rights reserved.
 // Copyright (C) 2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,8 +27,7 @@ import WebKit_Internal
 
 // MARK: SQLite access
 
-// SQLiteStatement and SQLiteDatabase do not import into Swift, so the store's SQLite access goes through
-// handles the store checks on every use.
+// Statements are freed when the database closes; a handle names a slot and generation the store checks on every use.
 extension WebKit.ResourceLoadStatisticsStore {
     struct SQLStatement: ~Copyable {
         private let store: WebKit.ResourceLoadStatisticsStore
@@ -59,8 +59,9 @@ extension WebKit.ResourceLoadStatisticsStore {
         fileprivate let store: WebKit.ResourceLoadStatisticsStore
 
         func prepareStatement(_ query: WTF.String) -> SQLStatement? { SQLStatement(store, store.openStatement(query)) }
-        func prepareRelationshipStatement(_ query: WebKit.ResourceLoadStatisticsRelationshipQuery, _ domainCount: UInt32) -> SQLStatement? {
-            SQLStatement(store, store.openRelationshipStatement(query, domainCount))
+        fileprivate func prepareRelationshipStatement(_ query: RelationshipQuery, _ domainCount: UInt32) -> SQLStatement? {
+            let placeholders = Array(repeating: "?", count: Int(domainCount)).joined(separator: ", ")
+            return prepareStatement(WTF.String(query.prefix + placeholders + " );"))
         }
         func lastError() -> Int32 { store.databaseLastError() }
         func lastErrorMsg() -> WTF.String { store.databaseLastErrorMsg() }
@@ -70,11 +71,196 @@ extension WebKit.ResourceLoadStatisticsStore {
 
     var database: Database { Database(store: self) }
 
-    func scopedStatement(
-        _ statement: WebKit.ResourceLoadStatisticsCachedStatement,
-        _ logLabel: WebKit.ResourceLoadStatisticsStatementLogLabel
-    ) -> SQLStatement? {
-        SQLStatement(self, openCachedStatement(statement, logLabel))
+    fileprivate func scopedStatement(_ statement: CachedStatement, _ logLabel: StaticString) -> SQLStatement? {
+        SQLStatement(self, prepareCachedStatement(statement.rawValue, WTF.String(statement.query), WTF.String(logLabel.description)))
+    }
+
+    // A case's raw value is its slot in the store's statement cache, which has resourceLoadStatisticsCachedStatementCount
+    // slots: openAndUpdateSchemaIfNecessary() asserts that there are as many cases.
+    fileprivate enum CachedStatement: UInt8, CaseIterable {
+        case observedDomainCount
+        case insertObservedDomain
+        case domainIDFromString
+        case subframeUnderTopFrameDomainExists
+        case subresourceUnderTopFrameDomainExists
+        case subresourceUniqueRedirectsToExists
+        case mostRecentUserInteraction
+        case updateLastSeen
+        case updateDataRecordsRemoved
+        case updatePrevalentResource
+        case isPrevalentResource
+        case updateVeryPrevalentResource
+        case isVeryPrevalentResource
+        case clearPrevalentResource
+        case hadUserInteraction
+        case updateGrandfathered
+        case isScheduledForAllButCookieDataRemoval
+        case updateIsScheduledForAllButCookieDataRemoval
+        case updateMostRecentWebPushInteractionTime
+        case isGrandfathered
+        case getResourceDataByDomainName
+        case getAllDomains
+        case domainStringFromDomainID
+        case getAllSubStatistics
+        case storageAccessExists
+        case getMostRecentlyUpdatedTimestamp
+        case linkDecorationExists
+        case scriptLoadExists
+        case subFrameExists
+        case subResourceExists
+        case uniqueRedirectExists
+        case observedDomainsExists
+        case removeAllData
+        case checkIfTableExists
+
+        var query: Swift.String {
+            switch self {
+            case .observedDomainCount:
+                "SELECT COUNT(*) FROM ObservedDomains"
+            case .insertObservedDomain:
+                "INSERT INTO ObservedDomains (registrableDomain, lastSeen, hadUserInteraction,"
+                    + "mostRecentUserInteractionTime, grandfathered, isPrevalent, isVeryPrevalent, dataRecordsRemoved,"
+                    + " timesAccessedAsFirstPartyDueToUserInteraction,"
+                    + "timesAccessedAsFirstPartyDueToStorageAccessAPI, isScheduledForAllButCookieDataRemoval,"
+                    + " mostRecentWebPushInteractionTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            case .domainIDFromString:
+                "SELECT domainID FROM ObservedDomains WHERE registrableDomain = ?"
+            case .subframeUnderTopFrameDomainExists:
+                "SELECT EXISTS (SELECT 1 FROM SubframeUnderTopFrameDomains WHERE subFrameDomainID = ? "
+                    + "AND topFrameDomainID = (SELECT domainID FROM ObservedDomains WHERE registrableDomain = ?))"
+            case .subresourceUnderTopFrameDomainExists:
+                "SELECT EXISTS (SELECT 1 FROM SubresourceUnderTopFrameDomains "
+                    + "WHERE subresourceDomainID = ? AND topFrameDomainID = (SELECT domainID FROM ObservedDomains"
+                    + " WHERE registrableDomain = ?))"
+            case .subresourceUniqueRedirectsToExists:
+                "SELECT EXISTS (SELECT 1 FROM SubresourceUniqueRedirectsTo WHERE subresourceDomainID = ? "
+                    + "AND toDomainID = (SELECT domainID FROM ObservedDomains WHERE registrableDomain = ?))"
+            case .mostRecentUserInteraction:
+                "UPDATE ObservedDomains SET hadUserInteraction = ?, mostRecentUserInteractionTime = ? WHERE registrableDomain = ?"
+            case .updateLastSeen:
+                "UPDATE ObservedDomains SET lastSeen = ? WHERE registrableDomain = ?"
+            case .updateDataRecordsRemoved:
+                "UPDATE ObservedDomains SET dataRecordsRemoved = ? WHERE registrableDomain = ?"
+            case .updatePrevalentResource:
+                "UPDATE ObservedDomains SET isPrevalent = ? WHERE registrableDomain = ?"
+            case .isPrevalentResource:
+                "SELECT isPrevalent FROM ObservedDomains WHERE registrableDomain = ?"
+            case .updateVeryPrevalentResource:
+                "UPDATE ObservedDomains SET isVeryPrevalent = ? WHERE registrableDomain = ?"
+            case .isVeryPrevalentResource:
+                "SELECT isVeryPrevalent FROM ObservedDomains WHERE registrableDomain = ?"
+            case .clearPrevalentResource:
+                "UPDATE ObservedDomains SET isPrevalent = 0, isVeryPrevalent = 0 WHERE registrableDomain = ?"
+            case .hadUserInteraction:
+                "SELECT hadUserInteraction, mostRecentUserInteractionTime FROM ObservedDomains WHERE registrableDomain = ?"
+            case .updateGrandfathered:
+                "UPDATE ObservedDomains SET grandfathered = ? WHERE registrableDomain = ?"
+            case .isScheduledForAllButCookieDataRemoval:
+                "SELECT isScheduledForAllButCookieDataRemoval FROM ObservedDomains WHERE registrableDomain = ?"
+            case .updateIsScheduledForAllButCookieDataRemoval:
+                "UPDATE ObservedDomains SET isScheduledForAllButCookieDataRemoval = ? WHERE registrableDomain = ?"
+            case .updateMostRecentWebPushInteractionTime:
+                "UPDATE ObservedDomains SET mostRecentWebPushInteractionTime = ? WHERE registrableDomain = ?"
+            case .isGrandfathered:
+                "SELECT grandfathered FROM ObservedDomains WHERE registrableDomain = ?"
+            case .getResourceDataByDomainName:
+                "SELECT * FROM ObservedDomains WHERE registrableDomain = ?"
+            case .getAllDomains:
+                "SELECT registrableDomain FROM ObservedDomains"
+            case .domainStringFromDomainID:
+                "SELECT registrableDomain FROM ObservedDomains WHERE domainID = ?"
+            case .getAllSubStatistics:
+                "SELECT topFrameDomainID FROM SubframeUnderTopFrameDomains WHERE subFrameDomainID = ?"
+                    + "UNION ALL SELECT topFrameDomainID FROM SubresourceUnderTopFrameDomains WHERE subresourceDomainID = ?"
+                    + "UNION ALL SELECT toDomainID FROM SubresourceUniqueRedirectsTo WHERE subresourceDomainID = ?"
+            case .storageAccessExists:
+                "SELECT EXISTS (SELECT 1 FROM StorageAccessUnderTopFrameDomains WHERE domainID = ? AND topLevelDomainID ="
+                    + " (SELECT domainID FROM ObservedDomains WHERE registrableDomain = ?))"
+            case .getMostRecentlyUpdatedTimestamp:
+                "SELECT MAX(lastUpdated) FROM (SELECT lastUpdated FROM SubframeUnderTopFrameDomains"
+                    + " WHERE subFrameDomainID = ? and topFrameDomainID = ?"
+                    + "UNION ALL SELECT lastUpdated FROM TopFrameLinkDecorationsFrom WHERE toDomainID = ? and fromDomainID = ?"
+                    + "UNION ALL SELECT lastUpdated FROM SubresourceUnderTopFrameDomains"
+                    + " WHERE subresourceDomainID = ? and topFrameDomainID = ?"
+                    + "UNION ALL SELECT lastUpdated FROM SubresourceUniqueRedirectsTo WHERE subresourceDomainID = ? and toDomainID = ?)"
+            case .linkDecorationExists:
+                "SELECT EXISTS (SELECT * FROM TopFrameLinkDecorationsFrom WHERE toDomainID = ? OR fromDomainID = ?)"
+            case .scriptLoadExists:
+                "SELECT EXISTS (SELECT * FROM TopFrameLoadedThirdPartyScripts WHERE topFrameDomainID = ? OR subresourceDomainID = ?)"
+            case .subFrameExists:
+                "SELECT EXISTS (SELECT * FROM SubframeUnderTopFrameDomains WHERE subFrameDomainID = ? OR topFrameDomainID = ?)"
+            case .subResourceExists:
+                "SELECT EXISTS (SELECT * FROM SubresourceUnderTopFrameDomains WHERE subresourceDomainID = ? OR topFrameDomainID = ?)"
+            case .uniqueRedirectExists:
+                "SELECT EXISTS (SELECT * FROM SubresourceUniqueRedirectsTo WHERE subresourceDomainID = ? OR toDomainID = ?)"
+            case .observedDomainsExists:
+                "SELECT EXISTS (SELECT * FROM ObservedDomains WHERE domainID = ?)"
+            case .removeAllData:
+                "DELETE FROM ObservedDomains WHERE domainID = ?"
+            case .checkIfTableExists:
+                "SELECT 1 from sqlite_master WHERE type='table' and tbl_name=?"
+            }
+        }
+    }
+
+    // The relationship inserts' query prefixes, which prepareRelationshipStatement completes with one placeholder per domain.
+    fileprivate enum RelationshipQuery {
+        case storageAccessUnderTopFrameDomains
+        case topFrameUniqueRedirectsTo
+        case topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement
+        case topFrameUniqueRedirectsFrom
+        case topFrameLoadedThirdPartyScripts
+        case subresourceUniqueRedirectsFrom
+        case subframeUnderTopFrameDomains
+        case topFrameLinkDecorationsFrom
+        case subresourceUnderTopFrameDomains
+        case subresourceUniqueRedirectsTo
+
+        var prefix: Swift.String {
+            switch self {
+            case .storageAccessUnderTopFrameDomains:
+                "INSERT OR IGNORE INTO StorageAccessUnderTopFrameDomains (domainID, topLevelDomainID) SELECT ?,"
+                    + " domainID FROM ObservedDomains WHERE registrableDomain in ( "
+            case .topFrameUniqueRedirectsTo:
+                "INSERT OR IGNORE into TopFrameUniqueRedirectsTo (sourceDomainID, toDomainID) SELECT ?, domainID"
+                    + " FROM ObservedDomains where registrableDomain in ( "
+            case .topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement:
+                "INSERT OR IGNORE into TopFrameUniqueRedirectsToSinceSameSiteStrictEnforcement (sourceDomainID,"
+                    + " toDomainID) SELECT ?, domainID FROM ObservedDomains where registrableDomain in ( "
+            case .topFrameUniqueRedirectsFrom:
+                "INSERT OR IGNORE INTO TopFrameUniqueRedirectsFrom (targetDomainID, fromDomainID) SELECT ?,"
+                    + " domainID FROM ObservedDomains WHERE registrableDomain in ( "
+            case .topFrameLoadedThirdPartyScripts:
+                "INSERT OR IGNORE into TopFrameLoadedThirdPartyScripts (topFrameDomainID, subresourceDomainID)"
+                    + " SELECT ?, domainID FROM ObservedDomains where registrableDomain in ( "
+            case .subresourceUniqueRedirectsFrom:
+                "INSERT OR IGNORE INTO SubresourceUniqueRedirectsFrom (subresourceDomainID, fromDomainID) SELECT"
+                    + " ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "
+            case .subframeUnderTopFrameDomains:
+                "INSERT OR REPLACE into SubframeUnderTopFrameDomains (subFrameDomainID, lastUpdated,"
+                    + " topFrameDomainID) SELECT ?, ?, domainID FROM ObservedDomains where registrableDomain in ( "
+            case .topFrameLinkDecorationsFrom:
+                "INSERT OR REPLACE INTO TopFrameLinkDecorationsFrom (toDomainID, lastUpdated, fromDomainID)"
+                    + " SELECT ?, ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "
+            case .subresourceUnderTopFrameDomains:
+                "INSERT OR REPLACE INTO SubresourceUnderTopFrameDomains (subresourceDomainID, lastUpdated,"
+                    + " topFrameDomainID) SELECT ?, ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "
+            case .subresourceUniqueRedirectsTo:
+                "INSERT OR REPLACE INTO SubresourceUniqueRedirectsTo (subresourceDomainID, lastUpdated,"
+                    + " toDomainID) SELECT ?, ?, domainID FROM ObservedDomains WHERE registrableDomain in ( "
+            }
+        }
+
+        // The INSERT OR REPLACE queries, which bind lastUpdated as their second parameter.
+        var bindsLastUpdated: Bool {
+            switch self {
+            case .subframeUnderTopFrameDomains, .topFrameLinkDecorationsFrom, .subresourceUnderTopFrameDomains,
+                .subresourceUniqueRedirectsTo:
+                true
+            default:
+                false
+            }
+        }
     }
 }
 
@@ -158,8 +344,97 @@ extension WebKit.ResourceLoadStatisticsStore {
 
     @cxx
     @implementation
+    func resetParametersToDefaultValues() {
+        assert(!WTF.RunLoop.isMain())
+
+        m_parameters = .init()
+        clearAppBoundDomainsForSwift()
+        m_timeAdvanceForTesting = .init()
+        m_operatingDatesSize = 0
+        m_shortWindowOperatingDate = .init()
+        m_longWindowOperatingDate = .init()
+        m_lastTimeDataRecordsWereRemoved = .init()
+    }
+
+    @cxx
+    @implementation
+    func setTimeToLiveUserInteraction(_ seconds: WTF.Seconds) {
+        assert(!WTF.RunLoop.isMain())
+        assert(seconds.value() >= 0)
+
+        m_parameters.timeToLiveUserInteraction = .init(seconds)
+    }
+
+    private func openITPDatabase() {
+        m_isNewResourceLoadStatisticsDatabaseFile = openDatabaseAndCreateSchemaIfNecessaryForSwift()
+    }
+
+    // Check a table for a reference to TopLevelDomains, a sign of the old schema.
+    @cxx
+    @implementation
+    func missingReferenceToObservedDomains() -> Bool {
+        currentTableQueryForSwift(WTF.String("TopFrameUniqueRedirectsTo")).description.utf8
+            .firstRange(of: "REFERENCES TopLevelDomains".utf8) != nil
+    }
+
+    @cxx
+    @implementation
+    func openAndUpdateSchemaIfNecessary() {
+        assert(CachedStatement.allCases.count == WebKit.resourceLoadStatisticsCachedStatementCount)
+        assert(
+            CachedStatement.insertObservedDomain.query.utf8.count(where: { $0 == UInt8(ascii: "?") })
+                == Int(ObservedDomainsColumn.MostRecentWebPushInteractionTime.rawValue)
+        )
+
+        openITPDatabase()
+        addMissingTablesIfNecessary()
+
+        let observedDomainsColumns = observedDomainsColumnsForSwift()
+        var columns = (0..<observedDomainsColumns.size()).map { observedDomainsColumns[$0].description }
+
+        if Self.columnsMatch(columns, Self.currentSchemaColumns.dropLast())
+            && addMostRecentWebPushInteractionTimeColumnForSwift()
+        {
+            columns.append("mostRecentWebPushInteractionTime")
+        }
+
+        guard Self.columnsMatch(columns, Self.currentSchemaColumns) else {
+            closeForSwift()
+            releaseLogError("openAndUpdateSchemaIfNecessary: failed at scheme check, will create new database")
+            deleteStorageFileForSwift()
+            openITPDatabase()
+            return
+        }
+
+        migrateDataToPCMDatabaseIfNecessary()
+        migrateDataToNewTablesIfNecessaryForSwift()
+    }
+
+    private static let currentSchemaColumns: [Swift.String] = [
+        "domainID",
+        "registrableDomain",
+        "lastSeen",
+        "hadUserInteraction",
+        "mostRecentUserInteractionTime",
+        "grandfathered",
+        "isPrevalent",
+        "isVeryPrevalent",
+        "dataRecordsRemoved",
+        "timesAccessedAsFirstPartyDueToUserInteraction",
+        "timesAccessedAsFirstPartyDueToStorageAccessAPI",
+        "isScheduledForAllButCookieDataRemoval",
+        "mostRecentWebPushInteractionTime",
+    ]
+
+    // Compares code units, as a String compares with an ASCIILiteral.
+    private static func columnsMatch(_ columns: [Swift.String], _ names: some Collection<Swift.String>) -> Bool {
+        columns.count == names.count && zip(columns, names).allSatisfy { $0.utf8.elementsEqual($1.utf8) }
+    }
+
+    @cxx
+    @implementation
     func tableExists(_ tableName: WTF.String) -> Bool {
-        guard let statement = scopedStatement(.CheckIfTableExists, .TableExists) else {
+        guard let statement = scopedStatement(.checkIfTableExists, "tableExists") else {
             releaseLogDatabaseError("tableExists: failed to prepare statement")
             return false
         }
@@ -175,7 +450,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     func isEmpty() -> Bool {
         assert(!WTF.RunLoop.isMain())
 
-        guard let statement = scopedStatement(.ObservedDomainCount, .IsEmpty), statement.step() == SQLITE_ROW else {
+        guard let statement = scopedStatement(.observedDomainCount, "isEmpty"), statement.step() == SQLITE_ROW else {
             releaseLogDatabaseError("isEmpty: failed to step statement")
             return false
         }
@@ -209,7 +484,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     func domainID(_ domain: WebCore.RegistrableDomain) -> WebKit.OptionalDomainID {
         assert(!WTF.RunLoop.isMain())
 
-        guard let statement = scopedStatement(.DomainIDFromString, .DomainID), statement.bindText(1, Self.string(domain)) == SQLITE_OK
+        guard let statement = scopedStatement(.domainIDFromString, "domainID"), statement.bindText(1, Self.string(domain)) == SQLITE_OK
         else {
             releaseLogDatabaseError("domainID: failed to bind parameter")
             return WebKit.OptionalDomainID()
@@ -252,7 +527,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             return false
         }
 
-        let statement = scopedStatement(.IsPrevalentResource, .IsPrevalentResource)
+        let statement = scopedStatement(.isPrevalentResource, "isPrevalentResource")
         return predicateValueForDomain(statement, domain) != 0
     }
 
@@ -265,7 +540,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             return false
         }
 
-        let statement = scopedStatement(.IsVeryPrevalentResource, .IsVeryPrevalentResource)
+        let statement = scopedStatement(.isVeryPrevalentResource, "isVeryPrevalentResource")
         return predicateValueForDomain(statement, domain) != 0
     }
 
@@ -276,7 +551,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             return .Never
         }
 
-        let statement = scopedStatement(.IsScheduledForAllButCookieDataRemoval, .IsScheduledForAllButCookieDataRemoval)
+        let statement = scopedStatement(.isScheduledForAllButCookieDataRemoval, "isScheduledForAllButCookieDataRemoval")
 
         return toDataRemovalFrequency(predicateValueForDomain(statement, domain))
     }
@@ -289,7 +564,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     ) -> Bool {
         assert(!WTF.RunLoop.isMain())
 
-        let statement = scopedStatement(.SubresourceUnderTopFrameDomainExists, .IsRegisteredAsSubresourceUnder)
+        let statement = scopedStatement(.subresourceUnderTopFrameDomainExists, "isRegisteredAsSubresourceUnder")
         return relationshipExists(statement, existingDomainID(subresourceDomain), topFrameDomain)
     }
 
@@ -298,7 +573,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     func isRegisteredAsSubFrameUnder(_ subFrameDomain: WebCore.RegistrableDomain, _ topFrameDomain: WebCore.RegistrableDomain) -> Bool {
         assert(!WTF.RunLoop.isMain())
 
-        let statement = scopedStatement(.SubframeUnderTopFrameDomainExists, .IsRegisteredAsSubFrameUnder)
+        let statement = scopedStatement(.subframeUnderTopFrameDomainExists, "isRegisteredAsSubFrameUnder")
         return relationshipExists(statement, existingDomainID(subFrameDomain), topFrameDomain)
     }
 
@@ -310,7 +585,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     ) -> Bool {
         assert(!WTF.RunLoop.isMain())
 
-        let statement = scopedStatement(.SubresourceUniqueRedirectsToExists, .IsRegisteredAsRedirectingTo)
+        let statement = scopedStatement(.subresourceUniqueRedirectsToExists, "isRegisteredAsRedirectingTo")
         return relationshipExists(statement, existingDomainID(redirectedFromDomain), redirectedToDomain)
     }
 
@@ -319,7 +594,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     func isGrandfathered(_ domain: WebCore.RegistrableDomain) -> Bool {
         assert(!WTF.RunLoop.isMain())
 
-        let statement = scopedStatement(.IsGrandfathered, .IsGrandfathered)
+        let statement = scopedStatement(.isGrandfathered, "isGrandfathered")
         return predicateValueForDomain(statement, domain) != 0
     }
 
@@ -330,7 +605,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             return
         }
 
-        guard let statement = scopedStatement(.RemoveAllData, .RemoveDataForDomain),
+        guard let statement = scopedStatement(.removeAllData, "removeDataForDomain"),
             statement.bindInt(1, Int32(truncatingIfNeeded: domainIDToRemove)) == SQLITE_OK,
             statement.step() == SQLITE_DONE
         else {
@@ -345,7 +620,7 @@ extension WebKit.ResourceLoadStatisticsStore {
         assert(!WTF.RunLoop.isMain())
 
         var domains = WebKit.RegistrableDomainVector()
-        guard let statement = scopedStatement(.GetAllDomains, .AllDomains) else {
+        guard let statement = scopedStatement(.getAllDomains, "allDomains") else {
             return domains
         }
 
@@ -363,7 +638,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     }
 
     private func domainString(_ domainID: UInt32) -> WTF.String {
-        guard let statement = scopedStatement(.DomainStringFromDomainID, .GetDomainStringFromDomainID),
+        guard let statement = scopedStatement(.domainStringFromDomainID, "getDomainStringFromDomainID"),
             statement.bindInt(1, Int32(truncatingIfNeeded: domainID)) == SQLITE_OK
         else {
             releaseLogDatabaseError("getDomainStringFromDomainID: failed to bind parameter")
@@ -379,14 +654,14 @@ extension WebKit.ResourceLoadStatisticsStore {
     @cxx
     @implementation
     func domainIDExistsInDatabase(_ domainID: Int32) -> Bool {
-        let linkDecorationExistsStatement = scopedStatement(.LinkDecorationExists, .DomainIDExistsInDatabase)
-        let scriptLoadExistsStatement = scopedStatement(.ScriptLoadExists, .DomainIDExistsInDatabaseLinkDecorationExistsStatement)
-        let subFrameExistsStatement = scopedStatement(.SubFrameExists, .DomainIDExistsInDatabaseSubFrameExistsStatement)
-        let subResourceExistsStatement = scopedStatement(.SubResourceExists, .DomainIDExistsInDatabaseSubResourceExistsStatement)
-        let uniqueRedirectExistsStatement = scopedStatement(.UniqueRedirectExists, .DomainIDExistsInDatabaseUniqueRedirectExistsStatement)
+        let linkDecorationExistsStatement = scopedStatement(.linkDecorationExists, "domainIDExistsInDatabase")
+        let scriptLoadExistsStatement = scopedStatement(.scriptLoadExists, "domainIDExistsInDatabase linkDecorationExistsStatement")
+        let subFrameExistsStatement = scopedStatement(.subFrameExists, "domainIDExistsInDatabase subFrameExistsStatement")
+        let subResourceExistsStatement = scopedStatement(.subResourceExists, "domainIDExistsInDatabase subResourceExistsStatement")
+        let uniqueRedirectExistsStatement = scopedStatement(.uniqueRedirectExists, "domainIDExistsInDatabase uniqueRedirectExistsStatement")
         let observedDomainsExistsStatement = scopedStatement(
-            .ObservedDomainsExists,
-            .DomainIDExistsInDatabaseObservedDomainsExistsStatement
+            .observedDomainsExists,
+            "domainIDExistsInDatabase observedDomainsExistsStatement"
         )
 
         guard let linkDecorationExistsStatement,
@@ -446,6 +721,13 @@ private enum EnsureResourceStatisticsReason {
     }
 }
 
+extension WebCore.RegistrableDomain {
+    /// The domain's string, for `StatisticsDomain` (WebResourceLoadStatisticsStore.swift).
+    var statisticsString: WTF.String {
+        WebKit.ResourceLoadStatisticsStore.string(self)
+    }
+}
+
 extension WebKit.ResourceLoadStatisticsStore {
     private func releaseLogError(_ message: Swift.String) {
         WebKit.LogChannel.ResourceLoadStatistics().releaseLog
@@ -481,7 +763,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             return false
         }
         // The web push time is bound only when gotLinkDecorationFromPrevalentResource is false.
-        guard let statement = scopedStatement(.InsertObservedDomain, .InsertObservedDomain),
+        guard let statement = scopedStatement(.insertObservedDomain, "insertObservedDomain"),
             statement.bindText(ObservedDomainsColumn.RegistrableDomain.rawValue, Self.string(domain)) == SQLITE_OK,
             statement.bindDouble(ObservedDomainsColumn.LastSeen.rawValue, lastSeen) == SQLITE_OK,
             statement.bindInt(ObservedDomainsColumn.HadUserInteraction.rawValue, hadUserInteraction ? 1 : 0) == SQLITE_OK,
@@ -553,35 +835,25 @@ extension WebKit.ResourceLoadStatisticsStore {
                 return
             }
 
-            insertDomainRelationshipList(.StorageAccessUnderTopFrameDomains, storageAccessUnderTopFrameDomains, registrableDomainID)
-            insertDomainRelationshipList(.TopFrameUniqueRedirectsTo, topFrameUniqueRedirectsTo, registrableDomainID)
+            insertDomainRelationshipList(.storageAccessUnderTopFrameDomains, storageAccessUnderTopFrameDomains, registrableDomainID)
+            insertDomainRelationshipList(.topFrameUniqueRedirectsTo, topFrameUniqueRedirectsTo, registrableDomainID)
             insertDomainRelationshipList(
-                .TopFrameUniqueRedirectsToSinceSameSiteStrictEnforcement,
+                .topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement,
                 topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement,
                 registrableDomainID
             )
-            insertDomainRelationshipList(.TopFrameUniqueRedirectsFrom, topFrameUniqueRedirectsFrom, registrableDomainID)
-            insertDomainRelationshipList(.SubframeUnderTopFrameDomains, subframeUnderTopFrameDomains, registrableDomainID)
-            insertDomainRelationshipList(.SubresourceUnderTopFrameDomains, subresourceUnderTopFrameDomains, registrableDomainID)
-            insertDomainRelationshipList(.SubresourceUniqueRedirectsTo, subresourceUniqueRedirectsTo, registrableDomainID)
-            insertDomainRelationshipList(.SubresourceUniqueRedirectsFrom, subresourceUniqueRedirectsFrom, registrableDomainID)
-            insertDomainRelationshipList(.TopFrameLinkDecorationsFrom, topFrameLinkDecorationsFrom, registrableDomainID)
-            insertDomainRelationshipList(.TopFrameLoadedThirdPartyScripts, topFrameLoadedThirdPartyScripts, registrableDomainID)
-        }
-    }
-
-    // The INSERT OR REPLACE queries, which bind lastUpdated as their second parameter.
-    private static func bindsLastUpdated(_ query: WebKit.ResourceLoadStatisticsRelationshipQuery) -> Bool {
-        switch query {
-        case .SubframeUnderTopFrameDomains, .TopFrameLinkDecorationsFrom, .SubresourceUnderTopFrameDomains, .SubresourceUniqueRedirectsTo:
-            return true
-        default:
-            return false
+            insertDomainRelationshipList(.topFrameUniqueRedirectsFrom, topFrameUniqueRedirectsFrom, registrableDomainID)
+            insertDomainRelationshipList(.subframeUnderTopFrameDomains, subframeUnderTopFrameDomains, registrableDomainID)
+            insertDomainRelationshipList(.subresourceUnderTopFrameDomains, subresourceUnderTopFrameDomains, registrableDomainID)
+            insertDomainRelationshipList(.subresourceUniqueRedirectsTo, subresourceUniqueRedirectsTo, registrableDomainID)
+            insertDomainRelationshipList(.subresourceUniqueRedirectsFrom, subresourceUniqueRedirectsFrom, registrableDomainID)
+            insertDomainRelationshipList(.topFrameLinkDecorationsFrom, topFrameLinkDecorationsFrom, registrableDomainID)
+            insertDomainRelationshipList(.topFrameLoadedThirdPartyScripts, topFrameLoadedThirdPartyScripts, registrableDomainID)
         }
     }
 
     private func insertDomainRelationshipList(
-        _ query: WebKit.ResourceLoadStatisticsRelationshipQuery,
+        _ query: RelationshipQuery,
         _ domainList: WebKit.RegistrableDomainVector,
         _ domainID: UInt32
     ) {
@@ -602,7 +874,7 @@ extension WebKit.ResourceLoadStatisticsStore {
         }
 
         var domainBindStart: Int32 = 2
-        if Self.bindsLastUpdated(query) {
+        if query.bindsLastUpdated {
             guard insertRelationshipStatement.bindDouble(2, nowTime()) == SQLITE_OK else {
                 releaseLogDatabaseError("insertDomainRelationshipList: failed to bind second parameter")
                 return
@@ -624,7 +896,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     }
 
     private func insertDomainRelationshipList(
-        _ query: WebKit.ResourceLoadStatisticsRelationshipQuery,
+        _ query: RelationshipQuery,
         _ domain: WebCore.RegistrableDomain,
         _ domainID: UInt32
     ) {
@@ -646,7 +918,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     ) {
         assert(!WTF.RunLoop.isMain())
 
-        guard let statement = scopedStatement(.MostRecentUserInteraction, .SetUserInteraction),
+        guard let statement = scopedStatement(.mostRecentUserInteraction, "setUserInteraction"),
             statement.bindInt(1, hadUserInteraction ? 1 : 0) == SQLITE_OK,
             statement.bindDouble(2, mostRecentInteraction) == SQLITE_OK,
             statement.bindText(3, Self.string(domain)) == SQLITE_OK,
@@ -668,7 +940,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             }
 
             do {
-                guard let statement = scopedStatement(.ClearPrevalentResource, .ClearPrevalentResource),
+                guard let statement = scopedStatement(.clearPrevalentResource, "clearPrevalentResource"),
                     statement.bindText(1, Self.string(domain)) == SQLITE_OK,
                     statement.step() == SQLITE_DONE
                 else {
@@ -690,7 +962,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             }
 
             do {
-                guard let statement = scopedStatement(.UpdateGrandfathered, .SetGrandfathered),
+                guard let statement = scopedStatement(.updateGrandfathered, "setGrandfathered"),
                     statement.bindInt(1, value ? 1 : 0) == SQLITE_OK,
                     statement.bindText(2, Self.string(domain)) == SQLITE_OK,
                     statement.step() == SQLITE_DONE
@@ -716,8 +988,8 @@ extension WebKit.ResourceLoadStatisticsStore {
             do {
                 guard
                     let statement = scopedStatement(
-                        .UpdateIsScheduledForAllButCookieDataRemoval,
-                        .SetIsScheduledForAllScriptWrittenStorageRemoval
+                        .updateIsScheduledForAllButCookieDataRemoval,
+                        "setIsScheduledForAllScriptWrittenStorageRemoval"
                     ),
                     statement.bindInt(1, Int32(dataRemovalFrequency.rawValue)) == SQLITE_OK,
                     statement.bindText(2, Self.string(domain)) == SQLITE_OK,
@@ -743,7 +1015,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             }
 
             do {
-                guard let statement = scopedStatement(.UpdateMostRecentWebPushInteractionTime, .SetMostRecentWebPushInteractionTime),
+                guard let statement = scopedStatement(.updateMostRecentWebPushInteractionTime, "setMostRecentWebPushInteractionTime"),
                     statement.bindDouble(1, time) == SQLITE_OK,
                     statement.bindText(2, Self.string(domain)) == SQLITE_OK,
                     statement.step() == SQLITE_DONE
@@ -759,7 +1031,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     private func setRelationship(
         _ domain: WebCore.RegistrableDomain,
         _ reason: StaticString,
-        _ query: WebKit.ResourceLoadStatisticsRelationshipQuery,
+        _ query: RelationshipQuery,
         _ otherDomain: WebCore.RegistrableDomain
     ) {
         assert(!WTF.RunLoop.isMain())
@@ -777,25 +1049,25 @@ extension WebKit.ResourceLoadStatisticsStore {
     @cxx
     @implementation
     func setSubframeUnderTopFrameDomain(_ subFrameDomain: WebCore.RegistrableDomain, _ topFrameDomain: WebCore.RegistrableDomain) {
-        setRelationship(subFrameDomain, "setSubframeUnderTopFrameDomain", .SubframeUnderTopFrameDomains, topFrameDomain)
+        setRelationship(subFrameDomain, "setSubframeUnderTopFrameDomain", .subframeUnderTopFrameDomains, topFrameDomain)
     }
 
     @cxx
     @implementation
     func setSubresourceUnderTopFrameDomain(_ subresourceDomain: WebCore.RegistrableDomain, _ topFrameDomain: WebCore.RegistrableDomain) {
-        setRelationship(subresourceDomain, "setSubresourceUnderTopFrameDomain", .SubresourceUnderTopFrameDomains, topFrameDomain)
+        setRelationship(subresourceDomain, "setSubresourceUnderTopFrameDomain", .subresourceUnderTopFrameDomains, topFrameDomain)
     }
 
     @cxx
     @implementation
     func setSubresourceUniqueRedirectTo(_ subresourceDomain: WebCore.RegistrableDomain, _ redirectDomain: WebCore.RegistrableDomain) {
-        setRelationship(subresourceDomain, "setSubresourceUniqueRedirectTo", .SubresourceUniqueRedirectsTo, redirectDomain)
+        setRelationship(subresourceDomain, "setSubresourceUniqueRedirectTo", .subresourceUniqueRedirectsTo, redirectDomain)
     }
 
     @cxx
     @implementation
     func setSubresourceUniqueRedirectFrom(_ subresourceDomain: WebCore.RegistrableDomain, _ redirectDomain: WebCore.RegistrableDomain) {
-        setRelationship(subresourceDomain, "setSubresourceUniqueRedirectFrom", .SubresourceUniqueRedirectsFrom, redirectDomain)
+        setRelationship(subresourceDomain, "setSubresourceUniqueRedirectFrom", .subresourceUniqueRedirectsFrom, redirectDomain)
     }
 
     @cxx
@@ -809,15 +1081,15 @@ extension WebKit.ResourceLoadStatisticsStore {
                 return
             }
 
-            insertDomainRelationshipList(.TopFrameUniqueRedirectsTo, redirectDomain, domainID)
-            insertDomainRelationshipList(.TopFrameUniqueRedirectsToSinceSameSiteStrictEnforcement, redirectDomain, domainID)
+            insertDomainRelationshipList(.topFrameUniqueRedirectsTo, redirectDomain, domainID)
+            insertDomainRelationshipList(.topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement, redirectDomain, domainID)
         }
     }
 
     @cxx
     @implementation
     func setTopFrameUniqueRedirectFrom(_ topFrameDomain: WebCore.RegistrableDomain, _ redirectDomain: WebCore.RegistrableDomain) {
-        setRelationship(topFrameDomain, "setTopFrameUniqueRedirectFrom", .TopFrameUniqueRedirectsFrom, redirectDomain)
+        setRelationship(topFrameDomain, "setTopFrameUniqueRedirectFrom", .topFrameUniqueRedirectsFrom, redirectDomain)
     }
 
     @cxx
@@ -836,7 +1108,7 @@ extension WebKit.ResourceLoadStatisticsStore {
         assert(!WTF.RunLoop.isMain())
 
         do {
-            guard let statement = scopedStatement(.DomainIDFromString, .EnsureResourceStatisticsForRegistrableDomain),
+            guard let statement = scopedStatement(.domainIDFromString, "ensureResourceStatisticsForRegistrableDomain"),
                 statement.bindText(1, Self.string(domain)) == SQLITE_OK
             else {
                 releaseLogDatabaseError("ensureResourceStatisticsForRegistrableDomain: reason \(reason.text), failed to bind parameter")
@@ -884,7 +1156,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     private func updateLastSeenRecord(_ domain: WebCore.RegistrableDomain, _ lastSeen: Double) {
         assert(!WTF.RunLoop.isMain())
 
-        guard let statement = scopedStatement(.UpdateLastSeen, .UpdateLastSeen),
+        guard let statement = scopedStatement(.updateLastSeen, "updateLastSeen"),
             statement.bindDouble(1, lastSeen) == SQLITE_OK,
             statement.bindText(2, Self.string(domain)) == SQLITE_OK,
             statement.step() == SQLITE_DONE
@@ -911,7 +1183,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     private func updateDataRecordsRemoved(_ domain: WebCore.RegistrableDomain, _ value: Int32) {
         assert(!WTF.RunLoop.isMain())
 
-        guard let statement = scopedStatement(.UpdateDataRecordsRemoved, .UpdateDataRecordsRemoved),
+        guard let statement = scopedStatement(.updateDataRecordsRemoved, "updateDataRecordsRemoved"),
             statement.bindInt(1, value) == SQLITE_OK,
             statement.bindText(2, Self.string(domain)) == SQLITE_OK,
             statement.step() == SQLITE_DONE
@@ -925,6 +1197,177 @@ extension WebKit.ResourceLoadStatisticsStore {
 // MARK: Statistics merge
 
 extension WebKit.ResourceLoadStatisticsStore {
+    /// Merges the statistics a web process sends, in one transaction: each domain's record first, then, once every
+    /// domain has a record, its relationships.
+    ///
+    /// A domain whose record cannot be inserted ends the merge, keeping what was merged before it.
+    func mergeStatistics(_ statistics: [IPCTypes.ResourceLoadStatistics]) {
+        merge(
+            statistics.map { statistic in
+                MergedStatistic(
+                    domain: .fromIPC(statistic.registrableDomain),
+                    lastSeen: statistic.lastSeen,
+                    hadUserInteraction: statistic.hadUserInteraction,
+                    mostRecentUserInteractionTime: statistic.mostRecentUserInteractionTime,
+                    grandfathered: statistic.grandfathered,
+                    isPrevalentResource: statistic.isPrevalentResource,
+                    isVeryPrevalentResource: statistic.isVeryPrevalentResource,
+                    dataRecordsRemoved: statistic.dataRecordsRemoved,
+                    timesAccessedAsFirstPartyDueToUserInteraction: statistic.timesAccessedAsFirstPartyDueToUserInteraction,
+                    timesAccessedAsFirstPartyDueToStorageAccessAPI: statistic.timesAccessedAsFirstPartyDueToStorageAccessAPI,
+                    gotLinkDecorationFromPrevalentResource: statistic.gotLinkDecorationFromPrevalentResource,
+                    storageAccessUnderTopFrameDomains: Self.registrableDomainVector(statistic.storageAccessUnderTopFrameDomains),
+                    topFrameUniqueRedirectsTo: Self.registrableDomainVector(statistic.topFrameUniqueRedirectsTo),
+                    topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement: Self.registrableDomainVector(
+                        statistic.topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement
+                    ),
+                    topFrameUniqueRedirectsFrom: Self.registrableDomainVector(statistic.topFrameUniqueRedirectsFrom),
+                    subframeUnderTopFrameDomains: Self.registrableDomainVector(statistic.subframeUnderTopFrameDomains),
+                    subresourceUnderTopFrameDomains: Self.registrableDomainVector(statistic.subresourceUnderTopFrameDomains),
+                    subresourceUniqueRedirectsTo: Self.registrableDomainVector(statistic.subresourceUniqueRedirectsTo),
+                    subresourceUniqueRedirectsFrom: Self.registrableDomainVector(statistic.subresourceUniqueRedirectsFrom),
+                    topFrameLinkDecorationsFrom: Self.registrableDomainVector(statistic.topFrameLinkDecorationsFrom),
+                    topFrameLoadedThirdPartyScripts: Self.registrableDomainVector(statistic.topFrameLoadedThirdPartyScripts)
+                )
+            }
+        )
+    }
+
+    /// Merges one statistic with at most two top frames it was a subframe under, as a test asks.
+    func mergeStatisticForTesting(
+        _ domain: WebCore.RegistrableDomain,
+        _ topFrameDomain1: WebCore.RegistrableDomain,
+        _ topFrameDomain2: WebCore.RegistrableDomain,
+        _ lastSeen: WTF.Seconds,
+        _ hadUserInteraction: Bool,
+        _ mostRecentUserInteraction: WTF.Seconds,
+        _ isGrandfathered: Bool,
+        _ isPrevalent: Bool,
+        _ isVeryPrevalent: Bool,
+        _ dataRecordsRemoved: UInt32
+    ) {
+        var topFrameDomains = WebKit.RegistrableDomainVector()
+        if !topFrameDomain1.isEmpty() {
+            topFrameDomains.append(consuming: topFrameDomain1)
+        }
+        if !topFrameDomain2.isEmpty() {
+            topFrameDomains.append(consuming: topFrameDomain2)
+        }
+        // A set with no reserve has the reserve's minimum table for two elements or fewer, so the order is the same.
+        merge([
+            MergedStatistic(
+                domain: domain,
+                lastSeen: lastSeen.value(),
+                hadUserInteraction: hadUserInteraction,
+                mostRecentUserInteractionTime: mostRecentUserInteraction.value(),
+                grandfathered: isGrandfathered,
+                isPrevalentResource: isPrevalent,
+                isVeryPrevalentResource: isVeryPrevalent,
+                dataRecordsRemoved: dataRecordsRemoved,
+                subframeUnderTopFrameDomains: Self.inDecodedHashSetOrderForSwift(consuming: topFrameDomains)
+            )
+        ])
+    }
+
+    /// A statistic as the merge reads it, its relationship sets as Vectors in the C++ sets' order.
+    private struct MergedStatistic {
+        var domain: WebCore.RegistrableDomain
+        var lastSeen: Double
+        var hadUserInteraction: Bool
+        var mostRecentUserInteractionTime: Double
+        var grandfathered: Bool
+        var isPrevalentResource: Bool
+        var isVeryPrevalentResource: Bool
+        var dataRecordsRemoved: UInt32
+        var timesAccessedAsFirstPartyDueToUserInteraction: UInt32 = 0
+        var timesAccessedAsFirstPartyDueToStorageAccessAPI: UInt32 = 0
+        var gotLinkDecorationFromPrevalentResource = false
+        var storageAccessUnderTopFrameDomains = WebKit.RegistrableDomainVector()
+        var topFrameUniqueRedirectsTo = WebKit.RegistrableDomainVector()
+        var topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement = WebKit.RegistrableDomainVector()
+        var topFrameUniqueRedirectsFrom = WebKit.RegistrableDomainVector()
+        var subframeUnderTopFrameDomains = WebKit.RegistrableDomainVector()
+        var subresourceUnderTopFrameDomains = WebKit.RegistrableDomainVector()
+        var subresourceUniqueRedirectsTo = WebKit.RegistrableDomainVector()
+        var subresourceUniqueRedirectsFrom = WebKit.RegistrableDomainVector()
+        var topFrameLinkDecorationsFrom = WebKit.RegistrableDomainVector()
+        var topFrameLoadedThirdPartyScripts = WebKit.RegistrableDomainVector()
+    }
+
+    /// Merges statistics in one transaction.
+    ///
+    /// Each domain's record goes first, then, once every domain has a record, its relationships. A domain whose record
+    /// cannot be inserted ends the merge, keeping what was merged before it.
+    private func merge(_ statistics: [MergedStatistic]) {
+        assert(!WTF.RunLoop.isMain())
+        if statistics.isEmpty {
+            return
+        }
+
+        withTransaction {
+            for statistic in statistics {
+                if existingDomainID(statistic.domain) == nil {
+                    let inserted = insertObservedDomainRecord(
+                        statistic.domain,
+                        statistic.lastSeen,
+                        statistic.hadUserInteraction,
+                        statistic.mostRecentUserInteractionTime,
+                        statistic.grandfathered,
+                        statistic.isPrevalentResource,
+                        statistic.isVeryPrevalentResource,
+                        statistic.dataRecordsRemoved,
+                        statistic.timesAccessedAsFirstPartyDueToUserInteraction,
+                        statistic.timesAccessedAsFirstPartyDueToStorageAccessAPI,
+                        statistic.gotLinkDecorationFromPrevalentResource
+                    )
+                    guard inserted else {
+                        releaseLogError("mergeStatistics: failed to insert observed domain")
+                        return
+                    }
+                } else {
+                    mergeStatistic(
+                        statistic.domain,
+                        WTF.WallTime.fromSecondsSinceEpoch(WTF.Seconds(statistic.lastSeen)),
+                        statistic.hadUserInteraction,
+                        WTF.WallTime.fromSecondsSinceEpoch(WTF.Seconds(statistic.mostRecentUserInteractionTime)),
+                        statistic.grandfathered,
+                        statistic.isPrevalentResource,
+                        statistic.isVeryPrevalentResource,
+                        statistic.dataRecordsRemoved,
+                        statistic.gotLinkDecorationFromPrevalentResource
+                    )
+                }
+            }
+
+            for statistic in statistics {
+                insertDomainRelationshipsRecord(
+                    statistic.domain,
+                    statistic.storageAccessUnderTopFrameDomains,
+                    statistic.topFrameUniqueRedirectsTo,
+                    statistic.topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement,
+                    statistic.topFrameUniqueRedirectsFrom,
+                    statistic.subframeUnderTopFrameDomains,
+                    statistic.subresourceUnderTopFrameDomains,
+                    statistic.subresourceUniqueRedirectsTo,
+                    statistic.subresourceUniqueRedirectsFrom,
+                    statistic.topFrameLinkDecorationsFrom,
+                    statistic.topFrameLoadedThirdPartyScripts
+                )
+            }
+        }
+    }
+
+    /// The C++ vector of a relationship set, in the order the C++ decoder's HashSet would have given it.
+    private static func registrableDomainVector(
+        _ domains: IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>
+    ) -> WebKit.RegistrableDomainVector {
+        var vector = WebKit.RegistrableDomainVector()
+        for domain in domains.elementsInWireOrder {
+            vector.append(consuming: .fromIPC(domain))
+        }
+        return inDecodedHashSetOrderForSwift(consuming: vector)
+    }
+
     // The ResourceLoadStatistics fields that merging reads: Swift cannot take the struct itself, since its HashSet
     // members import as unsafe.
     @cxx
@@ -943,7 +1386,7 @@ extension WebKit.ResourceLoadStatisticsStore {
         assert(!WTF.RunLoop.isMain())
 
         withTransaction {
-            guard let current = scopedStatement(.GetResourceDataByDomainName, .MergeStatistic),
+            guard let current = scopedStatement(.getResourceDataByDomainName, "mergeStatistic"),
                 current.bindText(1, Self.string(registrableDomain)) == SQLITE_OK,
                 current.step() == SQLITE_ROW
             else {
@@ -1344,7 +1787,7 @@ extension WebKit.ResourceLoadStatisticsStore {
                     return
                 }
 
-                guard let updatePrevalentResourceStatement = scopedStatement(.UpdatePrevalentResource, .SetPrevalentResource),
+                guard let updatePrevalentResourceStatement = scopedStatement(.updatePrevalentResource, "setPrevalentResource"),
                     updatePrevalentResourceStatement.bindInt(1, 1) == SQLITE_OK,
                     updatePrevalentResourceStatement.bindText(2, Self.string(domain)) == SQLITE_OK,
                     updatePrevalentResourceStatement.step() == SQLITE_DONE
@@ -1354,8 +1797,8 @@ extension WebKit.ResourceLoadStatisticsStore {
                 }
 
                 let updateVeryPrevalentResourceStatement = scopedStatement(
-                    .UpdateVeryPrevalentResource,
-                    .SetPrevalentResourceUpdateVeryPrevalentResource
+                    .updateVeryPrevalentResource,
+                    "setPrevalentResource updateVeryPrevalentResource"
                 )
                 if newPrevalence == WebKit.VeryHigh {
                     guard let updateVeryPrevalentResourceStatement,
@@ -1448,7 +1891,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     func pruneStatisticsIfNeeded() {
         assert(!WTF.RunLoop.isMain())
 
-        guard let statement = scopedStatement(.ObservedDomainCount, .PruneStatisticsIfNeeded) else {
+        guard let statement = scopedStatement(.observedDomainCount, "pruneStatisticsIfNeeded") else {
             return
         }
 
@@ -1545,6 +1988,21 @@ extension WebKit.ResourceLoadStatisticsStore {
         return .OnlyIfGranted
     }
 
+    func storageAccessPermission(
+        _ subFrameDomain: WebCore.RegistrableDomain,
+        _ topFrameDomain: WebCore.RegistrableDomain
+    ) -> WebCore.PermissionState {
+        assert(!WTF.RunLoop.isMain())
+
+        guard let subFrameDomainID = Optional(fromCxx: domainID(subFrameDomain)),
+            hasUserGrantedStorageAccessThroughPrompt(subFrameDomainID, topFrameDomain)
+        else {
+            return .Prompt
+        }
+
+        return .Granted
+    }
+
     // StorageAccessPromptWasShown::Yes as true.
     @cxx
     @implementation
@@ -1583,7 +2041,7 @@ extension WebKit.ResourceLoadStatisticsStore {
             return subFrameStatus
         }
 
-        insertDomainRelationshipList(.StorageAccessUnderTopFrameDomains, topFrameDomain, subFrameDomainID)
+        insertDomainRelationshipList(.storageAccessUnderTopFrameDomains, topFrameDomain, subFrameDomainID)
         return subFrameStatus
     }
 
@@ -1727,7 +2185,7 @@ extension WebKit.ResourceLoadStatisticsStore {
                 }
 
                 updateLastSeenRecord(targetDomain, Self.reduceTimeResolution(WTF.Seconds(nowTime())).value())
-                insertDomainRelationshipList(.SubframeUnderTopFrameDomains, topFrameDomain, targetDomainID)
+                insertDomainRelationshipList(.subframeUnderTopFrameDomains, topFrameDomain, targetDomainID)
                 statisticsWereUpdated = true
             }
 
@@ -1745,10 +2203,10 @@ extension WebKit.ResourceLoadStatisticsStore {
                             return
                         }
 
-                        insertDomainRelationshipList(.TopFrameUniqueRedirectsTo, targetDomain, redirectingDomainID)
+                        insertDomainRelationshipList(.topFrameUniqueRedirectsTo, targetDomain, redirectingDomainID)
                         if isRedirect {
                             insertDomainRelationshipList(
-                                .TopFrameUniqueRedirectsToSinceSameSiteStrictEnforcement,
+                                .topFrameUniqueRedirectsToSinceSameSiteStrictEnforcement,
                                 targetDomain,
                                 redirectingDomainID
                             )
@@ -1766,7 +2224,7 @@ extension WebKit.ResourceLoadStatisticsStore {
                                 )
                             }
                         }
-                        insertDomainRelationshipList(.TopFrameUniqueRedirectsFrom, sourceDomain, targetDomainID)
+                        insertDomainRelationshipList(.topFrameUniqueRedirectsFrom, sourceDomain, targetDomainID)
                         statisticsWereUpdated = true
                     }
                 } else if isRedirect {
@@ -1778,8 +2236,8 @@ extension WebKit.ResourceLoadStatisticsStore {
                         return
                     }
 
-                    insertDomainRelationshipList(.SubresourceUniqueRedirectsTo, targetDomain, redirectingDomainID)
-                    insertDomainRelationshipList(.SubresourceUniqueRedirectsFrom, sourceDomain, targetDomainID)
+                    insertDomainRelationshipList(.subresourceUniqueRedirectsTo, targetDomain, redirectingDomainID)
+                    insertDomainRelationshipList(.subresourceUniqueRedirectsFrom, sourceDomain, targetDomainID)
                     statisticsWereUpdated = true
                 }
             }
@@ -1806,7 +2264,7 @@ extension WebKit.ResourceLoadStatisticsStore {
                 return
             }
 
-            insertDomainRelationshipList(.TopFrameLinkDecorationsFrom, fromDomain, toDomainID)
+            insertDomainRelationshipList(.topFrameLinkDecorationsFrom, fromDomain, toDomainID)
 
             let currentDataRemovalFrequency = dataRemovalFrequency(toDomain)
             if currentDataRemovalFrequency == .Short {
@@ -1855,7 +2313,7 @@ extension WebKit.ResourceLoadStatisticsStore {
         return withTransaction {
             let mostRecentUserInteractionTime: Double
             do {
-                guard let statement = scopedStatement(.HadUserInteraction, .HasHadUserInteraction),
+                guard let statement = scopedStatement(.hadUserInteraction, "hasHadUserInteraction"),
                     statement.bindText(1, Self.string(domain)) == SQLITE_OK,
                     statement.step() == SQLITE_ROW
                 else {
@@ -2356,20 +2814,18 @@ private struct DumpPieces {
 
 // The dump's per-domain statements, reset and bound again for each domain.
 private struct DumpStatements: ~Copyable {
-    typealias Statement = WebKit.ResourceLoadStatisticsStore.SQLStatement
-
-    let storageAccessUnderTopFrameDomains: Statement?
-    let topFrameUniqueRedirectsTo: Statement?
-    let topFrameUniqueRedirectsFrom: Statement?
-    let topFrameLinkDecorationsFrom: Statement?
-    let topFrameLoadedThirdPartyScripts: Statement?
-    let subframeUnderTopFrameDomains: Statement?
-    let subresourceUnderTopFrameDomains: Statement?
-    let subresourceUniqueRedirectsTo: Statement?
-    let subresourceUniqueRedirectsFrom: Statement?
+    let storageAccessUnderTopFrameDomains: WebKit.ResourceLoadStatisticsStore.SQLStatement?
+    let topFrameUniqueRedirectsTo: WebKit.ResourceLoadStatisticsStore.SQLStatement?
+    let topFrameUniqueRedirectsFrom: WebKit.ResourceLoadStatisticsStore.SQLStatement?
+    let topFrameLinkDecorationsFrom: WebKit.ResourceLoadStatisticsStore.SQLStatement?
+    let topFrameLoadedThirdPartyScripts: WebKit.ResourceLoadStatisticsStore.SQLStatement?
+    let subframeUnderTopFrameDomains: WebKit.ResourceLoadStatisticsStore.SQLStatement?
+    let subresourceUnderTopFrameDomains: WebKit.ResourceLoadStatisticsStore.SQLStatement?
+    let subresourceUniqueRedirectsTo: WebKit.ResourceLoadStatisticsStore.SQLStatement?
+    let subresourceUniqueRedirectsFrom: WebKit.ResourceLoadStatisticsStore.SQLStatement?
 
     init(_ database: WebKit.ResourceLoadStatisticsStore.Database, _ pieces: DumpPieces) {
-        func prepare(_ table: SubStatisticTable) -> Statement? {
+        func prepare(_ table: SubStatisticTable) -> WebKit.ResourceLoadStatisticsStore.SQLStatement? {
             guard let query = pieces.query(table) else {
                 return nil
             }
@@ -2410,7 +2866,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     private static var noExistingTimestamp: WTF.Seconds { WTF.Seconds(-1) }
 
     private func hasStorageAccess(_ topFrameDomain: WebCore.RegistrableDomain, _ subFrameDomain: WebCore.RegistrableDomain) -> Bool {
-        let statement = scopedStatement(.StorageAccessExists, .HasStorageAccess)
+        let statement = scopedStatement(.storageAccessExists, "hasStorageAccess")
         return relationshipExists(statement, existingDomainID(subFrameDomain), topFrameDomain)
     }
 
@@ -2420,7 +2876,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     ) -> WebKit.ITPThirdPartyDataForSpecificFirstPartyVector {
         var thirdPartyDataForSpecificFirstPartyDomains = WebKit.ITPThirdPartyDataForSpecificFirstPartyVector()
         let domainIDValue = Int32(truncatingIfNeeded: thirdPartyDomainID)
-        guard let statement = scopedStatement(.GetAllSubStatistics, .GetThirdPartyDataForSpecificFirstPartyDomains),
+        guard let statement = scopedStatement(.getAllSubStatistics, "getThirdPartyDataForSpecificFirstPartyDomains"),
             statement.bindInt(1, domainIDValue) == SQLITE_OK,
             statement.bindInt(2, domainIDValue) == SQLITE_OK,
             statement.bindInt(3, domainIDValue) == SQLITE_OK
@@ -2497,7 +2953,7 @@ extension WebKit.ResourceLoadStatisticsStore {
 
         let subFrameDomainIDValue = Int32(truncatingIfNeeded: subFrameDomainID)
         let topFrameDomainIDValue = Int32(truncatingIfNeeded: topFrameDomainID)
-        guard let statement = scopedStatement(.GetMostRecentlyUpdatedTimestamp, .GetMostRecentlyUpdatedTimestamp),
+        guard let statement = scopedStatement(.getMostRecentlyUpdatedTimestamp, "getMostRecentlyUpdatedTimestamp"),
             statement.bindInt(1, subFrameDomainIDValue) == SQLITE_OK,
             statement.bindInt(2, topFrameDomainIDValue) == SQLITE_OK,
             statement.bindInt(3, subFrameDomainIDValue) == SQLITE_OK,
@@ -2618,7 +3074,7 @@ extension WebKit.ResourceLoadStatisticsStore {
         _ statements: borrowing DumpStatements,
         _ domain: WTF.String
     ) {
-        guard let statement = scopedStatement(.GetResourceDataByDomainName, .ResourceToString),
+        guard let statement = scopedStatement(.getResourceDataByDomainName, "resourceToString"),
             statement.bindText(1, domain) == SQLITE_OK,
             statement.step() == SQLITE_ROW
         else {
@@ -2685,7 +3141,7 @@ extension WebKit.ResourceLoadStatisticsStore {
     func dumpResourceLoadStatisticsText() -> WTF.String {
         var domains: [(text: Swift.String, domain: WTF.String)] = []
         do {
-            guard let statement = scopedStatement(.GetAllDomains, .DumpResourceLoadStatistics) else {
+            guard let statement = scopedStatement(.getAllDomains, "dumpResourceLoadStatistics") else {
                 return WTF.String()
             }
             while statement.step() == SQLITE_ROW {
@@ -2958,7 +3414,7 @@ extension WebKit.ResourceLoadStatisticsStore {
 
             // Make sure mostRecentUserInteractionTime is the least recent of all entries.
             daysAgoInSeconds -= secondsPerDay
-            guard let statement = scopedStatement(.InsertObservedDomain, .InsertExpiredStatisticForTesting),
+            guard let statement = scopedStatement(.insertObservedDomain, "insertExpiredStatisticForTesting"),
                 statement.bindText(ObservedDomainsColumn.RegistrableDomain.rawValue, Self.string(domain)) == SQLITE_OK,
                 statement.bindDouble(ObservedDomainsColumn.LastSeen.rawValue, daysAgoInSeconds) == SQLITE_OK,
                 statement.bindInt(ObservedDomainsColumn.HadUserInteraction.rawValue, hasUserInteraction ? 1 : 0) == SQLITE_OK,
@@ -2990,21 +3446,11 @@ extension WebKit.ResourceLoadStatisticsStore {
 
 #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
 
-// The function objects the store's members are called with on the statistics queue (WebResourceLoadStatisticsStore.h),
+// The function objects the store's members are called with on the statistics actor (WebResourceLoadStatisticsStore.h),
 // so that Swift can build them from closures. `CxxCompletionHandler` also gives each one a continuation initializer
 // whose `Argument: Sendable` bound is only a warning for a C++ type: for an argument that is not `Sendable` it would
-// carry the queue's value to the continuation's thread. Those conformances declare an `@unsafe` initializer of the same
+// carry the actor's value to the continuation's thread. Those conformances declare an `@unsafe` initializer of the same
 // shape, which overload resolution prefers, so that such a call does not compile without `unsafe`.
-
-extension WebKit.StatisticsQueueTask: @unsafe CxxCompletionHandler {
-    typealias Argument = WebKit.ResourceLoadStatisticsStore?
-
-    /// Do not use: the statistics queue's store would reach the continuation's thread.
-    @unsafe
-    init(_ continuation: CheckedContinuation<WebKit.ResourceLoadStatisticsStore?, some Error>) {
-        preconditionFailure("The statistics queue's store must not leave that queue")
-    }
-}
 
 extension WebKit.StorageAccessStatusCompletionHandler: @unsafe CxxCompletionHandler {
     typealias Argument = WebKit.StorageAccessStatus
@@ -3014,14 +3460,10 @@ extension WebKit.StorageAccessWasGrantedCompletionHandler: @unsafe CxxCompletion
     typealias Argument = WebCore.StorageAccessWasGranted
 }
 
-extension WebKit.PermissionStateCompletionHandler: @unsafe CxxCompletionHandler {
-    typealias Argument = WebCore.PermissionState
-}
-
 extension WebKit.StatisticsStringCompletionHandler: @unsafe CxxCompletionHandler {
     typealias Argument = WTF.String
 
-    /// Do not use: a `WTF.String` made on the statistics queue would reach the continuation's thread, and its reference
+    /// Do not use: a `WTF.String` made on the statistics actor would reach the continuation's thread, and its reference
     /// count is not atomic.
     @unsafe
     init(_ continuation: CheckedContinuation<WTF.String, some Error>) {
@@ -3030,3 +3472,905 @@ extension WebKit.StatisticsStringCompletionHandler: @unsafe CxxCompletionHandler
 }
 
 #endif // compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
+
+// MARK: Main posts and round trips, on the statistics actor
+
+/// A completion run once every holder has let go of it: `CallbackAggregator`, on the statistics actor.
+private final class StatisticsCallbackAggregator {
+    private let completion: () -> Void
+
+    init(_ completion: @escaping () -> Void) {
+        self.completion = completion
+    }
+
+    deinit {
+        completion()
+    }
+}
+
+/// The store's members that post to main or wait on main, run on the statistics actor. Each main part goes through the
+/// actor after the posts made before it, and each second part runs there with the store, or with none when the store
+/// is gone.
+extension WebKit.ResourceLoadStatisticsStore {
+    private var actorSessionID: UInt64 {
+        m_sessionID.toUInt64()
+    }
+
+    private static func cxxDomains(_ domains: [StatisticsDomain]) -> WebKit.RegistrableDomainVector {
+        var vector = WebKit.RegistrableDomainVector()
+        for domain in domains {
+            vector.append(consuming: domain.cxxDomain)
+        }
+        return vector
+    }
+
+    /// A C++ caller's domain list (WebResourceLoadStatisticsStore::registrableDomains() and its siblings).
+    func answer(_ query: StatisticsDomainListRequest, on actor: isolated StatisticsActor) -> StatisticsDomainList {
+        assert(!WTF.RunLoop.isMain())
+        var domains = WebKit.RegistrableDomainVector()
+        var times = WebKit.StatisticsTimeVector()
+        var hasValue = true
+        switch query {
+        case .allDomains:
+            domains = allDomains()
+        case .allDomainsWithLastAccessedTime:
+            domainsWithLastAccessedTimeForSwift(&domains, &times)
+        case .domainsExemptFromWebsiteDataDeletion:
+            domains = domainsExemptFromWebsiteDataDeletionForSwift()
+        case .websitesWithUserInteraction:
+            hasValue = websitesWithUserInteractionForSwift(&domains, &times)
+        }
+        return StatisticsDomainList(
+            hasValue: hasValue,
+            domains: StatisticsDomain.list(domains),
+            times: (0..<times.size()).map { times[$0] }
+        )
+    }
+
+    /// A C++ caller's request whose work completes later; `completion` runs on the actor when it does.
+    func run(
+        _ request: StatisticsCompletingRequest,
+        on actor: isolated StatisticsActor,
+        currentStore: @escaping () -> WebKit.ResourceLoadStatisticsStore?,
+        then completion: @escaping () -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+        switch request {
+        case .populateMemoryStoreFromDisk:
+            if isNewResourceLoadStatisticsDatabaseFile() {
+                grandfatherExistingWebsiteData(on: actor) { _ in completion() }
+                setIsNewResourceLoadStatisticsDatabaseFile(false)
+            } else {
+                logTestingEvent("PopulatedWithoutGrandfathering", on: actor)
+                completion()
+            }
+        case .clearInMemoryAndPersistent(let shouldGrandfather):
+            let callbackAggregator = StatisticsCallbackAggregator(completion)
+            clear(on: actor) {
+                guard shouldGrandfather else {
+                    _ = callbackAggregator
+                    return
+                }
+                guard let store = currentStore() else {
+                    Self.releaseLogClear("After being cleared, m_statisticsStore is null when trying to grandfather data.")
+                    _ = callbackAggregator
+                    return
+                }
+                store.grandfatherExistingWebsiteData(on: actor) { _ in _ = callbackAggregator }
+                store.setIsNewResourceLoadStatisticsDatabaseFile(true)
+            }
+            cancelPendingStatisticsProcessingRequest()
+        }
+    }
+
+    private static func releaseLogClear(_ message: Swift.String) {
+        WebKit.LogChannel.ResourceLoadStatistics().releaseLog
+            .log("WebResourceLoadStatisticsStore::scheduleClearInMemoryAndPersistent \(message, privacy: .public)")
+    }
+
+    /// The statistics processing the delayed request runs, once it is known to be the store's pending one.
+    func processStatisticsRequest(on actor: isolated StatisticsActor) {
+        updateCookieBlocking(on: actor) {}
+        processStatisticsAndDataRecords(on: actor) {}
+    }
+
+    func updateCookieBlocking(on actor: isolated StatisticsActor, then completion: @escaping () -> Void) {
+        assert(!WTF.RunLoop.isMain())
+
+        let domainsToBlock = domainsToBlockCookiesFor()
+        if domainsToBlock.isEmpty() {
+            completion()
+            return
+        }
+        let domains = StatisticsDomainsToBlockCookiesFor(statistics: domainsToBlock)
+        actor.roundTrip(
+            actorSessionID,
+            mainPart: { mainSide, inbox, id, generation in mainSide.updateCookieBlocking(domains, inbox, id, generation) },
+            then: { store, _ in
+                completion()
+                store?.logCookieBlockingDoneForSwift()
+            }
+        )
+    }
+
+    func updateCookieBlockingForDomains(
+        _ domainsToBlock: borrowing WebKit.RegistrableDomainsToBlockCookiesFor,
+        on actor: isolated StatisticsActor,
+        then completion: @escaping () -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        let domains = StatisticsDomainsToBlockCookiesFor(statistics: domainsToBlock)
+        actor.roundTrip(
+            actorSessionID,
+            mainPart: { mainSide, inbox, id, generation in mainSide.updateCookieBlocking(domains, inbox, id, generation) },
+            then: { _, _ in
+                completion()
+            }
+        )
+    }
+
+    /// Removes the website data of the domains the store classified, then counts the removals; `completion` gets the
+    /// store, or nil when it went away meanwhile.
+    func removeDataRecords(
+        on actor: isolated StatisticsActor,
+        then completion: @escaping (WebKit.ResourceLoadStatisticsStore?) -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        if !shouldRemoveDataRecords() {
+            completion(self)
+            return
+        }
+
+        let domainsToDeleteOrRestrictWebsiteDataFor = registrableDomainsToDeleteOrRestrictWebsiteDataFor()
+        if domainsToDeleteOrRestrictWebsiteDataFor.isEmpty() {
+            completion(self)
+            return
+        }
+
+        if m_debugLoggingEnabled {
+            logAboutToRemoveDataRecordsForSwift(domainsToDeleteOrRestrictWebsiteDataFor)
+        }
+
+        setDataRecordsBeingRemoved(true)
+
+        let domains = StatisticsDomainsToDeleteOrRestrictWebsiteDataFor(statistics: domainsToDeleteOrRestrictWebsiteDataFor)
+        actor.roundTrip(
+            actorSessionID,
+            mainPart: { mainSide, inbox, id, generation in
+                mainSide.deleteAndRestrictWebsiteData(domains, inbox, id, generation)
+            },
+            then: { store, outcome in
+                guard let store else {
+                    completion(nil)
+                    return
+                }
+                store.incrementRecordsDeletedCountForDomainsForSwift(consuming: Self.cxxDomains(outcome.domains))
+                store.setDataRecordsBeingRemoved(false)
+
+                var waiters = store.takeDataRecordRemovalWaitersForSwift()
+                completion(store)
+                waiters.run(store)
+
+                if store.m_debugLoggingEnabled {
+                    store.debugModeReleaseLog("Done removing data records.")
+                    store.debugBroadcastConsoleMessage(.ITPDebug, .Info, WTF.String("[ITP] Done removing data records"))
+                }
+            }
+        )
+    }
+
+    func processStatisticsAndDataRecords(on actor: isolated StatisticsActor, then completion: @escaping () -> Void) {
+        assert(!WTF.RunLoop.isMain())
+
+        if m_parameters.shouldClassifyResourcesBeforeDataRecordsRemoval {
+            classifyPrevalentResources()
+        }
+
+        removeDataRecords(on: actor) { store in
+            guard let store else {
+                completion()
+                return
+            }
+            store.pruneStatisticsIfNeeded()
+            store.logTestingEvent("Storage Synced", on: actor)
+            completion()
+        }
+    }
+
+    /// Marks the domains that have website data now as grandfathered; `completion` gets the store, or nil when it went
+    /// away meanwhile.
+    func grandfatherExistingWebsiteData(
+        on actor: isolated StatisticsActor,
+        then completion: @escaping (WebKit.ResourceLoadStatisticsStore?) -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        actor.roundTrip(
+            actorSessionID,
+            mainPart: { mainSide, inbox, id, generation in mainSide.registrableDomainsWithWebsiteData(inbox, id, generation) },
+            then: { store, outcome in
+                guard let store else {
+                    completion(nil)
+                    return
+                }
+                store.grandfatherDataForDomainsForSwift(consuming: Self.cxxDomains(outcome.domains))
+                completion(store)
+                store.logTestingEvent("Grandfathered", on: actor)
+            }
+        )
+    }
+
+    func logTestingEvent(_ event: Swift.String, on actor: isolated StatisticsActor) {
+        assert(!WTF.RunLoop.isMain())
+
+        actor.post(actorSessionID) { mainSide in mainSide.logTestingEvent(event) }
+    }
+
+    func updateClientSideCookiesAgeCap(on actor: isolated StatisticsActor) {
+        assert(!WTF.RunLoop.isMain())
+
+        let seconds = clientSideCookiesAgeCapForSwift().value()
+        actor.post(actorSessionID) { mainSide in mainSide.setAgeCapForClientSideCookies(seconds) }
+    }
+
+    func removeAllStorageAccess(on actor: isolated StatisticsActor, then completion: @escaping () -> Void) {
+        assert(!WTF.RunLoop.isMain())
+
+        actor.roundTrip(
+            actorSessionID,
+            mainPart: { mainSide, inbox, id, generation in mainSide.removeAllStorageAccess(inbox, id, generation) },
+            then: { _, _ in
+                completion()
+            }
+        )
+    }
+
+    func didCreateNetworkProcess(on actor: isolated StatisticsActor) {
+        assert(!WTF.RunLoop.isMain())
+
+        updateCookieBlocking(on: actor) {}
+        updateCacheMaxAgeCap()
+        updateClientSideCookiesAgeCap(on: actor)
+    }
+
+    func clear(on actor: isolated StatisticsActor, then completion: @escaping () -> Void) {
+        assert(!WTF.RunLoop.isMain())
+
+        clearDatabaseContents()
+
+        let callbackAggregator = StatisticsCallbackAggregator(completion)
+
+        removeAllStorageAccess(on: actor) { _ = callbackAggregator }
+
+        var domainsToBlock = WebKit.RegistrableDomainsToBlockCookiesFor()
+        domainsToBlock.domainsToBlockAndDeleteCookiesFor = ensurePrevalentResourcesForDebugMode()
+        updateCookieBlockingForDomains(domainsToBlock, on: actor) { _ = callbackAggregator }
+    }
+
+    func logUserInteraction(
+        _ domain: WebCore.RegistrableDomain,
+        on actor: isolated StatisticsActor,
+        then completion: @escaping () -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        withTransaction {
+            if !logUserInteractionRecord(domain) {
+                completion()
+                return
+            }
+            updateCookieBlocking(on: actor, then: completion)
+        }
+    }
+
+    func clearUserInteraction(
+        _ domain: WebCore.RegistrableDomain,
+        on actor: isolated StatisticsActor,
+        then completion: @escaping () -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        withTransaction {
+            clearUserInteractionRecords(domain)
+
+            // Update cookie blocking unconditionally since a call to hasHadUserInteraction() to check the previous user
+            // interaction status could call clearUserInteraction(), blowing the call stack.
+            updateCookieBlocking(on: actor, then: completion)
+        }
+    }
+}
+
+// MARK: Storage access, on the statistics actor
+
+extension WebKit.ResourceLoadStatisticsStore {
+    private func debugModeReleaseLogPrivate(_ message: Swift.String) {
+        WebKit.LogChannel.ITPDebug().releaseLog.info("ResourceLoadStatisticsStore: \(message, privacy: .private)")
+    }
+
+    func hasStorageAccess(
+        _ subFrameDomain: WebCore.RegistrableDomain,
+        _ topFrameDomain: WebCore.RegistrableDomain,
+        _ frameID: IPCTypes.FrameIdentifier?,
+        _ webPageProxyID: UInt64,
+        _ canRequestStorageAccessWithoutUserInteraction: WebKit.CanRequestStorageAccessWithoutUserInteraction,
+        on actor: isolated StatisticsActor,
+        then completion: @escaping (Bool) -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        let result = ensureResourceStatisticsForRegistrableDomain(subFrameDomain, WTF.String("hasStorageAccess"))
+        if Optional(fromCxx: result.second) == nil {
+            completion(false)
+            return
+        }
+
+        let subFrame = StatisticsDomain(subFrameDomain)
+        switch cookieAccess(subFrameDomain, topFrameDomain, canRequestStorageAccessWithoutUserInteraction) {
+        case .CannotRequest:
+            completion(false)
+            return
+        case .BasedOnCookiePolicy:
+            actor.roundTrip(
+                actorSessionID,
+                mainPart: { mainSide, inbox, id, generation in mainSide.hasCookies(subFrame, inbox, id, generation) },
+                then: { _, outcome in
+                    completion(outcome.answer)
+                }
+            )
+            return
+        case .OnlyIfGranted:
+            break
+        @unknown default:
+            break
+        }
+
+        // As the C++'s `frameID.value()`, which ends the process with no frame.
+        guard let frameID else {
+            preconditionFailure("hasStorageAccess: a grant-only check needs a frame")
+        }
+        let topFrame = StatisticsDomain(topFrameDomain)
+        actor.roundTrip(
+            actorSessionID,
+            mainPart: { mainSide, inbox, id, generation in
+                mainSide.hasStorageAccessForFrame(subFrame, topFrame, frameID, webPageProxyID, inbox, id, generation)
+            },
+            then: { _, outcome in
+                completion(outcome.answer)
+            }
+        )
+    }
+
+    func requestStorageAccess(
+        _ subFrameDomain: WebCore.RegistrableDomain,
+        _ topFrameDomain: WebCore.RegistrableDomain,
+        _ frameID: IPCTypes.FrameIdentifier,
+        _ webPageProxyID: UInt64,
+        _ scope: IPCTypes.StorageAccessScope,
+        _ canRequestStorageAccessWithoutUserInteraction: WebKit.CanRequestStorageAccessWithoutUserInteraction,
+        on actor: isolated StatisticsActor,
+        then completion: @escaping (WebKit.StorageAccessStatus) -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        let subFrameStatus = ensureResourceStatisticsForRegistrableDomain(subFrameDomain, WTF.String("requestStorageAccess"))
+        guard let subFrameDomainID = Optional(fromCxx: subFrameStatus.second) else {
+            completion(.CannotRequestAccess)
+            return
+        }
+
+        let subFrame = Self.string(subFrameDomain).description
+        let topFrame = Self.string(topFrameDomain).description
+        switch cookieAccess(subFrameDomain, topFrameDomain, canRequestStorageAccessWithoutUserInteraction) {
+        case .CannotRequest:
+            if debugLoggingEnabled() {
+                debugModeReleaseLogPrivate(
+                    "Cannot grant storage access to \(subFrame) since its cookies are blocked in third-party contexts and it has not received user interaction as first-party."
+                )
+                debugBroadcastConsoleMessage(
+                    .ITPDebug,
+                    .Error,
+                    WTF.String(
+                        "[ITP] Cannot grant storage access to '" + subFrame
+                            + "' since its cookies are blocked in third-party contexts and it has not received user interaction as first-party."
+                    )
+                )
+            }
+            completion(.CannotRequestAccess)
+            return
+        case .BasedOnCookiePolicy:
+            if debugLoggingEnabled() {
+                debugModeReleaseLogPrivate(
+                    "No need to grant storage access to \(subFrame) since its cookies are not blocked in third-party contexts. Note that the underlying cookie policy may still block this third-party from setting cookies."
+                )
+                debugBroadcastConsoleMessage(
+                    .ITPDebug,
+                    .Info,
+                    WTF.String(
+                        "[ITP] No need to grant storage access to '" + subFrame
+                            + "' since its cookies are not blocked in third-party contexts. Note that the underlying cookie policy may still block this third-party from setting cookies."
+                    )
+                )
+            }
+            completion(.HasAccess)
+            return
+        case .OnlyIfGranted:
+            break
+        @unknown default:
+            break
+        }
+
+        guard hasUserGrantedStorageAccessThroughPrompt(subFrameDomainID, topFrameDomain) else {
+            if debugLoggingEnabled() {
+                debugModeReleaseLogPrivate(
+                    "About to ask the user whether they want to grant storage access to \(subFrame) under \(topFrame) or not."
+                )
+                debugBroadcastConsoleMessage(
+                    .ITPDebug,
+                    .Info,
+                    WTF.String(
+                        "[ITP] About to ask the user whether they want to grant storage access to '" + subFrame + "' under '"
+                            + topFrame + "' or not."
+                    )
+                )
+            }
+            completion(.RequiresUserPrompt)
+            return
+        }
+
+        if debugLoggingEnabled() {
+            debugModeReleaseLogPrivate("Storage access was granted to \(subFrame) under \(topFrame).")
+            debugBroadcastConsoleMessage(
+                .ITPDebug,
+                .Info,
+                WTF.String("[ITP] Storage access was granted to '" + subFrame + "' under '" + topFrame + "'.")
+            )
+        }
+
+        withTransaction {
+            guard
+                let incrementStorageAccess = database.prepareStatement(
+                    WTF.String(
+                        "UPDATE ObservedDomains SET timesAccessedAsFirstPartyDueToStorageAccessAPI = timesAccessedAsFirstPartyDueToStorageAccessAPI + 1 WHERE domainID = ?"
+                    )
+                ),
+                incrementStorageAccess.bindInt(1, Int32(truncatingIfNeeded: subFrameDomainID)) == SQLITE_OK,
+                incrementStorageAccess.step() == SQLITE_DONE
+            else {
+                releaseLogDatabaseError("requestStorageAccess: failed to step statement")
+                completion(.CannotRequestAccess)
+                return
+            }
+
+            grantStorageAccessInternal(
+                subFrameDomain,
+                topFrameDomain,
+                frameID,
+                webPageProxyID,
+                .Yes,
+                scope,
+                canRequestStorageAccessWithoutUserInteraction,
+                on: actor
+            ) { wasGranted in
+                completion(wasGranted == .yes ? .HasAccess : .CannotRequestAccess)
+            }
+        }
+    }
+
+    func requestStorageAccessUnderOpener(
+        _ domainInNeedOfStorageAccess: WebCore.RegistrableDomain,
+        _ openerWebPageProxyID: UInt64,
+        _ openerDomain: WebCore.RegistrableDomain,
+        _ canRequestStorageAccessWithoutUserInteraction: WebKit.CanRequestStorageAccessWithoutUserInteraction,
+        on actor: isolated StatisticsActor
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        assert(!(domainInNeedOfStorageAccess == openerDomain))
+        if domainInNeedOfStorageAccess == openerDomain {
+            return
+        }
+
+        let domainInNeed = Self.string(domainInNeedOfStorageAccess).description
+        let opener = Self.string(openerDomain).description
+
+        if debugLoggingEnabled() {
+            debugModeReleaseLogPrivate(
+                "[Temporary combatibility fix] Storage access was granted for \(domainInNeed) under opener page from \(opener), with user interaction in the opened window."
+            )
+            debugBroadcastConsoleMessage(
+                .ITPDebug,
+                .Info,
+                WTF.String(
+                    "[ITP] Storage access was granted for '" + domainInNeed + "' under opener page from '"
+                        + opener + "', with user interaction in the opened window."
+                )
+            )
+        }
+
+        grantStorageAccessInternal(
+            domainInNeedOfStorageAccess,
+            openerDomain,
+            nil,
+            openerWebPageProxyID,
+            .No,
+            .perPage,
+            canRequestStorageAccessWithoutUserInteraction,
+            on: actor
+        ) { _ in }
+    }
+
+    func grantStorageAccess(
+        _ subFrameDomain: WebCore.RegistrableDomain,
+        _ topFrameDomain: WebCore.RegistrableDomain,
+        _ frameID: IPCTypes.FrameIdentifier,
+        _ webPageProxyID: UInt64,
+        _ promptWasShown: WebCore.StorageAccessPromptWasShown,
+        _ scope: IPCTypes.StorageAccessScope,
+        on actor: isolated StatisticsActor,
+        then completion: @escaping (IPCTypes.StorageAccessWasGranted) -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        withTransaction {
+            let addGrant:
+                (
+                    WebKit.ResourceLoadStatisticsStore?, WebCore.RegistrableDomain, WebCore.RegistrableDomain,
+                    WebKit.CanRequestStorageAccessWithoutUserInteraction, @escaping (IPCTypes.StorageAccessWasGranted) -> Void
+                ) -> Void = { store, subFrameDomain, topFrameDomain, canRequest, completion in
+                    guard let store else {
+                        completion(.no)
+                        return
+                    }
+                    if promptWasShown == .Yes {
+                        let subFrameStatus = store.grantStorageAccessPermission(topFrameDomain, subFrameDomain)
+                        if Optional(fromCxx: subFrameStatus.second) == nil {
+                            completion(.no)
+                            return
+                        }
+                        assert(subFrameStatus.first == .No)
+                        assert(canRequest == .Yes || store.hasHadUserInteraction(subFrameDomain, .Long))
+                    }
+                    store.grantStorageAccessInternal(
+                        subFrameDomain,
+                        topFrameDomain,
+                        frameID,
+                        webPageProxyID,
+                        promptWasShown,
+                        scope,
+                        canRequest,
+                        on: actor,
+                        then: completion
+                    )
+                }
+
+            let subFrame = StatisticsDomain(subFrameDomain)
+            let topFrame = StatisticsDomain(topFrameDomain)
+            actor.roundTrip(
+                actorSessionID,
+                mainPart: { mainSide, inbox, id, generation in
+                    mainSide.storageAccessQuirkGrants(subFrame, topFrame, inbox, id, generation)
+                },
+                then: { store, outcome in
+                    guard let store else {
+                        completion(.no)
+                        return
+                    }
+                    let canRequestStorageAccessWithoutUserInteraction = outcome.canRequestWithoutUserInteraction
+                    for pair in outcome.quirkGrants {
+                        let quirkTopFrameDomain = pair.topFrame.cxxDomain
+                        let quirkSubFrameDomain = pair.subFrame.cxxDomain
+                        if quirkTopFrameDomain == topFrameDomain && quirkSubFrameDomain == subFrameDomain {
+                            continue
+                        }
+                        addGrant(store, quirkSubFrameDomain, quirkTopFrameDomain, canRequestStorageAccessWithoutUserInteraction) { _ in }
+                    }
+                    addGrant(store, subFrameDomain, topFrameDomain, canRequestStorageAccessWithoutUserInteraction, completion)
+                }
+            )
+        }
+    }
+
+    func grantStorageAccessInternal(
+        _ subFrameDomain: WebCore.RegistrableDomain,
+        _ topFrameDomain: WebCore.RegistrableDomain,
+        _ frameID: IPCTypes.FrameIdentifier?,
+        _ webPageProxyID: UInt64,
+        _ promptWasShownNowOrEarlier: WebCore.StorageAccessPromptWasShown,
+        _ scope: IPCTypes.StorageAccessScope,
+        _ canRequestStorageAccessWithoutUserInteraction: WebKit.CanRequestStorageAccessWithoutUserInteraction,
+        on actor: isolated StatisticsActor,
+        then completion: @escaping (IPCTypes.StorageAccessWasGranted) -> Void
+    ) {
+        assert(!WTF.RunLoop.isMain())
+
+        if subFrameDomain == topFrameDomain {
+            completion(.yes)
+            return
+        }
+
+        if promptWasShownNowOrEarlier == .Yes {
+            let checked = withTransaction {
+                guard
+                    checkPromptedStorageAccessGrantForSwift(subFrameDomain, topFrameDomain, canRequestStorageAccessWithoutUserInteraction)
+                else {
+                    return false
+                }
+                setUserInteraction(subFrameDomain, true, WTF.WallTime.fromSecondsSinceEpoch(WTF.Seconds(nowTime())))
+                return true
+            }
+            // As the C++ in builds without NDEBUG: a domain with no record stops the grant, uncompleted.
+            if !checked {
+                return
+            }
+        }
+
+        let subFrame = StatisticsDomain(subFrameDomain)
+        let topFrame = StatisticsDomain(topFrameDomain)
+        actor.roundTrip(
+            actorSessionID,
+            mainPart: { mainSide, inbox, id, generation in
+                mainSide.grantStorageAccess(subFrame, topFrame, frameID, webPageProxyID, scope, inbox, id, generation)
+            },
+            then: { _, outcome in
+                completion(outcome.wasGranted)
+            }
+        )
+    }
+}
+
+// MARK: Messages, on the statistics actor
+
+/// The store's side of the messages that only query or set its state.
+extension WebKit.ResourceLoadStatisticsStore {
+    func answer(_ query: StatisticsQueryRequest, on actor: isolated StatisticsActor) -> Bool {
+        switch query {
+        case .isPrevalentResource(let domain):
+            return isPrevalentResource(.fromIPC(domain))
+        case .isVeryPrevalentResource(let domain):
+            return isVeryPrevalentResource(.fromIPC(domain))
+        case .hasHadUserInteraction(let domain):
+            return hasHadUserInteraction(.fromIPC(domain), .Long)
+        case .isGrandfathered(let domain):
+            return isGrandfathered(.fromIPC(domain))
+        case .isRelationshipOnlyInDatabaseOnce(let subDomain, let topDomain):
+            return isCorrectSubStatisticsCount(.fromIPC(subDomain), .fromIPC(topDomain))
+        case .isRegisteredAsSubresourceUnder(let subresourceDomain, let topFrameDomain):
+            return isRegisteredAsSubresourceUnder(.fromIPC(subresourceDomain), .fromIPC(topFrameDomain))
+        case .isRegisteredAsSubFrameUnder(let subFrameDomain, let topFrameDomain):
+            return isRegisteredAsSubFrameUnder(.fromIPC(subFrameDomain), .fromIPC(topFrameDomain))
+        case .isRegisteredAsRedirectingTo(let domainRedirectedFrom, let domainRedirectedTo):
+            return isRegisteredAsRedirectingTo(.fromIPC(domainRedirectedFrom), .fromIPC(domainRedirectedTo))
+        case .domainIDExistsInDatabase(let domainID):
+            return domainIDExistsInDatabase(domainID)
+        case .databaseHasAllTables:
+            return !checkForMissingTablesInSchema().hasValue
+        }
+    }
+
+    func perform(_ command: StatisticsCommandRequest, on actor: isolated StatisticsActor) {
+        switch command {
+        case .logFrameNavigation(
+            let targetDomain,
+            let topFrameDomain,
+            let sourceDomain,
+            let isRedirect,
+            let isMainFrame,
+            let delayAfterMainFrameDocumentLoad,
+            let wasPotentiallyInitiatedByUser
+        ):
+            logFrameNavigation(
+                .fromIPC(targetDomain),
+                .fromIPC(topFrameDomain),
+                .fromIPC(sourceDomain),
+                isRedirect,
+                isMainFrame,
+                WTF.Seconds(delayAfterMainFrameDocumentLoad),
+                wasPotentiallyInitiatedByUser
+            )
+        case .setLastSeen(let domain, let seconds):
+            setLastSeen(.fromIPC(domain), WTF.Seconds(seconds))
+        case .setPrevalentResource(let domain):
+            setPrevalentResource(.fromIPC(domain))
+        case .setVeryPrevalentResource(let domain):
+            setVeryPrevalentResource(.fromIPC(domain))
+        case .clearPrevalentResource(let domain):
+            clearPrevalentResource(.fromIPC(domain))
+        case .setGrandfathered(let domain, let value):
+            setGrandfathered(.fromIPC(domain), value)
+        case .setSubframeUnderTopFrameDomain(let subFrameDomain, let topFrameDomain):
+            setSubframeUnderTopFrameDomain(.fromIPC(subFrameDomain), .fromIPC(topFrameDomain))
+        case .setSubresourceUnderTopFrameDomain(let subresourceDomain, let topFrameDomain):
+            setSubresourceUnderTopFrameDomain(.fromIPC(subresourceDomain), .fromIPC(topFrameDomain))
+        case .setSubresourceUniqueRedirectTo(let subresourceDomain, let domainRedirectedTo):
+            setSubresourceUniqueRedirectTo(.fromIPC(subresourceDomain), .fromIPC(domainRedirectedTo))
+        case .setSubresourceUniqueRedirectFrom(let subresourceDomain, let domainRedirectedFrom):
+            setSubresourceUniqueRedirectFrom(.fromIPC(subresourceDomain), .fromIPC(domainRedirectedFrom))
+        case .setTopFrameUniqueRedirectTo(let topFrameDomain, let domainRedirectedTo):
+            setTopFrameUniqueRedirectTo(.fromIPC(topFrameDomain), .fromIPC(domainRedirectedTo))
+        case .setTopFrameUniqueRedirectFrom(let topFrameDomain, let domainRedirectedFrom):
+            setTopFrameUniqueRedirectFrom(.fromIPC(topFrameDomain), .fromIPC(domainRedirectedFrom))
+        case .resetParametersToDefaultValues:
+            resetParametersToDefaultValues()
+        case .setTimeAdvanceForTesting(let time):
+            setTimeAdvanceForTesting(WTF.Seconds(time))
+        case .setIsRunningTest(let value):
+            setIsRunningTest(value)
+        case .mergeStatisticForTesting(
+            let domain,
+            let topFrameDomain1,
+            let topFrameDomain2,
+            let lastSeen,
+            let hadUserInteraction,
+            let mostRecentUserInteraction,
+            let isGrandfathered,
+            let isPrevalent,
+            let isVeryPrevalent,
+            let dataRecordsRemoved
+        ):
+            mergeStatisticForTesting(
+                .fromIPC(domain),
+                .fromIPC(topFrameDomain1),
+                .fromIPC(topFrameDomain2),
+                WTF.Seconds(lastSeen),
+                hadUserInteraction,
+                WTF.Seconds(mostRecentUserInteraction),
+                isGrandfathered,
+                isPrevalent,
+                isVeryPrevalent,
+                UInt32(truncatingIfNeeded: dataRecordsRemoved)
+            )
+        case .insertExpiredStatisticForTesting(
+            let domain,
+            let numberOfOperatingDaysPassed,
+            let hadUserInteraction,
+            let isScheduledForAllButCookieDataRemoval,
+            let isPrevalent
+        ):
+            insertExpiredStatisticForTesting(
+                .fromIPC(domain),
+                UInt32(truncatingIfNeeded: numberOfOperatingDaysPassed),
+                hadUserInteraction,
+                isScheduledForAllButCookieDataRemoval,
+                isPrevalent
+            )
+        case .setGrandfatheringTime(let seconds):
+            setGrandfatheringTime(WTF.Seconds(seconds))
+        case .setMaxStatisticsEntries(let maximumEntryCount):
+            setMaxStatisticsEntries(Int(truncatingIfNeeded: maximumEntryCount))
+        case .setMinimumTimeBetweenDataRecordsRemoval(let seconds):
+            setMinimumTimeBetweenDataRecordsRemoval(WTF.Seconds(seconds))
+        case .setPruneEntriesDownTo(let pruneTargetCount):
+            setPruneEntriesDownTo(Int(truncatingIfNeeded: pruneTargetCount))
+        case .setTimeToLiveUserInteraction(let seconds):
+            setTimeToLiveUserInteraction(WTF.Seconds(seconds))
+        case .setShouldClassifyResourcesBeforeDataRecordsRemoval(let value):
+            setShouldClassifyResourcesBeforeDataRecordsRemoval(value)
+        case .requestStorageAccessUnderOpener(let domainInNeedOfStorageAccess, let openerPage, let openerDomain, let canRequest):
+            requestStorageAccessUnderOpener(
+                .fromIPC(domainInNeedOfStorageAccess),
+                openerPage,
+                .fromIPC(openerDomain),
+                canRequest,
+                on: actor
+            )
+        case .setResourceLoadStatisticsDebugMode(let value):
+            setResourceLoadStatisticsDebugMode(value)
+        case .setPrevalentResourceForDebugMode(let domain):
+            setPrevalentResourceForDebugMode(domain.cxxDomain)
+        case .setThirdPartyCookieBlockingMode(let mode):
+            setThirdPartyCookieBlockingMode(mode)
+        case .setSameSiteStrictEnforcementEnabled(let enabled):
+            setSameSiteStrictEnforcementEnabled(enabled)
+        case .setFirstPartyWebsiteDataRemovalMode(let mode):
+            setFirstPartyWebsiteDataRemovalMode(mode)
+            if mode == .AllButCookiesReproTestingTimeout {
+                setIsRunningTest(true)
+            }
+        case .setStandaloneApplicationDomain(let domain):
+            setStandaloneApplicationDomain(consuming: domain.cxxDomain)
+        case .performDailyTasks:
+            includeTodayAsOperatingDateIfNecessary()
+            runIncrementalVacuumCommand()
+        case .logCrossSiteLoadWithLinkDecoration(let fromDomain, let toDomain, let didFilterKnownLinkDecoration):
+            logCrossSiteLoadWithLinkDecoration(fromDomain.cxxDomain, toDomain.cxxDomain, didFilterKnownLinkDecoration ? .Yes : .No)
+        case .setMostRecentWebPushInteractionTime(let domain):
+            setMostRecentWebPushInteractionTime(domain.cxxDomain)
+        case .removeDataForDomain(let domain):
+            removeDataForDomain(domain.cxxDomain)
+        case .setPersistedDomains(let domains):
+            setPersistedDomainsForSwift(consuming: Self.cxxDomains(domains))
+        #if ENABLE_APP_BOUND_DOMAINS
+        case .setAppBoundStatisticsDomains(let domains):
+            setAppBoundDomainsForSwift(consuming: Self.cxxDomains(domains))
+        #endif
+        #if ENABLE_MANAGED_DOMAINS
+        case .setManagedStatisticsDomains(let domains):
+            setManagedDomainsForSwift(consuming: Self.cxxDomains(domains))
+        #endif
+        }
+    }
+
+    func answer(_ query: StatisticsThirdPartyDataRequest, on actor: isolated StatisticsActor) -> [IPCTypes.ITPThirdPartyData] {
+        switch query {
+        case .aggregatedThirdPartyData:
+            let thirdPartyData = aggregatedThirdPartyData()
+            return (0..<thirdPartyData.size()).map { IPCTypes.ITPThirdPartyData(thirdPartyData[$0]) }
+        }
+    }
+
+    func storageAccessPermission(
+        _ subFrameDomain: IPCTypes.RegistrableDomain,
+        _ topFrameDomain: IPCTypes.RegistrableDomain,
+        on actor: isolated StatisticsActor
+    ) -> IPCTypes.PermissionState {
+        .init(storageAccessPermission(.fromIPC(subFrameDomain), .fromIPC(topFrameDomain)))
+    }
+}
+
+extension IPCTypes.RegistrableDomain {
+    fileprivate init(_ domain: borrowing WebCore.RegistrableDomain) {
+        self.init(string: IPCCoding.WTFString.swiftString(WebKit.ResourceLoadStatisticsStore.string(domain)))
+    }
+}
+
+extension IPCTypes.ITPThirdPartyDataForSpecificFirstParty {
+    fileprivate init(_ data: borrowing WebKit.ITPThirdPartyDataForSpecificFirstParty) {
+        self.init(
+            firstPartyDomain: .init(data.firstPartyDomain),
+            storageAccessGranted: data.storageAccessGranted,
+            timeLastUpdated: data.timeLastUpdated.seconds()
+        )
+    }
+}
+
+extension IPCTypes.ITPThirdPartyData {
+    fileprivate init(_ data: borrowing WebKit.ITPThirdPartyData) {
+        let underFirstParties = data.underFirstParties
+        self.init(
+            thirdPartyDomain: .init(data.thirdPartyDomain),
+            underFirstParties: (0..<underFirstParties.size()).map { .init(underFirstParties[$0]) }
+        )
+    }
+}
+
+extension IPCTypes.PermissionState {
+    fileprivate init(_ state: WebCore.PermissionState) {
+        switch state {
+        case .Granted: self = .granted
+        case .Denied: self = .denied
+        case .Prompt: self = .prompt
+        @unknown default: fatalError("WebCore.PermissionState has no other value")
+        }
+    }
+}
+
+extension WebKit.ResourceLoadStatisticsStore {
+    func perform(
+        _ command: StatisticsDeferredCommandRequest,
+        on actor: isolated StatisticsActor,
+        then completion: @escaping () -> Void
+    ) {
+        switch command {
+        case .logUserInteraction(let domain):
+            logUserInteraction(.fromIPC(domain), on: actor, then: completion)
+        case .clearUserInteraction(let domain):
+            clearUserInteraction(.fromIPC(domain), on: actor, then: completion)
+        case .updateCookieBlocking:
+            updateCookieBlocking(on: actor, then: completion)
+        case .processStatisticsAndDataRecords:
+            processStatisticsAndDataRecords(on: actor, then: completion)
+        case .setStorageAccessPermissionForTesting(let granted, let topFrameDomain, let subFrameDomain):
+            // The reply can go before the grant or revoke below; later reads are later requests on this actor, so they
+            // see it either way.
+            if granted {
+                logUserInteraction(.fromIPC(subFrameDomain), on: actor, then: completion)
+                _ = grantStorageAccessPermission(.fromIPC(topFrameDomain), .fromIPC(subFrameDomain))
+            } else {
+                clearUserInteraction(.fromIPC(subFrameDomain), on: actor, then: completion)
+                revokeStorageAccessPermission(.fromIPC(subFrameDomain))
+            }
+        }
+    }
+}
