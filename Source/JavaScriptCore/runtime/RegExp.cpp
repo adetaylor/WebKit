@@ -23,7 +23,6 @@
 #include "config.h"
 #include "RegExp.h"
 
-#include "Lexer.h"
 #include "RegExpCache.h"
 #include "RegExpInlines.h"
 #include "SourceCharacters.h"

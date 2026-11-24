@@ -1056,7 +1056,6 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     lol/LOLJIT.h
     lol/LOLRegisterAllocator.h
 
-    parser/Lexer.h
     parser/LexerUnicodeProperties.h
     parser/ParserArena.h
     parser/ParserError.h
@@ -1710,7 +1709,7 @@ add_custom_command(
     COMMAND ${PYTHON_EXECUTABLE} ${JAVASCRIPTCORE_DIR}/parser/generateLexerUnicodePropertyTables.py ${JAVASCRIPTCORE_DIR}/ucd/UnicodeData.txt ${JavaScriptCore_DERIVED_SOURCES_DIR}/LexerUnicodePropertyTables.h
     VERBATIM)
 list(APPEND JavaScriptCore_HEADERS ${JavaScriptCore_DERIVED_SOURCES_DIR}/LexerUnicodePropertyTables.h)
-WEBKIT_ADD_SOURCE_DEPENDENCIES(${CMAKE_CURRENT_SOURCE_DIR}/parser/Lexer.cpp ${JavaScriptCore_DERIVED_SOURCES_DIR}/LexerUnicodePropertyTables.h)
+WEBKIT_ADD_SOURCE_DEPENDENCIES(${CMAKE_CURRENT_SOURCE_DIR}/parser/LexerUnicodeProperties.cpp ${JavaScriptCore_DERIVED_SOURCES_DIR}/LexerUnicodePropertyTables.h)
 
 add_custom_command(
     OUTPUT ${JavaScriptCore_DERIVED_SOURCES_DIR}/yarr/UnicodePatternTables.h
@@ -1728,16 +1727,14 @@ add_custom_command(
     COMMAND ${PYTHON_EXECUTABLE} ${JAVASCRIPTCORE_DIR}/yarr/generateYarrCanonicalizeUnicode ${JAVASCRIPTCORE_DIR}/ucd/CaseFolding.txt ${JavaScriptCore_DERIVED_SOURCES_DIR}/yarr/YarrCanonicalizeUnicode.cpp
     VERBATIM)
 
-#GENERATOR: "KeywordLookup.h": keyword decision tree used by the lexer
+
+#GENERATOR: "KeywordLookup.swift": keyword lookup used by the lexer
 add_custom_command(
-    OUTPUT ${JavaScriptCore_DERIVED_SOURCES_DIR}/KeywordLookup.h
+    OUTPUT ${JavaScriptCore_DERIVED_SOURCES_DIR}/KeywordLookup.swift
     MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/KeywordLookupGenerator.py
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/parser/Keywords.table
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/KeywordLookupGenerator.py ${CMAKE_CURRENT_SOURCE_DIR}/parser/Keywords.table > ${JavaScriptCore_DERIVED_SOURCES_DIR}/KeywordLookup.h
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/KeywordLookupGenerator.py ${CMAKE_CURRENT_SOURCE_DIR}/parser/Keywords.table ${JavaScriptCore_DERIVED_SOURCES_DIR}/KeywordLookup.swift
     VERBATIM)
-list(APPEND JavaScriptCore_HEADERS ${JavaScriptCore_DERIVED_SOURCES_DIR}/KeywordLookup.h)
-WEBKIT_ADD_SOURCE_DEPENDENCIES(${CMAKE_CURRENT_SOURCE_DIR}/parser/Lexer.cpp ${JavaScriptCore_DERIVED_SOURCES_DIR}/KeywordLookup.h)
-
 
 # Inspector Interfaces
 
@@ -1905,6 +1902,36 @@ set(_jsc_swift_shared_flags
 # directories its C++ finds the others in, the -D set every Swift target's importer gets, and wtf/Platform.h's and
 # cmakeconfig.h's values.
 set(_jsc_swift_sources
+    parser/ASTBuilderAdapter.swift
+    parser/Lexer.swift
+    parser/LexerCharacter.swift
+    parser/LexerCharacterTypes.swift
+    parser/LexerIdentifiers.swift
+    parser/LexerNumbers.swift
+    parser/LexerScanning.swift
+    parser/LexerStrings.swift
+    parser/Parser.swift
+    parser/ParserClasses.swift
+    parser/ParserDeclarations.swift
+    parser/ParserEntry.swift
+    parser/ParserError.swift
+    parser/ParserExpressions.swift
+    parser/ParserFunctions.swift
+    parser/ParserLoops.swift
+    parser/ParserMemberExpressions.swift
+    parser/ParserModules.swift
+    parser/ParserObjectLiterals.swift
+    parser/ParserPrimaryExpressions.swift
+    parser/ParserSavePoint.swift
+    parser/ParserScope.swift
+    parser/ParserScopeStack.swift
+    parser/ParserStatements.swift
+    parser/ParserTokenStream.swift
+    parser/ParserTokens.swift
+    parser/ParserTypes.swift
+    parser/SyntaxChecker.swift
+    parser/TreeBuilder.swift
+
     runtime/JSBigIntDigits.swift
     runtime/JSBigIntDigitsAddSub.swift
     runtime/JSBigIntDigitsDivide.swift
@@ -1926,6 +1953,8 @@ set(_jsc_swift_sources
     yarr/YarrInterpreterMatcher.swift
 )
 list(TRANSFORM _jsc_swift_sources PREPEND "${JAVASCRIPTCORE_DIR}/")
+# The lexer's keyword lookup, generated from Keywords.table, built before the Swift command that lists it in DEPENDS.
+list(APPEND _jsc_swift_sources "${JavaScriptCore_DERIVED_SOURCES_DIR}/KeywordLookup.swift")
 set(_jsc_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift")
 set(_jsc_swift_obj "${_jsc_swift_dir}/JSCSwift.${_jsc_swift_object_suffix}")
 set(_jsc_swift_hdr "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift-Swift.h")
@@ -1953,6 +1982,28 @@ foreach (_header IN LISTS _jsc_swift_boundary_headers)
     list(APPEND _jsc_swift_boundary_outputs "${_jsc_swift_boundary_dir}/${_header}")
     list(APPEND _jsc_swift_boundary_copies COMMAND "${CMAKE_COMMAND}" -E copy_if_different
         "${JAVASCRIPTCORE_DIR}/${_header}" "${_jsc_swift_boundary_dir}/${_header}")
+endforeach ()
+# The project headers ParserSwiftFacadeInlines.h reaches, which are not installed, copied flat into the boundary's parser
+# directory. Installed, they would join JavaScriptCore_Private.Cxx's umbrella, and every Swift importer would emit the
+# node classes' vtables.
+set(_jsc_swift_boundary_parser_headers
+    bytecompiler/Label.h
+
+    parser/ASTBuilder.h
+    parser/NodeConstructors.h
+    parser/Nodes.h
+    parser/Parser.h
+    parser/ParserFunctionInfo.h
+    parser/ParserSwiftTypes.h
+
+    yarr/YarrSyntaxChecker.h
+)
+foreach (_header IN LISTS _jsc_swift_boundary_parser_headers)
+    cmake_path(GET _header FILENAME _header_name)
+    list(APPEND _jsc_swift_boundary_inputs "${JAVASCRIPTCORE_DIR}/${_header}")
+    list(APPEND _jsc_swift_boundary_outputs "${_jsc_swift_boundary_dir}/parser/${_header_name}")
+    list(APPEND _jsc_swift_boundary_copies COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "${JAVASCRIPTCORE_DIR}/${_header}" "${_jsc_swift_boundary_dir}/parser/${_header_name}")
 endforeach ()
 add_custom_command(
     OUTPUT ${_jsc_swift_boundary_outputs}

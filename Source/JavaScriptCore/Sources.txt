@@ -707,13 +707,13 @@ llint/LLIntExceptions.cpp
 llint/LLIntSlowPaths.cpp
 llint/LLIntThunks.cpp
 
-parser/Lexer.cpp
+parser/ASTBuilder.cpp
 parser/LexerUnicodeProperties.cpp
 parser/ModuleAnalyzer.cpp
 parser/Nodes.cpp
 parser/NodesAnalyzeModule.cpp
-parser/Parser.cpp @no-unify-when(bundle<=8) @cost:4
 parser/ParserArena.cpp
+parser/ParserSwiftFacade.cpp
 parser/SourceCharacters.cpp
 parser/SourceProvider.cpp
 parser/SourceProviderCache.cpp

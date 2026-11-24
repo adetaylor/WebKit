@@ -33,7 +33,6 @@
 #include "JSArray.h"
 #include "JSCInlines.h"
 #include "JSONCacheInlines.h"
-#include "Lexer.h"
 #include "ObjectConstructor.h"
 #include "ParseInt.h"
 #include "SourceCharacters.h"
@@ -42,8 +41,6 @@
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/text/FastCharacterComparison.h>
 #include <wtf/text/MakeString.h>
-
-#include "KeywordLookup.h"
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 

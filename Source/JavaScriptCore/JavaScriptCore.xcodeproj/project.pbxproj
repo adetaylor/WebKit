@@ -1460,6 +1460,38 @@
 		866739D213BFDE710023D87C /* BigInteger.h in Headers */ = {isa = PBXBuildFile; fileRef = 866739D013BFDE710023D87C /* BigInteger.h */; };
 		866739D313BFDE710023D87C /* Uint16WithFraction.h in Headers */ = {isa = PBXBuildFile; fileRef = 866739D113BFDE710023D87C /* Uint16WithFraction.h */; };
 		86704B4312DB8A8100A9FE7B /* YarrSyntaxChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = 86704B4112DB8A8100A9FE7B /* YarrSyntaxChecker.h */; };
+		28DA0B3D52BD4C209CD643E1 /* ParserEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ECFA3FB0C914F7DBEAFE62E /* ParserEntry.swift */; };
+		457934DC43574B998324D034 /* ASTBuilderAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503C5C47E26C463985CB753D /* ASTBuilderAdapter.swift */; };
+		51A3624AE866401BB0C99DEA /* Lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF8C2AA8747F4909BEADEE34 /* Lexer.swift */; };
+		2F60424B34654E31B89416CE /* LexerIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF707F00EE5B47FFBD2584A6 /* LexerIdentifiers.swift */; };
+		4B5E7BAD62544C12892D7242 /* LexerNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C5412F2F7B14B87B81858AA /* LexerNumbers.swift */; };
+		041652FDEB304B3B902C1CC1 /* LexerScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2592D3BA3FC14835BBAB3E56 /* LexerScanning.swift */; };
+		87520830716C455597627869 /* LexerStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE861DA63F20465BBB2D6F40 /* LexerStrings.swift */; };
+		44D572866FB747398129D784 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50381386D0B6435699BDBB70 /* Parser.swift */; };
+		5CC95467710A4A7580F08518 /* LexerCharacter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4787128FF9DE46878364B50D /* LexerCharacter.swift */; };
+		038CDBCB970C428A8E6230A2 /* LexerCharacterTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57042431002C4AAA8D97FD5A /* LexerCharacterTypes.swift */; };
+		819C82657146443DBE11CBBB /* KeywordLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 902F7803F7664523B4222157 /* KeywordLookup.swift */; };
+		6CEAF35DD6AF7D5AB3831351 /* ParserClasses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D2DD54DDB5F807804F851EB /* ParserClasses.swift */; };
+		0DC7CE4AA3444F378C205A2B /* ParserDeclarations.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF34C700DCF9424A99B47E43 /* ParserDeclarations.swift */; };
+		5D0DB82DFC6D6051AAA3E458 /* ParserError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B97488D4ABC44B4A278D18 /* ParserError.swift */; };
+		6D62B120611E475F949DCFE9 /* ParserExpressions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B06A1D5E2664FAB8B5C3C14 /* ParserExpressions.swift */; };
+		DB0FECF3E387496DA5242B93 /* ParserFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A28AF729463142E39BE41718 /* ParserFunctions.swift */; };
+		51A7D7B59E8D44279052EAD8 /* ParserLoops.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7413F0AAEC264369ACD8FE77 /* ParserLoops.swift */; };
+		8D70051DFC054E7D8A3DBE8C /* ParserMemberExpressions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD843AE5F8B24F3297896957 /* ParserMemberExpressions.swift */; };
+		B1396B47557A4D348F2EC24F /* ParserModules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9CBC7BCDDC4F2F90AD1041 /* ParserModules.swift */; };
+		972AECFA84214C809D5C545B /* ParserObjectLiterals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 416B236548C04C329E317547 /* ParserObjectLiterals.swift */; };
+		4E8DF7D1B56AD615618AD2FE /* ParserPrimaryExpressions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0D84220CE23A6879866DE7 /* ParserPrimaryExpressions.swift */; };
+		9A1DD6573CDF56CAF72F954E /* ParserSavePoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = E643FE09AC564E06DE3C08FD /* ParserSavePoint.swift */; };
+		ACBB5E97FD7D610E81AC44D7 /* ParserScopeStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1BEF1F2A9F96A75013BBA4 /* ParserScopeStack.swift */; };
+		EF8F24ED81494398BB410090 /* ParserStatements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11BB82BE4BE0483C814CB57F /* ParserStatements.swift */; };
+		7CC7F75D70712D629C9CCDD6 /* ParserTokenStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A8965AFA733669BE0E520A /* ParserTokenStream.swift */; };
+		6F255A0936E2423AA117F72A /* TreeBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1913FDA7B5D1441EB6E375E5 /* TreeBuilder.swift */; };
+		E81219DA859D4B2596205C56 /* ParserScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E8FCA1A31D14ABDBF593DDD /* ParserScope.swift */; };
+		C4EA979CBD5441FCB27F186E /* ParserTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DBA39B9B0F5457E8A042ABB /* ParserTokens.swift */; };
+		C7AEA5D48841498DBC425F18 /* ParserTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C9B8F68146443991AACE74 /* ParserTypes.swift */; };
+		D891225940824402A8F32A33 /* SyntaxChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F062054A34A4509B5D2AE14 /* SyntaxChecker.swift */; };
+		E8926A5CC5EA443490B3E2A4 /* ParserSwiftFacadeInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 173FD01E69064D368B89030B /* ParserSwiftFacadeInlines.h */; };
+		D0CCB21A627A49D79603E811 /* ParserSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 724A972713C043B5A63813B3 /* ParserSwiftTypes.h */; };
 		B4C152F41E93449BA9C1565A /* YarrByteCompiler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3154603EA8F44BFDBC1F19BA /* YarrByteCompiler.swift */; };
 		448518380D684262A3243044 /* YarrInterpreterMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7369A0B408BD45CAB40FF17A /* YarrInterpreterMatcher.swift */; };
 		59940B1D602E4E2A8049A666 /* YarrInterpreterSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 5E7ED4319C0A4210B98BA371 /* YarrInterpreterSwiftTypes.h */; };
@@ -1725,7 +1757,6 @@
 		A7299D9E17D12837005F5FF9 /* JSSet.h in Headers */ = {isa = PBXBuildFile; fileRef = A7299D9C17D12837005F5FF9 /* JSSet.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A7299DA217D12848005F5FF9 /* SetPrototype.h in Headers */ = {isa = PBXBuildFile; fileRef = A7299DA017D12848005F5FF9 /* SetPrototype.h */; };
 		A7299DA617D12858005F5FF9 /* SetConstructor.h in Headers */ = {isa = PBXBuildFile; fileRef = A7299DA417D12858005F5FF9 /* SetConstructor.h */; };
-		A72FFD64139985A800E5365A /* KeywordLookup.h in Headers */ = {isa = PBXBuildFile; fileRef = A7C225CD1399849C00FF1662 /* KeywordLookup.h */; };
 		A730B6121250068F009D25B1 /* StrictEvalActivation.h in Headers */ = {isa = PBXBuildFile; fileRef = A730B6101250068F009D25B1 /* StrictEvalActivation.h */; };
 		A737810E1799EA2E00817533 /* DFGNaturalLoops.h in Headers */ = {isa = PBXBuildFile; fileRef = A737810B1799EA2E00817533 /* DFGNaturalLoops.h */; };
 		A7386554118697B400540279 /* SpecializedThunkJIT.h in Headers */ = {isa = PBXBuildFile; fileRef = A7386551118697B400540279 /* SpecializedThunkJIT.h */; };
@@ -1747,7 +1778,6 @@
 		A77F1822164088B200640A47 /* CodeCache.h in Headers */ = {isa = PBXBuildFile; fileRef = A77F1820164088B200640A47 /* CodeCache.h */; };
 		A77F1825164192C700640A47 /* ParserModes.h in Headers */ = {isa = PBXBuildFile; fileRef = A77F18241641925400640A47 /* ParserModes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A784A26111D16622005776AC /* ASTBuilder.h in Headers */ = {isa = PBXBuildFile; fileRef = A7A7EE7411B98B8D0065A14F /* ASTBuilder.h */; };
-		A784A26411D16622005776AC /* SyntaxChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = A7A7EE7711B98B8D0065A14F /* SyntaxChecker.h */; };
 		A785F6BC18C553FE00F10626 /* SpillRegistersMode.h in Headers */ = {isa = PBXBuildFile; fileRef = A7FF647A18C52E8500B55307 /* SpillRegistersMode.h */; };
 		A78A9775179738B8009DF744 /* DFGFailedFinalizer.h in Headers */ = {isa = PBXBuildFile; fileRef = A78A976D179738B8009DF744 /* DFGFailedFinalizer.h */; };
 		A78A9777179738B8009DF744 /* DFGFinalizer.h in Headers */ = {isa = PBXBuildFile; fileRef = A78A976F179738B8009DF744 /* DFGFinalizer.h */; };
@@ -1927,7 +1957,6 @@
 		BC18C42B0E16F5CD00B34460 /* JSCJSValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 14ABB36E099C076400E2A24F /* JSCJSValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC18C42C0E16F5CD00B34460 /* JSValueRef.h in Headers */ = {isa = PBXBuildFile; fileRef = 1482B6EA0A4300B300517CFC /* JSValueRef.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		BC18C42E0E16F5CD00B34460 /* JSWrapperObject.h in Headers */ = {isa = PBXBuildFile; fileRef = 65C7A1720A8EAACB00FA37EA /* JSWrapperObject.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		BC18C4310E16F5CD00B34460 /* Lexer.h in Headers */ = {isa = PBXBuildFile; fileRef = F692A8660255597D01FF60F7 /* Lexer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC18C4370E16F5CD00B34460 /* Lookup.h in Headers */ = {isa = PBXBuildFile; fileRef = F692A8690255597D01FF60F7 /* Lookup.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC18C43C0E16F5CD00B34460 /* MathObject.h in Headers */ = {isa = PBXBuildFile; fileRef = F692A86B0255597D01FF60F7 /* MathObject.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC18C43F0E16F5CD00B34460 /* Nodes.h in Headers */ = {isa = PBXBuildFile; fileRef = F692A86E0255597D01FF60F7 /* Nodes.h */; };
@@ -2348,7 +2377,6 @@
 		FE68C6371B90DE040042BCB3 /* MacroAssemblerPrinter.h in Headers */ = {isa = PBXBuildFile; fileRef = FE68C6361B90DDD90042BCB3 /* MacroAssemblerPrinter.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FE6F56DE1E64EAD600D17801 /* VMTraps.h in Headers */ = {isa = PBXBuildFile; fileRef = FE6F56DD1E64E92000D17801 /* VMTraps.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FE7497E6209001B10003565B /* JSCPtrTag.h in Headers */ = {isa = PBXBuildFile; fileRef = FE7497E5209001B00003565B /* JSCPtrTag.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		FE770390298CD40F009634C7 /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 93F0B3A909BB4DC00068FCE3 /* Parser.cpp */; };
 		FE7C41961B97FC4B00F4D598 /* PingPongStackOverflowTest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FEDA50D41B97F442009A3B4F /* PingPongStackOverflowTest.cpp */; };
 		FE80C1971D775CDD008510C0 /* TopExceptionScope.h in Headers */ = {isa = PBXBuildFile; fileRef = FE80C1961D775B27008510C0 /* TopExceptionScope.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FE8C0312264A6911001A44AD /* SlowPathFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = FE8C0311264A6910001A44AD /* SlowPathFunction.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -5236,6 +5264,41 @@
 		866739D113BFDE710023D87C /* Uint16WithFraction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Uint16WithFraction.h; sourceTree = "<group>"; };
 		86704B4012DB8A8100A9FE7B /* YarrSyntaxChecker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = YarrSyntaxChecker.cpp; path = yarr/YarrSyntaxChecker.cpp; sourceTree = "<group>"; };
 		86704B4112DB8A8100A9FE7B /* YarrSyntaxChecker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YarrSyntaxChecker.h; path = yarr/YarrSyntaxChecker.h; sourceTree = "<group>"; };
+		9ECFA3FB0C914F7DBEAFE62E /* ParserEntry.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserEntry.swift; sourceTree = "<group>"; };
+		503C5C47E26C463985CB753D /* ASTBuilderAdapter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ASTBuilderAdapter.swift; sourceTree = "<group>"; };
+		CF8C2AA8747F4909BEADEE34 /* Lexer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Lexer.swift; sourceTree = "<group>"; };
+		EF707F00EE5B47FFBD2584A6 /* LexerIdentifiers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerIdentifiers.swift; sourceTree = "<group>"; };
+		6C5412F2F7B14B87B81858AA /* LexerNumbers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerNumbers.swift; sourceTree = "<group>"; };
+		2592D3BA3FC14835BBAB3E56 /* LexerScanning.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerScanning.swift; sourceTree = "<group>"; };
+		CE861DA63F20465BBB2D6F40 /* LexerStrings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerStrings.swift; sourceTree = "<group>"; };
+		50381386D0B6435699BDBB70 /* Parser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
+		4787128FF9DE46878364B50D /* LexerCharacter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerCharacter.swift; sourceTree = "<group>"; };
+		57042431002C4AAA8D97FD5A /* LexerCharacterTypes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerCharacterTypes.swift; sourceTree = "<group>"; };
+		902F7803F7664523B4222157 /* KeywordLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeywordLookup.swift; path = DerivedSources/JavaScriptCore/KeywordLookup.swift; sourceTree = BUILT_PRODUCTS_DIR; };
+		A7C225CC139981F100FF1662 /* KeywordLookupGenerator.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = KeywordLookupGenerator.py; sourceTree = "<group>"; };
+		1D2DD54DDB5F807804F851EB /* ParserClasses.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserClasses.swift; sourceTree = "<group>"; };
+		AF34C700DCF9424A99B47E43 /* ParserDeclarations.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserDeclarations.swift; sourceTree = "<group>"; };
+		50B97488D4ABC44B4A278D18 /* ParserError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserError.swift; sourceTree = "<group>"; };
+		0B06A1D5E2664FAB8B5C3C14 /* ParserExpressions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserExpressions.swift; sourceTree = "<group>"; };
+		A28AF729463142E39BE41718 /* ParserFunctions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserFunctions.swift; sourceTree = "<group>"; };
+		7413F0AAEC264369ACD8FE77 /* ParserLoops.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserLoops.swift; sourceTree = "<group>"; };
+		BD843AE5F8B24F3297896957 /* ParserMemberExpressions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserMemberExpressions.swift; sourceTree = "<group>"; };
+		9E9CBC7BCDDC4F2F90AD1041 /* ParserModules.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserModules.swift; sourceTree = "<group>"; };
+		416B236548C04C329E317547 /* ParserObjectLiterals.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserObjectLiterals.swift; sourceTree = "<group>"; };
+		FE0D84220CE23A6879866DE7 /* ParserPrimaryExpressions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserPrimaryExpressions.swift; sourceTree = "<group>"; };
+		E643FE09AC564E06DE3C08FD /* ParserSavePoint.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserSavePoint.swift; sourceTree = "<group>"; };
+		5F1BEF1F2A9F96A75013BBA4 /* ParserScopeStack.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserScopeStack.swift; sourceTree = "<group>"; };
+		11BB82BE4BE0483C814CB57F /* ParserStatements.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserStatements.swift; sourceTree = "<group>"; };
+		95A8965AFA733669BE0E520A /* ParserTokenStream.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserTokenStream.swift; sourceTree = "<group>"; };
+		1913FDA7B5D1441EB6E375E5 /* TreeBuilder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TreeBuilder.swift; sourceTree = "<group>"; };
+		7E8FCA1A31D14ABDBF593DDD /* ParserScope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserScope.swift; sourceTree = "<group>"; };
+		6DBA39B9B0F5457E8A042ABB /* ParserTokens.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserTokens.swift; sourceTree = "<group>"; };
+		C1C9B8F68146443991AACE74 /* ParserTypes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParserTypes.swift; sourceTree = "<group>"; };
+		0F062054A34A4509B5D2AE14 /* SyntaxChecker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SyntaxChecker.swift; sourceTree = "<group>"; };
+		173FD01E69064D368B89030B /* ParserSwiftFacadeInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ParserSwiftFacadeInlines.h; sourceTree = "<group>"; };
+		EE2E97B02C5A96ECAE0CA6B3 /* ASTBuilder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ASTBuilder.cpp; sourceTree = "<group>"; };
+		CC750564ABE87BFE67CAD633 /* ParserSwiftFacade.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ParserSwiftFacade.cpp; sourceTree = "<group>"; };
+		724A972713C043B5A63813B3 /* ParserSwiftTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ParserSwiftTypes.h; sourceTree = "<group>"; };
 		3154603EA8F44BFDBC1F19BA /* YarrByteCompiler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = YarrByteCompiler.swift; path = yarr/YarrByteCompiler.swift; sourceTree = "<group>"; };
 		7369A0B408BD45CAB40FF17A /* YarrInterpreterMatcher.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = YarrInterpreterMatcher.swift; path = yarr/YarrInterpreterMatcher.swift; sourceTree = "<group>"; };
 		5E7ED4319C0A4210B98BA371 /* YarrInterpreterSwiftTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YarrInterpreterSwiftTypes.h; path = yarr/YarrInterpreterSwiftTypes.h; sourceTree = "<group>"; };
@@ -5410,7 +5473,6 @@
 		93ADFCE60CCBD7AC00D30B08 /* JSArray.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSArray.cpp; sourceTree = "<group>"; };
 		93BFC6D829B344C80030D7BE /* GlobalObjectMethodTable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GlobalObjectMethodTable.h; sourceTree = "<group>"; };
 		93CEDDFB0EA91EE600258EBE /* RegExpMatchesArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RegExpMatchesArray.h; sourceTree = "<group>"; };
-		93F0B3A909BB4DC00068FCE3 /* Parser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Parser.cpp; sourceTree = "<group>"; };
 		93F0B3AA09BB4DC00068FCE3 /* Parser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Parser.h; sourceTree = "<group>"; };
 		93F1981A08245AAE001E9ABC /* Keywords.table */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = text; path = Keywords.table; sourceTree = "<group>"; tabWidth = 8; };
 		95C18D3E0C90E7EF00E72F73 /* JSRetainPtr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSRetainPtr.h; sourceTree = "<group>"; };
@@ -5751,7 +5813,6 @@
 		A79EDB0811531CD60019E912 /* JSObjectRefPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSObjectRefPrivate.h; sourceTree = "<group>"; };
 		A7A4AE0717973B26005612B1 /* MacroAssemblerX86_64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MacroAssemblerX86_64.cpp; sourceTree = "<group>"; };
 		A7A7EE7411B98B8D0065A14F /* ASTBuilder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ASTBuilder.h; sourceTree = "<group>"; };
-		A7A7EE7711B98B8D0065A14F /* SyntaxChecker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SyntaxChecker.h; sourceTree = "<group>"; };
 		A7A8AF2517ADB5F2005AB174 /* ArrayBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ArrayBuffer.cpp; sourceTree = "<group>"; };
 		A7A8AF2617ADB5F3005AB174 /* ArrayBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArrayBuffer.h; sourceTree = "<group>"; };
 		A7A8AF2717ADB5F3005AB174 /* ArrayBufferView.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ArrayBufferView.cpp; sourceTree = "<group>"; };
@@ -5777,8 +5838,6 @@
 		A7C1EAEB17987AB600299DB2 /* CLoopStackInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CLoopStackInlines.h; sourceTree = "<group>"; };
 		A7C1EAEC17987AB600299DB2 /* StackVisitor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; lineEnding = 0; path = StackVisitor.cpp; sourceTree = "<group>"; };
 		A7C1EAED17987AB600299DB2 /* StackVisitor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StackVisitor.h; sourceTree = "<group>"; };
-		A7C225CC139981F100FF1662 /* KeywordLookupGenerator.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = KeywordLookupGenerator.py; sourceTree = "<group>"; };
-		A7C225CD1399849C00FF1662 /* KeywordLookup.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KeywordLookup.h; sourceTree = "<group>"; };
 		A7CA3ADD17DA41AE006538AF /* WeakMapConstructor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WeakMapConstructor.cpp; sourceTree = "<group>"; };
 		A7CA3ADE17DA41AE006538AF /* WeakMapConstructor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WeakMapConstructor.h; sourceTree = "<group>"; };
 		A7CA3ADF17DA41AE006538AF /* WeakMapPrototype.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WeakMapPrototype.cpp; sourceTree = "<group>"; };
@@ -6493,8 +6552,6 @@
 		F692A85E0255597D01FF60F7 /* JSFunction.cpp */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSFunction.cpp; sourceTree = "<group>"; tabWidth = 8; };
 		F692A85F0255597D01FF60F7 /* JSFunction.h */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = JSFunction.h; sourceTree = "<group>"; tabWidth = 8; };
 		F692A8620255597D01FF60F7 /* JSString.h */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = JSString.h; sourceTree = "<group>"; tabWidth = 8; };
-		F692A8650255597D01FF60F7 /* Lexer.cpp */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Lexer.cpp; sourceTree = "<group>"; tabWidth = 8; };
-		F692A8660255597D01FF60F7 /* Lexer.h */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = Lexer.h; sourceTree = "<group>"; tabWidth = 8; };
 		F692A8680255597D01FF60F7 /* Lookup.cpp */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Lookup.cpp; sourceTree = "<group>"; tabWidth = 8; };
 		F692A8690255597D01FF60F7 /* Lookup.h */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = Lookup.h; sourceTree = "<group>"; tabWidth = 8; };
 		F692A86A0255597D01FF60F7 /* MathObject.cpp */ = {isa = PBXFileReference; fileEncoding = 30; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MathObject.cpp; sourceTree = "<group>"; tabWidth = 8; };
@@ -8598,7 +8655,6 @@
 				BC87CDB810712ACA000614CF /* JSONObject.lut.h */,
 				7C184E2417BFFA36007CB63A /* JSPromiseConstructor.lut.h */,
 				7C184E2517BFFA36007CB63A /* JSPromisePrototype.lut.h */,
-				A7C225CD1399849C00FF1662 /* KeywordLookup.h */,
 				BC18C52D0E16FCE100B34460 /* Lexer.lut.h */,
 				70DE9A081BE7D670005D89D9 /* LLIntAssembly.h */,
 				91FD55322A4CF52100F5D482 /* MapConstructor.lut.h */,
@@ -8825,10 +8881,18 @@
 		7E39D8370EC3A388003AF11A /* parser */ = {
 			isa = PBXGroup;
 			children = (
+				EE2E97B02C5A96ECAE0CA6B3 /* ASTBuilder.cpp */,
 				A7A7EE7411B98B8D0065A14F /* ASTBuilder.h */,
+				503C5C47E26C463985CB753D /* ASTBuilderAdapter.swift */,
 				93F1981A08245AAE001E9ABC /* Keywords.table */,
-				F692A8650255597D01FF60F7 /* Lexer.cpp */,
-				F692A8660255597D01FF60F7 /* Lexer.h */,
+				CF8C2AA8747F4909BEADEE34 /* Lexer.swift */,
+				4787128FF9DE46878364B50D /* LexerCharacter.swift */,
+				57042431002C4AAA8D97FD5A /* LexerCharacterTypes.swift */,
+				EF707F00EE5B47FFBD2584A6 /* LexerIdentifiers.swift */,
+				902F7803F7664523B4222157 /* KeywordLookup.swift */,
+				6C5412F2F7B14B87B81858AA /* LexerNumbers.swift */,
+				2592D3BA3FC14835BBAB3E56 /* LexerScanning.swift */,
+				CE861DA63F20465BBB2D6F40 /* LexerStrings.swift */,
 				3910AB722F3087E500BAA633 /* LexerUnicodeProperties.cpp */,
 				3910AB732F3087FD00BAA633 /* LexerUnicodeProperties.h */,
 				E3794E731B77EB97005543AE /* ModuleAnalyzer.cpp */,
@@ -8838,14 +8902,35 @@
 				F692A86D0255597D01FF60F7 /* Nodes.cpp */,
 				F692A86E0255597D01FF60F7 /* Nodes.h */,
 				E3963CEC1B73F75000EB4CE5 /* NodesAnalyzeModule.cpp */,
-				93F0B3A909BB4DC00068FCE3 /* Parser.cpp */,
 				93F0B3AA09BB4DC00068FCE3 /* Parser.h */,
+				50381386D0B6435699BDBB70 /* Parser.swift */,
 				93052C320FB792190048FDC3 /* ParserArena.cpp */,
 				93052C330FB792190048FDC3 /* ParserArena.h */,
+				1D2DD54DDB5F807804F851EB /* ParserClasses.swift */,
+				AF34C700DCF9424A99B47E43 /* ParserDeclarations.swift */,
+				9ECFA3FB0C914F7DBEAFE62E /* ParserEntry.swift */,
 				0FCCAE4316D0CF6E00D0C65B /* ParserError.h */,
+				50B97488D4ABC44B4A278D18 /* ParserError.swift */,
+				0B06A1D5E2664FAB8B5C3C14 /* ParserExpressions.swift */,
 				9B4954E81A6640DB002815A6 /* ParserFunctionInfo.h */,
+				A28AF729463142E39BE41718 /* ParserFunctions.swift */,
+				7413F0AAEC264369ACD8FE77 /* ParserLoops.swift */,
+				BD843AE5F8B24F3297896957 /* ParserMemberExpressions.swift */,
 				A77F18241641925400640A47 /* ParserModes.h */,
+				9E9CBC7BCDDC4F2F90AD1041 /* ParserModules.swift */,
+				416B236548C04C329E317547 /* ParserObjectLiterals.swift */,
+				FE0D84220CE23A6879866DE7 /* ParserPrimaryExpressions.swift */,
+				E643FE09AC564E06DE3C08FD /* ParserSavePoint.swift */,
+				7E8FCA1A31D14ABDBF593DDD /* ParserScope.swift */,
+				5F1BEF1F2A9F96A75013BBA4 /* ParserScopeStack.swift */,
+				11BB82BE4BE0483C814CB57F /* ParserStatements.swift */,
+				173FD01E69064D368B89030B /* ParserSwiftFacadeInlines.h */,
+				CC750564ABE87BFE67CAD633 /* ParserSwiftFacade.cpp */,
+				724A972713C043B5A63813B3 /* ParserSwiftTypes.h */,
 				65303D631447B9E100D3F904 /* ParserTokens.h */,
+				6DBA39B9B0F5457E8A042ABB /* ParserTokens.swift */,
+				95A8965AFA733669BE0E520A /* ParserTokenStream.swift */,
+				C1C9B8F68146443991AACE74 /* ParserTypes.swift */,
 				869EBCB60E8C6D4A008722CC /* ResultType.h */,
 				3910AB772F3087FD00BAA634 /* SourceCharacters.cpp */,
 				3910AB752F3087FD00BAA634 /* SourceCharacters.h */,
@@ -8858,7 +8943,8 @@
 				E49DC14912EF261A00184A1F /* SourceProviderCacheItem.h */,
 				53542B212AA8D89D00205FB3 /* SourceTaintedness.cpp */,
 				53542B222AA8D89D00205FB3 /* SourceTaintedness.h */,
-				A7A7EE7711B98B8D0065A14F /* SyntaxChecker.h */,
+				0F062054A34A4509B5D2AE14 /* SyntaxChecker.swift */,
+				1913FDA7B5D1441EB6E375E5 /* TreeBuilder.swift */,
 				0F8F2B9D17306C8B007DBDA5 /* UnlinkedSourceCode.cpp */,
 				14AB66751DECF40900A56C26 /* UnlinkedSourceCode.h */,
 				79EE0BFD1B4AFB85000385C9 /* VariableEnvironment.cpp */,
@@ -12655,7 +12741,6 @@
 				BCFD8C930EEB2EE700283848 /* JumpTable.h in Headers */,
 				E37F44C82A13088000E56D8D /* KeyAtomStringCache.h in Headers */,
 				E37F44C72A13088000E56D8D /* KeyAtomStringCacheInlines.h in Headers */,
-				A72FFD64139985A800E5365A /* KeywordLookup.h in Headers */,
 				969A072A0ED1CE6900F1F681 /* Label.h in Headers */,
 				960097A60EBABB58007A7297 /* LabelScope.h in Headers */,
 				DCF3D56A1CD29470003D5C65 /* LazyClassStructure.h in Headers */,
@@ -12666,7 +12751,6 @@
 				530F0A982AE0607B00A0EEC0 /* LazyValueProfile.h in Headers */,
 				99DA00B01BD5994E00F4575C /* lazywriter.py in Headers */,
 				1409ECBF225E177400BEDD54 /* LeafExecutable.h in Headers */,
-				BC18C4310E16F5CD00B34460 /* Lexer.h in Headers */,
 				3910AB742F3087FD00BAA633 /* LexerUnicodeProperties.h in Headers */,
 				FEC503FE2B51E09700176A93 /* LineColumn.h in Headers */,
 				86D3B3C310159D7F002865E7 /* LinkBuffer.h in Headers */,
@@ -13055,7 +13139,6 @@
 				E31179AA2288386100514B2C /* SymbolTableOrScopeDepth.h in Headers */,
 				0FD79A2D1EBBBDBB00DA88D3 /* Synchronousness.h in Headers */,
 				0F1FB38F1E173A6700A9BE50 /* SynchronousStopTheWorldMutatorScheduler.h in Headers */,
-				A784A26411D16622005776AC /* SyntaxChecker.h in Headers */,
 				E3C4131D289E08EA001150F8 /* SyntheticModuleRecord.h in Headers */,
 				DC7997831CDE9FA0004D4A09 /* TagRegistersMode.h in Headers */,
 				07CEB6A22EF90E4B008DCDEC /* TargetAssemblerDefinitions.h in Headers */,
@@ -13329,6 +13412,8 @@
 				A3FF9BC72234749100B1A9AB /* YarrFlags.h in Headers */,
 				86704B8512DBA33700A9FE7B /* YarrInterpreter.h in Headers */,
 				59940B1D602E4E2A8049A666 /* YarrInterpreterSwiftTypes.h in Headers */,
+				E8926A5CC5EA443490B3E2A4 /* ParserSwiftFacadeInlines.h in Headers */,
+				D0CCB21A627A49D79603E811 /* ParserSwiftTypes.h in Headers */,
 				86704B8712DBA33700A9FE7B /* YarrJIT.h in Headers */,
 				653BC43F26D013A600D8BE20 /* YarrJITRegisters.h in Headers */,
 				E3F0FC9526A11B4A0099FFA0 /* YarrMatchingContextHolder.h in Headers */,
@@ -14544,6 +14629,36 @@
 			buildActionMask = 2147483647;
 			files = (
 				B16D00010000000000000006 /* JSBigIntDigits.swift in Sources */,
+				28DA0B3D52BD4C209CD643E1 /* ParserEntry.swift in Sources */,
+				457934DC43574B998324D034 /* ASTBuilderAdapter.swift in Sources */,
+				51A3624AE866401BB0C99DEA /* Lexer.swift in Sources */,
+				2F60424B34654E31B89416CE /* LexerIdentifiers.swift in Sources */,
+				4B5E7BAD62544C12892D7242 /* LexerNumbers.swift in Sources */,
+				041652FDEB304B3B902C1CC1 /* LexerScanning.swift in Sources */,
+				87520830716C455597627869 /* LexerStrings.swift in Sources */,
+				44D572866FB747398129D784 /* Parser.swift in Sources */,
+				5CC95467710A4A7580F08518 /* LexerCharacter.swift in Sources */,
+				038CDBCB970C428A8E6230A2 /* LexerCharacterTypes.swift in Sources */,
+				819C82657146443DBE11CBBB /* KeywordLookup.swift in Sources */,
+				6CEAF35DD6AF7D5AB3831351 /* ParserClasses.swift in Sources */,
+				0DC7CE4AA3444F378C205A2B /* ParserDeclarations.swift in Sources */,
+				5D0DB82DFC6D6051AAA3E458 /* ParserError.swift in Sources */,
+				6D62B120611E475F949DCFE9 /* ParserExpressions.swift in Sources */,
+				DB0FECF3E387496DA5242B93 /* ParserFunctions.swift in Sources */,
+				51A7D7B59E8D44279052EAD8 /* ParserLoops.swift in Sources */,
+				8D70051DFC054E7D8A3DBE8C /* ParserMemberExpressions.swift in Sources */,
+				B1396B47557A4D348F2EC24F /* ParserModules.swift in Sources */,
+				972AECFA84214C809D5C545B /* ParserObjectLiterals.swift in Sources */,
+				4E8DF7D1B56AD615618AD2FE /* ParserPrimaryExpressions.swift in Sources */,
+				9A1DD6573CDF56CAF72F954E /* ParserSavePoint.swift in Sources */,
+				ACBB5E97FD7D610E81AC44D7 /* ParserScopeStack.swift in Sources */,
+				EF8F24ED81494398BB410090 /* ParserStatements.swift in Sources */,
+				7CC7F75D70712D629C9CCDD6 /* ParserTokenStream.swift in Sources */,
+				6F255A0936E2423AA117F72A /* TreeBuilder.swift in Sources */,
+				E81219DA859D4B2596205C56 /* ParserScope.swift in Sources */,
+				C4EA979CBD5441FCB27F186E /* ParserTokens.swift in Sources */,
+				C7AEA5D48841498DBC425F18 /* ParserTypes.swift in Sources */,
+				D891225940824402A8F32A33 /* SyntaxChecker.swift in Sources */,
 				B4C152F41E93449BA9C1565A /* YarrByteCompiler.swift in Sources */,
 				448518380D684262A3243044 /* YarrInterpreterMatcher.swift in Sources */,
 				B16D00010000000000000012 /* JSBigIntDigitsAddSub.swift in Sources */,
@@ -14581,7 +14696,6 @@
 				4BE92D452898522400FA48E1 /* LowLevelInterpreter.cpp in Sources */,
 				4B46940328984FA800512FDF /* MacroAssemblerARM64.cpp in Sources */,
 				4B46940428984FEE00512FDF /* MacroAssemblerX86_64.cpp in Sources */,
-				FE770390298CD40F009634C7 /* Parser.cpp in Sources */,
 				E32F713F281B3C6600AFD21D /* UnifiedSource1-c.c in Sources */,
 				536B319A1F735E780037FC33 /* UnifiedSource1-nonARC.mm in Sources */,
 				536B315F1F71C5990037FC33 /* UnifiedSource1.cpp in Sources */,

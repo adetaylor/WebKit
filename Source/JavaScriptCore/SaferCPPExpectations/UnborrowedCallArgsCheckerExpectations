@@ -87,7 +87,6 @@ jit/JITDisassembler.h
 jit/JITOpcodes.cpp
 jit/JITSafepoint.cpp
 lol/LOLJIT.cpp
-parser/Lexer.cpp
 parser/Parser.h
 parser/ParserArena.cpp
 profiler/ProfilerDatabase.cpp

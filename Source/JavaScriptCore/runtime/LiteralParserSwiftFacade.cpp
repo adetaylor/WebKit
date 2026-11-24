@@ -33,7 +33,7 @@
 #include "JSArray.h"
 #include "JSCInlines.h"
 #include "JSONCacheInlines.h"
-#include "Lexer.h"
+#include "Lookup.h"
 #include "ObjectConstructor.h"
 #include <wtf/ForbidHeapAllocation.h>
 #include <wtf/Range.h>
@@ -41,7 +41,15 @@
 
 #include "JavaScriptCore-Swift.h"
 
+#include "Lexer.lut.h"
+
 namespace JSC {
+
+// Whether a JSONP path entry's name is one of Keywords.table's, which a JSONP statement cannot name.
+static bool isLexerKeyword(const Identifier& identifier)
+{
+    return JSC::mainTable.entry(identifier);
+}
 
 namespace {
 

@@ -60,6 +60,7 @@
 #include <wtf/MathExtras.h>
 
 #include "JSBigIntSwiftDigits.h"
+#include "ParserSwiftTypes.h"
 #include "TemporalSwiftBoundary.h" // JSCSwift-Swift.h declares the whole module's Swift, Temporal's too.
 #include "YarrInterpreterSwiftTypes.h"
 #include "JSCSwift-Swift.h"
