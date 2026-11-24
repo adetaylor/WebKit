@@ -5075,16 +5075,7 @@ else ()
     endif ()
     # No -Xcc -I for WebCore's include directories: swiftc gives its -I paths, which CMake sets from
     # them, to the clang importer too, and repeating them overflows Windows' 32K command line.
-    if (LTO_MODE AND WEBKIT_SWIFT_WHOLE_MODULE AND WEBKIT_SWIFT_LTO)
-        # Bitcode with the ThinLTO summary, so the LTO link optimizes the Swift with its C++ callers.
-        # Not the driver's -lto=llvm-thin, which writes <name>.bc to the working directory because
-        # CMake's output file map has only an "object" entry.
-        webkit_target_add_swift_options(WebCore
-            "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<NOT:$<CONFIG:Debug>>>:SHELL:-Xfrontend -lto=llvm-${LTO_MODE}>"
-            "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<NOT:$<CONFIG:Debug>>>:SHELL:-Xfrontend -emit-bc>")
-    elseif (LTO_MODE AND WEBKIT_SWIFT_LTO)
-        message(WARNING "LTO_MODE is set but Swift is not whole-module (DEVELOPER_MODE), so WebCore's Swift is not LTO'd")
-    endif ()
+    WEBKIT_SWIFT_LTO_OUTSIDE_DEBUG(WebCore)
 
     # The WebCore_Private submodules WebCore's Swift imports. Apple platforms get them from
     # WebCore_Private.modulemap, a framework module over PrivateHeaders, which the other ports do not

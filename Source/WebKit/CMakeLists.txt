@@ -1147,6 +1147,11 @@ if (TARGET WebCoreWebGL)
     add_dependencies(WebKit_SwiftGeneratedDeps WebCoreWebGL)
 endif ()
 
+# Under LTO_MODE, WebKit's Swift goes into the LTO link with its C++ callers.
+if (NOT APPLE)
+    WEBKIT_SWIFT_LTO_OUTSIDE_DEBUG(WebKit)
+endif ()
+
 # should match the rest of WebKit and use -Onone, but it negatively impacts build time
 webkit_target_add_swift_options(WebKit
     "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-O>")

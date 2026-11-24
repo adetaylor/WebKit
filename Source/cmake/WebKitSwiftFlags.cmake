@@ -122,6 +122,20 @@ function(WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG _target)
     set_target_properties(${_target} PROPERTIES COMPILE_OPTIONS "${_options}")
 endfunction()
 
+# In an LTO build outside Debug, compiles a whole-module Swift target to bitcode with the ThinLTO summary, so the LTO
+# link optimizes the Swift with its C++ callers and callees, as SWIFT_LTO does in Xcode. Not the driver's
+# -lto=llvm-thin, which writes <name>.bc to the working directory because CMake's output file map has only an "object"
+# entry.
+function(WEBKIT_SWIFT_LTO_OUTSIDE_DEBUG _target)
+    if (LTO_MODE AND WEBKIT_SWIFT_WHOLE_MODULE AND WEBKIT_SWIFT_LTO)
+        webkit_target_add_swift_options(${_target}
+            "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<NOT:$<CONFIG:Debug>>>:SHELL:-Xfrontend -lto=llvm-${LTO_MODE}>"
+            "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<NOT:$<CONFIG:Debug>>>:SHELL:-Xfrontend -emit-bc>")
+    elseif (LTO_MODE AND WEBKIT_SWIFT_LTO)
+        message(WARNING "LTO_MODE is set but Swift is not whole-module (DEVELOPER_MODE), so ${_target}'s Swift is not LTO'd")
+    endif ()
+endfunction()
+
 # Global flag sets
 
 set(WEBKIT_SWIFT_LANGUAGE_FLAGS
