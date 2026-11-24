@@ -288,6 +288,10 @@ def swift_cxx_name(cpp_name):
     return cpp_name.removeprefix('::').replace('::', '_')
 
 
+def is_cxx_decoded(cpp_type):
+    return strip_cpp_type_decorations(cpp_type).removeprefix('::') in _CXX_DECODED_TYPES
+
+
 def is_owned_primitive(cpp_type):
     """Whether the Swift form of a C++ IPC type is one of SwiftCoding.swift's owned types, like IPCTypes.MachSendRight."""
     return strip_cpp_type_decorations(cpp_type).removeprefix('::') in _OWNED_TYPES
@@ -337,7 +341,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type in ('UTF8CString', 'WTF::UTF8CString'):
         return ('[UInt8]', 'IPCCoding.Vector<UInt8>')
 
-    if cpp_type.removeprefix('::') in _CXX_DECODED_TYPES:
+    if is_cxx_decoded(cpp_type):
         return _CXX_DECODED_TYPES[cpp_type.removeprefix('::')]
 
     if cpp_type.removeprefix('::') in _OWNED_TYPES:
