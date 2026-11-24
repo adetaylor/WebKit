@@ -7,7 +7,9 @@
 #                                                  framework: the Swift declaration, with NSArray and NSDictionary for its
 #                                                  typed collections, and `[T] counted by <property>` for a `const T *`)
 #     function <framework> <symbol> with pointer    (also the function's pointer, for real-time code to copy on the main thread)
-#     function <framework> <symbol> refined         (a function the SDK marks CF_REFINED_FOR_SWIFT, which Swift doesn't import)
+#     function <framework> <symbol> refined         (a function the SDK marks CF_REFINED_FOR_SWIFT, which Swift doesn't import; or a
+#                                                  Create or Copy function whose last `void *` is a CF out-parameter, which the
+#                                                  accessor takes as UnsafeMutablePointer<CFTypeRef?>? and not as the SDK's raw pointer)
 # PAL must soft-link each one (pal/cf/AudioToolboxSoftLink.h, pal/cocoa/AVFoundationSoftLink.h, ...).
 # Scripts/generate-soft-link-accessors.py generates the accessors, <framework>SoftLinkAccessors.swift, from this list.
 # List only what Swift calls, so that the accessors stay small enough to review.
@@ -260,7 +262,10 @@ function VideoToolbox VTDecompressionSessionCanAcceptFormatDescription
 function VideoToolbox VTDecompressionSessionCreate refined
 function VideoToolbox VTDecompressionSessionInvalidate
 function VideoToolbox VTDecompressionSessionWaitForAsynchronousFrames
-function VideoToolbox VTSessionCopyProperty
+function VideoToolbox VTSessionCopyProperty refined
+constant VideoToolbox kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder
+constant VideoToolbox kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder
+constant VideoToolbox kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder
 
 # The renderer's shared timebase timer and its rate.
 function CoreMedia CMTimebaseAddTimerDispatchSource

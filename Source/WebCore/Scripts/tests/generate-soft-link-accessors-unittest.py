@@ -207,6 +207,21 @@ public typealias PALSoftLink_MediaMake_t = @convention(c) (Int64, Int32) -> Medi
         with self.assertRaises(generator.GeneratorError):
             generator.declaration_from_typedef('MediaGroupGet', typedef)
 
+    def test_refined_void_out_parameter(self):
+        typedef = (['MediaSession', 'CFString', 'CFAllocator?', 'UnsafeMutableRawPointer?'], 'OSStatus', False)
+        self.assertEqual(generator.declaration_from_typedef('MediaSessionCopyProperty', typedef), (['_ arg0: MediaSession', '_ arg1: CFString', '_ arg2: CFAllocator?', '_ arg3: UnsafeMutablePointer<CFTypeRef?>?'], 'OSStatus'))
+        refcon = (['MediaSession', 'UnsafeMutableRawPointer?'], 'OSStatus', False)
+        self.assertEqual(generator.declaration_from_typedef('MediaSessionSetRefcon', refcon), (['_ arg0: MediaSession', '_ arg1: UnsafeMutableRawPointer?'], 'OSStatus'))
+        for typedef in ((['UnsafeMutableRawPointer?', 'CFString'], 'OSStatus', False), (['UnsafeMutableRawPointer?', 'UnsafeMutableRawPointer?'], 'OSStatus', False)):
+            with self.assertRaisesRegex(generator.GeneratorError, 'out-parameter last'):
+                generator.declaration_from_typedef('MediaSessionCopyProperty', typedef)
+
+    def test_refined_void_out_parameter_accessor(self):
+        typedef = (['MediaSession', 'CFString', 'CFAllocator?', 'UnsafeMutableRawPointer?'], 'OSStatus', False)
+        declaration = generator.Declaration('function', 'Media', 'MediaSessionCopyProperty', False)
+        lines = generator.function_accessor(declaration, typedef, generator.declaration_from_typedef('MediaSessionCopyProperty', typedef))
+        self.assertEqual(lines[-1], 'func MediaSessionCopyProperty(_ arg0: MediaSession, _ arg1: CFString, _ arg2: CFAllocator?, _ arg3: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus { unsafe softLink_MediaSessionCopyProperty(arg0, arg1, arg2, UnsafeMutableRawPointer(arg3)) }')
+
     def test_refined_function_accessor(self):
         typedef = (['__MediaGroup', 'CFIndex'], 'Unmanaged<CVPixelBuffer>?', True)
         declaration = generator.Declaration('function', 'Media', 'MediaGroupGetPixelBufferAtIndex', False)
@@ -223,10 +238,12 @@ class AdaptationTest(unittest.TestCase):
     def test_rules(self):
         self.assertEqual(generator.adapt_argument('x', 'Int32', 'Int32'), ('x', False))
         self.assertEqual(generator.adapt_argument('flag', 'Bool', 'DarwinBoolean'), ('DarwinBoolean(flag)', False))
+        self.assertEqual(generator.adapt_argument('out', 'UnsafeMutablePointer<CFTypeRef?>?', 'UnsafeMutableRawPointer?'), ('UnsafeMutableRawPointer(out)', True))
         self.assertEqual(generator.adapt_argument('out', 'UnsafeMutablePointer<CFString?>', 'UnsafeMutablePointer<Unmanaged<CFString>?>'), ('UnsafeMutableRawPointer(out).assumingMemoryBound(to: Unmanaged<CFString>?.self)', True))
 
     def test_no_rule(self):
         self.assertEqual(generator.adapt_argument('x', 'Int32', 'Int64'), (None, False))
+        self.assertEqual(generator.adapt_argument('out', 'UnsafeMutablePointer<CFTypeRef?>?', 'UnsafeMutablePointer<Int>?'), (None, False))
         self.assertEqual(generator.adapt_argument('out', 'UnsafeMutablePointer<CFString?>', 'UnsafeMutablePointer<Unmanaged<CFData>?>'), (None, False))
         self.assertEqual(generator.adapt_argument('out', 'UnsafePointer<CFString?>', 'UnsafeMutablePointer<Unmanaged<CFString>?>'), (None, False))
 
@@ -573,6 +590,10 @@ class SDKTest(unittest.TestCase):
             with open(os.path.join(output, 'VideoToolboxSoftLinkAccessors.swift')) as f:
                 videotoolbox = f.read()
             self.assertIn('func VTDecompressionSessionCreate(_ arg0: CFAllocator?, _ arg1: CMVideoFormatDescription, _ arg2: CFDictionary?, _ arg3: CFDictionary?, _ arg4: UnsafePointer<VTDecompressionOutputCallbackRecord>?, _ arg5: UnsafeMutablePointer<VTDecompressionSession?>) -> OSStatus {', videotoolbox)
+            self.assertIn('func VTSessionCopyProperty(_ arg0: VTSession, _ arg1: CFString, _ arg2: CFAllocator?, _ arg3: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus { unsafe softLink_VTSessionCopyProperty(arg0, arg1, arg2, UnsafeMutableRawPointer(arg3)) }', videotoolbox)
+            self.assertIn('enum VideoToolboxSoftLink { }', videotoolbox)
+            for constant in ('kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder', 'kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder', 'kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder'):
+                self.assertIn(f'static var {constant}: CFString {{', videotoolbox)
             self.assertTrue(os.path.exists(os.path.join(output, 'PALSoftLinkTypes', 'module.modulemap')))
             with open(os.path.join(output, 'VisionSoftLinkAccessors.swift')) as f:
                 vision = f.read()

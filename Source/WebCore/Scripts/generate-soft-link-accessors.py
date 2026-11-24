@@ -302,6 +302,8 @@ def find_declaration(interfaces, name):
 # CVPixelBufferRef and CVImageBufferRef themselves, so in a caller's file those names can be classes of their own, and a
 # call would then name a different accessor than the one generated.
 ERASED_RESULTS = ('CVBuffer', 'CVImageBuffer', 'CVPixelBuffer')
+RAW_POINTER = 'UnsafeMutableRawPointer?'
+CF_OUT_POINTER = 'UnsafeMutablePointer<CFTypeRef?>?'
 
 
 def declaration_from_typedef(name, typedef):
@@ -313,6 +315,13 @@ def declaration_from_typedef(name, typedef):
     parameters = [re.sub(r'^(Unsafe(?:Mutable)?Pointer)<Unmanaged<(\w+)>\?>', r'\1<\2?>', parameter) for parameter in pointer_parameters]
     if parameters != pointer_parameters and not follows_create_rule(name):
         raise GeneratorError(f'{name}: an Unmanaged out-parameter is rewritten as retained, but the name does not follow the Create rule')
+    # The `void *` out-parameter of a Create or Copy function (VTSessionCopyProperty) receives one CF object at +1, or
+    # nothing, so the accessor takes a pointer to the caller's CFTypeRef?: Swift warns about forming a raw pointer to one.
+    raw_parameters = [i for i, parameter in enumerate(parameters) if parameter == RAW_POINTER]
+    if raw_parameters and follows_create_rule(name):
+        if len(raw_parameters) != 1 or raw_parameters[0] != len(parameters) - 1:
+            raise GeneratorError(f'{name}: a Create or Copy function must have its one `void *` out-parameter last')
+        parameters[-1] = CF_OUT_POINTER
     return [f'_ arg{i}: {parameter}' for i, parameter in enumerate(parameters)], result
 
 
@@ -337,6 +346,8 @@ def adapt_argument(expression, declared_type, pointer_type):
         return expression, False
     if declared_type == 'Bool' and pointer_type == 'DarwinBoolean':
         return f'DarwinBoolean({expression})', False
+    if declared_type == CF_OUT_POINTER and pointer_type == RAW_POINTER:
+        return f'UnsafeMutableRawPointer({expression})', True
     declared = re.fullmatch(r'Unsafe(Mutable)?Pointer<(\w+)\?>(\??)', declared_type)
     pointer = re.fullmatch(r'Unsafe(Mutable)?Pointer<Unmanaged<(\w+)>\?>(\??)', pointer_type)
     if declared and pointer and declared.groups()[::2] == pointer.groups()[::2] and declared.group(2) == pointer.group(2):
