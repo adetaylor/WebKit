@@ -587,12 +587,14 @@ class SDKTest(unittest.TestCase):
                 coremedia = f.read()
             self.assertIn('func CMTimeAdd(_ lhs: CMTime, _ rhs: CMTime) -> CMTime {', coremedia)
             self.assertIn('func CMTagCollectionGetTypeID() -> CFTypeID {', coremedia)
+            for constant in ('kCMTagInvalid', 'kCMTagMediaTypeVideo'):
+                self.assertIn(f'    static let {constant}: __CMTag = {{\n        let address = unsafe softLinkRequiredSymbol(auditedName_{constant})\n        return unsafe address.load(as: PALSoftLink_{constant}_t.Pointee.self)\n', coremedia)
             with open(os.path.join(output, 'VideoToolboxSoftLinkAccessors.swift')) as f:
                 videotoolbox = f.read()
             self.assertIn('func VTDecompressionSessionCreate(_ arg0: CFAllocator?, _ arg1: CMVideoFormatDescription, _ arg2: CFDictionary?, _ arg3: CFDictionary?, _ arg4: UnsafePointer<VTDecompressionOutputCallbackRecord>?, _ arg5: UnsafeMutablePointer<VTDecompressionSession?>) -> OSStatus {', videotoolbox)
             self.assertIn('func VTSessionCopyProperty(_ arg0: VTSession, _ arg1: CFString, _ arg2: CFAllocator?, _ arg3: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus { unsafe softLink_VTSessionCopyProperty(arg0, arg1, arg2, UnsafeMutableRawPointer(arg3)) }', videotoolbox)
             self.assertIn('enum VideoToolboxSoftLink { }', videotoolbox)
-            for constant in ('kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder', 'kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder', 'kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder'):
+            for constant in ('kVTDecompressionPropertyKey_RequestedMVHEVCVideoLayerIDs', 'kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder', 'kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder', 'kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder'):
                 self.assertIn(f'static var {constant}: CFString {{', videotoolbox)
             self.assertTrue(os.path.exists(os.path.join(output, 'PALSoftLinkTypes', 'module.modulemap')))
             with open(os.path.join(output, 'VisionSoftLinkAccessors.swift')) as f:
