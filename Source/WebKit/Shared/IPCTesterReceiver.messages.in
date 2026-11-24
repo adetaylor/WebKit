@@ -69,7 +69,9 @@ messages -> IPCTesterReceiver {
 #endif
 #endif
     [EnabledBy=AllowTestOnlyIPC] EnabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
-    [EnabledBy=EncryptedMediaAPIEnabled] DisabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
+    # Off in ipcTesterSharedPreferences(). A preference every port has: one under a condition (EncryptedMediaAPIEnabled,
+    # ENABLE(ENCRYPTED_MEDIA)) is no member of SharedPreferencesForWebProcess where the condition is false.
+    [EnabledBy=AllowTestOnlyMockContentFilterIPC] DisabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
 }
 
 #endif
