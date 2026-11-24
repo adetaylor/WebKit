@@ -116,6 +116,8 @@ struct GetInfoResponseFields {
 
 // nullopt for empty versions (no response the reader accepts has them), else the response.
 std::optional<AuthenticatorGetInfoResponse> makeGetInfoResponse(GetInfoResponseFields&&);
+// The CBOR of the response the fields make; the versions must not be empty.
+WEBCORE_EXPORT Vector<uint8_t> encodeAsCBOR(GetInfoResponseFields&&);
 WEBCORE_EXPORT GetInfoResponseFields getInfoResponseFields(const AuthenticatorGetInfoResponse&);
 
 } // namespace fido
