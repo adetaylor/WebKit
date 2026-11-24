@@ -32,6 +32,7 @@
 #include "RemoteDisplayListRecorderIdentifier.h"
 #include "RemoteGraphicsContext.h"
 #include <WebCore/DisplayListRecorderImpl.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WebKit {
 
@@ -45,13 +46,20 @@ public:
 
     Ref<const WebCore::DisplayList::DisplayList> takeDisplayList() { return m_recorder->takeDisplayList(); }
 
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    // SWIFT_UNSAFE: Swift counts its references itself, and a call by name would unbalance them.
+    SWIFT_UNSAFE void ref() const { IPC::StreamMessageReceiver::ref(); }
+    SWIFT_UNSAFE void deref() const { IPC::StreamMessageReceiver::deref(); }
+#endif
+
 private:
     RemoteDisplayListRecorder(Ref<WebCore::DisplayList::RecorderImpl>&&, RemoteDisplayListRecorderIdentifier, RemoteRenderingBackend&);
     void startListeningForIPC();
 
     const Ref<WebCore::DisplayList::RecorderImpl> m_recorder;
     const RemoteDisplayListRecorderIdentifier m_identifier;
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 
