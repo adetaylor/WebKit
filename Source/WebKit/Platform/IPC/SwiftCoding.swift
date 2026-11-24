@@ -1406,6 +1406,13 @@ extension IPCCoding {
     }
 }
 
+// The generated message names, which no .serialization.in lists: as WTF::isValidEnum<IPC::MessageName>() (MessageNames.h).
+extension IPC.MessageName: IPCCxxEnum {
+    static func isDeclaredValue(_ value: Self) -> Bool {
+        value.rawValue <= IPC.MessageName.Last.rawValue
+    }
+}
+
 #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
 // The CG renderer's spans of trivially copyable elements, decoded and encoded without a generic call out of this file, which
 // a build that isn't whole-module would not specialize, at the cost of metadata lookups for every message.
