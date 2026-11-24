@@ -3391,6 +3391,8 @@ if (ENABLE_WEB_AUTHN)
         "(^|/)CBORBytes\\.cpp( |$)"
         "(^|/)AuthenticatorGetInfoResponse\\.cpp( |$)"
         "(^|/)Pin\\.cpp( |$)")
+    # PlatformCocoa.cmake also lists the first two in WebCore_SOURCES.
+    list(REMOVE_ITEM WebCore_SOURCES ${_webcore_webauthn_swift_interop_sources})
 endif ()
 
 # The C++ of WebCore's Swift ports that includes WebCore-Swift.h compiles in WebCore_SwiftInterop, after WebCore's
