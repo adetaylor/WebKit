@@ -148,10 +148,6 @@ list(APPEND WebKit_SOURCES
     UIProcess/API/Cocoa/WKContentWorld.mm
     UIProcess/API/Cocoa/_WKAuthenticationExtensionsClientInputs.mm
     UIProcess/API/Cocoa/_WKAuthenticationExtensionsClientOutputs.mm
-    UIProcess/API/Cocoa/_WKAuthenticatorAssertionResponse.mm
-    UIProcess/API/Cocoa/_WKAuthenticatorAttestationResponse.mm
-    UIProcess/API/Cocoa/_WKAuthenticatorResponse.mm
-    UIProcess/API/Cocoa/_WKAuthenticatorSelectionCriteria.mm
     UIProcess/API/Cocoa/_WKPublicKeyCredentialCreationOptions.mm
     UIProcess/API/Cocoa/_WKPublicKeyCredentialDescriptor.mm
     UIProcess/API/Cocoa/_WKPublicKeyCredentialEntity.mm
@@ -571,7 +567,6 @@ list(APPEND WebKit_SOURCES
     UIProcess/WebAuthentication/Cocoa/AuthenticationServicesSoftLink.mm
     UIProcess/WebAuthentication/Cocoa/HidConnection.mm
     UIProcess/WebAuthentication/Cocoa/HidService.mm
-    UIProcess/WebAuthentication/Cocoa/WebAuthenticatorCoordinatorProxy.mm
 
     UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorManager.cpp
     UIProcess/WebAuthentication/Virtual/VirtualHidConnection.cpp
@@ -581,11 +576,32 @@ list(APPEND WebKit_SOURCES
     UIProcess/WebAuthentication/fido/CtapAuthenticator.cpp
     UIProcess/WebAuthentication/fido/CtapCcidDriver.cpp
     UIProcess/WebAuthentication/fido/CtapHidDriver.cpp
+    ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKAuthenticatorAssertionResponse.swift
+    ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKAuthenticatorAttestationResponse.swift
+    ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKAuthenticatorResponse.swift
+    ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKAuthenticatorSelectionCriteria.swift
+    ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKWebAuthenticationPanel.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/AuthenticatorManager.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/CcidConnection.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/LocalAuthenticator.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/LocalAuthenticatorKeychain.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/LocalConnection.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/LocalService.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/NfcConnection.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/NfcService.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/WebAuthenticationPanelClient.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/Cocoa/WebAuthenticationPanelCredentials.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Mock/MockCcidService.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Mock/MockHidConnection.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Mock/MockLocalConnection.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/Mock/MockNfcService.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/RelatedOriginsValidator.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorUtils.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/Virtual/VirtualHidConnection.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/WebAuthenticatorCoordinatorProxy+AS.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/WebAuthenticatorCoordinatorProxy+Legacy.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/WebAuthenticatorCoordinatorProxy.swift
+    ${WEBKIT_DIR}/UIProcess/WebAuthentication/WebAuthnRequestsConformances.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/CtapAuthenticator.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/CtapCcidDriver.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/CtapHidDriver.swift
@@ -593,6 +609,7 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/FidoAuthenticator.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/FidoService.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/fido/U2fAuthenticator.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/WebAuthenticatorCoordinatorProxyMessageReceiver.swift
 
     WebProcess/Inspector/ServiceWorkerDebuggableFrontendChannel.cpp
     WebProcess/Inspector/ServiceWorkerDebuggableProxy.cpp

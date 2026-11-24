@@ -28,39 +28,30 @@
 
 #if ENABLE(WEB_AUTHN)
 
-#import <WebCore/LocalizedStrings.h>
+#import "WebAuthnSoftLinkForSwift.h"
+#import "WebKit-Swift.h"
 #import <WebCore/UserVerificationRequirement.h>
-#import <WebCore/WebAuthenticationConstants.h>
 #import <wtf/BlockPtr.h>
 #import <wtf/RunLoop.h>
 #import <wtf/TZoneMallocInlines.h>
-#import <wtf/cf/TypeCastsCF.h>
 #import <wtf/cocoa/SpanCocoa.h>
 #import <wtf/cocoa/TypeCastsCocoa.h>
 
-#import "AuthenticationServicesCoreSoftLink.h"
 #import "LocalAuthenticationSoftLink.h"
 
 namespace WebKit {
 using namespace WebCore;
 
-namespace {
-#if PLATFORM(MAC)
-static inline String bundleName()
-{
-    return [[NSRunningApplication currentApplication] localizedName];
-}
-#endif
-} // namespace
-
+#if USE(APPLE_INTERNAL_SDK)
 static bool shouldUseAlternateAttributes()
 {
 #if ENABLE(SYNCED_CREDENTIALS)
-    if (WebKit::getASCWebKitSPISupportClassSingleton())
-        return [WebKit::getASCWebKitSPISupportClassSingleton() shouldUseAlternateCredentialStore];
-#endif
+    return webAuthnASCShouldUseAlternateCredentialStore();
+#else
     return false;
+#endif
 }
+#endif
 
 LAContext *createWebAuthnLAContext()
 {
@@ -82,19 +73,7 @@ LocalConnection::~LocalConnection()
 
 void LocalConnection::verifyUser(const String& rpId, ClientDataType type, SecAccessControlRef accessControl, UserVerificationRequirement uv, UserVerificationCallback&& completionHandler)
 {
-    String title = genericTouchIDPromptTitle();
-#if PLATFORM(MAC)
-    switch (type) {
-    case ClientDataType::Create:
-        title = makeCredentialTouchIDPromptTitle(bundleName(), rpId);
-        break;
-    case ClientDataType::Get:
-        title = getAssertionTouchIDPromptTitle(bundleName(), rpId);
-        break;
-    default:
-        ASSERT_NOT_REACHED();
-    }
-#endif
+    String title = webAuthnTouchIDPromptTitle(rpId, type);
 
     m_context = adoptNS([allocLAContextInstance() init]);
 
@@ -107,15 +86,7 @@ void LocalConnection::verifyUser(const String& rpId, ClientDataType type, SecAcc
 #endif
 
     auto reply = makeBlockPtr([context = m_context, completionHandler = WTF::move(completionHandler)] (NSDictionary *information, NSError *error) mutable {
-        UserVerification verification = UserVerification::Yes;
-        if (error) {
-            LOG_ERROR("Couldn't authenticate with biometrics: %@", error);
-            verification = UserVerification::No;
-            if (error.code == LAErrorUserCancel)
-                verification = UserVerification::Cancel;
-        }
-        if (information[@"UserPresence"])
-            verification = UserVerification::Presence;
+        auto verification = webAuthnUserVerification(information, error);
 
         // This block can be executed in another thread.
         RunLoop::mainSingleton().dispatch([completionHandler = WTF::move(completionHandler), verification, context = WTF::move(context)] () mutable {
@@ -151,15 +122,7 @@ void LocalConnection::verifyUser(SecAccessControlRef accessControl, LAContext *c
     [options setObject:@YES forKey:RetainPtr { @(LAOptionNotInteractive) }.get()];
 
     auto reply = makeBlockPtr([completionHandler = WTF::move(completionHandler)] (NSDictionary *information, NSError *error) mutable {
-        UserVerification verification = UserVerification::Yes;
-        if (error) {
-            LOG_ERROR("Couldn't authenticate with biometrics: %@", error);
-            verification = UserVerification::No;
-            if (error.code == LAErrorUserCancel)
-                verification = UserVerification::Cancel;
-        }
-        if (information[@"UserPresence"])
-            verification = UserVerification::Presence;
+        auto verification = webAuthnUserVerification(information, error);
 
         // This block can be executed in another thread.
         RunLoop::mainSingleton().dispatch([completionHandler = WTF::move(completionHandler), verification] () mutable {
@@ -186,79 +149,14 @@ void LocalConnection::verifyUser(SecAccessControlRef accessControl, LAContext *c
     [context evaluateAccessControl:accessControl operation:LAAccessControlOperationUseKeySign options:options.get() reply:reply.get()];
 }
 
-static NSDictionary *alternateAttributes(LAContext *context, SecAccessControlRef accessControlRef, const String& secAttrLabel, NSData *secAttrApplicationTag)
-{
-    return @{
-        (id)kSecAttrSynchronizable: @YES,
-        (id)kSecAttrKeyType: (id)kSecAttrKeyTypeECSECPrimeRandom,
-        (id)kSecAttrKeySizeInBits: @256,
-        (id)kSecPrivateKeyAttrs: @{
-            (id)kSecAttrIsPermanent: @YES,
-            (id)kSecAttrAccessGroup: WebCore::LocalAuthenticatorAccessGroup,
-            (id)kSecAttrLabel: secAttrLabel.createNSString().get(),
-            (id)kSecAttrApplicationTag: secAttrApplicationTag,
-        }
-    };
-}
-
 RetainPtr<SecKeyRef> LocalConnection::createCredentialPrivateKey(LAContext *context, SecAccessControlRef accessControlRef, const String& secAttrLabel, NSData *secAttrApplicationTag) const
 {
-    RetainPtr privateKeyAttributes = @{
-        (id)kSecAttrAccessControl: (id)accessControlRef,
-        (id)kSecAttrIsPermanent: @YES,
-        (id)kSecAttrAccessGroup: LocalAuthenticatorAccessGroup,
-        (id)kSecAttrLabel: secAttrLabel.createNSString().get(),
-        (id)kSecAttrApplicationTag: secAttrApplicationTag,
-    };
-
-    if (context) {
-        auto mutableCopy = adoptNS([privateKeyAttributes mutableCopy]);
-        mutableCopy.get()[(id)kSecUseAuthenticationContext] = context;
-        privateKeyAttributes = WTF::move(mutableCopy);
-    }
-
-    RetainPtr attributes = @{
-        (id)kSecAttrTokenID: (id)kSecAttrTokenIDSecureEnclave,
-        (id)kSecAttrKeyType: (id)kSecAttrKeyTypeECSECPrimeRandom,
-        (id)kSecAttrKeySizeInBits: @256,
-        (id)kSecPrivateKeyAttrs: privateKeyAttributes.get(),
-    };
-
-    if (shouldUseAlternateAttributes())
-        attributes = alternateAttributes(context, accessControlRef, secAttrLabel, secAttrApplicationTag);
-
-    CFErrorRef rawError = nullptr;
-    auto credentialPrivateKey = adoptCF(SecKeyCreateRandomKey((__bridge CFDictionaryRef)attributes.get(), &rawError));
-    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
-    SUPPRESS_RETAINPTR_CTOR_ADOPT if (auto error = adoptCF(rawError)) {
-        LOG_ERROR("Couldn't create private key: %@", bridge_cast(error.get()));
-        return nullptr;
-    }
-    return credentialPrivateKey;
+    return adoptCF(webAuthnCreateCredentialPrivateKey(context, accessControlRef, secAttrLabel.createNSString().get(), secAttrApplicationTag));
 }
 
 RetainPtr<NSArray> LocalConnection::getExistingCredentials(const String& rpId)
 {
-    // Search Keychain for existing credential matched the RP ID.
-    RetainPtr query = @{
-        (id)kSecClass: (id)kSecClassKey,
-        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-        (id)kSecAttrAccessGroup: LocalAuthenticatorAccessGroup,
-        (id)kSecAttrLabel: rpId.createNSString().get(),
-        (id)kSecReturnAttributes: @YES,
-        (id)kSecMatchLimit: (id)kSecMatchLimitAll,
-        (id)kSecUseDataProtectionKeychain: @YES
-    };
-
-    CFTypeRef attributesArrayRef = nullptr;
-    OSStatus status = SecItemCopyMatching(bridge_cast(query.get()), &attributesArrayRef);
-    if (status && status != errSecItemNotFound)
-        return nullptr;
-    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
-    SUPPRESS_RETAINPTR_CTOR_ADOPT RetainPtr nsAttributesArray = bridge_cast(adoptCF(checked_cf_cast<CFArrayRef>(attributesArrayRef)));
-    return [nsAttributesArray sortedArrayUsingComparator:^(NSDictionary *a, NSDictionary *b) {
-        return [protect(checked_objc_cast<NSDate>(b[(id)kSecAttrModificationDate])) compare:protect(checked_objc_cast<NSDate>(a[(id)kSecAttrModificationDate]))];
-    }];
+    return adoptNS(webAuthnExistingCredentials(rpId.createNSString().get()));
 }
 
 } // namespace WebKit

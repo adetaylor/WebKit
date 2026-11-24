@@ -40,7 +40,6 @@
 #include "DocumentSecurityOrigin.h"
 #include "FrameDestructionObserverInlines.h"
 #include "JSBasicCredential.h"
-#include "LegacySchemeRegistry.h"
 #include "LocalFrameInlines.h"
 #include "JSCredentialCreationOptions.h"
 #include "JSCredentialRequestOptions.h"
@@ -64,6 +63,7 @@
 #include "WebAuthenticationConstants.h"
 #include "WebAuthenticationUtils.h"
 #include "WebAuthnOperationException.h"
+#include "WebCore-Swift.h"
 #include <pal/crypto/CryptoDigest.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -73,38 +73,6 @@ namespace WebCore {
 WTF_MAKE_TZONE_ALLOCATED_IMPL(AuthenticatorCoordinatorClient);
 
 namespace AuthenticatorCoordinatorInternal {
-
-static bool needsAppIdQuirks(const String& host, const String& appId)
-{
-    // FIXME(197524): Remove this quirk in 2023. As an early adopter of U2F features, Google has a large number of
-    // existing device registrations that authenticate 'google.com' against 'gstatic.com'. Firefox and other browsers
-    // have agreed to grant an exception to the AppId rules for a limited time period (5 years from January, 2018) to
-    // allow existing Google users to seamlessly transition to proper WebAuthN behavior.
-    if (equalLettersIgnoringASCIICase(host, "google.com"_s) || host.endsWithIgnoringASCIICase(".google.com"_s))
-        return (appId == "https://www.gstatic.com/securitykey/origins.json"_s) || (appId == "https://www.gstatic.com/securitykey/a/google.com/origins.json"_s);
-    return false;
-}
-
-// The following roughly implements Step 1-3 of the spec to avoid the complexity of making unnecessary network requests:
-// https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-appid-and-facets-v2.0-id-20180227.html#determining-if-a-caller-s-facetid-is-authorized-for-an-appid
-// It follows what Chrome and Firefox do, see:
-// https://bugzilla.mozilla.org/show_bug.cgi?id=1244959#c8
-// https://bugs.chromium.org/p/chromium/issues/detail?id=818303
-static String processAppIdExtension(const SecurityOrigin& facetId, const String& appId)
-{
-    // Step 1. Skipped since facetId should always be secure origins.
-    ASSERT(LegacySchemeRegistry::shouldTreatURLSchemeAsSecure(facetId.protocol()));
-
-    // Step 2. Follow Chrome and Firefox to use the origin directly without adding a trailing slash.
-    if (appId.isEmpty())
-        return facetId.toString();
-
-    // Step 3. Relax the comparison to same site.
-    URL appIdURL { appId };
-    if (!appIdURL.isValid() || facetId.protocol() != appIdURL.protocol() || (RegistrableDomain(appIdURL) != RegistrableDomain::uncheckedCreateFromHost(facetId.host()) && !needsAppIdQuirks(facetId.host(), appId)))
-        return String();
-    return appId;
-}
 
 static ScopeAndCrossOriginParent scopeAndCrossOriginParent(const Document& document)
 {
@@ -168,7 +136,6 @@ void AuthenticatorCoordinator::create(const Document& document, CredentialCreati
         promise.reject(Exception { ExceptionCode::NotSupportedError, "Only PublicKeyCredential is supported."_s });
         return;
     }
-    const auto& options = createOptions.publicKey.value();
 
     // Step 2.
     if (!document.isSameOriginWithAncestors()) {
@@ -176,63 +143,14 @@ void AuthenticatorCoordinator::create(const Document& document, CredentialCreati
         return;
     }
 
-    // Step 5.
-    if (options.user.id.byteLength() < 1 || options.user.id.byteLength() > 64) {
-        promise.reject(Exception { ExceptionCode::TypeError, "The length options.user.id must be between 1-64 bytes."_s });
+    // Step 5-13. Validates the options and fills in their defaults (AuthenticatorCoordinatorValidation.swift).
+    auto validated = webAuthnValidateCreationOptions(*createOptions.publicKey, callerOrigin->domain(), URL::hostIsIPAddress(callerOrigin->domain()));
+    if (!validated.options) {
+        promise.reject(WTF::move(validated.exception).toException());
         return;
     }
-
-    // Step 6. Skipped since SecurityOrigin doesn't have the concept of "opaque origin".
-    // Step 7. The effective domain may be represented in various manners, such as a domain or an ip address.
-    // Only the domain format of host is permitted in WebAuthN.
-    if (URL::hostIsIPAddress(callerOrigin->domain())) {
-        promise.reject(Exception { ExceptionCode::SecurityError, "The effective domain of the document is not a valid domain."_s });
-        return;
-    }
-
-    // Step 8.
-    if (!options.rp.id)
-        options.rp.id = callerOrigin->domain();
-
-    // Step 9-11.
-    // Most of the jobs are done by bindings.
-    if (options.pubKeyCredParams.isEmpty()) {
-        options.pubKeyCredParams.append({ PublicKeyCredentialType::PublicKey, COSE::ES256 });
-        options.pubKeyCredParams.append({ PublicKeyCredentialType::PublicKey, COSE::RS256 });
-    } else {
-        if (notFound != options.pubKeyCredParams.findIf([] (auto& pubKeyCredParam) {
-            return pubKeyCredParam.type != PublicKeyCredentialType::PublicKey;
-        })) {
-            
-            promise.reject(Exception { ExceptionCode::NotSupportedError, "options.pubKeyCredParams contains unsupported PublicKeyCredentialType value."_s });
-            return;
-        }
-    }
-
-    // Step 12-13.
-    ASSERT(options.rp.id);
-
-    AuthenticationExtensionsClientInputs extensionInputs = {
-        nullString(),
-        false,
-        std::nullopt,
-        std::nullopt,
-        nullString()
-    };
-
-    if (auto extensions = options.extensions) {
-        extensionInputs.credProps = extensions->credProps;
-        extensionInputs.largeBlob = extensions->largeBlob;
-        extensionInputs.prf = extensions->prf;
-    }
-
-    options.extensions = extensionInputs;
-    if (options.extensions && options.extensions->largeBlob) {
-        if (options.extensions->largeBlob->read || options.extensions->largeBlob->write) {
-            promise.reject(Exception { ExceptionCode::NotAllowedError, "Read and write may not be present in largeBlob for registration."_s });
-            return;
-        }
-    }
+    createOptions.publicKey = WTF::move(*validated.options);
+    const auto& options = createOptions.publicKey.value();
 
     // Step 4, 18-22.
     if (!m_client) {
@@ -307,40 +225,20 @@ void AuthenticatorCoordinator::discoverFromExternalSource(Document& document, Cr
         return;
     }
 
-    const auto& options = requestOptions.publicKey.value();
     auto scopeCrossOriginParent = scopeAndCrossOriginParent(document);
     if (scopeCrossOriginParent.first != WebAuthn::Scope::SameOrigin && !PermissionsPolicy::isFeatureEnabled(PermissionsPolicy::Feature::PublickeyCredentialsGetRule, document, PermissionsPolicy::ShouldReportViolation::No)) {
         promise.reject(Exception { ExceptionCode::NotAllowedError, "The origin of the document is not the same as its ancestors."_s });
         return;
     }
 
-    // Step 5. Skipped since SecurityOrigin doesn't have the concept of "opaque origin".
-    // Step 6. The effective domain may be represented in various manners, such as a domain or an ip address.
-    // Only the domain format of host is permitted in WebAuthN.
-    if (URL::hostIsIPAddress(callerOrigin->domain())) {
-        promise.reject(Exception { ExceptionCode::SecurityError, "The effective domain of the document is not a valid domain."_s });
+    // Step 5-9. Validates the options, fills in their defaults and resolves the appid (AuthenticatorCoordinatorValidation.swift).
+    auto validated = webAuthnValidateRequestOptions(*requestOptions.publicKey, callerOrigin->domain(), URL::hostIsIPAddress(callerOrigin->domain()), callerOrigin->protocol(), callerOrigin->host());
+    if (!validated.options) {
+        promise.reject(WTF::move(validated.exception).toException());
         return;
     }
-
-    // Step 7.
-    if (options.rpId.isEmpty())
-        options.rpId = callerOrigin->domain();
-
-    // Step 8-9.
-    // Only FIDO AppID Extension is supported.
-    if (options.extensions && !options.extensions->appid.isNull()) {
-        // The following implements https://www.w3.org/TR/webauthn/#sctn-appid-extension as of 4 March 2019.
-        if (options.extensions->appid.isEmpty()) {
-            promise.reject(Exception { ExceptionCode::NotAllowedError, "Empty appid in create request."_s });
-            return;
-        }
-        auto appid = processAppIdExtension(callerOrigin.get(), options.extensions->appid);
-        if (!appid) {
-            promise.reject(Exception { ExceptionCode::SecurityError, "The origin of the document is not authorized for the provided App ID."_s });
-            return;
-        }
-        options.extensions->appid = appid;
-    }
+    requestOptions.publicKey = WTF::move(*validated.options);
+    const auto& options = requestOptions.publicKey.value();
 
     if (options.extensions && !options.extensions->crossDeviceFallbackURL.isNull()) {
         URL fallbackURL { options.extensions->crossDeviceFallbackURL };

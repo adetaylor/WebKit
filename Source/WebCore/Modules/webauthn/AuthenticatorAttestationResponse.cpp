@@ -28,10 +28,7 @@
 
 #if ENABLE(WEB_AUTHN)
 
-#include "AuthenticatorResponseData.h"
-#include "WebAuthenticationUtils.h"
 #include <wtf/Borrow.h>
-#include <wtf/text/Base64.h>
 
 namespace WebCore {
 
@@ -60,33 +57,7 @@ AuthenticatorAttestationResponse::AuthenticatorAttestationResponse(Ref<ArrayBuff
 {
 }
 
-AuthenticatorResponseData AuthenticatorAttestationResponse::data() const
-{
-    auto data = AuthenticatorResponse::data();
-    data.isAuthenticatorAttestationResponse = true;
-    data.attestationObject = m_attestationObject.copyRef();
-    data.transports = m_transports;
-    return data;
-}
-
-RegistrationResponseJSON::AuthenticatorAttestationResponseJSON AuthenticatorAttestationResponse::toJSON()
-{
-    Vector<String> transports;
-    for (auto transport : getTransports())
-        transports.append(toString(transport));
-    RegistrationResponseJSON::AuthenticatorAttestationResponseJSON value;
-    if (RefPtr clientData = clientDataJSON())
-        value.clientDataJSON = base64URLEncodeToString(clientData->span());
-    value.transports = transports;
-    if (auto authData = getAuthenticatorData())
-        value.authenticatorData = base64URLEncodeToString(authData->span());
-    if (auto publicKey = getPublicKey())
-        value.publicKey = base64URLEncodeToString(publicKey->span());
-    value.attestationObject = base64URLEncodeToString(attestationObject().span());
-    value.publicKeyAlgorithm = getPublicKeyAlgorithm();
-
-    return value;
-}
+AuthenticatorAttestationResponse::~AuthenticatorAttestationResponse() = default;
 
 } // namespace WebCore
 

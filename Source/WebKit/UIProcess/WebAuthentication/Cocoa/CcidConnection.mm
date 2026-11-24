@@ -32,7 +32,6 @@
 #import "MainRunLoopDestroyedHandler.h"
 #import "WKSmartCardObservers.h"
 #import <CryptoTokenKit/TKSmartCard.h>
-#import <WebCore/FidoConstants.h>
 #import <wtf/BlockPtr.h>
 #import <wtf/Borrow.h>
 #import <wtf/Function.h>
@@ -85,11 +84,15 @@
 @end
 
 namespace WebKit {
-using namespace fido;
 
 Ref<CcidConnection> CcidConnection::create(RetainPtr<TKSmartCard>&& smartCard, RetainPtr<TKSmartCardSlot>&& slot, CcidService& service)
 {
     return adoptRef(*new CcidConnection(WTF::move(smartCard), WTF::move(slot), service));
+}
+
+RefPtr<CcidService> CcidConnection::service() const
+{
+    return m_service.get();
 }
 
 CcidConnection::CcidConnection(RetainPtr<TKSmartCard>&& smartCard, RetainPtr<TKSmartCardSlot>&& slot, CcidService& service)
@@ -120,56 +123,6 @@ CcidConnection::~CcidConnection()
 {
     CCID_RELEASE_LOG("destroyed, m_hasSession=%d", m_hasSession);
     stop();
-}
-
-const uint8_t kGetUidCommand[] = {
-    0xFF, 0xCA, 0x00, 0x00, 0x00
-};
-
-void CcidConnection::detectContactless()
-{
-    transact(Vector(std::span { kGetUidCommand }), [weakThis = ThreadSafeWeakPtr { *this }] (Vector<uint8_t>&& response) mutable {
-        ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return;
-        // Only contactless smart cards have uid, check for longer length than apdu status
-        if (response.size() > 2)
-            protectedThis->m_contactless = true;
-        protectedThis->trySelectFidoApplet();
-    });
-}
-
-void CcidConnection::trySelectFidoApplet()
-{
-    transact(Vector(std::span { kCtapNfcAppletSelectionCommand }), [weakThis = ThreadSafeWeakPtr { *this }] (Vector<uint8_t>&& response) mutable {
-        ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return;
-        Borrow borrowedResponse = response;
-        if (equalSpans(borrowedResponse->span(), std::span { kCtapNfcAppletSelectionU2f })
-            || equalSpans(borrowedResponse->span(), std::span { kCtapNfcAppletSelectionCtap })) {
-            if (RefPtr service = protectedThis->m_service.get())
-                service->didConnectTag();
-            return;
-        }
-        // Some legacy U2F keys don't understand the FIDO applet selection command and are configured to
-        // only have the FIDO applet. When applet selection fails, use the U2F_VERSION command to check
-        // whether the connected tag can speak U2F, indicating one of these legacy keys.
-        protectedThis->transact(Vector(std::span { kCtapNfcU2fVersionCommand }), [weakThis = WTF::move(weakThis)] (Vector<uint8_t>&& response) mutable {
-            ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-            RefPtr protectedThis = weakThis.get();
-            if (!protectedThis)
-                return;
-            if (equalSpans(borrow(response)->span(), std::span { kCtapNfcAppletSelectionU2f })) {
-                if (RefPtr service = protectedThis->m_service.get())
-                    service->didConnectTag();
-                return;
-            }
-            protectedThis->stop();
-        });
-    });
 }
 
 void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& callback)
@@ -231,7 +184,6 @@ void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& cal
     }
 }
 
-
 void CcidConnection::processPendingRequests()
 {
     if (m_pendingRequests.isEmpty() || !m_hasSession)
@@ -251,11 +203,6 @@ void CcidConnection::stop()
         [m_smartCard endSession];
         m_hasSession = false;
     }
-}
-
-void CcidConnection::startPolling()
-{
-    detectContactless();
 }
 
 } // namespace WebKit

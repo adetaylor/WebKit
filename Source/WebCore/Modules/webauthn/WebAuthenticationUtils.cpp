@@ -29,9 +29,8 @@
 #if ENABLE(WEB_AUTHN)
 
 #include "WebAuthenticationConstants.h"
-#include <pal/crypto/CryptoDigest.h>
-#include <wtf/JSONValues.h>
-#include <wtf/StdLibExtras.h>
+#include "WebCore-Swift.h"
+#include <string_view>
 #include <wtf/URL.h>
 #include <wtf/text/Base64.h>
 #include <wtf/text/WTFString.h>
@@ -40,33 +39,12 @@ namespace WebCore {
 
 Ref<ArrayBuffer> buildClientDataJson(ClientDataType type, const BufferSource& challenge, const SecurityOrigin& origin, WebAuthn::Scope scope, const String& topOrigin)
 {
-    // https://www.w3.org/TR/webauthn-2/#clientdatajson-verification
-    auto object = JSON::Object::create();
-    switch (type) {
-    case ClientDataType::Create:
-        object->setString("type"_s, "webauthn.create"_s);
-        break;
-    case ClientDataType::Get:
-        object->setString("type"_s, "webauthn.get"_s);
-        break;
-    }
-    object->setString("challenge"_s, base64URLEncodeToString(challenge.span()));
-    object->setString("origin"_s, origin.toRawString());
-
-    if (scope != WebAuthn::Scope::SameOrigin)
-        object->setBoolean("crossOrigin"_s, scope != WebAuthn::Scope::SameOrigin);
-
-    if (!topOrigin.isNull())
-        object->setString("topOrigin"_s, topOrigin);
-
-    return ArrayBuffer::create(byteCast<uint8_t>(object->toJSONString().utf8().span()));
+    return ArrayBuffer::create(webAuthnClientDataJSON(type, base64URLEncodeToString(challenge.span()), origin.toRawString(), scope, topOrigin).span());
 }
 
 Vector<uint8_t> buildClientDataJsonHash(const ArrayBuffer& clientDataJson)
 {
-    auto crypto = PAL::Crypto::CryptoDigest::create(PAL::Crypto::CryptoDigest::Algorithm::SHA_256);
-    crypto->addBytes(clientDataJson.span());
-    return crypto->computeHash();
+    return webAuthnClientDataHash(clientDataJson.span());
 }
 
 Vector<uint8_t> encodeRawPublicKey(const Vector<uint8_t>& x, const Vector<uint8_t>& y)
@@ -80,59 +58,27 @@ Vector<uint8_t> encodeRawPublicKey(const Vector<uint8_t>& x, const Vector<uint8_
 
 String toString(AuthenticatorTransport transport)
 {
-    switch (transport) {
-    case AuthenticatorTransport::Usb:
-        return authenticatorTransportUsb;
-        break;
-    case AuthenticatorTransport::Nfc:
-        return authenticatorTransportNfc;
-        break;
-    case AuthenticatorTransport::Ble:
-        return authenticatorTransportBle;
-        break;
-    case AuthenticatorTransport::Internal:
-        return authenticatorTransportInternal;
-        break;
-    case AuthenticatorTransport::Cable:
-        return authenticatorTransportCable;
-    case AuthenticatorTransport::Hybrid:
-        return authenticatorTransportHybrid;
-    case AuthenticatorTransport::SmartCard:
-        return authenticatorTransportSmartCard;
-    default:
-        break;
-    }
-    ASSERT_NOT_REACHED();
-    return nullString();
+    return webAuthnTransportString(transport);
 }
 
 std::optional<AuthenticatorTransport> convertStringToAuthenticatorTransport(const String& transport)
 {
-    if (transport == authenticatorTransportUsb)
-        return AuthenticatorTransport::Usb;
-    if (transport == authenticatorTransportNfc)
-        return AuthenticatorTransport::Nfc;
-    if (transport == authenticatorTransportBle)
-        return AuthenticatorTransport::Ble;
-    if (transport == authenticatorTransportInternal)
-        return AuthenticatorTransport::Internal;
-    if (transport == authenticatorTransportCable)
-        return AuthenticatorTransport::Cable;
-    if (transport == authenticatorTransportHybrid)
-        return AuthenticatorTransport::Hybrid;
-    if (transport == authenticatorTransportSmartCard)
-        return AuthenticatorTransport::SmartCard;
-    return std::nullopt;
+    return webAuthnTransport(transport);
 }
 
-std::optional<ASCIILiteral> validateCrossDeviceFallbackURL(const URL& url)
+std::optional<String> validateCrossDeviceFallbackURL(const URL& url)
 {
-    if (!url.isValid() || !url.protocolIs("https"_s))
-        return "The cross-device fallback URL is not a valid https URL."_s;
-    if (url.host().isEmpty() || URL::hostIsIPAddress(url.host()))
-        return "The effective domain of the cross-device fallback URL is not a valid domain."_s;
-    return std::nullopt;
+    return webAuthnCrossDeviceFallbackURLError(url);
 }
+
+// The WebAuthenticationConstants.h names that WebAuthenticationUtils.swift's AuthenticatorTransportName spells as
+// literals (ASCIILiteral does not import).
+static consteval bool spells(ASCIILiteral name, std::string_view literal)
+{
+    return std::string_view(name.characters(), name.length()) == literal;
+}
+static_assert(spells(authenticatorTransportUsb, "usb") && spells(authenticatorTransportNfc, "nfc") && spells(authenticatorTransportBle, "ble") && spells(authenticatorTransportInternal, "internal"));
+static_assert(spells(authenticatorTransportCable, "cable") && spells(authenticatorTransportHybrid, "hybrid") && spells(authenticatorTransportSmartCard, "smart-card"));
 
 } // namespace WebCore
 

@@ -39,12 +39,21 @@ let sharingGroupAttribute = "ggrp"
 // SecuritySPI.h declares kSecAttrAlias without nullability.
 var aliasAttribute: CFString { kSecAttrAlias }
 
+/// Whether AuthenticationServicesCore keeps the credential ID in the alias attribute; never without the unified UI.
+func webAuthnShouldUseAlternateKeychainAttribute() -> Bool {
+    #if HAVE_UNIFIED_ASC_AUTH_UI
+    WebKit.webAuthnASCShouldUseAlternateKeychainAttribute()
+    #else
+    false
+    #endif
+}
+
 func keychainQuery(_ attributes: [CFString: Any]) -> NSMutableDictionary {
     NSMutableDictionary(dictionary: attributes)
 }
 
 func updateQueryIfNecessary(_ dictionary: NSMutableDictionary) {
-    if !WebKit.shouldUpdateQuery() {
+    if !WebKit.webAuthnASCShouldUseAlternateCredentialStore() {
         return
     }
 
@@ -56,7 +65,7 @@ func updateQueryIfNecessary(_ dictionary: NSMutableDictionary) {
 /// The ID is the credential's alias where the alternate Keychain attribute is in use, and its application label when
 /// no item has that alias; else its application label. A nil `credentialID` runs `query` as it is.
 func performQuery(_ query: NSMutableDictionary, credentialID: Data?, _ operation: (CFDictionary) -> OSStatus) -> OSStatus {
-    let useAlternateKeychainAttribute = WebKit.shouldUseAlternateKeychainAttribute()
+    let useAlternateKeychainAttribute = webAuthnShouldUseAlternateKeychainAttribute()
     guard let credentialID else {
         return operation(query as CFDictionary)
     }

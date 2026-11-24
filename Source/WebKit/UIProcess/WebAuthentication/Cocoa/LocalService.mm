@@ -30,6 +30,7 @@
 
 #import "LocalAuthenticator.h"
 #import "LocalConnection.h"
+#import "WebKit-Swift.h"
 #import <wtf/TZoneMallocInlines.h>
 
 #import "AuthenticationServicesCoreSoftLink.h"
@@ -51,18 +52,7 @@ LocalService::LocalService(AuthenticatorTransportServiceObserver& observer)
 
 bool LocalService::isAvailable()
 {
-    if ([WebKit::getASCWebKitSPISupportClassSingleton() shouldUseAlternateCredentialStore]) \
-        return YES;
-
-    auto context = adoptNS([allocLAContextInstance() init]);
-    NSError *error = nil;
-    auto result = [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error];
-    if ((!result || error) && error.code != LAErrorBiometryLockout) {
-        LOG_ERROR("Couldn't find local authenticators: %@", error);
-        return false;
-    }
-
-    return true;
+    return webAuthnLocalServiceIsAvailable();
 }
 
 void LocalService::startDiscoveryInternal()
@@ -72,16 +62,6 @@ void LocalService::startDiscoveryInternal()
 
     if (RefPtr observer = this->observer())
         observer->authenticatorAdded(LocalAuthenticator::create(createLocalConnection()));
-}
-
-bool LocalService::platformStartDiscovery() const
-{
-    return LocalService::isAvailable();
-}
-
-Ref<LocalConnection> LocalService::createLocalConnection() const
-{
-    return LocalConnection::create();
 }
 
 } // namespace WebKit

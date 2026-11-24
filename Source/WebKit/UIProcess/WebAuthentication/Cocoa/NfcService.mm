@@ -84,27 +84,6 @@ void NfcService::setConnection(Ref<NfcConnection>&& connection)
 }
 #endif
 
-void NfcService::startDiscoveryInternal()
-{
-    platformStartDiscovery();
-}
-
-void NfcService::restartDiscoveryInternal()
-{
-#if HAVE(NEAR_FIELD)
-    if (RefPtr connection = m_connection) {
-        m_connection = nullptr;
-        RELEASE_LOG(WebAuthn, "NfcService::restartDiscoveryInternal: ending session before starting new one");
-        connection->stopWithCompletionHandler([weakThis = WeakPtr { *this }] {
-            if (RefPtr protectedThis = weakThis.get())
-                protectedThis->platformStartDiscovery();
-        });
-        return;
-    }
-#endif
-    m_restartTimer.startOneShot(1_s); // Magic number to give users enough time for reactions.
-}
-
 void NfcService::platformStartDiscovery()
 {
 #if HAVE(NEAR_FIELD)

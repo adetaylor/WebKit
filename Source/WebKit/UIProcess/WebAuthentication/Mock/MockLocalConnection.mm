@@ -28,16 +28,13 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#import "WebKit-Swift.h"
 #import <JavaScriptCore/ArrayBuffer.h>
-#import <Security/SecItem.h>
 #import <WebCore/AuthenticatorAssertionResponse.h>
 #import <WebCore/ExceptionData.h>
 #import <wtf/Borrow.h>
 #import <wtf/RunLoop.h>
 #import <wtf/TZoneMallocInlines.h>
-#import <wtf/cf/TypeCastsCF.h>
-#import <wtf/cocoa/TypeCastsCocoa.h>
-#import <wtf/spi/cocoa/SecuritySPI.h>
 #import <wtf/text/Base64.h>
 #import <wtf/text/WTFString.h>
 
@@ -63,23 +60,7 @@ void MockLocalConnection::verifyUser(const String&, ClientDataType, SecAccessCon
     // Mock async operations.
     RunLoop::mainSingleton().dispatch([configuration = m_configuration, callback = WTF::move(callback)]() mutable {
         ASSERT(configuration.local);
-
-        UserVerification userVerification = UserVerification::No;
-        switch (configuration.local->userVerification) {
-        case MockWebAuthenticationConfiguration::UserVerification::No:
-            break;
-        case MockWebAuthenticationConfiguration::UserVerification::Yes:
-            userVerification = UserVerification::Yes;
-            break;
-        case MockWebAuthenticationConfiguration::UserVerification::Cancel:
-            userVerification = UserVerification::Cancel;
-            break;
-        case MockWebAuthenticationConfiguration::UserVerification::Presence:
-            userVerification = UserVerification::Presence;
-            break;
-        }
-
-        callback(userVerification, adoptNS([allocLAContextInstance() init]).get());
+        callback(webAuthnMockUserVerification(configuration.local->userVerification), adoptNS([allocLAContextInstance() init]).get());
     });
 }
 
@@ -88,60 +69,14 @@ void MockLocalConnection::verifyUser(SecAccessControlRef, LAContext *, Completio
     // Mock async operations.
     RunLoop::mainSingleton().dispatch([configuration = m_configuration, callback = WTF::move(callback)]() mutable {
         ASSERT(configuration.local);
-
-        UserVerification userVerification = UserVerification::No;
-        switch (configuration.local->userVerification) {
-        case MockWebAuthenticationConfiguration::UserVerification::No:
-            break;
-        case MockWebAuthenticationConfiguration::UserVerification::Yes:
-            userVerification = UserVerification::Yes;
-            break;
-        case MockWebAuthenticationConfiguration::UserVerification::Cancel:
-            userVerification = UserVerification::Cancel;
-            break;
-        case MockWebAuthenticationConfiguration::UserVerification::Presence:
-            userVerification = UserVerification::Presence;
-            break;
-        }
-
-        callback(userVerification);
+        callback(webAuthnMockUserVerification(configuration.local->userVerification));
     });
 }
 
 RetainPtr<SecKeyRef> MockLocalConnection::createCredentialPrivateKey(LAContext *, SecAccessControlRef, const String& secAttrLabel, NSData *secAttrApplicationTag) const
 {
     ASSERT(m_configuration.local);
-
-    // Get Key and add it to Keychain.
-    NSDictionary* options = @{
-        (id)kSecAttrKeyType: (id)kSecAttrKeyTypeECSECPrimeRandom,
-        (id)kSecAttrKeyClass: (id)kSecAttrKeyClassPrivate,
-        (id)kSecAttrKeySizeInBits: @256,
-    };
-    CFErrorRef errorRef = nullptr;
-    auto key = adoptCF(SecKeyCreateWithData(
-        (__bridge CFDataRef)adoptNS([[NSData alloc] initWithBase64EncodedString:m_configuration.local->privateKeyBase64.createNSString().get() options:NSDataBase64DecodingIgnoreUnknownCharacters]).get(),
-        (__bridge CFDictionaryRef)options,
-        &errorRef
-    ));
-    if (errorRef)
-        return nullptr;
-
-    RetainPtr addQuery = @{
-        (id)kSecValueRef: (id)key.get(),
-        (id)kSecClass: (id)kSecClassKey,
-        (id)kSecAttrLabel: secAttrLabel.createNSString().get(),
-        (id)kSecAttrApplicationTag: secAttrApplicationTag,
-        (id)kSecAttrAccessible: (id)kSecAttrAccessibleAfterFirstUnlock,
-        (id)kSecUseDataProtectionKeychain: @YES
-    };
-    OSStatus status = SecItemAdd(bridge_cast(addQuery.get()), NULL);
-    if (status) {
-        LOG_ERROR("Couldn't add the key to the keychain. %d", status);
-        return nullptr;
-    }
-
-    return key;
+    return adoptCF(webAuthnMockCreateCredentialPrivateKey(m_configuration.local->privateKeyBase64.createNSString().get(), secAttrLabel.createNSString().get(), secAttrApplicationTag));
 }
 
 void MockLocalConnection::filterResponses(Vector<Ref<AuthenticatorAssertionResponse>>& responses) const
@@ -166,26 +101,7 @@ void MockLocalConnection::filterResponses(Vector<Ref<AuthenticatorAssertionRespo
 
 RetainPtr<NSArray> MockLocalConnection::getExistingCredentials(const String& rpId)
 {
-    // Search Keychain for existing credential matched the RP ID.
-    RetainPtr query = @{
-        (id)kSecClass: (id)kSecClassKey,
-        (id)kSecAttrKeyClass: (id)kSecAttrKeyClassPrivate,
-        (id)kSecAttrSynchronizable: (id)kSecAttrSynchronizableAny,
-        (id)kSecAttrLabel: rpId.createNSString().get(),
-        (id)kSecReturnAttributes: @YES,
-        (id)kSecMatchLimit: (id)kSecMatchLimitAll,
-        (id)kSecUseDataProtectionKeychain: @YES
-    };
-
-    CFTypeRef attributesArrayRef = nullptr;
-    OSStatus status = SecItemCopyMatching(bridge_cast(query.get()), &attributesArrayRef);
-    if (status && status != errSecItemNotFound)
-        return nullptr;
-    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
-    SUPPRESS_RETAINPTR_CTOR_ADOPT RetainPtr nsAttributesArray = bridge_cast(adoptCF(checked_cf_cast<CFArrayRef>(attributesArrayRef)));
-    return [nsAttributesArray sortedArrayUsingComparator:^(NSDictionary *a, NSDictionary *b) {
-        return [protect(checked_objc_cast<NSDate>(b[(id)kSecAttrModificationDate])) compare:protect(checked_objc_cast<NSDate>(a[(id)kSecAttrModificationDate]))];
-    }];
+    return adoptNS(webAuthnMockExistingCredentials(rpId.createNSString().get()));
 }
 
 } // namespace WebKit

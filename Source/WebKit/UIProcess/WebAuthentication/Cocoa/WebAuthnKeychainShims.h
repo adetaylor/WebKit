@@ -32,6 +32,9 @@
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
 
+OBJC_CLASS LAContext;
+OBJC_CLASS NSError;
+
 namespace WebKit {
 
 // The Security calls that return their result through an out-parameter, for Swift, which cannot pass one safely.
@@ -42,6 +45,14 @@ SecCertificateRef copyIdentityCertificate(SecIdentityRef, OSStatus&) CF_RETURNS_
 SecTrustRef createTrustWithCertificates(CFArrayRef certificates, SecPolicyRef) CF_RETURNS_RETAINED;
 // SecKeyCreateSignature: the signature's bytes go into signature, and the result is the error's description, if any.
 std::optional<String> createKeySignature(SecKeyRef, SecKeyAlgorithm, CFDataRef dataToSign, Vector<uint8_t>& signature);
+// SecKeyCreateRandomKey: the key, or null with the error's description in errorDescription.
+SecKeyRef createWebAuthnRandomKey(CFDictionaryRef attributes, std::optional<String>& errorDescription) CF_RETURNS_RETAINED;
+// SecAccessControlCreateWithFlags and SecKeyCopyExternalRepresentation: the result, or null with the error's localized
+// description in error.
+SecAccessControlRef createWebAuthnAccessControl(SecAccessControlCreateFlags, std::optional<String>& error) CF_RETURNS_RETAINED;
+CFDataRef copyWebAuthnKeyExternalRepresentation(SecKeyRef, std::optional<String>& error) CF_RETURNS_RETAINED;
+// -[LAContext canEvaluatePolicy:error:] with the biometrics policy: the error, and the result in canEvaluatePolicy.
+NSError *canEvaluateBiometricsPolicy(LAContext *, bool& canEvaluatePolicy);
 
 } // namespace WebKit
 

@@ -77,6 +77,13 @@
 #include "WebSWServerToContextConnection.h"
 #include "WebSWServerToContextConnectionMessages.h"
 
+#if ENABLE(WEB_AUTHN)
+#include "LocalAuthenticator.h"
+#include "LocalConnection.h"
+#include "MockNfcService.h"
+#include "WebAuthenticatorCoordinatorProxySwiftUtilities.h"
+#endif
+
 #if ENABLE(GPU_PROCESS)
 #include "GPUConnectionToWebProcess.h"
 #include "GPUConnectionToWebProcessMessages.h"

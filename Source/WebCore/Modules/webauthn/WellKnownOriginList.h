@@ -25,16 +25,16 @@
 
 #pragma once
 
+#include <WebCore/SecurityOriginData.h>
 #include <span>
 #include <wtf/Forward.h>
+#include <wtf/URL.h>
 #include <wtf/Vector.h>
 #include <wtf/text/ASCIILiteral.h>
 #include <wtf/text/StringView.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
-
-class SecurityOriginData;
 
 constexpr size_t defaultWellKnownMaxResourceSize = 64 * 1024;
 
@@ -59,5 +59,31 @@ WEBCORE_EXPORT bool isWellKnownRedirectAllowed(const URL&);
 WEBCORE_EXPORT WellKnownOriginListResult findOriginInWellKnownList(const SecurityOriginData& callerOrigin, std::span<const uint8_t> resource, ASCIILiteral memberName, WellKnownOriginListPolicy&& = { });
 
 WEBCORE_EXPORT Vector<String> parseOriginsFromWellKnownList(std::span<const uint8_t> resource, ASCIILiteral memberName, WellKnownOriginListPolicy&& = { });
+
+// What the Swift implementation of the two functions above reads a list through: it cannot walk a RefPtr<JSON::Value>
+// or build a StringView, so these parse and look at one candidate each.
+
+// Names the vector for the Swift implementation, which cannot spell a template instantiation.
+using WellKnownStringVector = Vector<String>;
+
+// One listed origin: its registrable origin label, empty when it is not a valid URL or its host has none, and the URL.
+struct WellKnownCandidate {
+    String label;
+    URL url;
+
+    bool isOrigin(const SecurityOriginData& origin) const { return SecurityOriginData::fromURL(url) == origin; }
+};
+
+struct WellKnownCandidates {
+    // Reads the array that resource's JSON object holds as memberName. False when the resource is larger than
+    // maxResourceSize, is not a JSON object with that member as an array, or the array holds anything but strings.
+    // The span is noescape, which gives Swift an overload taking a Span.
+    bool parse([[clang::noescape]] std::span<const uint8_t> resource, const String& memberName, size_t maxResourceSize);
+
+    size_t size() const { return strings.size(); }
+    WellKnownCandidate candidate(size_t index) const;
+
+    WellKnownStringVector strings;
+};
 
 } // namespace WebCore

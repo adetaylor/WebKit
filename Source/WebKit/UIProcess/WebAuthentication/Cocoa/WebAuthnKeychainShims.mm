@@ -28,6 +28,7 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#import <LocalAuthentication/LocalAuthentication.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/cocoa/TypeCastsCocoa.h>
 #import <wtf/cocoa/VectorCocoa.h>
@@ -71,6 +72,45 @@ std::optional<String> createKeySignature(SecKeyRef key, SecKeyAlgorithm algorith
     SUPPRESS_RETAINPTR_CTOR_ADOPT if (RetainPtr error = adoptCF(rawError))
         return String(bridge_cast(error.get()).localizedDescription);
     return std::nullopt;
+}
+
+SecKeyRef createWebAuthnRandomKey(CFDictionaryRef attributes, std::optional<String>& errorDescription)
+{
+    CFErrorRef rawError = nullptr;
+    RetainPtr key = adoptCF(SecKeyCreateRandomKey(attributes, &rawError));
+    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
+    SUPPRESS_RETAINPTR_CTOR_ADOPT if (RetainPtr error = adoptCF(rawError)) {
+        errorDescription = bridge_cast(error.get()).description;
+        return nullptr;
+    }
+    return key.leakRef();
+}
+
+SecAccessControlRef createWebAuthnAccessControl(SecAccessControlCreateFlags flags, std::optional<String>& error)
+{
+    CFErrorRef rawError = nullptr;
+    RetainPtr accessControl = adoptCF(SecAccessControlCreateWithFlags(NULL, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, flags, &rawError));
+    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
+    SUPPRESS_RETAINPTR_CTOR_ADOPT if (RetainPtr cfError = adoptCF(rawError))
+        error = String(bridge_cast(cfError.get()).localizedDescription);
+    return accessControl.leakRef();
+}
+
+CFDataRef copyWebAuthnKeyExternalRepresentation(SecKeyRef key, std::optional<String>& error)
+{
+    CFErrorRef rawError = nullptr;
+    RetainPtr representation = adoptCF(SecKeyCopyExternalRepresentation(key, &rawError));
+    // FIXME: The Security framework API is missing the `CF_RETURNS_RETAINED` annotation (rdar://161546781).
+    SUPPRESS_RETAINPTR_CTOR_ADOPT if (RetainPtr cfError = adoptCF(rawError))
+        error = String(bridge_cast(cfError.get()).localizedDescription);
+    return representation.leakRef();
+}
+
+NSError *canEvaluateBiometricsPolicy(LAContext *context, bool& canEvaluatePolicy)
+{
+    NSError *error = nil;
+    canEvaluatePolicy = [context canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&error];
+    return error;
 }
 
 } // namespace WebKit

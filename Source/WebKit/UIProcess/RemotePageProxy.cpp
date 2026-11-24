@@ -43,10 +43,10 @@
 #include "RemotePageFullscreenManagerProxy.h"
 #include "RemotePageScreenOrientationManagerProxy.h"
 #include "RemotePageVisitedLinkStoreRegistration.h"
-#include "RemotePageWebAuthenticatorCoordinatorProxy.h"
 #include "RemotePageWebDeviceOrientationUpdateProviderProxy.h"
 #include "UserMediaProcessManager.h"
 #include "WebAuthenticatorCoordinatorProxy.h"
+#include "WebAuthenticatorCoordinatorProxyMessages.h"
 #include "WebBackForwardList.h"
 #include "WebBackForwardListMessages.h"
 #include "WebFrameProxy.h"
@@ -171,7 +171,10 @@ void RemotePageProxy::disconnect(ShouldSendCloseMessage shouldSendCloseMessage)
     m_process->removeMessageReceiver(Messages::NotificationManagerMessageHandler::messageReceiverName(), m_webPageID);
     m_screenOrientationManager = nullptr;
 #if ENABLE(WEB_AUTHN)
-    m_webAuthenticatorCoordinator = nullptr;
+    if (m_isReceivingWebAuthnMessages) {
+        m_process->removeMessageReceiver(Messages::WebAuthenticatorCoordinatorProxy::messageReceiverName(), m_webPageID);
+        m_isReceivingWebAuthnMessages = false;
+    }
 #endif
 #if ENABLE(WEBXR)
     if (m_isReceivingXRMessages) {
@@ -213,8 +216,10 @@ void RemotePageProxy::injectPageIntoNewProcess()
         m_screenOrientationManager = RemotePageScreenOrientationManagerProxy::create(m_webPageID, screenOrientationManager.get(), m_process);
 
 #if ENABLE(WEB_AUTHN)
-    if (RefPtr authenticatorCoordinator = page->webAuthenticatorCoordinatorProxy())
-        m_webAuthenticatorCoordinator = RemotePageWebAuthenticatorCoordinatorProxy::create(m_webPageID, authenticatorCoordinator.get(), m_process);
+    if (page->webAuthenticatorCoordinatorProxy()) {
+        m_process->addMessageReceiver(Messages::WebAuthenticatorCoordinatorProxy::messageReceiverName(), m_webPageID, *this);
+        m_isReceivingWebAuthnMessages = true;
+    }
 #endif
 
 #if ENABLE(WEBXR)
@@ -307,6 +312,13 @@ void RemotePageProxy::didReceiveMessage(IPC::Connection& connection, IPC::Decode
     if (decoder.messageReceiverName() == Messages::PlatformXRSystem::messageReceiverName()) {
         if (RefPtr xrSystem = page->xrSystem())
             xrSystem->didReceiveMessage(connection, decoder);
+        return;
+    }
+#endif
+#if ENABLE(WEB_AUTHN)
+    if (decoder.messageReceiverName() == Messages::WebAuthenticatorCoordinatorProxy::messageReceiverName()) {
+        if (RefPtr authenticatorCoordinator = page->webAuthenticatorCoordinatorProxy())
+            Ref { authenticatorCoordinator->messageReceiver() }->didReceiveMessage(connection, decoder);
         return;
     }
 #endif

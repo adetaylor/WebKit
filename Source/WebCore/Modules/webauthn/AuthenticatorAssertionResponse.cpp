@@ -28,9 +28,7 @@
 
 #if ENABLE(WEB_AUTHN)
 
-#include "AuthenticatorResponseData.h"
 #include <wtf/Borrow.h>
-#include <wtf/text/Base64.h>
 
 namespace WebCore {
 
@@ -84,29 +82,7 @@ AuthenticatorAssertionResponse::AuthenticatorAssertionResponse(Ref<ArrayBuffer>&
 {
 }
 
-AuthenticatorResponseData AuthenticatorAssertionResponse::data() const
-{
-    auto data = AuthenticatorResponse::data();
-    data.isAuthenticatorAttestationResponse = false;
-    data.authenticatorData = m_authenticatorData.copyRef();
-    data.signature = m_signature.copyRef();
-    data.userHandle = m_userHandle;
-    return data;
-}
-
-AuthenticationResponseJSON::AuthenticatorAssertionResponseJSON AuthenticatorAssertionResponse::toJSON()
-{
-    AuthenticationResponseJSON::AuthenticatorAssertionResponseJSON value;
-    if (RefPtr authData = authenticatorData())
-        value.authenticatorData = base64URLEncodeToString(authData->span());
-    if (RefPtr sig = signature())
-        value.signature = base64URLEncodeToString(sig->span());
-    if (auto handle = userHandle())
-        value.userHandle = base64URLEncodeToString(handle->span());
-    if (RefPtr clientData = clientDataJSON())
-        value.clientDataJSON = base64URLEncodeToString(clientData->span());
-    return value;
-}
+AuthenticatorAssertionResponse::~AuthenticatorAssertionResponse() = default;
 
 } // namespace WebCore
 

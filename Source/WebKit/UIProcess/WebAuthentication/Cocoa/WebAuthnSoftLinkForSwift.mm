@@ -171,6 +171,11 @@ void installSoftLinkedClassLookupHook()
 
 #if HAVE(ASC_AUTH_UI) || HAVE(UNIFIED_ASC_AUTH_UI) || HAVE(WEB_AUTHN_AS_MODERN)
 
+bool isAuthenticationServicesCoreAvailable()
+{
+    return AuthenticationServicesCoreLibrary(true);
+}
+
 // The asynchronous ones reply on the main run loop rather than on the framework's queue, as the Objective-C++ callers
 // do, and a reply block the framework drops uncalled destroys the handler there too. A second call of the reply block
 // traps.

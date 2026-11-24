@@ -58,15 +58,6 @@ RefPtr<AuthenticatorResponse> AuthenticatorResponse::tryCreate(AuthenticatorResp
     return WTF::move(response);
 }
 
-AuthenticatorResponseData AuthenticatorResponse::data() const
-{
-    AuthenticatorResponseData data;
-    data.rawId = m_rawId.copyRef();
-    data.extensionOutputs = m_extensions;
-    data.clientDataJSON = m_clientDataJSON.copyRef();
-    return data;
-}
-
 void AuthenticatorResponse::setExtensions(AuthenticationExtensionsClientOutputs&& extensions)
 {
     m_extensions = WTF::move(extensions);
@@ -109,6 +100,8 @@ AuthenticatorResponse::AuthenticatorResponse(Ref<ArrayBuffer>&& rawId, Authentic
     , m_attachment(attachment)
 {
 }
+
+AuthenticatorResponse::~AuthenticatorResponse() = default;
 
 } // namespace WebCore
 

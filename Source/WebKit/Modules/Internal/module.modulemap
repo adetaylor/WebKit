@@ -531,6 +531,24 @@ module WebKit_Internal [system] {
         requires objc
     }
 
+    module _WKAuthenticatorResponseInternal {
+        header "../../UIProcess/API/Cocoa/_WKAuthenticatorResponseInternal.h"
+        export *
+        requires objc
+    }
+
+    module _WKAuthenticatorAssertionResponseInternal {
+        header "../../UIProcess/API/Cocoa/_WKAuthenticatorAssertionResponseInternal.h"
+        export *
+        requires objc
+    }
+
+    module _WKAuthenticatorAttestationResponseInternal {
+        header "../../UIProcess/API/Cocoa/_WKAuthenticatorAttestationResponseInternal.h"
+        export *
+        requires objc
+    }
+
     module _WKTextExtractionInternal {
         header "../../UIProcess/API/Cocoa/_WKTextExtractionInternal.h"
         export *
@@ -727,6 +745,12 @@ module WebKit_Internal [system] {
         header "../../UIProcess/WebAuthentication/AuthenticatorTransportService.h"
         header "../../UIProcess/WebAuthentication/Cocoa/WebAuthenticationPanelClient.h"
         header "../../UIProcess/API/Cocoa/_WKWebAuthenticationPanelInternal.h"
+        export *
+    }
+
+    module WebAuthenticatorCoordinatorProxySwiftUtilities {
+        requires cplusplus20,objc
+        header "../../UIProcess/WebAuthentication/WebAuthenticatorCoordinatorProxySwiftUtilities.h"
         export *
     }
 

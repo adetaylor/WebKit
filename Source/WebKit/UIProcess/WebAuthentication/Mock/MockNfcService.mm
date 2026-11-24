@@ -30,98 +30,17 @@
 #import "CtapNfcDriver.h"
 #import "NearFieldSPI.h"
 #import "NfcConnection.h"
-#import "WKMockWebAuthenticationObjects.h"
+#import "WebKit-Swift.h"
 #import <WebCore/FidoConstants.h>
 #import <objc/runtime.h>
 #import <wtf/BlockPtr.h>
-#import <wtf/Borrow.h>
 #import <wtf/NeverDestroyed.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/RunLoop.h>
 #import <wtf/Vector.h>
-#import <wtf/cocoa/SpanCocoa.h>
 #import <wtf/darwin/DispatchExtras.h>
 
 #import "NearFieldSoftLink.h"
-
-namespace {
-uint8_t tagID1[] = { 0x01 };
-uint8_t tagID2[] = { 0x02 };
-}
-
-#if HAVE(NEAR_FIELD)
-
-@implementation WKMockNFTag {
-    NFTagType _type;
-    RetainPtr<NSData> _tagID;
-}
-
-@synthesize technology = _technology;
-@synthesize AppData = _AppData;
-@synthesize UID = _UID;
-@synthesize ndefAvailability = _ndefAvailability;
-@synthesize ndefMessageSize = _ndefMessageSize;
-@synthesize ndefContainerSize = _ndefContainerSize;
-@synthesize tagA = _tagA;
-@synthesize tagB = _tagB;
-@synthesize tagF = _tagF;
-
-- (NFTagType)type
-{
-    return _type;
-}
-
-- (NSData *)tagID
-{
-    return _tagID.get();
-}
-
-- (instancetype)initWithNFTag:(id<NFTag>)tag
-{
-    if ((self = [super init])) {
-        _type = tag.type;
-        _tagID = tag.tagID;
-    }
-    return self;
-}
-
-- (void)dealloc
-{
-    SUPPRESS_UNRETAINED_ARG [_AppData release];
-    _AppData = nil;
-    SUPPRESS_UNRETAINED_ARG [_UID release];
-    _UID = nil;
-
-    [super dealloc];
-}
-
-- (NSString*)description
-{
-    return nil;
-}
-
-- (BOOL)isEqualToNFTag:(id<NFTag>)tag
-{
-    return NO;
-}
-
-- (instancetype)initWithType:(NFTagType)type
-{
-    return [self initWithType:type tagID:toNSDataNoCopy(std::span { tagID1 }, FreeWhenDone::No).get()];
-}
-
-- (instancetype)initWithType:(NFTagType)type tagID:(NSData *)tagID
-{
-    if ((self = [super init])) {
-        _type = type;
-        _tagID = tagID;
-    }
-    return self;
-}
-
-@end
-
-#endif // HAVE(NEAR_FIELD)
 
 namespace WebKit {
 using namespace fido;
@@ -175,7 +94,7 @@ static BOOL NFReaderSessionStartPollingWithError(id, SEL, NSError **)
 static NSData* NFReaderSessionTransceive(id, SEL, NSData *)
 {
     RefPtr globalNfcService = weakGlobalNfcService().get();
-    return globalNfcService ? globalNfcService->transceive() : nil;
+    return globalNfcService ? adoptNS(webAuthnMockNfcTransceive(globalNfcService.get())).autorelease() : nil;
 }
 
 static void NFSessionEndSessionWithCompletion(id, SEL, void (^completion)(void)) {
@@ -220,22 +139,6 @@ MockNfcService::MockNfcService(AuthenticatorTransportServiceObserver& observer, 
     : NfcService(observer)
     , m_configuration(configuration)
 {
-}
-
-NSData* MockNfcService::transceive()
-{
-    if (m_configuration.nfc->payloadBase64.isEmpty())
-        return nil;
-
-    RetainPtr result = adoptNS([[NSData alloc] initWithBase64EncodedString:borrow(m_configuration.nfc->payloadBase64)[0].createNSString().get() options:NSDataBase64DecodingIgnoreUnknownCharacters]);
-    m_configuration.nfc->payloadBase64.removeAt(0);
-    return result.autorelease();
-}
-
-void MockNfcService::receiveStopPolling()
-{
-    // For purpose of restart polling.
-    m_configuration.nfc->multiplePhysicalTags = false;
 }
 
 void MockNfcService::receiveStartPolling()
@@ -333,17 +236,7 @@ void MockNfcService::detectTags() const
         return;
 
     auto callback = makeBlockPtr([configuration = m_configuration] {
-        auto tags = adoptNS([[NSMutableArray alloc] init]);
-        if (configuration.nfc->error == Mock::NfcError::WrongTagType || configuration.nfc->multipleTags)
-            [tags addObject:adoptNS([[WKMockNFTag alloc] initWithType:NFTagTypeUnknown]).get()];
-        else
-            [tags addObject:adoptNS([[WKMockNFTag alloc] initWithType:NFTagTypeGeneric4A]).get()];
-
-        if (configuration.nfc->multipleTags)
-            [tags addObject:adoptNS([[WKMockNFTag alloc] initWithType:NFTagTypeGeneric4A]).get()];
-
-        if (configuration.nfc->multiplePhysicalTags)
-            [tags addObject:adoptNS([[WKMockNFTag alloc] initWithType:NFTagTypeGeneric4A tagID:toNSDataNoCopy(std::span { tagID2 }, FreeWhenDone::No).get()]).get()];
+        RetainPtr tags = adoptNS(webAuthnMockNfcTags(configuration.nfc->error == Mock::NfcError::WrongTagType, configuration.nfc->multipleTags, configuration.nfc->multiplePhysicalTags));
 
         auto readerSession = adoptNS([allocNFReaderSessionInstance() initWithUIType:NFReaderSessionUINone]);
         [protect(globalNFReaderSessionDelegate) readerSession:readerSession.get() didDetectTags:tags.get()];

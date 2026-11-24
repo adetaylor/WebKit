@@ -464,6 +464,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WasmDebuggerDispatcherMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebAuthenticatorCoordinatorMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebAuthenticatorCoordinatorMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebAuthenticatorCoordinatorProxyMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebAuthenticatorCoordinatorProxyMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebAuthenticatorCoordinatorProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebAuthnConnectionToWebProcessMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebAuthnConnectionToWebProcessMessages.h

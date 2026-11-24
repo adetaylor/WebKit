@@ -437,8 +437,13 @@
 		91A6735B735F6CEFCDCB0084 /* WebAuthnApdu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A68CDBA074B4BB9EEB1AAD /* WebAuthnApdu.swift */; };
 		F4A700189418780F7B636395 /* WebAuthnCBOR.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5F3B22082A1652B29B7AEC /* WebAuthnCBOR.swift */; };
 		8D147B802F615E08A84501A2 /* WebAuthenticationUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 693D21A0404C18219E712D29 /* WebAuthenticationUtils.swift */; };
+		6D60E113583D4A2CB354455E /* WellKnownOriginList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6584B3FFB4E14E2290E97254 /* WellKnownOriginList.swift */; };
 		6C04F944589D88856BB3F37A /* AuthenticationExtensionsClientCBOR.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EFF8B731B9B2E6ED02976A9 /* AuthenticationExtensionsClientCBOR.swift */; };
+		1E4A5E86D0CC41BA817E8787 /* AuthenticatorCoordinatorValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA657F5409354A6897A3ACE4 /* AuthenticatorCoordinatorValidation.swift */; };
 		E660429DF47BA1F78A6CEFBD /* AuthenticatorAttestationResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477E6B40622D9F5E7F5F79C7 /* AuthenticatorAttestationResponse.swift */; };
+		C0F7B15D11264D1BA0E715D8 /* AuthenticatorResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B029F3A5B524CAB97389AC0 /* AuthenticatorResponse.swift */; };
+		35727C6198C141D1B2790040 /* PublicKeyCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = 697F089F4F034CAF8723591A /* PublicKeyCredential.swift */; };
+		F3F2291D264E4FA486306494 /* CredentialsContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FD32567718C4192AB54A5A5 /* CredentialsContainer.swift */; };
 		35B5468E29C048279111EC54 /* FidoConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D371BF468347ACA9EACC2D /* FidoConstants.swift */; };
 		4EC71932D5984A5EA31D4C20 /* WebAuthnCBORCanonical.swift in Sources */ = {isa = PBXBuildFile; fileRef = 559AFF20B80E42C496C198F9 /* WebAuthnCBORCanonical.swift */; };
 		35DC4D7AD94D400BBE9121BD /* WebAuthnConversions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10340BD289E2464B837ED833 /* WebAuthnConversions.swift */; };
@@ -17658,6 +17663,7 @@
 		A11AE0D11FFD61DF0047348B /* JSMerchantValidationEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSMerchantValidationEvent.h; sourceTree = "<group>"; };
 		A11E0D022F0B0002000B0002 /* WellKnownOriginList.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WellKnownOriginList.h; sourceTree = "<group>"; };
 		A11E0D032F0B0003000B0003 /* WellKnownOriginList.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WellKnownOriginList.cpp; sourceTree = "<group>"; };
+		6584B3FFB4E14E2290E97254 /* WellKnownOriginList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WellKnownOriginList.swift; sourceTree = "<group>"; };
 		A11E8C001B1E28BE0003A7C7 /* copyCursor.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = copyCursor.png; sourceTree = "<group>"; };
 		A11E8C011B1E28BE0003A7C7 /* moveCursor.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = moveCursor.png; sourceTree = "<group>"; };
 		A11E8C021B1E28BE0003A7C7 /* northEastSouthWestResizeCursor.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = northEastSouthWestResizeCursor.png; sourceTree = "<group>"; };
@@ -20675,7 +20681,11 @@
 		CE5F3B22082A1652B29B7AEC /* WebAuthnCBOR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthnCBOR.swift; sourceTree = "<group>"; };
 		693D21A0404C18219E712D29 /* WebAuthenticationUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthenticationUtils.swift; sourceTree = "<group>"; };
 		8EFF8B731B9B2E6ED02976A9 /* AuthenticationExtensionsClientCBOR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationExtensionsClientCBOR.swift; sourceTree = "<group>"; };
+		DA657F5409354A6897A3ACE4 /* AuthenticatorCoordinatorValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatorCoordinatorValidation.swift; sourceTree = "<group>"; };
 		477E6B40622D9F5E7F5F79C7 /* AuthenticatorAttestationResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatorAttestationResponse.swift; sourceTree = "<group>"; };
+		7B029F3A5B524CAB97389AC0 /* AuthenticatorResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatorResponse.swift; sourceTree = "<group>"; };
+		697F089F4F034CAF8723591A /* PublicKeyCredential.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicKeyCredential.swift; sourceTree = "<group>"; };
+		7FD32567718C4192AB54A5A5 /* CredentialsContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialsContainer.swift; sourceTree = "<group>"; };
 		72D371BF468347ACA9EACC2D /* FidoConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FidoConstants.swift; sourceTree = "<group>"; };
 		559AFF20B80E42C496C198F9 /* WebAuthnCBORCanonical.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthnCBORCanonical.swift; sourceTree = "<group>"; };
 		10340BD289E2464B837ED833 /* WebAuthnConversions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthnConversions.swift; sourceTree = "<group>"; };
@@ -31010,6 +31020,7 @@
 				77D510181ED7159900DA4C87 /* CredentialsContainer.cpp */,
 				77D510161ED6021B00DA4C87 /* CredentialsContainer.h */,
 				57D846291FE99F6300CA3682 /* CredentialsContainer.idl */,
+				7FD32567718C4192AB54A5A5 /* CredentialsContainer.swift */,
 				FC260000000000FC00000001 /* FederatedCredentialRequestOptions.h */,
 				FC260000000000FC00000002 /* FederatedCredentialRequestOptions.idl */,
 				FC260000000000DC00000001 /* IdentityCredentialRequestOptions.h */,
@@ -31073,12 +31084,14 @@
 				57303C1B2009A98600355965 /* AuthenticatorAttestationResponse.h */,
 				57303C1D2009A98600355965 /* AuthenticatorAttestationResponse.idl */,
 				477E6B40622D9F5E7F5F79C7 /* AuthenticatorAttestationResponse.swift */,
+				DA657F5409354A6897A3ACE4 /* AuthenticatorCoordinatorValidation.swift */,
 				57303C4420105B3D00355965 /* AuthenticatorCoordinator.cpp */,
 				57303C4320105B3D00355965 /* AuthenticatorCoordinator.h */,
 				576082702021513F00116678 /* AuthenticatorCoordinatorClient.h */,
 				57585969239F1EC700C74572 /* AuthenticatorResponse.cpp */,
 				57303BCF20087A8300355965 /* AuthenticatorResponse.h */,
 				57303BD120087A8300355965 /* AuthenticatorResponse.idl */,
+				7B029F3A5B524CAB97389AC0 /* AuthenticatorResponse.swift */,
 				57DCED72214305F00016B847 /* AuthenticatorResponseData.h */,
 				AED243492C8BC80100E8649D /* AuthenticatorSelectionCriteria.h */,
 				AED243482C8BC7FC00E8649D /* AuthenticatorSelectionCriteria.idl */,
@@ -31091,6 +31104,7 @@
 				57D8462C1FEAF68F00CA3682 /* PublicKeyCredential.cpp */,
 				57D8462B1FEAF68F00CA3682 /* PublicKeyCredential.h */,
 				57D8462D1FEAF68F00CA3682 /* PublicKeyCredential.idl */,
+				697F089F4F034CAF8723591A /* PublicKeyCredential.swift */,
 				57303BE62009747A00355965 /* PublicKeyCredentialCreationOptions.h */,
 				57303BE82009747A00355965 /* PublicKeyCredentialCreationOptions.idl */,
 				AED243462C8BC26000E8649D /* PublicKeyCredentialCreationOptionsJSON.h */,
@@ -31135,6 +31149,7 @@
 				FE7CF1A6010000000000E002 /* WebAuthnOperationException.h */,
 				FE7CF1A6010000000000E003 /* WebAuthnOperationException.idl */,
 				A11E0D032F0B0003000B0003 /* WellKnownOriginList.cpp */,
+				6584B3FFB4E14E2290E97254 /* WellKnownOriginList.swift */,
 				A11E0D022F0B0002000B0002 /* WellKnownOriginList.h */,
 			);
 			path = webauthn;
@@ -52518,6 +52533,8 @@
 				52B07441284680CA00511B65 /* AuthenticationExtensionsClientInputs.cpp in Sources */,
 				52B074432846810A00511B65 /* AuthenticationExtensionsClientOutputs.cpp in Sources */,
 				E660429DF47BA1F78A6CEFBD /* AuthenticatorAttestationResponse.swift in Sources */,
+				1E4A5E86D0CC41BA817E8787 /* AuthenticatorCoordinatorValidation.swift in Sources */,
+				C0F7B15D11264D1BA0E715D8 /* AuthenticatorResponse.swift in Sources */,
 				78ABC124E9B883BD3F327D6C /* AV1Utilities.swift in Sources */,
 				CD1A22672B080A5C0038923E /* AV1UtilitiesCocoa.mm in Sources */,
 				46BA49B827BB44330077F63F /* AVAssetTrackUtilities.mm in Sources */,
@@ -52562,6 +52579,7 @@
 				D5D694719C454413958692D7 /* ContentSecurityPolicyTrustedTypesDirective.swift in Sources */,
 				463642A729687D53003D43F2 /* CoreHapticsSoftLink.mm in Sources */,
 				46C696CC1E7205FC00597937 /* CPUMonitor.cpp in Sources */,
+				F3F2291D264E4FA486306494 /* CredentialsContainer.swift in Sources */,
 				C55C00000000000000000008 /* CSSCalcEvaluation.swift in Sources */,
 				C55C00000000000000000006 /* CSSCalcNode.swift in Sources */,
 				C55C0000000000000000000A /* CSSCalcParser.swift in Sources */,
@@ -52781,6 +52799,7 @@
 				CDA29A161CBDA56C00901CCF /* PlaybackSessionInterfaceMac.mm in Sources */,
 				B57612E8F218CF6031C6A3D2 /* PrivateClickMeasurement.swift in Sources */,
 				CB7946FD14C721CEEA4A4600 /* PrivateClickMeasurementCocoa.swift in Sources */,
+				35727C6198C141D1B2790040 /* PublicKeyCredential.swift in Sources */,
 				CD20ED3D27878FFB0038BE44 /* QueuedVideoOutput.mm in Sources */,
 				D0A79ED299B74E33A4B59AC9 /* ReferrerPolicy.swift in Sources */,
 				5EDFB67C16D4423C90F5327F /* ResourceCryptographicDigest.swift in Sources */,
@@ -53668,6 +53687,7 @@
 				07F5CFF62582A52900662EF5 /* WebMAudioUtilitiesCocoa.mm in Sources */,
 				1CAF34820A6C405200ABE06E /* WebScriptObject.mm in Sources */,
 				CECDC93C21F2972900976BD1 /* WebVideoFullscreenControllerAVKit.mm in Sources */,
+				6D60E113583D4A2CB354455E /* WellKnownOriginList.swift in Sources */,
 				A14832C2187F65C700DA63A6 /* WKUtilities.cpp in Sources */,
 				3403349175235111656FB814 /* WTFCompatParsing.swift in Sources */,
 				A833C7CC0A2CF07400D57664 /* XLinkNames.cpp in Sources */,

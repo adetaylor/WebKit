@@ -27,8 +27,10 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#include "WellKnownResourceFetcher.h"
 #include <WebCore/SecurityOriginData.h>
 #include <wtf/CompletionHandler.h>
+#include <wtf/URL.h>
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
 
@@ -36,6 +38,7 @@ namespace WebKit {
 
 class WebPageProxy;
 
+// Whether a caller is related to a relying party by https://<relying party identifier>/.well-known/webauthn is decided in RelatedOriginsValidator.swift.
 namespace RelatedOriginsValidation {
 
 struct Result {
@@ -43,10 +46,17 @@ struct Result {
     Vector<String> origins;
 };
 
-void validate(WebPageProxy&, const WebCore::SecurityOriginData& callerOrigin, const String& relyingPartyIdentifier, CompletionHandler<void(Result&&)>&&);
+// The name RelatedOriginsValidator.swift spells for the instantiation.
+using FetchCompletionHandler = CompletionHandler<void(WellKnownFetchResult)>;
 
-// Fetches the well-known list once and checks every origin against it. Result.isRelated is true only if all of them are listed.
-void validate(WebPageProxy&, Vector<WebCore::SecurityOriginData>&& originsToCheck, const String& relyingPartyIdentifier, CompletionHandler<void(Result&&)>&&);
+// The URL of the list, which is not valid when the relying party identifier is not a host.
+URL relatedOriginsURL(const String& relyingPartyIdentifier);
+
+// WellKnownResourceFetcher::fetch with its default limits, whose handler takes the result by value.
+void fetchRelatedOriginsList(WebPageProxy&, URL, FetchCompletionHandler&&);
+
+// wellKnownFetchStatusDescription returns an ASCIILiteral, which does not import.
+void logRelatedOriginsFetchFailure(WellKnownFetchResult::Status);
 
 } // namespace RelatedOriginsValidation
 

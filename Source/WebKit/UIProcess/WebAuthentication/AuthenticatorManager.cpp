@@ -56,9 +56,6 @@ using namespace WebCore;
 
 namespace {
 
-// Suggested by WebAuthN spec as of 7 August 2018.
-const unsigned maxTimeOutValue = 120000;
-
 // FIXME(188625): Support BLE authenticators.
 static AuthenticatorManager::TransportSet collectTransports(const std::optional<AuthenticatorSelectionCriteria>& authenticatorSelection)
 {
@@ -176,6 +173,11 @@ static String getUserName(const Variant<PublicKeyCredentialCreationOptions, Publ
     return emptyString();
 }
 
+static ClientDataType getClientDataType(const Variant<PublicKeyCredentialCreationOptions, PublicKeyCredentialRequestOptions>& options)
+{
+    return std::holds_alternative<PublicKeyCredentialCreationOptions>(options) ? ClientDataType::Create : ClientDataType::Get;
+}
+
 } // namespace
 
 const size_t AuthenticatorManager::maxTransportNumber = 5;
@@ -217,19 +219,6 @@ void AuthenticatorManager::handleRequest(WebAuthenticationRequestData&& data, Ca
     runPresenter();
 }
 
-void AuthenticatorManager::cancelRequest(PageIdentifier pageID, std::optional<FrameIdentifier> frameID)
-{
-    if (!m_pendingRequest || !m_pendingRequest->completionHandler)
-        return;
-    if (auto pendingFrameID = m_pendingRequest->data.globalFrameID) {
-        if (pendingFrameID->pageID != pageID)
-            return;
-        if (frameID && frameID != pendingFrameID->frameID)
-            return;
-    }
-    cancelRequest();
-}
-
 // The following implements part of Step 20. of https://www.w3.org/TR/webauthn/#createCredential
 // and part of Step 18. of https://www.w3.org/TR/webauthn/#getAssertion as of 4 March 2019:
 // "If the user exercises a user agent user-interface option to cancel the process,".
@@ -239,19 +228,6 @@ void AuthenticatorManager::cancelRequest(const API::WebAuthenticationPanel& pane
     if (!m_pendingRequest || !m_pendingRequest->completionHandler || m_pendingRequest->data.panel.get() != &panel)
         return;
     cancelRequest();
-}
-
-void AuthenticatorManager::cancel()
-{
-    RELEASE_ASSERT(RunLoop::isMain());
-    if (!m_pendingRequest || !m_pendingRequest->completionHandler)
-        return;
-    cancelRequest();
-}
-
-void AuthenticatorManager::enableNativeSupport()
-{
-    m_mode = Mode::Native;
 }
 
 void AuthenticatorManager::clearStateAsync()
@@ -270,31 +246,6 @@ void AuthenticatorManager::clearState()
     m_authenticators.clear();
     m_services.clear();
     m_presenter = nullptr;
-}
-
-void AuthenticatorManager::authenticatorAdded(Ref<Authenticator> authenticator)
-{
-    ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-    if (!m_pendingRequest || !m_pendingRequest->completionHandler)
-        return;
-
-    authenticator->setObserver(*this);
-    authenticator->handleRequest(m_pendingRequest->data);
-    auto addResult = m_authenticators.add(WTF::move(authenticator));
-    ASSERT_UNUSED(addResult, addResult.isNewEntry);
-}
-
-void AuthenticatorManager::serviceStatusUpdated(WebAuthenticationStatus status)
-{
-    // This is for the new UI.
-    if (RefPtr presenter = m_presenter) {
-        presenter->updatePresenter(status);
-        return;
-    }
-
-    dispatchPanelClientCall([status] (const API::WebAuthenticationPanel& panel) {
-        protect(panel.client())->updatePanel(status);
-    });
 }
 
 void AuthenticatorManager::respondReceived(Respond&& respond)
@@ -333,28 +284,6 @@ void AuthenticatorManager::downgrade(Authenticator& id, Ref<Authenticator> downg
         ASSERT_UNUSED(removed, removed);
     });
     authenticatorAdded(WTF::move(downgradedAuthenticator));
-}
-
-void AuthenticatorManager::authenticatorStatusUpdated(WebAuthenticationStatus status)
-{
-    if (!m_pendingRequest || !m_pendingRequest->completionHandler)
-        return;
-
-    if (status != WebAuthenticationStatus::PINSuccessful) {
-        // Immediately invalidate the cache if the PIN is incorrect. A status update often means
-        // an error. We don't really care what kind of error it really is.
-        m_pendingRequest->data.cachedPin = String();
-    }
-
-    // This is for the new UI.
-    if (RefPtr presenter = m_presenter) {
-        presenter->updatePresenter(status);
-        return;
-    }
-
-    dispatchPanelClientCall([status] (const API::WebAuthenticationPanel& panel) {
-        protect(panel.client())->updatePanel(status);
-    });
 }
 
 void AuthenticatorManager::requestPin(uint64_t retries, CompletionHandler<void(const WTF::String&)>&& completionHandler)
@@ -456,12 +385,12 @@ void AuthenticatorManager::requestLAContextForUserVerification(CompletionHandler
     });
 }
 
-void AuthenticatorManager::cancelRequest()
+void AuthenticatorManager::observeAndAddAuthenticator(Ref<Authenticator> authenticator)
 {
-    invokePendingCompletionHandler(ExceptionData { ExceptionCode::NotAllowedError, "This request has been cancelled by the user."_s });
-    RELEASE_LOG_ERROR(WebAuthn, "Request cancelled due to AuthenticatorManager::cancelRequest being called.");
-    clearState();
-    m_requestTimeOutTimer.stop();
+    authenticator->setObserver(*this);
+    authenticator->handleRequest(m_pendingRequest->data);
+    auto addResult = m_authenticators.add(WTF::move(authenticator));
+    ASSERT_UNUSED(addResult, addResult.isNewEntry);
 }
 
 Ref<AuthenticatorTransportService> AuthenticatorManager::createService(AuthenticatorTransport transport, AuthenticatorTransportServiceObserver& observer) const
@@ -489,30 +418,6 @@ void AuthenticatorManager::startDiscovery(const TransportSet& transports)
         service->startDiscovery();
         return service;
     });
-}
-
-void AuthenticatorManager::initTimeOutTimer()
-{
-    if (!m_pendingRequest || !m_pendingRequest->completionHandler || m_pendingRequest->data.mediation == WebCore::MediationRequirement::Conditional)
-        return;
-
-    auto timeOutInMs = WTF::switchOn(m_pendingRequest->data.options,
-        [&](const PublicKeyCredentialCreationOptions& options) {
-            return options.timeout;
-        },
-        [&](const PublicKeyCredentialRequestOptions& options) {
-            return options.timeout;
-        }
-    );
-
-    unsigned timeOutInMsValue = std::min(maxTimeOutValue, timeOutInMs.value_or(maxTimeOutValue));
-    m_requestTimeOutTimer.startOneShot(Seconds::fromMilliseconds(timeOutInMsValue));
-}
-
-void AuthenticatorManager::timeOutTimerFired()
-{
-    invokePendingCompletionHandler((ExceptionData { ExceptionCode::NotAllowedError, "Operation timed out."_s }));
-    clearState();
 }
 
 void AuthenticatorManager::runPanel()
@@ -580,6 +485,19 @@ void AuthenticatorManager::runPresenterInternal(const TransportSet& transports)
 
     auto& options = m_pendingRequest->data.options;
     m_presenter = AuthenticatorPresenterCoordinator::create(*this, getRpId(options), transports, getClientDataType(options), getUserName(options));
+}
+
+void AuthenticatorManager::updatePresenterOrPanel(WebAuthenticationStatus status) const
+{
+    // This is for the new UI.
+    if (RefPtr presenter = m_presenter) {
+        presenter->updatePresenter(status);
+        return;
+    }
+
+    dispatchPanelClientCall([status](const API::WebAuthenticationPanel& panel) {
+        protect(panel.client())->updatePanel(status);
+    });
 }
 
 void AuthenticatorManager::invokePendingCompletionHandler(Respond&& respond)

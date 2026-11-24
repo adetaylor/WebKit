@@ -60,6 +60,9 @@ NSErrorDomain get_AuthenticationServices_ASAuthorizationErrorDomainSingleton();
 
 NSErrorDomain get_AuthenticationServicesCore_ASCAuthorizationErrorDomainSingleton();
 
+// Whether AuthenticationServicesCore loads.
+bool isAuthenticationServicesCoreAvailable();
+
 // ASCWebKitSPISupport's class members, as the Objective-C++ calls them: on an absent class they answer NO or nil, and
 // the ones the class may not implement are guarded by respondsToSelector:.
 bool webAuthnASCShouldUseAlternateCredentialStore();

@@ -59,10 +59,6 @@ Shared/Cocoa/XPCEndpointClient.mm @nonARC
 
 UIProcess/API/Cocoa/_WKAuthenticationExtensionsClientInputs.mm @nonARC
 UIProcess/API/Cocoa/_WKAuthenticationExtensionsClientOutputs.mm @nonARC
-UIProcess/API/Cocoa/_WKAuthenticatorAssertionResponse.mm @nonARC
-UIProcess/API/Cocoa/_WKAuthenticatorAttestationResponse.mm @nonARC
-UIProcess/API/Cocoa/_WKAuthenticatorResponse.mm @nonARC
-UIProcess/API/Cocoa/_WKAuthenticatorSelectionCriteria.mm @nonARC
 UIProcess/API/Cocoa/_WKPublicKeyCredentialCreationOptions.mm @nonARC
 UIProcess/API/Cocoa/_WKPublicKeyCredentialDescriptor.mm @nonARC
 UIProcess/API/Cocoa/_WKPublicKeyCredentialEntity.mm @nonARC
@@ -100,7 +96,6 @@ UIProcess/WebAuthentication/AuthenticatorManager.cpp
 UIProcess/WebAuthentication/Cocoa/AuthenticationServicesSoftLink.mm @nonARC @no-unify // SOFT_LINK_*_FOR_SOURCE defines non-inline symbols.
 UIProcess/WebAuthentication/Cocoa/HidConnection.mm @nonARC
 UIProcess/WebAuthentication/Cocoa/HidService.mm @nonARC
-UIProcess/WebAuthentication/Cocoa/WebAuthenticatorCoordinatorProxy.mm @nonARC
 
 UIProcess/WebAuthentication/Virtual/VirtualAuthenticatorManager.cpp
 UIProcess/WebAuthentication/Virtual/VirtualHidConnection.cpp

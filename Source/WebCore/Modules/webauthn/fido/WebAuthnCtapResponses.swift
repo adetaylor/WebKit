@@ -526,7 +526,7 @@ private func readTransports(_ responseMap: CBORView, into fields: inout fido.Get
         guard let string = transportName.string else {
             throw MalformedGetInfoResponse()
         }
-        if let transport = Optional(fromCxx: WebCore.convertStringToAuthenticatorTransport(makeWTFString(string))) {
+        if let transport = Optional(fromCxx: webAuthnTransport(makeWTFString(string))) {
             transportList.append(consuming: transport)
         }
     }

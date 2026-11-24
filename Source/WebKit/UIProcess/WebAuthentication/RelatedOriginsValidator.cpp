@@ -29,51 +29,27 @@
 #if ENABLE(WEB_AUTHN)
 
 #include "Logging.h"
-#include "WellKnownResourceFetcher.h"
 #include <WebCore/WellKnownOriginList.h>
-#include <wtf/Borrow.h>
 
 namespace WebKit {
 
 static constexpr auto webAuthnWellKnownPath = "/.well-known/webauthn"_s;
-static constexpr auto webAuthnOriginsMember = "origins"_s;
 
-void RelatedOriginsValidation::validate(WebPageProxy& page, const WebCore::SecurityOriginData& callerOrigin, const String& relyingPartyIdentifier, CompletionHandler<void(Result&&)>&& completionHandler)
+URL RelatedOriginsValidation::relatedOriginsURL(const String& relyingPartyIdentifier)
 {
-    validate(page, Vector<WebCore::SecurityOriginData> { callerOrigin }, relyingPartyIdentifier, WTF::move(completionHandler));
+    return WebCore::wellKnownURL(relyingPartyIdentifier, webAuthnWellKnownPath);
 }
 
-void RelatedOriginsValidation::validate(WebPageProxy& page, Vector<WebCore::SecurityOriginData>&& originsToCheck, const String& relyingPartyIdentifier, CompletionHandler<void(Result&&)>&& completionHandler)
+void RelatedOriginsValidation::fetchRelatedOriginsList(WebPageProxy& page, URL url, FetchCompletionHandler&& completionHandler)
 {
-    auto url = WebCore::wellKnownURL(relyingPartyIdentifier, webAuthnWellKnownPath);
-    if (!url.isValid()) {
-        RELEASE_LOG_ERROR(WebAuthn, "Related origins: relying party identifier is not a host.");
-        completionHandler({ });
-        return;
-    }
-
-    WellKnownResourceFetcher::fetch(page, WTF::move(url), { }, [originsToCheck = WTF::move(originsToCheck), completionHandler = WTF::move(completionHandler)](WellKnownFetchResult&& result) mutable {
-        if (!result.succeeded()) {
-            RELEASE_LOG_ERROR(WebAuthn, "Related origins: fetch failed (%" PUBLIC_LOG_STRING ").", wellKnownFetchStatusDescription(result.status).characters());
-            completionHandler({ });
-            return;
-        }
-
-        Borrow borrowedBody = result.body;
-        auto origins = WebCore::parseOriginsFromWellKnownList(borrowedBody->span(), webAuthnOriginsMember);
-        bool allFound = !originsToCheck.isEmpty();
-        for (auto& originToCheck : borrow(originsToCheck)) {
-            auto found = WebCore::findOriginInWellKnownList(originToCheck, borrowedBody->span(), webAuthnOriginsMember);
-            if (found == WebCore::WellKnownOriginListResult::Malformed)
-                RELEASE_LOG_ERROR(WebAuthn, "Related origins: well-known resource is malformed.");
-            if (found != WebCore::WellKnownOriginListResult::Found) {
-                allFound = false;
-                break;
-            }
-        }
-
-        completionHandler({ allFound, WTF::move(origins) });
+    WellKnownResourceFetcher::fetch(page, WTF::move(url), { }, [completionHandler = WTF::move(completionHandler)](WellKnownFetchResult&& result) mutable {
+        completionHandler(WTF::move(result));
     });
+}
+
+void RelatedOriginsValidation::logRelatedOriginsFetchFailure(WellKnownFetchResult::Status status)
+{
+    RELEASE_LOG_ERROR(WebAuthn, "Related origins: fetch failed (%" PUBLIC_LOG_STRING ").", wellKnownFetchStatusDescription(status).characters());
 }
 
 } // namespace WebKit

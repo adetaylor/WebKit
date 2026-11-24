@@ -30,15 +30,11 @@
 #include "CcidService.h"
 #include <WebCore/MockWebAuthenticationConfiguration.h>
 
-OBJC_CLASS NSData;
-
 namespace WebKit {
 
-class MockCcidService final : public CcidService {
+class SWIFT_PRIVATE_FILEID("WebKit/MockCcidService.swift") MockCcidService final : public CcidService {
 public:
     static Ref<MockCcidService> create(AuthenticatorTransportServiceObserver&, const WebCore::MockWebAuthenticationConfiguration&);
-
-    RetainPtr<NSData> nextReply(NSData *request);
 
 private:
     MockCcidService(AuthenticatorTransportServiceObserver&, const WebCore::MockWebAuthenticationConfiguration&);
@@ -47,6 +43,9 @@ private:
 
     WebCore::MockWebAuthenticationConfiguration m_configuration;
 };
+
+// The name MockCcidService.swift spells for the instantiation.
+using WeakPtrMockCcidService = WeakPtr<MockCcidService>;
 
 } // namespace WebKit
 

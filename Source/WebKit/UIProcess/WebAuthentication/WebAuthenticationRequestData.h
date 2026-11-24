@@ -62,12 +62,27 @@ struct WebAuthenticationRequestData {
     WeakPtr<API::WebAuthenticationPanel> weakPanel;
     std::optional<WebCore::MediationRequirement> mediation;
     std::optional<WebCore::SecurityOriginData> parentOrigin;
-
-    WebCore::SecurityOriginData callerOrigin() const;
 };
 
-NODELETE WebCore::ClientDataType getClientDataType(const Variant<WebCore::PublicKeyCredentialCreationOptions, WebCore::PublicKeyCredentialRequestOptions>&);
-WebCore::UserVerificationRequirement getUserVerificationRequirement(const Variant<WebCore::PublicKeyCredentialCreationOptions, WebCore::PublicKeyCredentialRequestOptions>&);
+// For Swift, which reads the options Variant as its two alternatives.
+inline bool webAuthnRequestIsCreation(const WebAuthenticationRequestData& data) { return std::holds_alternative<WebCore::PublicKeyCredentialCreationOptions>(data.options); }
+inline WebCore::PublicKeyCredentialCreationOptions webAuthnRequestCreationOptions(const WebAuthenticationRequestData& data) { return std::get<WebCore::PublicKeyCredentialCreationOptions>(data.options); }
+inline WebCore::PublicKeyCredentialRequestOptions webAuthnRequestRequestOptions(const WebAuthenticationRequestData& data) { return std::get<WebCore::PublicKeyCredentialRequestOptions>(data.options); }
+// One field of either alternative, which Swift would read through a copy of the whole options.
+inline std::optional<unsigned> webAuthnRequestTimeout(const WebAuthenticationRequestData& data)
+{
+    return WTF::switchOn(data.options, [](const auto& options) {
+        return options.timeout;
+    });
+}
+inline String webAuthnRequestRelyingPartyIdentifier(const WebAuthenticationRequestData& data)
+{
+    return WTF::switchOn(data.options, [](const WebCore::PublicKeyCredentialCreationOptions& options) {
+        return options.rp.id;
+    }, [](const WebCore::PublicKeyCredentialRequestOptions& options) {
+        return options.rpId;
+    });
+}
 
 } // namespace WebKit
 

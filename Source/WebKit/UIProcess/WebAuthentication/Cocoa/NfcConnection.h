@@ -31,6 +31,7 @@
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/RunLoop.h>
+#include <wtf/SwiftBridging.h>
 
 OBJC_CLASS NFReaderSession;
 OBJC_CLASS NSArray;
@@ -40,7 +41,7 @@ namespace WebKit {
 
 class NfcService;
 
-class NfcConnection : public RefCountedAndCanMakeWeakPtr<NfcConnection> {
+class SWIFT_PRIVATE_FILEID("WebKit/NfcConnection.swift") NfcConnection : public RefCountedAndCanMakeWeakPtr<NfcConnection> {
 public:
     static Ref<NfcConnection> create(RetainPtr<NFReaderSession>&&, NfcService&);
     ~NfcConnection();
@@ -56,8 +57,12 @@ public:
 private:
     NfcConnection(RetainPtr<NFReaderSession>&&, NfcService&);
 
+    // For NfcConnection.swift: selects the FIDO applet on the current tag; false when none responds.
+    bool trySelectFidoApplet() const;
     void restartPolling();
     void startPolling();
+    // RunLoop::Timer imports as an unsafe type.
+    void startRetryTimer(Seconds delay) { m_retryTimer.startOneShot(delay); }
 
     const RetainPtr<NFReaderSession> m_session;
     const RetainPtr<WKNFReaderSessionDelegate> m_delegate;
