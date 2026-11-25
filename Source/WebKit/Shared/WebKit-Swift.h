@@ -51,6 +51,7 @@
 #include "IPCSwiftStreamTesterMessages.h"
 #include "IPCSwiftWorkQueueTesterMessages.h"
 #include "IPCTesterReceiverMessages.h"
+#include "NetworkStorageSwiftTypes.h"
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"
 #include "WebBackForwardListItem.h"

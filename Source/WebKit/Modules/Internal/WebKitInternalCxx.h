@@ -227,6 +227,17 @@
 #include "RemoteXRViewMessages.h"
 #endif
 
+// The storage classes Swift implements or calls.
+#include "BackgroundFetchStoreManager.h"
+#include "CacheStorageCache.h"
+#include "CacheStorageDiskStore.h"
+#include "CacheStorageRegistry.h"
+#include "FileSystemStorageHandle.h"
+#include "FileSystemStorageHandleRegistry.h"
+#include "NetworkStorageManager.h"
+#include "NetworkStorageManagerMessages.h"
+#include "NetworkStorageSwiftTypes.h"
+
 // SuspendableWorkQueue is a foreign reference type, so Swift needs its definition before ResourceLoadStatisticsStore.h names it.
 #include <wtf/SuspendableWorkQueue.h>
 #include "ResourceLoadStatisticsStore.h"

@@ -26,10 +26,10 @@
 #pragma once
 
 #include "Connection.h"
+#include "SwiftStateKey.h"
 #include <WebCore/ClientOrigin.h>
 #include <WebCore/DOMCacheEngine.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
-#include <wtf/RefCountable.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
 
@@ -50,55 +50,55 @@ struct CacheStorageRecord;
 
 enum class ShouldWriteOriginFile : bool { No, Yes };
 
-class CacheStorageManager : public RefCountedAndCanMakeWeakPtr<CacheStorageManager> {
+class SWIFT_PRIVATE_FILEID("WebKit/CacheStorageManager.swift") CacheStorageManager : public RefCountedAndCanMakeWeakPtr<CacheStorageManager>, public SwiftStateKey {
     WTF_MAKE_TZONE_ALLOCATED(CacheStorageManager);
 public:
     static String cacheStorageOriginDirectory(const String& rootDirectory, const WebCore::ClientOrigin&);
-    static void copySaltFileToOriginDirectory(const String& rootDirectory, const String& originDirectory);
+    static void copySaltFileToOriginDirectory(String rootDirectory, String originDirectory);
     static HashSet<WebCore::ClientOrigin> originsOfCacheStorageData(const String& rootDirectory);
-    static uint64_t cacheStorageSize(const String& originDirectory);
+    static uint64_t cacheStorageSize(String originDirectory);
     static bool hasCacheList(const String& cacheListDirectory);
 
     using QuotaCheckFunction = Function<void(uint64_t spaceRequested, CompletionHandler<void(bool)>&&)>;
     static Ref<CacheStorageManager> create(const String& path, CacheStorageRegistry&, const WebCore::ClientOrigin&, ShouldWriteOriginFile, QuotaCheckFunction&&, Ref<WorkQueue>&&);
     ~CacheStorageManager();
-    const WebCore::ClientOrigin& origin() const { return m_origin; }
-    void openCache(const String& name, WebCore::DOMCacheEngine::CacheIdentifierCallback&&);
-    void removeCache(WebCore::DOMCacheIdentifier, WebCore::DOMCacheEngine::RemoveCacheIdentifierCallback&&);
-    void allCaches(uint64_t updateCounter, WebCore::DOMCacheEngine::CacheInfosCallback&&);
     void reference(IPC::Connection::UniqueID, WebCore::DOMCacheIdentifier);
     void dereference(IPC::Connection::UniqueID, WebCore::DOMCacheIdentifier);
-    void lockStorage(IPC::Connection::UniqueID);
-    void unlockStorage(IPC::Connection::UniqueID);
 
     void connectionClosed(IPC::Connection::UniqueID);
     NODELETE bool hasDataInMemory();
     NODELETE bool isActive();
     String representationString();
     FileSystem::Salt salt() const { return m_salt; }
-    void requestSpace(uint64_t size, CompletionHandler<void(bool)>&&);
-    void sizeIncreased(uint64_t amount);
-    void sizeDecreased(uint64_t amount);
     void reset();
 
     using QueryCallback = CompletionHandler<void(std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&&)>;
-    using QueryCallbackBox = CompletionHandlerBox<void(std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&&)>;
-    void query(WebCore::RetrieveRecordsOptions&& options, String&& cacheName, QueryCallback&& callback);
-    SWIFT_UNSAFE void query(WebCore::RetrieveRecordsOptions&& options, String&& cacheName, QueryCallbackBox& callbackBox);
+    void query(WebCore::RetrieveRecordsOptions&&, String&& cacheName, QueryCallback&&);
 
 private:
     CacheStorageManager(const String& path, CacheStorageRegistry&, const WebCore::ClientOrigin&, ShouldWriteOriginFile, QuotaCheckFunction&&, Ref<WorkQueue>&&);
-    void makeDirty();
+    void initializeState();
+    void destroyState();
+    void resetState();
     bool initializeCaches();
-    void removeUnusedCache(WebCore::DOMCacheIdentifier);
-    void initializeCacheSize(CacheStorageCache&);
-    void finishInitializingSize();
-    void requestSpaceAfterInitializingSize(uint64_t size, CompletionHandler<void(bool)>&&);
+    static String saltFilePath(String saltDirectory);
+
+    // Swift cannot iterate a HashMap's keys.
+    Vector<WebCore::DOMCacheIdentifier> removedCacheIdentifiers() const { return copyToVector(m_removedCaches.keys()); }
+    // Swift cannot call WTF::Persistence's templated coders.
+    std::optional<Vector<std::pair<String, String>>> cachesList() const;
+    bool writeCachesList(std::optional<size_t> skippedCachesIndex) const;
+    // Swift does not import HashMap's set or add, which are templates.
+    void moveCacheToRemoved(size_t index);
+    // The Deque holds move-only CompletionHandlers, which Swift cannot take out of it.
+    bool appendPendingSpaceRequest(uint64_t size, CompletionHandler<void(bool)>&& callback)
+    {
+        m_pendingSpaceRequests.append({ size, WTF::move(callback) });
+        return m_pendingSpaceRequests.size() == 1;
+    }
+    void checkPendingSpaceRequests();
 
     bool m_isInitialized { false };
-    uint64_t m_updateCounter;
-    std::optional<uint64_t> m_size;
-    std::pair<uint64_t, HashSet<WebCore::DOMCacheIdentifier>> m_pendingSize;
     String m_path;
     WebCore::ClientOrigin m_origin;
     FileSystem::Salt m_salt;
@@ -106,8 +106,6 @@ private:
     QuotaCheckFunction m_quotaCheckFunction;
     Vector<Ref<CacheStorageCache>> m_caches;
     HashMap<WebCore::DOMCacheIdentifier, Ref<CacheStorageCache>> m_removedCaches;
-    HashMap<WebCore::DOMCacheIdentifier, Vector<IPC::Connection::UniqueID>> m_cacheRefConnections;
-    HashSet<IPC::Connection::UniqueID> m_activeConnections;
     const Ref<WorkQueue> m_queue;
     Deque<std::pair<uint64_t, CompletionHandler<void(bool)>>> m_pendingSpaceRequests;
 };

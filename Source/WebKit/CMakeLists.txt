@@ -998,6 +998,7 @@ if (NOT APPLE)
 endif ()
 
 set(WebKit_SWIFT_INTEROP_SOURCES
+    NetworkProcess/storage/CacheStorageDiskStore.cpp
     Shared/IPCStreamTester.cpp
     Shared/IPCTester.cpp
     UIProcess/ProvisionalPageProxy.cpp
@@ -1664,6 +1665,7 @@ list(APPEND WebKit_SOURCES
 set_source_files_properties(
     ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
     PROPERTIES GENERATED TRUE)
@@ -1677,6 +1679,16 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioHardwareListenerProxy.swift
     ${WEBKIT_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeap.swift
     ${WEBKIT_DIR}/NetworkProcess/Classifier/ResourceLoadStatisticsStore.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/BackgroundFetchStoreManager.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/CacheStorageCache.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/CacheStorageDiskStore.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/CacheStorageManager.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/FileSystemStorageHandle.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/FileSystemStorageManager.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/NetworkStorageManager.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/OriginQuotaManager.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/StateTable.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementDatabase.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementManager.swift

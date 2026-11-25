@@ -276,7 +276,7 @@ webkit_platform_headers: <WebCore/TransformationMatrix.h>
     Variant<std::monostate, WebCore::TransformationMatrix::Translation2DIPCData, WebCore::TransformationMatrix::Translation3DIPCData, WebCore::AffineTransform, WebCore::TransformationMatrix::FullIPCData> ipcData();
 }
 
-struct WebCore::CacheQueryOptions {
+[Swift] struct WebCore::CacheQueryOptions {
     bool ignoreSearch;
     bool ignoreMethod;
     bool ignoreVary;
@@ -7068,13 +7068,16 @@ struct WebCore::ImageBufferResourceLimits {
 };
 
 header: <WebCore/FileSystemWriteCommandType.h>
-enum class WebCore::FileSystemWriteCommandType : uint8_t {
+[Swift] enum class WebCore::FileSystemWriteCommandType : uint8_t {
     Write,
     Seek,
     Truncate
 };
 
-enum class WebCore::FileSystemWriteCloseReason : bool;
+[Swift] enum class WebCore::FileSystemWriteCloseReason : bool {
+    Aborted,
+    Completed
+};
 
 struct WebCore::RsaOtherPrimesInfo {
     String r;

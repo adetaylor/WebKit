@@ -31,32 +31,22 @@
 #include <WebCore/ClientOrigin.h>
 #include <WebCore/StorageUtilities.h>
 #include <wtf/Borrow.h>
-#include <wtf/CallbackAggregator.h>
-#include <wtf/Scope.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/persistence/PersistentEncoder.h>
-#include <wtf/text/StringToIntegerConversion.h>
 
 namespace WebKit {
 
 static constexpr auto cachesListFileName = "cacheslist"_s;
-static constexpr auto sizeFileName = "estimatedsize"_s;
 static constexpr auto cachesOriginFileName = "origin"_s;
 static constexpr auto originSaltFileName = "salt"_s;
 
-static uint64_t nextUpdateNumber()
-{
-    static std::atomic<uint64_t> currentUpdateNumber;
-    return ++currentUpdateNumber;
-}
-
-static std::optional<Vector<std::pair<String, String>>> readCachesList(const String& cachesListDirectoryPath)
+std::optional<Vector<std::pair<String, String>>> CacheStorageManager::cachesList() const
 {
     Vector<std::pair<String, String>> result;
-    if (cachesListDirectoryPath.isEmpty())
+    if (m_path.isEmpty())
         return result;
 
-    auto cachesListFilePath = FileSystem::pathByAppendingComponent(cachesListDirectoryPath, cachesListFileName);
+    auto cachesListFilePath = FileSystem::pathByAppendingComponent(m_path, cachesListFileName);
     if (!FileSystem::fileExists(cachesListFilePath))
         return result;
 
@@ -88,25 +78,25 @@ static std::optional<Vector<std::pair<String, String>>> readCachesList(const Str
     return result;
 }
 
-static bool writeCachesList(const String& cachesListDirectoryPath, const Vector<Ref<CacheStorageCache>>& caches, std::optional<size_t> skippedCachesIndex = std::nullopt)
+bool CacheStorageManager::writeCachesList(std::optional<size_t> skippedCachesIndex) const
 {
-    if (cachesListDirectoryPath.isEmpty())
+    if (m_path.isEmpty())
         return true;
 
-    auto cachesListFilePath = FileSystem::pathByAppendingComponent(cachesListDirectoryPath, cachesListFileName);
-    if (caches.isEmpty()) {
+    auto cachesListFilePath = FileSystem::pathByAppendingComponent(m_path, cachesListFileName);
+    if (m_caches.isEmpty()) {
         FileSystem::deleteFile(cachesListFilePath);
         return true;
     }
 
     FileSystem::makeAllDirectories(FileSystem::parentPath(cachesListFilePath));
     WTF::Persistence::Encoder encoder;
-    Borrow borrowedCaches = caches;
-    uint64_t count = caches.size();
-    if (skippedCachesIndex && *skippedCachesIndex < caches.size())
+    Borrow borrowedCaches = m_caches;
+    uint64_t count = m_caches.size();
+    if (skippedCachesIndex && *skippedCachesIndex < m_caches.size())
         --count;
     encoder << count;
-    for (size_t index = 0; index < caches.size(); ++index) {
+    for (size_t index = 0; index < m_caches.size(); ++index) {
         if (skippedCachesIndex && index == *skippedCachesIndex)
             continue;
         encoder << borrowedCaches[index]->name();
@@ -117,33 +107,7 @@ static bool writeCachesList(const String& cachesListDirectoryPath, const Vector<
     return true;
 }
 
-static std::optional<uint64_t> readSizeFile(const String& sizeDirectoryPath)
-{
-    if (sizeDirectoryPath.isEmpty())
-        return std::nullopt;
-
-    auto sizeFilePath = FileSystem::pathByAppendingComponent(sizeDirectoryPath, sizeFileName);
-    if (!FileSystem::fileExists(sizeFilePath))
-        return std::nullopt;
-
-    const auto buffer = FileSystem::readEntireFile(sizeFilePath);
-    if (!buffer)
-        return std::nullopt;
-
-    return parseInteger<uint64_t>(byteCast<Latin1Character>(buffer->span()));
-}
-
-static bool writeSizeFile(const String& sizeDirectoryPath, uint64_t size)
-{
-    if (sizeDirectoryPath.isEmpty())
-        return true;
-
-    auto sizeFilePath = FileSystem::pathByAppendingComponent(sizeDirectoryPath, sizeFileName);
-    auto value = String::number(size).utf8();
-    return !!FileSystem::overwriteEntireFile(sizeFilePath, byteCast<uint8_t>(value.span()));
-}
-
-static String saltFilePath(const String& saltDirectory)
+String CacheStorageManager::saltFilePath(String saltDirectory)
 {
     if (saltDirectory.isEmpty())
         return emptyString();
@@ -171,19 +135,6 @@ String CacheStorageManager::cacheStorageOriginDirectory(const String& rootDirect
     return FileSystem::pathByAppendingComponent(rootDirectory, key.hashAsString());
 }
 
-void CacheStorageManager::copySaltFileToOriginDirectory(const String& rootDirectory, const String& originDirectory)
-{
-    if (!FileSystem::fileExists(originDirectory))
-        return;
-
-    auto targetFilePath = saltFilePath(originDirectory);
-    if (FileSystem::fileExists(targetFilePath))
-        return;
-
-    auto sourceFilePath = saltFilePath(rootDirectory);
-    FileSystem::hardLinkOrCopyFile(sourceFilePath, targetFilePath);
-}
-
 HashSet<WebCore::ClientOrigin> CacheStorageManager::originsOfCacheStorageData(const String& rootDirectory)
 {
     HashSet<WebCore::ClientOrigin> result;
@@ -196,44 +147,9 @@ HashSet<WebCore::ClientOrigin> CacheStorageManager::originsOfCacheStorageData(co
     return result;
 }
 
-static uint64_t getDirectorySize(const String& originDirectory)
-{
-    uint64_t directorySize = 0;
-    Deque<String> paths;
-    paths.append(originDirectory);
-    while (!paths.isEmpty()) {
-        auto path = paths.takeFirst();
-        if (FileSystem::fileType(path) == FileSystem::FileType::Directory) {
-            const auto fileNames = FileSystem::listDirectory(path);
-            for (auto& fileName : fileNames) {
-                // Files in /Blobs directory are hard link.
-                if (fileName == "Blobs"_s)
-                    continue;
-                paths.append(FileSystem::pathByAppendingComponent(path, fileName));
-            }
-            continue;
-        }
-        directorySize += FileSystem::fileSize(path).value_or(0);
-    }
-    return directorySize;
-}
-
-uint64_t CacheStorageManager::cacheStorageSize(const String& originDirectory)
-{
-    if (auto sizeFromFile = readSizeFile(originDirectory))
-        return *sizeFromFile;
-
-    return getDirectorySize(originDirectory);
-}
-
 bool CacheStorageManager::hasCacheList(const String& cacheStorageDirectory)
 {
     return FileSystem::fileExists(FileSystem::pathByAppendingComponent(cacheStorageDirectory, cachesListFileName));
-}
-
-void CacheStorageManager::makeDirty()
-{
-    m_updateCounter = nextUpdateNumber();
 }
 
 Ref<CacheStorageManager> CacheStorageManager::create(const String& path, CacheStorageRegistry& registry, const WebCore::ClientOrigin& origin, ShouldWriteOriginFile shouldWriteOriginFile, QuotaCheckFunction&& quotaCheckFunction, Ref<WorkQueue>&& queue)
@@ -242,14 +158,14 @@ Ref<CacheStorageManager> CacheStorageManager::create(const String& path, CacheSt
 }
 
 CacheStorageManager::CacheStorageManager(const String& path, CacheStorageRegistry& registry, const WebCore::ClientOrigin& origin, ShouldWriteOriginFile shouldWriteOriginFile, QuotaCheckFunction&& quotaCheckFunction, Ref<WorkQueue>&& queue)
-    : m_updateCounter(nextUpdateNumber())
-    , m_path(path)
+    : m_path(path)
     , m_origin(origin)
     , m_salt(readOrMakeSalt(saltFilePath(m_path)))
     , m_registry(registry)
     , m_quotaCheckFunction(WTF::move(quotaCheckFunction))
     , m_queue(WTF::move(queue))
 {
+    initializeState();
     if (m_path.isEmpty() || shouldWriteOriginFile == ShouldWriteOriginFile::No)
         return;
 
@@ -260,6 +176,7 @@ CacheStorageManager::CacheStorageManager(const String& path, CacheStorageRegistr
 CacheStorageManager::~CacheStorageManager()
 {
     reset();
+    destroyState();
 }
 
 void CacheStorageManager::reset()
@@ -277,272 +194,23 @@ void CacheStorageManager::reset()
         m_registry->unregisterCache(identifier);
     m_removedCaches.clear();
 
-    m_cacheRefConnections.clear();
-    m_size = std::nullopt;
-    m_pendingSize = { 0, { } };
     m_isInitialized = false;
-    makeDirty();
+    resetState();
 }
 
-bool CacheStorageManager::initializeCaches()
+void CacheStorageManager::moveCacheToRemoved(size_t index)
 {
-    if (m_isInitialized)
-        return true;
-
-    const auto cachesList = readCachesList(m_path);
-    if (!cachesList)
-        return false;
-
-    m_isInitialized = true;
-    for (auto& [name, uniqueName] : *cachesList) {
-        Ref cache = CacheStorageCache::create(*this, name, uniqueName, m_path, m_queue.copyRef());
-        m_registry->registerCache(cache->identifier(), cache.get());
-        m_caches.append(WTF::move(cache));
-    }
-
-    return true;
-}
-
-void CacheStorageManager::openCache(const String& name, WebCore::DOMCacheEngine::CacheIdentifierCallback&& callback)
-{
-    if (!initializeCaches())
-        return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::ReadDisk));
-
-    auto index = m_caches.findIf([&](auto& cache) {
-        return cache->name() == name;
-    });
-    if (index != notFound)
-        return Ref { m_caches[index] }->open(WTF::move(callback));
-
-    Ref cache = CacheStorageCache::create(*this, name, createVersion4UUIDString(), m_path, m_queue.copyRef());
-    m_caches.append(cache);
-    bool written = writeCachesList(m_path, m_caches);
-    if (!written) {
-        m_caches.removeLast();
-        return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::WriteDisk));
-    }
-
-    makeDirty();
-    m_registry->registerCache(cache->identifier(), cache);
-    cache->open(WTF::move(callback));
-}
-
-void CacheStorageManager::removeCache(WebCore::DOMCacheIdentifier cacheIdentifier, WebCore::DOMCacheEngine::RemoveCacheIdentifierCallback&& callback)
-{
-    auto index = m_caches.findIf([&](auto& cache) {
-        return cache->identifier() == cacheIdentifier;
-    });
-    if (index == notFound)
-        return callback(false);
-
-    if (!writeCachesList(m_path, m_caches, index))
-        return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::WriteDisk));
-
-    makeDirty();
+    auto cacheIdentifier = m_caches[index]->identifier();
     m_removedCaches.set(cacheIdentifier, WTF::move(borrow(m_caches)[index]));
     m_caches.removeAt(index);
-    return callback(true);
 }
 
-void CacheStorageManager::allCaches(uint64_t updateCounter, WebCore::DOMCacheEngine::CacheInfosCallback&& callback)
+void CacheStorageManager::checkPendingSpaceRequests()
 {
-    if (!initializeCaches())
-        return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::ReadDisk));
-
-    auto cacheInfos = WTF::map(m_caches, [](const auto& cache) {
-        return WebCore::DOMCacheEngine::CacheInfo { cache->identifier(), cache->name() };
-    });
-    auto callbackAggregator = CallbackAggregator::create([callback = WTF::move(callback), cacheInfos = WTF::move(cacheInfos), updateCounter = m_updateCounter]() mutable {
-        callback(WebCore::DOMCacheEngine::CacheInfos { WTF::move(cacheInfos), updateCounter });
-    });
-    for (Ref cache : borrow(m_caches))
-        cache->open([callbackAggregator](auto) { });
-}
-
-void CacheStorageManager::initializeCacheSize(CacheStorageCache& cache)
-{
-    cache.getSize([weakThis = WeakPtr { *this }, cacheIdentifier = cache.identifier()](auto size) mutable {
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return;
-
-        if (!protectedThis->m_pendingSize.second.remove(cacheIdentifier))
-            return;
-
-        protectedThis->m_pendingSize.first += size;
-        if (protectedThis->m_pendingSize.second.isEmpty())
-            protectedThis->finishInitializingSize();
-    });
-}
-
-void CacheStorageManager::finishInitializingSize()
-{
-    m_size = std::exchange(m_pendingSize.first, 0);
-    writeSizeFile(m_path, *m_size);
-
     while (!m_pendingSpaceRequests.isEmpty()) {
         auto [size, callback] = m_pendingSpaceRequests.takeFirst();
         m_quotaCheckFunction(size, WTF::move(callback));
     }
-}
-
-void CacheStorageManager::requestSpaceAfterInitializingSize(uint64_t spaceRequested, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (m_size)
-        return m_quotaCheckFunction(spaceRequested, WTF::move(completionHandler));
-
-    m_pendingSpaceRequests.append({ spaceRequested, WTF::move(completionHandler) });
-    if (m_pendingSpaceRequests.size() > 1)
-        return;
-
-    m_pendingSize = { 0, { } };
-    auto caches = borrow(m_caches);
-    for (Ref cache : caches.get())
-        m_pendingSize.second.add(cache->identifier());
-
-    for (auto& identifier : m_removedCaches.keys())
-        m_pendingSize.second.add(identifier);
-
-    for (Ref cache : caches.get())
-        initializeCacheSize(cache);
-
-    for (Ref cache : m_removedCaches.values())
-        initializeCacheSize(cache);
-}
-
-void CacheStorageManager::requestSpace(uint64_t size, CompletionHandler<void(bool)>&& completionHandler)
-{
-    requestSpaceAfterInitializingSize(size, WTF::move(completionHandler));
-}
-
-void CacheStorageManager::sizeIncreased(uint64_t amount)
-{
-    if (!m_size || !amount)
-        return;
-
-    m_size = *m_size + amount;
-    writeSizeFile(m_path, *m_size);
-}
-
-void CacheStorageManager::sizeDecreased(uint64_t amount)
-{
-    if (!m_size || !amount)
-        return;
-
-    m_size = *m_size > amount ? *m_size - amount : 0;
-    writeSizeFile(m_path, *m_size);
-}
-
-void CacheStorageManager::reference(IPC::Connection::UniqueID connection, WebCore::DOMCacheIdentifier cacheIdentifier)
-{
-    auto& references = m_cacheRefConnections.ensure(cacheIdentifier, []() {
-        return Vector<IPC::Connection::UniqueID> { };
-    }).iterator->value;
-    references.append(connection);
-}
-
-void CacheStorageManager::dereference(IPC::Connection::UniqueID connection, WebCore::DOMCacheIdentifier cacheIdentifier)
-{
-    auto iter = m_cacheRefConnections.find(cacheIdentifier);
-    if (iter == m_cacheRefConnections.end())
-        return;
-
-    auto& refConnections = iter->value;
-    auto index = refConnections.findIf([&](auto& refConnection) {
-        return refConnection == connection;
-    });
-    if (index == notFound)
-        return;
-
-    refConnections.removeAt(index);
-    if (!refConnections.isEmpty())
-        return;
-
-    removeUnusedCache(cacheIdentifier);
-}
-
-void CacheStorageManager::lockStorage(IPC::Connection::UniqueID connection)
-{
-    ASSERT(!m_activeConnections.contains(connection));
-    m_activeConnections.add(connection);
-}
-
-void CacheStorageManager::unlockStorage(IPC::Connection::UniqueID connection)
-{
-    ASSERT(m_activeConnections.contains(connection));
-    m_activeConnections.remove(connection);
-}
-
-void CacheStorageManager::connectionClosed(IPC::Connection::UniqueID connection)
-{
-    m_activeConnections.remove(connection);
-
-    m_cacheRefConnections.removeIf([&](auto& entry) {
-        auto& [identifier, refConnections] = entry;
-        refConnections.removeAllMatching([&](auto refConnection) {
-            return refConnection == connection;
-        });
-        if (refConnections.isEmpty()) {
-            removeUnusedCache(identifier);
-            return true;
-        }
-        return false;
-    });
-}
-
-void CacheStorageManager::removeUnusedCache(WebCore::DOMCacheIdentifier cacheIdentifier)
-{
-    if (RefPtr cache = m_removedCaches.take(cacheIdentifier)) {
-        cache->removeAllRecords();
-        m_registry->unregisterCache(cacheIdentifier);
-        return;
-    }
-
-    for (Ref cache : borrow(m_caches)) {
-        if (cache->identifier() == cacheIdentifier) {
-            cache->close();
-            return;
-        }
-    }
-}
-
-bool CacheStorageManager::hasDataInMemory()
-{
-    // Cache data is stored on disk.
-    if (!m_path.isEmpty())
-        return false;
-
-    return !m_caches.isEmpty() || !m_removedCaches.isEmpty();
-}
-
-bool CacheStorageManager::isActive()
-{
-    return !m_cacheRefConnections.isEmpty() || !m_activeConnections.isEmpty();
-}
-
-String CacheStorageManager::representationString()
-{
-    StringBuilder builder;
-    builder.append("{ \"persistent\": ["_s);
-
-    bool isFirst = true;
-    for (Ref cache : borrow(m_caches)) {
-        if (!isFirst)
-            builder.append(", "_s);
-        isFirst = false;
-        builder.append('"', cache->name(), '"');
-    }
-
-    builder.append("], \"removed\": ["_s);
-    isFirst = true;
-    for (auto& cache : m_removedCaches.values()) {
-        if (!isFirst)
-            builder.append(", "_s);
-        isFirst = false;
-        builder.append('"', cache->name(), '"');
-    }
-    builder.append("]}\n"_s);
-    return builder.toString();
 }
 
 static void queryCaches(Vector<Ref<CacheStorageCache>>&& caches, size_t index, WebCore::RetrieveRecordsOptions&& options, bool shouldIterate, CompletionHandler<void(std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&&)>&& callback)
@@ -553,8 +221,8 @@ static void queryCaches(Vector<Ref<CacheStorageCache>>&& caches, size_t index, W
     }
 
     Ref cache = caches[index];
-    cache->open([caches = WTF::move(caches), index, options = WTF::move(options), shouldIterate, callback = WTF::move(callback)](auto&& openResult) mutable {
-        if (!openResult.has_value()) {
+    cache->open([caches = WTF::move(caches), index, options = WTF::move(options), shouldIterate, callback = WTF::move(callback)](bool opened) mutable {
+        if (!opened) {
             if (!shouldIterate) {
                 callback({ });
                 return;
@@ -604,13 +272,6 @@ void CacheStorageManager::query(WebCore::RetrieveRecordsOptions&& options, Strin
     }
 
     queryCaches(Vector<Ref<CacheStorageCache>> { m_caches }, index, WTF::move(options), cacheName.isEmpty(), WTF::move(callback));
-}
-
-void CacheStorageManager::query(WebCore::RetrieveRecordsOptions&& options, String&& cacheName, QueryCallbackBox& callbackBox)
-{
-    query(WTF::move(options), WTF::move(cacheName), [callbackBox = Ref { callbackBox }](std::optional<WebCore::DOMCacheEngine::CrossThreadRecord>&& record) {
-        callbackBox.get()(WTF::move(record));
-    });
 }
 
 } // namespace WebKit

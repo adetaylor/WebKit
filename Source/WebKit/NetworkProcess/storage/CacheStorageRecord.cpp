@@ -26,37 +26,21 @@
 #include "config.h"
 #include "CacheStorageRecord.h"
 
+#include <wtf/TZoneMallocInlines.h>
+
 namespace WebKit {
 
-CacheStorageRecordInformation::CacheStorageRecordInformation(NetworkCache::Key&& key, double insertionTime, uint64_t identifier, uint64_t updateResponseCounter, uint64_t size, URL&& url, bool hasVaryStar, HashMap<String, String>&& varyHeaders)
+WTF_MAKE_TZONE_ALLOCATED_IMPL(CacheStorageRecordInformation);
+
+CacheStorageRecordInformation::CacheStorageRecordInformation(NetworkCache::Key&& key, double insertionTime, uint64_t identifier, uint64_t updateResponseCounter, uint64_t size, URL&& url, CacheStorageVaryHeaders&& varyHeaders)
     : m_key(WTF::move(key))
     , m_insertionTime(insertionTime)
     , m_identifier(identifier)
     , m_updateResponseCounter(updateResponseCounter)
     , m_size(size)
     , m_url(WTF::move(url))
-    , m_hasVaryStar(hasVaryStar)
     , m_varyHeaders(WTF::move(varyHeaders))
 {
-}
-
-void CacheStorageRecordInformation::updateVaryHeaders(const WebCore::ResourceRequest& request, const WebCore::ResourceResponse::CrossThreadData& response)
-{
-    auto varyValue = response.httpHeaderFields.get(WebCore::HTTPHeaderName::Vary);
-    if (varyValue.isNull() || response.tainting == WebCore::ResourceResponse::Tainting::Opaque || response.tainting == WebCore::ResourceResponse::Tainting::Opaqueredirect) {
-        m_hasVaryStar = false;
-        m_varyHeaders = { };
-        return;
-    }
-
-    varyValue.split(',', [&](StringView view) {
-        if (!m_hasVaryStar && view.trim(isASCIIWhitespaceWithoutFF<char16_t>) == "*"_s)
-            m_hasVaryStar = true;
-        m_varyHeaders.add(view.toString(), request.httpHeaderField(view));
-    });
-
-    if (m_hasVaryStar)
-        m_varyHeaders = { };
 }
 
 CacheStorageRecordInformation CacheStorageRecordInformation::isolatedCopy() &&
@@ -68,7 +52,6 @@ CacheStorageRecordInformation CacheStorageRecordInformation::isolatedCopy() &&
         m_updateResponseCounter,
         m_size,
         crossThreadCopy(WTF::move(m_url)),
-        m_hasVaryStar,
         crossThreadCopy(WTF::move(m_varyHeaders))
     };
 }
@@ -82,7 +65,6 @@ CacheStorageRecordInformation CacheStorageRecordInformation::isolatedCopy() cons
         m_updateResponseCounter,
         m_size,
         crossThreadCopy(m_url),
-        m_hasVaryStar,
         crossThreadCopy(m_varyHeaders)
     };
 }

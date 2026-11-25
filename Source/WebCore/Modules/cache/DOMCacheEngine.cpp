@@ -110,24 +110,6 @@ bool queryCacheMatch(const ResourceRequest& request, const ResourceRequest& cach
     return !isVarying;
 }
 
-bool queryCacheMatch(const ResourceRequest& request, const URL& url, bool hasVaryStar, const HashMap<String, String>& varyHeaders, const CacheQueryOptions& options)
-{
-    if (!matchURLs(request, url, options))
-        return false;
-
-    if (options.ignoreVary)
-        return true;
-
-    if (hasVaryStar)
-        return false;
-
-    for (const auto& pair : varyHeaders) {
-        if (pair.value != request.httpHeaderField(pair.key))
-            return false;
-    }
-    return true;
-}
-
 ResponseBody isolatedResponseBody(const ResponseBody& body)
 {
     return WTF::switchOn(body, [](const Ref<FormData>& formData) -> ResponseBody {

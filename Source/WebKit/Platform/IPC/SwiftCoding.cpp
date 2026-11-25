@@ -29,6 +29,7 @@
 #if ENABLE(SWIFT_IPC_RECEIVERS)
 
 #include "GeneratedSerializers.h"
+#include <WebCore/ClientOrigin.h>
 #include <WebCore/ColorSpace.h>
 #include <WebCore/ImageBufferFormat.h>
 #include <WebCore/ImageBufferResourceLimits.h>
@@ -81,6 +82,38 @@ bool SwiftDecoder::decodeImageBufferResourceLimits(WebCore::ImageBufferResourceL
     if (!decoded) [[unlikely]]
         return false;
     limits = *decoded;
+    return true;
+}
+
+bool SwiftDecoder::decodeClientOrigin(WebCore::ClientOrigin& origin)
+{
+    auto decoded = borrowed().decode<WebCore::ClientOrigin>();
+    if (!decoded) [[unlikely]]
+        return false;
+    origin = WTF::move(*decoded);
+    return true;
+}
+
+std::optional<WebCore::DOMCacheIdentifier> SwiftDecoder::decodeDOMCacheIdentifier()
+{
+    return borrowed().decode<WebCore::DOMCacheIdentifier>();
+}
+
+bool SwiftDecoder::decodeCacheInfos(WebCore::DOMCacheEngine::CacheInfos& infos)
+{
+    auto decoded = borrowed().decode<WebCore::DOMCacheEngine::CacheInfos>();
+    if (!decoded) [[unlikely]]
+        return false;
+    infos = WTF::move(*decoded);
+    return true;
+}
+
+bool SwiftDecoder::decodeString(String& string)
+{
+    auto decoded = borrowed().decode<String>();
+    if (!decoded) [[unlikely]]
+        return false;
+    string = WTF::move(*decoded);
     return true;
 }
 
@@ -189,6 +222,26 @@ void SwiftReplyEncoder::encodeImageBufferFormat(const WebCore::ImageBufferFormat
     }
     RELEASE_ASSERT(m_encoder);
     *m_encoder << format;
+}
+
+void SwiftReplyEncoder::encodeClientOrigin(const WebCore::ClientOrigin& origin)
+{
+    encodeWithArgumentCoder(origin);
+}
+
+void SwiftReplyEncoder::encodeDOMCacheIdentifier(const WebCore::DOMCacheIdentifier& identifier)
+{
+    encodeWithArgumentCoder(identifier);
+}
+
+void SwiftReplyEncoder::encodeCacheInfos(const WebCore::DOMCacheEngine::CacheInfos& infos)
+{
+    encodeWithArgumentCoder(infos);
+}
+
+void SwiftReplyEncoder::encodeString(const String& string)
+{
+    encodeWithArgumentCoder(string);
 }
 
 void SwiftReplyEncoder::encodeImageBufferResourceLimits(const WebCore::ImageBufferResourceLimits& limits)

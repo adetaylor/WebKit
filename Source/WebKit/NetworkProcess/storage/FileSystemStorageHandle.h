@@ -25,14 +25,9 @@
 
 #pragma once
 
-#include "Connection.h"
 #include "FileSystemSyncAccessHandleInfo.h"
-#include <WebCore/FileSystemHandleGlobalIdentifier.h>
 #include <WebCore/FileSystemHandleIdentifier.h>
-#include <WebCore/FileSystemHandleInfo.h>
 #include <WebCore/FileSystemSyncAccessHandleIdentifier.h>
-#include <WebCore/FileSystemWritableFileStreamIdentifier.h>
-#include <wtf/FileHandle.h>
 #include <wtf/Identified.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/TZoneMalloc.h>
@@ -44,8 +39,6 @@ class SharedFileHandle;
 
 namespace WebCore {
 struct ClientOrigin;
-enum class FileSystemWriteCloseReason : bool;
-enum class FileSystemWriteCommandType : uint8_t;
 }
 
 namespace WebKit {
@@ -53,64 +46,35 @@ namespace WebKit {
 class FileSystemStorageManager;
 enum class FileSystemStorageError : uint8_t;
 
-class FileSystemStorageHandle final : public RefCounted<FileSystemStorageHandle>, public CanMakeWeakPtr<FileSystemStorageHandle, WeakPtrFactoryInitialization::Eager>, public Identified<WebCore::FileSystemHandleIdentifier> {
+class SWIFT_PRIVATE_FILEID("WebKit/FileSystemStorageHandle.swift") FileSystemStorageHandle final : public RefCounted<FileSystemStorageHandle>, public CanMakeWeakPtr<FileSystemStorageHandle, WeakPtrFactoryInitialization::Eager>, public Identified<WebCore::FileSystemHandleIdentifier> {
     WTF_MAKE_TZONE_ALLOCATED(FileSystemStorageHandle);
 public:
     enum class Type : uint8_t { File, Directory, Any };
-    static RefPtr<FileSystemStorageHandle> create(FileSystemStorageManager&, Type, String&& path, String&& name);
+    static RefPtr<FileSystemStorageHandle> create(FileSystemStorageManager&, Type, String&& path);
+    ~FileSystemStorageHandle();
 
-    const String& path() const LIFETIME_BOUND { return m_path; }
-    const String& name() const LIFETIME_BOUND { return m_name; }
+    // The Swift state is keyed by this handle's own identifier.
+    uint64_t swiftKey() const { return identifier().toUInt64(); }
+    // Identified's identifier() is not imported into Swift.
+    WebCore::FileSystemHandleIdentifier handleIdentifier() const { return identifier(); }
+    String path() const;
     Type type() const { return m_type; }
-    uint64_t allocatedUnusedCapacity();
     std::optional<WebCore::ClientOrigin> origin() const;
 
-    const Markable<WebCore::FileSystemHandleGlobalIdentifier>& globalIdentifier() const { return m_globalIdentifier; }
-    void setGlobalIdentifier(WebCore::FileSystemHandleGlobalIdentifier globalIdentifier) { m_globalIdentifier = globalIdentifier; }
-
-    void close();
-    bool isSameEntry(WebCore::FileSystemHandleIdentifier);
-    std::optional<FileSystemStorageError> move(WebCore::FileSystemHandleIdentifier, const String& newName);
-    std::expected<std::pair<WebCore::FileSystemHandleGlobalIdentifier, WebCore::FileSystemHandleIdentifier>, FileSystemStorageError> getFileHandle(IPC::Connection::UniqueID, String&& name, bool createIfNecessary);
-    std::expected<std::pair<WebCore::FileSystemHandleGlobalIdentifier, WebCore::FileSystemHandleIdentifier>, FileSystemStorageError> getDirectoryHandle(IPC::Connection::UniqueID, String&& name, bool createIfNecessary);
-    std::optional<FileSystemStorageError> removeEntry(const String& name, bool deleteRecursively);
-    std::expected<std::optional<Vector<String>>, FileSystemStorageError> resolve(WebCore::FileSystemHandleIdentifier);
-    std::expected<Vector<String>, FileSystemStorageError> getHandleNames();
-    std::expected<WebCore::FileSystemHandleInfo, FileSystemStorageError> getHandle(IPC::Connection::UniqueID, String&& name);
-    void requestNewCapacityForSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier, uint64_t newCapacity, CompletionHandler<void(std::optional<uint64_t>)>&&);
-
+    // Swift cannot make the std::expected this returns: only its default constructor is imported.
     std::expected<FileSystemSyncAccessHandleInfo, FileSystemStorageError> createSyncAccessHandle();
-    std::optional<FileSystemStorageError> closeSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier);
-    NODELETE std::optional<WebCore::FileSystemSyncAccessHandleIdentifier> activeSyncAccessHandle();
-
-    std::expected<WebCore::FileSystemWritableFileStreamIdentifier, FileSystemStorageError> createWritable(bool keepExistingData);
-    std::optional<FileSystemStorageError> closeWritable(WebCore::FileSystemWritableFileStreamIdentifier, WebCore::FileSystemWriteCloseReason);
-    void executeCommandForWritable(WebCore::FileSystemWritableFileStreamIdentifier, WebCore::FileSystemWriteCommandType, std::optional<uint64_t> position, std::optional<uint64_t> size, std::span<const uint8_t> dataBytes, bool hasDataError, CompletionHandler<void(std::optional<FileSystemStorageError>)>&&);
-    Vector<WebCore::FileSystemWritableFileStreamIdentifier> writables() const;
 
 private:
-    FileSystemStorageHandle(FileSystemStorageManager&, Type, String&& path, String&& name);
-    std::expected<std::pair<WebCore::FileSystemHandleGlobalIdentifier, WebCore::FileSystemHandleIdentifier>, FileSystemStorageError> requestCreateHandle(IPC::Connection::UniqueID, Type, String&& name, bool createIfNecessary);
-    NODELETE bool isActiveSyncAccessHandle(WebCore::FileSystemSyncAccessHandleIdentifier);
-    std::optional<FileSystemStorageError> executeCommandForWritableInternal(WebCore::FileSystemWritableFileStreamIdentifier, WebCore::FileSystemWriteCommandType, std::optional<uint64_t> position, std::optional<uint64_t> size, std::span<const uint8_t>, bool hasDataError);
-    std::optional<size_t> computeCommandSpace(WebCore::FileSystemWritableFileStreamIdentifier, WebCore::FileSystemWriteCommandType, std::optional<uint64_t> position, std::optional<uint64_t> size, std::span<const uint8_t>, bool hasDataError);
+    FileSystemStorageHandle(FileSystemStorageManager&, Type, String&& path);
+    void initializeState(String path);
+    void destroyState();
+    // The parts of createSyncAccessHandle() that read or change the Swift state.
+    std::optional<FileSystemStorageError> lockForSyncAccessHandle();
+    void unlockForSyncAccessHandle();
+    WebCore::FileSystemSyncAccessHandleIdentifier activateSyncAccessHandle();
 
     WeakPtr<FileSystemStorageManager> m_manager;
     Type m_type;
-    String m_path;
-    String m_name;
-    struct SyncAccessHandleInfo {
-        WebCore::FileSystemSyncAccessHandleIdentifier identifier;
-        uint64_t capacity { 0 };
-    };
-    struct FileHandleWithPath {
-        FileSystem::FileHandle handle;
-        String path;
-    };
-
-    std::optional<SyncAccessHandleInfo> m_activeSyncAccessHandle;
-    HashMap<WebCore::FileSystemWritableFileStreamIdentifier, FileHandleWithPath> m_activeWritableFiles;
-    Markable<WebCore::FileSystemHandleGlobalIdentifier> m_globalIdentifier;
 };
 
 } // namespace WebKit

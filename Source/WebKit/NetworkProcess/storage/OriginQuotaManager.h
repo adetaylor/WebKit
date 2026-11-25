@@ -26,16 +26,15 @@
 #pragma once
 
 #include "QuotaIncreaseRequestIdentifier.h"
+#include "SwiftStateKey.h"
 #include <wtf/CompletionHandler.h>
-#include <wtf/Deque.h>
-#include <wtf/Markable.h>
 #include <wtf/RefCountable.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
 namespace WebKit {
 
-class OriginQuotaManager : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<OriginQuotaManager> {
+class SWIFT_PRIVATE_FILEID("WebKit/OriginQuotaManager.swift") OriginQuotaManager : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<OriginQuotaManager>, public SwiftStateKey {
     WTF_MAKE_TZONE_ALLOCATED(OriginQuotaManager);
 public:
     using GetUsageFunction = Function<uint64_t()>;
@@ -48,13 +47,14 @@ public:
         NotifySpaceGrantedFunction notifySpaceGrantedFunction;
     };
     static Ref<OriginQuotaManager> create(Parameters&&, GetUsageFunction&&);
+    ~OriginQuotaManager();
     uint64_t reportedQuota();
     uint64_t usage();
     enum class Decision : bool { Deny, Grant };
     using RequestCallback = CompletionHandler<void(Decision)>;
     using RequestCallbackBox = CompletionHandlerBox<void(Decision)>;
-    void requestSpace(uint64_t spaceRequested, RequestCallback&& callback);
-    SWIFT_UNSAFE void requestSpace(uint64_t spaceRequested, RequestCallbackBox& callbackBox);
+    void requestSpace(uint64_t spaceRequested, RequestCallback&& callback) { requestSpace(spaceRequested, RequestCallbackBox::create(WTF::move(callback)).get()); }
+    SWIFT_UNSAFE void requestSpace(uint64_t spaceRequested, RequestCallbackBox&);
     void didIncreaseQuota(QuotaIncreaseRequestIdentifier, std::optional<uint64_t> newQuota);
 
     NODELETE void resetQuotaUpdatedBasedOnUsageForTesting();
@@ -63,24 +63,10 @@ public:
 
 private:
     OriginQuotaManager(Parameters&&, GetUsageFunction&&);
-    void handleRequests();
-    bool grantWithCurrentQuota(uint64_t spaceRequested);
-    bool grantFastPath(uint64_t spaceRequested);
-    void spaceGranted(uint64_t amount);
+    void initializeState(uint64_t quota, uint64_t standardReportedQuota);
+    void updateQuotaForTesting(uint64_t quota, uint64_t standardReportedQuota);
+    void destroyState();
 
-    struct Request {
-        uint64_t spaceRequested;
-        RequestCallback callback;
-        Markable<QuotaIncreaseRequestIdentifier> identifier;
-    };
-    Deque<Request> m_requests;
-    std::optional<Request> m_currentRequest;
-    bool m_isHandlingRequests { false };
-    uint64_t m_quotaCountdown { 0 };
-    uint64_t m_quota;
-    uint64_t m_standardReportedQuota;
-    uint64_t m_initialQuota; // Test only.
-    std::optional<uint64_t> m_usage;
     GetUsageFunction m_getUsageFunction;
     IncreaseQuotaFunction m_increaseQuotaFunction;
     NotifySpaceGrantedFunction m_notifySpaceGrantedFunction;

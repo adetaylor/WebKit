@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,13 +25,19 @@
 
 #pragma once
 
+#include <wtf/ObjectIdentifier.h>
+
 namespace WebKit {
 
-struct FileSystemStorageManagerLock {
-    enum State : uint8_t { Open, TakenExclusive, TakenShared };
+enum class SwiftStateKeyType { };
 
-    State state { State::Open };
-    size_t count { 0 };
+// The key of an object's state in a Swift StateTable, unique among all the objects that have one.
+class SwiftStateKey {
+public:
+    uint64_t swiftKey() const { return m_swiftKey.toUInt64(); }
+
+private:
+    AtomicObjectIdentifier<SwiftStateKeyType> m_swiftKey { AtomicObjectIdentifier<SwiftStateKeyType>::generate() };
 };
 
-} // namespace WTF
+} // namespace WebKit

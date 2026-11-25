@@ -28,14 +28,32 @@
 #include <WebCore/DOMCacheEngine.h>
 #include <WebCore/HTTPParsers.h>
 #include <WebCore/ResourceResponse.h>
+#include <wtf/CrossThreadCopier.h>
+#include <wtf/TZoneMalloc.h>
 
 namespace WebKit {
 
+struct CacheStorageVaryHeader {
+    String name;
+    String value;
+
+    CacheStorageVaryHeader isolatedCopy() && { return { crossThreadCopy(WTF::move(name)), crossThreadCopy(WTF::move(value)) }; }
+    CacheStorageVaryHeader isolatedCopy() const & { return { crossThreadCopy(name), crossThreadCopy(value) }; }
+};
+
+struct CacheStorageVaryHeaders {
+    bool hasVaryStar { false };
+    Vector<CacheStorageVaryHeader> headers;
+
+    CacheStorageVaryHeaders isolatedCopy() && { return { hasVaryStar, crossThreadCopy(WTF::move(headers)) }; }
+    CacheStorageVaryHeaders isolatedCopy() const & { return { hasVaryStar, crossThreadCopy(headers) }; }
+};
+
 class CacheStorageRecordInformation {
+    WTF_MAKE_TZONE_ALLOCATED(CacheStorageRecordInformation);
 public:
     CacheStorageRecordInformation() = default;
-    CacheStorageRecordInformation(NetworkCache::Key&&, double insertionTime, uint64_t identifier, uint64_t updateResponseCounter, uint64_t size, URL&&, bool hasVaryStar, HashMap<String, String>&& varyHeaders);
-    void updateVaryHeaders(const WebCore::ResourceRequest&, const WebCore::ResourceResponse::CrossThreadData&);
+    CacheStorageRecordInformation(NetworkCache::Key&&, double insertionTime, uint64_t identifier, uint64_t updateResponseCounter, uint64_t size, URL&&, CacheStorageVaryHeaders&&);
     CacheStorageRecordInformation isolatedCopy() &&;
     CacheStorageRecordInformation isolatedCopy() const &;
 
@@ -45,8 +63,8 @@ public:
     uint64_t updateResponseCounter() const { return m_updateResponseCounter; }
     uint64_t size() const { return m_size; }
     const URL& url() const LIFETIME_BOUND { return m_url; }
-    bool hasVaryStar() const { return m_hasVaryStar; }
-    const HashMap<String, String>& varyHeaders() const LIFETIME_BOUND { return m_varyHeaders; }
+    // Swift cannot call a C++ accessor that returns a const reference.
+    CacheStorageVaryHeaders varyHeaders() const { return m_varyHeaders; }
 
     void setKey(const NetworkCache::Key& key) { m_key = key; }
     void setSize(uint64_t size) { m_size = size; }
@@ -54,6 +72,7 @@ public:
     void setUpdateResponseCounter(double updateResponseCounter) { m_updateResponseCounter = updateResponseCounter; }
     void setInsertionTime(double insertionTime) { m_insertionTime = insertionTime; }
     void setURL(const URL& url) { m_url = url; }
+    void setVaryHeaders(CacheStorageVaryHeaders&& varyHeaders) { m_varyHeaders = WTF::move(varyHeaders); }
 
 private:
     NetworkCache::Key m_key;
@@ -62,8 +81,7 @@ private:
     uint64_t m_updateResponseCounter { 0 };
     uint64_t m_size { 0 };
     URL m_url;
-    bool m_hasVaryStar { false };
-    HashMap<String, String> m_varyHeaders;
+    CacheStorageVaryHeaders m_varyHeaders;
 };
 
 struct CacheStorageRecord {

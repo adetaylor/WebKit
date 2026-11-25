@@ -41,7 +41,7 @@ using ResponseBody = Variant<std::nullptr_t, Ref<FormData>, Ref<SharedBuffer>>;
 
 namespace WebKit {
 
-class CacheStorageDiskStore final : public CacheStorageStore {
+class SWIFT_PRIVATE_FILEID("WebKit/CacheStorageDiskStore.swift") CacheStorageDiskStore final : public CacheStorageStore {
 public:
     static Ref<CacheStorageDiskStore> create(const String& cacheName, const String& path, Ref<WorkQueue>&&);
     static size_t computeRealBodySizeForStorage(const WebCore::DOMCacheEngine::ResponseBody&);
@@ -67,11 +67,11 @@ private:
     String versionDirectoryPath() const;
     String saltFilePath() const;
     String recordsDirectoryPath() const;
+    static void deleteOldVersionDirectories(String path);
     String recordFilePath(const NetworkCache::Key&) const;
     String recordBlobFilePath(const String&) const;
     String blobsDirectoryPath() const;
     String blobFilePath(const String&) const;
-    std::optional<CacheStorageRecord> readRecordFromFileData(std::span<const uint8_t>, SafeFileData&&);
     void readAllRecordInfosInternal(ReadAllRecordInfosCallback&&);
     void readRecordsInternal(const Vector<CacheStorageRecordInformation>&, ReadRecordsCallback&&);
 

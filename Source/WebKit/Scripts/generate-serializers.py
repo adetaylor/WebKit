@@ -2592,7 +2592,7 @@ def check_swift_type_references(cpp_type, context, swift_names, template=None):
     is the C++ type that has that Swift form, and is held as C++ holds it."""
     cpp_type = swift_types.strip_cpp_type_decorations(cpp_type)
     # SwiftCoding.swift defines these, and C++ decodes the rest.
-    if swift_types.is_owned_primitive(cpp_type) or swift_types.is_hand_written(cpp_type) or swift_types.is_cxx_decoded(cpp_type):
+    if swift_types.is_owned_primitive(cpp_type) or swift_types.is_hand_written(cpp_type) or swift_types.is_cxx_decoded(cpp_type) or swift_types.is_uuid(cpp_type):
         return
     match = re.fullmatch(r'([A-Za-z_][A-Za-z_0-9:]*)<(.+)>', cpp_type)
     if match:

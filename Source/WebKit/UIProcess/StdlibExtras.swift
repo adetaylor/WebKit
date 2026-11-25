@@ -1,3 +1,4 @@
+// Copyright (C) 2018-2021 Apple Inc. All rights reserved.
 // Copyright (C) 2025-2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -82,6 +83,109 @@ extension WTF.String {
             return unsafe WTF.String.fromUTF8(cppspan)
         }
         #endif
+    }
+}
+
+extension WTF.String {
+    /// The UTF-16 code units of this string, exactly as stored: nothing is decoded, so a lone surrogate stays itself.
+    var utf16Units: [UInt16] {
+        var units: [UInt16] = []
+        units.reserveCapacity(Int(length()))
+        if is8Bit() {
+            let characters: Span<WTF.Latin1Character> = span8()
+            for index in characters.indices {
+                units.append(UInt16(characters[index].value))
+            }
+        } else {
+            let characters: Span<UInt16> = checkedSpan16()
+            for index in characters.indices {
+                units.append(characters[index])
+            }
+        }
+        return units
+    }
+
+    /// Construct a `WTF.String` from UTF-16 code units, exactly.
+    init(utf16Units units: [UInt16]) {
+        self = WTF.makeStringFromUTF16Characters(units.span)
+    }
+
+    /// The UTF-16 code units of this string, or nil for the null string.
+    var nullableUTF16Units: [UInt16]? {
+        isNull() ? nil : utf16Units
+    }
+
+    /// Construct a `WTF.String` from UTF-16 code units, or the null string from nil.
+    init(nullableUTF16Units units: [UInt16]?) {
+        self = units.map { WTF.String(utf16Units: $0) } ?? WTF.String()
+    }
+
+    /// Whether this string's UTF-16 code units start with `prefix`.
+    func hasPrefix(utf16Units prefix: [UInt16]) -> Bool {
+        utf16Units.starts(with: prefix)
+    }
+
+    /// Whether this string's UTF-16 code units end with `suffix`.
+    func hasSuffix(utf16Units suffix: [UInt16]) -> Bool {
+        utf16Units.suffix(suffix.count).elementsEqual(suffix)
+    }
+
+    /// WTF's String ==, with nil for the null string, which equals only itself.
+    func isEqual(utf16Units units: [UInt16]?) -> Bool {
+        guard let units else {
+            return isNull()
+        }
+        guard !isNull() && Int(length()) == units.count else {
+            return false
+        }
+        if is8Bit() {
+            let characters: Span<WTF.Latin1Character> = span8()
+            for index in characters.indices where UInt16(characters[index].value) != units[index] {
+                return false
+            }
+            return true
+        }
+        let characters: Span<UInt16> = checkedSpan16()
+        for index in characters.indices where characters[index] != units[index] {
+            return false
+        }
+        return true
+    }
+}
+
+extension Collection where Element: UnsignedInteger {
+    /// WTF's `parseInteger` for an unsigned type.
+    func parseUnsignedInteger<Value: FixedWidthInteger & UnsignedInteger>() -> Value? {
+        func isUnicodeCompatibleASCIIWhitespace(_ unit: some UnsignedInteger) -> Bool {
+            unit == 0x20 || (unit >= 0x09 && unit <= 0x0D)
+        }
+        func isDigit(_ unit: some UnsignedInteger) -> Bool {
+            unit >= 0x30 && unit <= 0x39
+        }
+        var index = startIndex
+        while index < endIndex && isUnicodeCompatibleASCIIWhitespace(self[index]) {
+            formIndex(after: &index)
+        }
+        if index < endIndex && self[index] == 0x2B {
+            formIndex(after: &index)
+        }
+        guard index < endIndex && isDigit(self[index]) else {
+            return nil
+        }
+        var value: Value = 0
+        while index < endIndex && isDigit(self[index]) {
+            let (product, productOverflow) = value.multipliedReportingOverflow(by: 10)
+            let (sum, sumOverflow) = product.addingReportingOverflow(Value(self[index] - 0x30))
+            if productOverflow || sumOverflow {
+                return nil
+            }
+            value = sum
+            formIndex(after: &index)
+        }
+        while index < endIndex && isUnicodeCompatibleASCIIWhitespace(self[index]) {
+            formIndex(after: &index)
+        }
+        return index == endIndex ? value : nil
     }
 }
 
