@@ -85,6 +85,10 @@ public:
     AddResult add(const ValueType&) LIFETIME_BOUND;
     AddResult add(ValueType&&) LIFETIME_BOUND;
 
+    // As add(), but returns only whether the value is new. Returns no iterator, so it can be called from Swift.
+    bool addValue(const ValueType& value) { return add(value).isNewEntry; }
+    bool addValue(ValueType&& value) { return add(WTF::move(value)).isNewEntry; }
+
     // Increments the count of a value by the passed amount.
     AddResult add(const ValueType&, unsigned) LIFETIME_BOUND;
     AddResult add(ValueType&&, unsigned) LIFETIME_BOUND;
