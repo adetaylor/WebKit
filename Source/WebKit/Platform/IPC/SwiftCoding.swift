@@ -381,6 +381,13 @@ extension IPCObjectIdentifier {
         self.init(value: value)
     }
 
+    init(generated rawValue: UInt64) {
+        guard let identifier = Self(rawValue: rawValue) else {
+            fatalError("A generated identifier is neither 0 nor the deleted value")
+        }
+        self = identifier
+    }
+
     static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
         guard let identifier = Self(rawValue: try UInt64.decode(from: &decoder)) else {
             throw IPCDecodingError()
@@ -466,6 +473,23 @@ enum IPCCoding {
         }
     }
 
+    /// WTF::UUID, which C++ creates with tryCreate, refusing the empty and deleted values.
+    enum UUID: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> UUIDHalves {
+            let high = try UInt64.decode(from: &decoder)
+            let low = try UInt64.decode(from: &decoder)
+            guard WTF.UUID.tryCreate(high, low).value != nil else {
+                throw IPCDecodingError()
+            }
+            return UUIDHalves(high: high, low: low)
+        }
+
+        static func encode(_ value: UUIDHalves, to encoder: IPC.SwiftReplyEncoder) {
+            UInt64.encode(value.high, to: encoder)
+            UInt64.encode(value.low, to: encoder)
+        }
+    }
+
     /// C++-decoded values: C++ objects that their own ArgumentCoder decodes and encodes, so that Swift accepts
     /// exactly what C++ does, and copies nothing.
     enum CxxDecoded {
@@ -538,6 +562,65 @@ enum IPCCoding {
 
             static func encode(_ value: WebCore.ImageBufferResourceLimits, to encoder: IPC.SwiftReplyEncoder) {
                 encoder.encodeImageBufferResourceLimits(value)
+            }
+        }
+
+        /// WebCore::ClientOrigin, whose two origins C++ checks are not null as it decodes them.
+        enum ClientOrigin: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCore.ClientOrigin {
+                var origin = WebCore.ClientOrigin()
+                guard decoder.decodeClientOrigin(&origin) else {
+                    throw IPCDecodingError()
+                }
+                return origin
+            }
+
+            static func encode(_ value: WebCore.ClientOrigin, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeClientOrigin(value)
+            }
+        }
+
+        /// WebCore::DOMCacheIdentifier.
+        enum DOMCacheIdentifier: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCore.DOMCacheIdentifier {
+                guard let identifier = decoder.decodeDOMCacheIdentifier().value else {
+                    throw IPCDecodingError()
+                }
+                return identifier
+            }
+
+            static func encode(_ value: WebCore.DOMCacheIdentifier, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeDOMCacheIdentifier(value)
+            }
+        }
+
+        /// WebCore::DOMCacheEngine::CacheInfos.
+        enum CacheInfos: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCore.DOMCacheEngine.CacheInfos {
+                var infos = WebCore.DOMCacheEngine.CacheInfos()
+                guard decoder.decodeCacheInfos(&infos) else {
+                    throw IPCDecodingError()
+                }
+                return infos
+            }
+
+            static func encode(_ value: WebCore.DOMCacheEngine.CacheInfos, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeCacheInfos(value)
+            }
+        }
+
+        /// WTF::String, with the lone surrogates a Swift String cannot hold.
+        enum String: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WTF.String {
+                var string = WTF.String()
+                guard decoder.decodeString(&string) else {
+                    throw IPCDecodingError()
+                }
+                return string
+            }
+
+            static func encode(_ value: WTF.String, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeString(value)
             }
         }
 
@@ -1915,5 +1998,19 @@ private struct NamedColorSpaces: Sendable {
 
 private let namedColorSpaces = NamedColorSpaces()
 #endif
+
+/// A WTF::UUID as its two halves.
+struct UUIDHalves: Sendable, Hashable {
+    let high: UInt64
+    let low: UInt64
+
+    var uuid: WTF.UUID? { WTF.UUID.tryCreate(high, low).value }
+}
+
+extension UUIDHalves {
+    init(_ uuid: WTF.UUID) {
+        self.init(high: uuid.high(), low: uuid.low())
+    }
+}
 
 #endif // ENABLE_SWIFT_IPC_RECEIVERS

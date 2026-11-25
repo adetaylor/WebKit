@@ -32,7 +32,7 @@ header: <WebCore/DOMCacheEngine.h>
     uint64_t updateCounter;
 };
 
-[CustomHeader] struct WebCore::DOMCacheEngine::CacheIdentifierOperationResult {
+[Swift, CustomHeader] struct WebCore::DOMCacheEngine::CacheIdentifierOperationResult {
     WebCore::DOMCacheIdentifier identifier;
     bool hadStorageError;
 };
@@ -263,7 +263,7 @@ class WebCore::IDBKeyData {
     double value
 }
 
-enum class WebCore::DOMCacheEngine::Error : uint8_t {
+[Swift] enum class WebCore::DOMCacheEngine::Error : uint8_t {
     NotImplemented,
     ReadDisk,
     WriteDisk,

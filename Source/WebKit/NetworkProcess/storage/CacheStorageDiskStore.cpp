@@ -26,9 +26,12 @@
 #include "config.h"
 #include "CacheStorageDiskStore.h"
 
+#include "CacheStorageCache.h"
 #include "CacheStorageRecord.h"
 #include "Logging.h"
 #include "NetworkCacheCoders.h"
+#include "NetworkStorageSwiftTypes.h"
+#include "WebKit-Swift.h"
 #include <WebCore/DOMCacheEngine.h>
 #include <WebCore/ResourceResponse.h>
 #include <wtf/Borrow.h>
@@ -39,7 +42,6 @@
 #include <wtf/persistence/PersistentDecoder.h>
 #include <wtf/persistence/PersistentEncoder.h>
 #include <wtf/text/MakeString.h>
-#include <wtf/text/StringToIntegerConversion.h>
 
 namespace WebKit {
 
@@ -48,7 +50,6 @@ static constexpr auto versionDirectoryPrefix = "Version "_s;
 static constexpr auto recordsDirectoryName = "Records"_s;
 static constexpr auto blobsDirectoryName = "Blobs"_s;
 static constexpr auto blobSuffix = "-blob"_s;
-static const unsigned currentVersion = 19;
 
 std::span<const uint8_t> CacheStorageDiskStore::SafeFileData::span() const
 {
@@ -114,42 +115,6 @@ static String recordFilePathWithDirectory(const String& directory, const Network
     return FileSystem::pathByAppendingComponents(directory, std::initializer_list<StringView>({ key.partitionHashAsString(), key.type(), key.hashAsString() }));
 }
 
-struct RecordMetaData {
-    RecordMetaData() = default;
-    explicit RecordMetaData(const NetworkCache::Key& key)
-        : cacheStorageVersion(currentVersion)
-        , key(key)
-    { }
-
-    unsigned cacheStorageVersion { 0 };
-    NetworkCache::Key key;
-    WallTime timeStamp;
-    SHA1::Digest headerHash;
-    uint64_t headerSize { 0 };
-    SHA1::Digest bodyHash;
-    uint64_t bodySize { 0 };
-    bool isBodyInline { false };
-    uint64_t headerOffset { 0 };
-};
-
-struct RecordHeader {
-    double insertionTime { 0 };
-    uint64_t size { 0 };
-    WebCore::FetchHeaders::Guard requestHeadersGuard { WebCore::FetchHeaders::Guard::None };
-    WebCore::ResourceRequest request;
-    WebCore::FetchOptions options;
-    String referrer;
-    WebCore::FetchHeaders::Guard responseHeadersGuard { WebCore::FetchHeaders::Guard::None };
-    WebCore::ResourceResponse::CrossThreadData responseData;
-    uint64_t responseBodySize { 0 };
-};
-
-struct StoredRecordInformation {
-    CacheStorageRecordInformation info;
-    RecordMetaData metaData;
-    RecordHeader header;
-};
-
 Ref<CacheStorageDiskStore> CacheStorageDiskStore::create(const String& cacheName, const String& path, Ref<WorkQueue>&& queue)
 {
     return adoptRef(*new CacheStorageDiskStore(cacheName, path, WTF::move(queue)));
@@ -168,7 +133,7 @@ CacheStorageDiskStore::CacheStorageDiskStore(const String& cacheName, const Stri
 
 String CacheStorageDiskStore::versionDirectoryPath() const
 {
-    return FileSystem::pathByAppendingComponent(m_path, makeString(versionDirectoryPrefix, currentVersion));
+    return FileSystem::pathByAppendingComponent(m_path, makeString(versionDirectoryPrefix, cacheStorageCurrentVersion));
 }
 
 String CacheStorageDiskStore::saltFilePath() const
@@ -201,10 +166,10 @@ String CacheStorageDiskStore::blobFilePath(const String& blobFileName) const
     return FileSystem::pathByAppendingComponent(blobsDirectoryPath(), blobFileName);
 }
 
-static std::optional<RecordMetaData> decodeRecordMetaData(std::span<const uint8_t> fileData)
+OptionalCacheStorageRecordMetaData decodeCacheStorageRecordMetaData(std::span<const uint8_t> fileData NOESCAPE)
 {
     WTF::Persistence::Decoder decoder(fileData);
-    RecordMetaData metaData;
+    CacheStorageRecordMetaData metaData;
     std::optional<unsigned> cacheStorageVersion;
     decoder >> cacheStorageVersion;
     if (!cacheStorageVersion)
@@ -260,7 +225,7 @@ static std::optional<RecordMetaData> decodeRecordMetaData(std::span<const uint8_
     return metaData;
 }
 
-static std::optional<RecordHeader> decodeRecordHeader(std::span<const uint8_t> headerData)
+static std::optional<CacheStorageRecordHeader> decodeRecordHeader(std::span<const uint8_t> headerData)
 {
     WTF::Persistence::Decoder decoder(headerData);
     std::optional<double> insertionTime;
@@ -315,7 +280,7 @@ static std::optional<RecordHeader> decodeRecordHeader(std::span<const uint8_t> h
     if (!decoder.verifyChecksum())
         return std::nullopt;
 
-    return RecordHeader {
+    return CacheStorageRecordHeader {
         *insertionTime,
         *size,
         *requestHeadersGuard,
@@ -328,79 +293,48 @@ static std::optional<RecordHeader> decodeRecordHeader(std::span<const uint8_t> h
     };
 }
 
-static std::optional<StoredRecordInformation> readRecordInfoFromFileData(const FileSystem::Salt& salt, std::span<const uint8_t> fileData)
+OptionalCacheStorageStoredRecordInformation decodeCacheStorageStoredRecordInformation(CacheStorageRecordMetaData&& metaData, std::span<const uint8_t> headerData NOESCAPE, const FileSystem::Salt& salt)
 {
-    if (!fileData.size())
-        return std::nullopt;
-
-    auto metaData = decodeRecordMetaData(fileData);
-    if (!metaData)
-        return std::nullopt;
-
-    if (metaData->cacheStorageVersion != currentVersion || metaData->timeStamp > WallTime::now())
-        return std::nullopt;
-
-    auto headerData = fileData.subspan(metaData->headerOffset, metaData->headerSize);
-    if (metaData->headerHash != computeSHA1(headerData, salt))
+    if (metaData.headerHash != computeSHA1(headerData, salt))
         return std::nullopt;
 
     auto header = decodeRecordHeader(headerData);
     if (!header)
         return std::nullopt;
 
-    auto key = metaData->key;
+    auto key = metaData.key;
     auto url = header->request.url();
-    CacheStorageRecordInformation info { WTF::move(key), header->insertionTime, 0, 0, header->responseBodySize, WTF::move(url), false, { } };
-    info.updateVaryHeaders(header->request, header->responseData);
-    return StoredRecordInformation { info, WTF::move(*metaData), WTF::move(*header) };
+    CacheStorageRecordInformation info { WTF::move(key), header->insertionTime, 0, 0, header->responseBodySize, WTF::move(url), CacheStorageCache::varyHeaders(header->responseData.httpHeaderFields.get(WebCore::HTTPHeaderName::Vary), header->responseData.tainting, header->request.httpHeaderFields()) };
+    return CacheStorageStoredRecordInformation { info, WTF::move(metaData), WTF::move(*header) };
 }
 
-std::optional<CacheStorageRecord> CacheStorageDiskStore::readRecordFromFileData(std::span<const uint8_t> buffer, SafeFileData&& blobBuffer)
+OptionalCacheStorageRecord makeCacheStorageRecord(OptionalCacheStorageStoredRecordInformation&& storedInfo, std::span<const uint8_t> inlineBody NOESCAPE, WebCore::SharedBuffer* blob, const FileSystem::Salt& salt)
 {
-    auto storedInfo = readRecordInfoFromFileData(m_salt, buffer);
     if (!storedInfo)
         return std::nullopt;
 
     std::optional<WebCore::DOMCacheEngine::ResponseBody> responseBody;
     if (storedInfo->metaData.isBodyInline) {
-        size_t bodyOffset = storedInfo->metaData.headerOffset + storedInfo->metaData.headerSize;
-        size_t bodySize = storedInfo->metaData.bodySize;
-        if (bodyOffset + bodySize != buffer.size())
-            return std::nullopt;
-
-        auto bodyData = buffer.subspan(bodyOffset, bodySize);
-        if (storedInfo->metaData.bodyHash != computeSHA1(bodyData, m_salt))
+        if (storedInfo->metaData.bodyHash != computeSHA1(inlineBody, salt))
             return std::nullopt;
 
         // FIXME: avoid copying inline body data here, perhaps by adding offset support to
         // MappedFileData, or by taking a read-only virtual copy of bodyData.
-        responseBody = WebCore::SharedBuffer::create(bodyData);
+        responseBody = WebCore::SharedBuffer::create(inlineBody);
     } else {
-        auto sharedBuffer = WTF::move(blobBuffer).convertToSharedBuffer();
-        if (!sharedBuffer)
+        if (!blob)
             return std::nullopt;
 
-        if (storedInfo->metaData.bodyHash != computeSHA1(sharedBuffer->span(), m_salt))
+        if (storedInfo->metaData.bodyHash != computeSHA1(blob->span(), salt))
             return std::nullopt;
 
-        responseBody = sharedBuffer.releaseNonNull();
+        responseBody = Ref { *blob };
     }
 
     if (!responseBody)
         return std::nullopt;
 
     return CacheStorageRecord { storedInfo->info, storedInfo->header.requestHeadersGuard, storedInfo->header.request, storedInfo->header.options, storedInfo->header.referrer, storedInfo->header.responseHeadersGuard, WTF::move(storedInfo->header.responseData), storedInfo->header.responseBodySize, WTF::move(*responseBody) };
-}
-
-static void deleteOldVersionDirectories(const String& path)
-{
-    for (auto& name : FileSystem::listDirectory(path)) {
-        if (!name.startsWith(versionDirectoryPrefix))
-            continue;
-        auto version = parseInteger<unsigned>(StringView { name }.substring(versionDirectoryPrefix.length()));
-        if (version && *version < currentVersion)
-            FileSystem::deleteNonEmptyDirectory(FileSystem::pathByAppendingComponent(path, name));
-    }
 }
 
 void CacheStorageDiskStore::readAllRecordInfosInternal(ReadAllRecordInfosCallback&& callback)
@@ -421,7 +355,7 @@ void CacheStorageDiskStore::readAllRecordInfosInternal(ReadAllRecordInfosCallbac
                 if (!fileData)
                     continue;
 
-                if (auto storedRecordInfo = readRecordInfoFromFileData(salt, fileData.span()))
+                if (auto storedRecordInfo = cacheStorageReadRecordInformation(salt, fileData.span()))
                     recordInfos.append(WTF::move(storedRecordInfo->info));
             }
         }
@@ -445,7 +379,8 @@ void CacheStorageDiskStore::readRecordsInternal(const Vector<CacheStorageRecordI
             auto fileData = SafeFileData::read(recordFile);
             auto blobData = fileData ? SafeFileData::read(recordBlobFilePath(recordFile)) : SafeFileData { std::monostate() };
 
-            auto record = readRecordFromFileData(fileData.span(), WTF::move(blobData));
+            RefPtr blob = WTF::move(blobData).convertToSharedBuffer();
+            auto record = cacheStorageReadRecord(m_salt, fileData.span(), blob.get());
             if (!record) {
                 RELEASE_LOG(CacheStorage, "%p - CacheStorageDiskStore::readRecordsInternal fails to decode record from file", this);
                 records.append(std::nullopt);
@@ -457,7 +392,7 @@ void CacheStorageDiskStore::readRecordsInternal(const Vector<CacheStorageRecordI
                 continue;
             }
 
-            if (recordFilePath(recordInfo.key()) != recordFilePath(record->info.key())) {
+            if (recordFilePathWithDirectory(directory, recordInfo.key()) != recordFilePathWithDirectory(directory, record->info.key())) {
                 records.append(std::nullopt);
                 continue;
             }
@@ -541,7 +476,7 @@ size_t CacheStorageDiskStore::computeRealBodySizeForStorage(const WebCore::DOMCa
 static Vector<uint8_t> encodeRecord(const NetworkCache::Key& key, const Vector<uint8_t>& headerData, bool isBodyInline, const Vector<uint8_t>& bodyData, const SHA1::Digest& bodyHash, FileSystem::Salt salt)
 {
     WTF::Persistence::Encoder encoder;
-    encoder << currentVersion;
+    encoder << cacheStorageCurrentVersion;
     encoder << key;
     encoder << WallTime { };
     encoder << computeSHA1(borrow(headerData)->span(), salt);

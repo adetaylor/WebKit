@@ -29,34 +29,15 @@
 #include "CacheStorageDiskStore.h"
 #include "CacheStorageManager.h"
 #include "CacheStorageMemoryStore.h"
-#include "Logging.h"
-#include <WebCore/CacheQueryOptions.h>
 #include <WebCore/CrossOriginAccessControl.h>
 #include <WebCore/HTTPHeaderMap.h>
 #include <WebCore/OriginAccessPatterns.h>
 #include <WebCore/ResourceError.h>
 #include <ranges>
 #include <wtf/Borrow.h>
-#include <wtf/CheckedArithmetic.h>
-#include <wtf/Scope.h>
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebKit {
-
-String CacheStorageCache::computeKeyURL(const URL& url)
-{
-    RELEASE_ASSERT(url.isValid());
-    RELEASE_ASSERT(!url.isEmpty());
-    auto keyURLString = url.string().left(url.pathEnd());
-    RELEASE_ASSERT(!keyURLString.isNull());
-    return keyURLString;
-}
-
-static uint64_t nextRecordIdentifier()
-{
-    static std::atomic<uint64_t> currentRecordIdentifier;
-    return ++currentRecordIdentifier;
-}
 
 static Ref<CacheStorageStore> createStore(const String& uniqueName, const String& path, Ref<WorkQueue>&& queue)
 {
@@ -82,128 +63,83 @@ CacheStorageCache::CacheStorageCache(CacheStorageManager& manager, const String&
     , m_store(createStore(uniqueName, path, WTF::move(queue)))
 {
     assertIsOnCorrectQueue();
+    initializeState();
 }
 
 CacheStorageCache::~CacheStorageCache()
 {
     assertIsOnCorrectQueue();
-    for (auto& callback : borrow(m_pendingInitializationCallbacks))
-        callback(makeUnexpected(WebCore::DOMCacheEngine::Error::Internal));
+    answerPendingOpens(false);
+    destroyState();
 }
 
-CacheStorageManager* CacheStorageCache::manager()
+RefPtr<CacheStorageManager> CacheStorageCache::manager() const
 {
     return m_manager.get();
 }
 
-std::optional<WebCore::ClientOrigin> CacheStorageCache::origin() const
+const CacheStorageRecordInformation& CacheStorageCache::storedRecordInformation(uint64_t identifier) const
 {
-    if (RefPtr manager = m_manager.get())
-        return manager->origin();
-    return std::nullopt;
+    auto iterator = m_recordInformations.find(identifier);
+    // Swift keeps a record's identifier only while m_recordInformations holds it.
+    RELEASE_ASSERT(iterator != m_recordInformations.end());
+    return iterator->value.get();
 }
 
-void CacheStorageCache::getSize(CompletionHandler<void(uint64_t)>&& callback)
+URL CacheStorageCache::recordURL(uint64_t identifier) const
 {
-    assertIsOnCorrectQueue();
-
-    if (m_isInitialized) {
-        uint64_t size = 0;
-        for (auto& urlRecords : m_records.values()) {
-            for (auto& record : urlRecords)
-                size += record.size();
-        }
-        return callback(size);
-    }
-
-    m_store->readAllRecordInfos([callback = WTF::move(callback)](auto&& recordInfos) mutable {
-        uint64_t size = 0;
-        for (auto& recordInfo : recordInfos)
-            size += recordInfo.size();
-
-        callback(size);
-    });
+    return storedRecordInformation(identifier).url();
 }
 
-void CacheStorageCache::open(WebCore::DOMCacheEngine::CacheIdentifierCallback&& callback)
+CacheStorageRecordInformation CacheStorageCache::recordInformation(uint64_t identifier) const
 {
-    assertIsOnCorrectQueue();
+    return storedRecordInformation(identifier);
+}
 
-    if (m_isInitialized)
-        return callback(WebCore::DOMCacheEngine::CacheIdentifierOperationResult { identifier(), false });
-
-    m_pendingInitializationCallbacks.append(WTF::move(callback));
-    if (m_pendingInitializationCallbacks.size() > 1)
-        return;
-
-    m_store->readAllRecordInfos([weakThis = WeakPtr { *this }](auto&& recordInfos) mutable {
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return;
-
-        protectedThis->assertIsOnCorrectQueue();
-
-        std::ranges::sort(recordInfos, { }, &CacheStorageRecordInformation::insertionTime);
-
-        for (auto&& recordInfo : borrow(recordInfos)) {
-            recordInfo.setIdentifier(nextRecordIdentifier());
-            protectedThis->m_records.ensure(computeKeyURL(recordInfo.url()), [] {
-                return Vector<CacheStorageRecordInformation> { };
-            }).iterator->value.append(WTF::move(recordInfo));
-        }
-
-        protectedThis->m_isInitialized = true;
-        for (auto& callback : borrow(protectedThis->m_pendingInitializationCallbacks))
-            callback(WebCore::DOMCacheEngine::CacheIdentifierOperationResult { protectedThis->identifier(), false });
-        protectedThis->m_pendingInitializationCallbacks.clear();
-    });
+void CacheStorageCache::setRecordInformation(CacheStorageRecordInformation recordInformation, uint64_t identifier)
+{
+    recordInformation.setIdentifier(identifier);
+    // Swift keeps the record's Vary headers.
+    recordInformation.setVaryHeaders({ });
+    m_recordInformations.set(identifier, makeUniqueRef<CacheStorageRecordInformation>(WTF::move(recordInformation)));
 }
 
 static CacheStorageRecord toCacheStorageRecord(WebCore::DOMCacheEngine::CrossThreadRecord&& record, FileSystem::Salt salt, const String& uniqueName)
 {
     NetworkCache::Key key { "record"_s, uniqueName, { }, createVersion4UUIDString(), salt };
-    CacheStorageRecordInformation recordInfo { WTF::move(key), MonotonicTime::now().secondsSinceEpoch().milliseconds(), record.identifier, 0 , record.responseBodySize, URL { record.request.url() }, false, HashMap<String, String> { } };
-    recordInfo.updateVaryHeaders(record.request, record.response);
+    CacheStorageRecordInformation recordInfo { WTF::move(key), MonotonicTime::now().secondsSinceEpoch().milliseconds(), record.identifier, 0 , record.responseBodySize, URL { record.request.url() }, CacheStorageCache::varyHeaders(record.response.httpHeaderFields.get(WebCore::HTTPHeaderName::Vary), record.response.tainting, record.request.httpHeaderFields()) };
 
     return CacheStorageRecord { WTF::move(recordInfo), record.requestHeadersGuard, WTF::move(record.request), record.options, WTF::move(record.referrer), record.responseHeadersGuard, WTF::move(record.response), record.responseBodySize, WTF::move(record.responseBody) };
+}
+
+CacheStorageRecordVector CacheStorageCache::toCacheStorageRecords(Vector<WebCore::DOMCacheEngine::CrossThreadRecord>&& records)
+{
+    RefPtr manager = m_manager;
+    if (!manager)
+        return { };
+    return WTF::map(WTF::move(records), [&](WebCore::DOMCacheEngine::CrossThreadRecord&& record) {
+        return toCacheStorageRecord(WTF::move(record), manager->salt(), m_uniqueName);
+    });
+}
+
+void CacheStorageCache::open(CompletionHandler<void(bool)>&& callback)
+{
+    assertIsOnCorrectQueue();
+
+    if (m_isInitialized)
+        return callback(true);
+
+    m_pendingOpens.append(WTF::move(callback));
+    if (m_pendingOpens.size() > 1)
+        return;
+
+    readRecordsForPendingOpens();
 }
 
 void CacheStorageCache::retrieveRecords(WebCore::RetrieveRecordsOptions&& options, WebCore::DOMCacheEngine::RetrieveRecordsCallback&& callback)
 {
     auto targetRecordInfos = findRecords(options);
     retrieveRecords(targetRecordInfos, WTF::move(options), WTF::move(callback));
-}
-
-Vector<CacheStorageRecordInformation> CacheStorageCache::findRecords(const WebCore::RetrieveRecordsOptions& options)
-{
-    ASSERT(m_isInitialized);
-    assertIsOnCorrectQueue();
-
-    Vector<CacheStorageRecordInformation> targetRecordInfos;
-    auto url = options.request.url();
-    if (url.isNull()) {
-        for (auto& urlRecords : m_records.values()) {
-            auto newTargetRecordInfos = WTF::map(urlRecords, [&](const auto& record) {
-                return record;
-            });
-            targetRecordInfos.appendVector(WTF::move(newTargetRecordInfos));
-        }
-    } else {
-        if (!options.ignoreMethod && options.request.httpMethod() != "GET"_s)
-            return { };
-
-        auto iterator = m_records.find(computeKeyURL(url));
-        if (iterator == m_records.end())
-            return { };
-
-        WebCore::CacheQueryOptions queryOptions { options.ignoreSearch, options.ignoreMethod, options.ignoreVary };
-        for (auto& record : borrow(iterator->value)) {
-            if (WebCore::DOMCacheEngine::queryCacheMatch(options.request, record.url(), record.hasVaryStar(), record.varyHeaders(), queryOptions))
-                targetRecordInfos.append(record);
-        }
-    }
-
-    return targetRecordInfos;
 }
 
 void CacheStorageCache::retrieveRecords(const Vector<CacheStorageRecordInformation>& targetRecordInfos, WebCore::RetrieveRecordsOptions&& options, WebCore::DOMCacheEngine::RetrieveRecordsCallback&& callback)
@@ -254,224 +190,6 @@ void CacheStorageCache::retrieveRecords(const Vector<CacheStorageRecordInformati
 
         callback({ WTF::move(result), WTF::move(corpViolations) });
     });
-}
-
-void CacheStorageCache::removeRecords(WebCore::ResourceRequest&& request, WebCore::CacheQueryOptions&& options, WebCore::DOMCacheEngine::RecordIdentifiersCallback&& callback)
-{
-    ASSERT(m_isInitialized);
-    assertIsOnCorrectQueue();
-    
-    if (!options.ignoreMethod && request.httpMethod() != "GET"_s)
-        return callback({ });
-
-    auto iterator = m_records.find(computeKeyURL(request.url()));
-    if (iterator == m_records.end())
-        return callback({ });
-
-    Vector<uint64_t> targetRecordIdentifiers;
-    Vector<CacheStorageRecordInformation> targetRecordInfos;
-    uint64_t sizeDecreased = 0;
-    iterator->value.removeAllMatching([&](auto& record) {
-        if (!WebCore::DOMCacheEngine::queryCacheMatch(request, record.url(), record.hasVaryStar(), record.varyHeaders(), options))
-            return false;
-
-        targetRecordIdentifiers.append(record.identifier());
-        targetRecordInfos.append(record);
-        sizeDecreased += record.size();
-        return true;
-    });
-    if (iterator->value.isEmpty())
-        m_records.remove(iterator);
-
-    if (RefPtr manager = m_manager.get(); manager && sizeDecreased)
-        manager->sizeDecreased(sizeDecreased);
-
-    m_store->deleteRecords(targetRecordInfos, [targetIdentifiers = WTF::move(targetRecordIdentifiers), callback = WTF::move(callback)](bool succeeded) mutable {
-        if (!succeeded)
-            return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::WriteDisk));
-
-        callback(WTF::move(targetIdentifiers));
-    });
-}
-
-CacheStorageRecordInformation* CacheStorageCache::findExistingRecord(const WebCore::ResourceRequest& request, std::optional<uint64_t> identifier)
-{
-    assertIsOnCorrectQueue();
-
-    auto iterator = m_records.find(computeKeyURL(request.url()));
-    if (iterator == m_records.end())
-        return nullptr;
-
-    WebCore::CacheQueryOptions options;
-    auto index = iterator->value.findIf([&] (auto& record) {
-        bool hasMatchedIdentifier = !identifier || identifier == record.identifier();
-        return hasMatchedIdentifier && WebCore::DOMCacheEngine::queryCacheMatch(request, record.url(), record.hasVaryStar(), record.varyHeaders(), options);
-    });
-    if (index == notFound)
-        return nullptr;
-
-    return &iterator->value[index];
-}
-
-void CacheStorageCache::putRecords(Vector<WebCore::DOMCacheEngine::CrossThreadRecord>&& records, WebCore::DOMCacheEngine::RecordIdentifiersCallback&& callback)
-{
-    ASSERT(m_isInitialized);
-    assertIsOnCorrectQueue();
-
-    RefPtr manager = m_manager.get();
-    if (!manager)
-        return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::Internal));
-
-    CheckedUint64 spaceRequested = 0;
-    CheckedUint64 spaceAvailable = 0;
-    bool isSpaceRequestedValid = true;
-    auto cacheStorageRecords = WTF::map(WTF::move(records), [&](WebCore::DOMCacheEngine::CrossThreadRecord&& record) {
-        if (isSpaceRequestedValid) {
-            spaceRequested += record.responseBodySize;
-            if (auto* existingRecord = findExistingRecord(record.request))
-                spaceAvailable += existingRecord->size();
-            if (spaceRequested.hasOverflowed() || spaceAvailable.hasOverflowed())
-                isSpaceRequestedValid = false;
-            else {
-                uint64_t spaceUsed = std::min(spaceRequested, spaceAvailable);
-                spaceRequested -= spaceUsed;
-                spaceAvailable -= spaceUsed;
-            }
-        }
-        return toCacheStorageRecord(WTF::move(record), manager->salt(), m_uniqueName);
-    });
-
-    // The request still needs to go through quota check to keep ordering.
-    if (!isSpaceRequestedValid)
-        spaceRequested = 0;
-
-    manager->requestSpace(spaceRequested, [weakThis = WeakPtr { *this }, records = WTF::move(cacheStorageRecords), callback = WTF::move(callback), isSpaceRequestedValid](bool granted) mutable {
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::Internal));
-
-        if (!isSpaceRequestedValid) {
-            RELEASE_LOG_ERROR(Storage, "CacheStorageCache::putRecords failed because the amount of space requested is invalid");
-            return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::Internal));
-        }
-
-        if (!granted)
-            return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::QuotaExceeded));
-
-        protectedThis->putRecordsAfterQuotaCheck(WTF::move(records), WTF::move(callback));
-    });
-}
-
-void CacheStorageCache::putRecordsAfterQuotaCheck(Vector<CacheStorageRecord>&& records, WebCore::DOMCacheEngine::RecordIdentifiersCallback&& callback)
-{
-    ASSERT(m_isInitialized);
-    assertIsOnCorrectQueue();
-
-    Vector<CacheStorageRecordInformation> targetRecordInfos;
-    for (auto& record : borrow(records)) {
-        if (auto* existingRecord = findExistingRecord(record.request)) {
-            record.info.setIdentifier(existingRecord->identifier());
-            targetRecordInfos.append(*existingRecord);
-        }
-    }
-
-    auto readRecordsCallback = [weakThis = WeakPtr { *this }, records = WTF::move(records), callback = WTF::move(callback)](auto existingCacheStorageRecords) mutable {
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::Internal));
-
-        protectedThis->putRecordsInStore(WTF::move(records), WTF::move(existingCacheStorageRecords), WTF::move(callback));
-    };
-
-    m_store->readRecords(targetRecordInfos, WTF::move(readRecordsCallback));
-}
-
-void CacheStorageCache::putRecordsInStore(Vector<CacheStorageRecord>&& records, Vector<std::optional<CacheStorageRecord>>&& existingRecords, WebCore::DOMCacheEngine::RecordIdentifiersCallback&& callback)
-{
-    assertIsOnCorrectQueue();
-
-    Vector<uint64_t> targetIdentifiers;
-    uint64_t sizeIncreased = 0, sizeDecreased = 0;
-    for (auto& record : borrow(records)) {
-        if (!record.info.identifier()) {
-            record.info.setIdentifier(nextRecordIdentifier());
-            sizeIncreased += record.info.size();
-            m_records.ensure(computeKeyURL(record.info.url()), [] {
-                return Vector<CacheStorageRecordInformation> { };
-            }).iterator->value.append(record.info);
-        } else {
-            Borrow borrowedExistingRecords = existingRecords;
-            auto index = borrowedExistingRecords->findIf([&](auto& existingRecord) {
-                return existingRecord && existingRecord->info.identifier() == record.info.identifier();
-            });
-            // Ensure record still exists.
-            if (index == notFound) {
-                record.info.setIdentifier(0);
-                continue;
-            }
-
-            // Ensure identifier still exists.
-            auto* existingRecordInfo = findExistingRecord(record.request, record.info.identifier());
-            if (!existingRecordInfo) {
-                record.info.setIdentifier(0);
-                continue;
-            }
-
-            record.info.setKey(existingRecordInfo->key());
-            record.info.setInsertionTime(existingRecordInfo->insertionTime());
-            sizeIncreased += record.info.size();
-            sizeDecreased += existingRecordInfo->size();
-            *existingRecordInfo = record.info;
-        }
-
-        targetIdentifiers.append(record.info.identifier());
-    }
-
-    records.removeAllMatching([&](auto& record) {
-        return !record.info.identifier();
-    });
-
-    if (RefPtr manager = m_manager.get()) {
-        if (sizeIncreased > sizeDecreased)
-            manager->sizeIncreased(sizeIncreased - sizeDecreased);
-        else if (sizeDecreased > sizeIncreased)
-            manager->sizeDecreased(sizeDecreased - sizeIncreased);
-    }
-
-    m_store->writeRecords(WTF::move(records), [targetIdentifiers = WTF::move(targetIdentifiers), callback = WTF::move(callback)](bool succeeded) mutable {
-        if (!succeeded)
-            return callback(makeUnexpected(WebCore::DOMCacheEngine::Error::WriteDisk));
-
-        callback(WTF::move(targetIdentifiers));
-    });
-}
-
-void CacheStorageCache::removeAllRecords()
-{
-    assertIsOnCorrectQueue();
-
-    uint64_t sizeDecreased = 0;
-    Vector<CacheStorageRecordInformation> targetRecordInfos;
-    for (auto& urlRecords : m_records.values()) {
-        for (auto& record : borrow(urlRecords)) {
-            targetRecordInfos.append(record);
-            sizeDecreased += record.size();
-        }
-    }
-
-    if (RefPtr manager = m_manager.get(); manager && sizeDecreased)
-        manager->sizeDecreased(sizeDecreased);
-
-    m_records.clear();
-    m_store->deleteRecords(targetRecordInfos, [](auto) { });
-}
-
-void CacheStorageCache::close()
-{
-    assertIsOnCorrectQueue();
-
-    m_records.clear();
-    m_isInitialized = false;
 }
 
 } // namespace WebKit

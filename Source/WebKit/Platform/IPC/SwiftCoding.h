@@ -31,6 +31,8 @@
 #include "StreamConnectionEncoder.h"
 #include "StreamConnectionWorkQueue.h"
 #include "StreamServerConnection.h"
+#include <WebCore/DOMCacheEngine.h>
+#include <WebCore/DOMCacheIdentifier.h>
 #include <WebCore/SharedBuffer.h>
 #include <WebCore/TrackInfo.h>
 #include <concepts>
@@ -60,6 +62,7 @@ typedef struct CGColorSpace* CGColorSpaceRef;
 
 namespace WebCore {
 class CaptureConstraints;
+struct ClientOrigin;
 struct ImageBufferResourceLimits;
 struct ImageBufferFormat;
 class PathImpl;
@@ -297,6 +300,10 @@ public:
     WebCore::PathImpl* WTF_NULLABLE decodePathImpl() SWIFT_RETURNS_RETAINED;
     [[nodiscard]] bool decodeImageBufferFormat(WebCore::ImageBufferFormat&);
     [[nodiscard]] bool decodeImageBufferResourceLimits(WebCore::ImageBufferResourceLimits&);
+    [[nodiscard]] bool decodeClientOrigin(WebCore::ClientOrigin&);
+    std::optional<WebCore::DOMCacheIdentifier> decodeDOMCacheIdentifier();
+    [[nodiscard]] bool decodeCacheInfos(WebCore::DOMCacheEngine::CacheInfos&);
+    [[nodiscard]] bool decodeString(String&);
 #if ENABLE(MEDIA_STREAM)
     // A WebCore::MediaConstraints, as the WebCore::CaptureConstraints that Swift reads it through. Sending: the holder is
     // new, and Swift has its only reference, so dispatch can send it to a handler on the main actor.
@@ -614,6 +621,10 @@ public:
     void encodePathImpl(const WebCore::PathImpl&);
     void encodeImageBufferFormat(const WebCore::ImageBufferFormat&);
     void encodeImageBufferResourceLimits(const WebCore::ImageBufferResourceLimits&);
+    void encodeClientOrigin(const WebCore::ClientOrigin&);
+    void encodeDOMCacheIdentifier(const WebCore::DOMCacheIdentifier&);
+    void encodeCacheInfos(const WebCore::DOMCacheEngine::CacheInfos&);
+    void encodeString(const String&);
 #if ENABLE(MEDIA_STREAM)
     void encodeCaptureConstraints(const WebCore::CaptureConstraints&);
 #endif

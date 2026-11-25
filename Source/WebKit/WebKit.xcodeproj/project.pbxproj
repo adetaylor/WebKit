@@ -125,6 +125,7 @@
 		3B21A567200C80B47A33E676 /* RemoteAudioHardwareListenerProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8911EBFEE157E4B9BA12AD7 /* RemoteAudioHardwareListenerProxy.swift */; };
 		D94A0CB32963988E08E39998 /* RemoteCDMInstanceSessionProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12464BCBBDD4E0073147E8AA /* RemoteCDMInstanceSessionProxyMessageReceiver.swift */; };
 		C1F221367DC80B2D11331F6F /* RemoteCDMInstanceSessionProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7865354959E4AC16E9D51955 /* RemoteCDMInstanceSessionProxy.swift */; };
+		ED008DD6F1C84C7E8A20F925 /* StateTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A824ABC5B47A4428A79175F2 /* StateTable.swift */; };
 		F402B3F402DFBD93CABE6F75 /* RemoteCDMInstanceProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AF050E0BDE46A34DDA9D8B2 /* RemoteCDMInstanceProxyMessageReceiver.swift */; };
 		CA678D5B4DF7D49ECD183D58 /* RemoteCDMInstanceProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0671F99062299038E0C08EF2 /* RemoteCDMInstanceProxy.swift */; };
 		367C194497AF283FC69D36AD /* RemoteCDMProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E1F5AC7DF3C6BE07B1F44 /* RemoteCDMProxyMessageReceiver.swift */; };
@@ -1217,6 +1218,17 @@
 		3A8801412FB2C9D600DBBD50 /* TimeBasedEvictionMode.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A88013F2FB2C9D600DBBD50 /* TimeBasedEvictionMode.h */; };
 		3A9BF25A2EC53ED4007D1C46 /* WebParentalControlsURLFilter.h in Headers */ = {isa = PBXBuildFile; fileRef = 3A9BF2572EC53ED4007D1C46 /* WebParentalControlsURLFilter.h */; };
 		3AE104C029CBC8BB00661165 /* OriginQuotaManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 3AE104BE29CBC8BB00661165 /* OriginQuotaManager.h */; };
+		393AA34E56E04754804D2D66 /* FileSystemStorageHandle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DAAAF89C7504B46968D2ED9 /* FileSystemStorageHandle.swift */; };
+		1904EEA06DF9483B89ABE744 /* FileSystemStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7902A73BAA4F464884C9DAC8 /* FileSystemStorageManager.swift */; };
+		3535DEBDF2314022BE098637 /* NetworkStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8BCFB38741D4D7B85F5B8CF /* NetworkStorageManager.swift */; };
+		B0EA45604F2D4477AAEB3FBE /* BackgroundFetchStoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C295AF20A56A4F5A909B14F0 /* BackgroundFetchStoreManager.swift */; };
+		ABDA362A75394D14881A83FF /* CacheStorageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20F2C2F521484A6E909989BE /* CacheStorageCache.swift */; };
+		053E8C2D8DDD48FCB952A66C /* CacheStorageDiskStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFC470BB11A4BCA8022F577 /* CacheStorageDiskStore.swift */; };
+		F0BF494409454651A6509E0A /* CacheStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC91D37D8B794CB881876507 /* CacheStorageManager.swift */; };
+		C87F73C42BEA4135B324F7D1 /* OriginQuotaManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C1915C2BFD44148B052411 /* OriginQuotaManager.swift */; };
+		555910C7E10A494BA1BDE627 /* NetworkStorageManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D2357DFE4E14740AC64C8A0 /* NetworkStorageManagerMessageReceiver.swift */; };
+		93576D898D794F1A80D0C478 /* NetworkStorageSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 4494E86513B34EC9822D4D11 /* NetworkStorageSwiftTypes.h */; };
+		971C38F663E232EDE9AAA89F /* SwiftStateKey.h in Headers */ = {isa = PBXBuildFile; fileRef = 41D44BCF2E27CB397C4444C2 /* SwiftStateKey.h */; };
 		3CAECB6627465AE400AB78D0 /* UnifiedSource113.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3CAECB5E27465AE300AB78D0 /* UnifiedSource113.cpp */; };
 		3F87B9BE158940190090FF62 /* WebColorChooser.h in Headers */ = {isa = PBXBuildFile; fileRef = 3F87B9BB15893F630090FF62 /* WebColorChooser.h */; };
 		3F87B9C0158940D80090FF62 /* WebColorPicker.h in Headers */ = {isa = PBXBuildFile; fileRef = 3F87B9BF158940D80090FF62 /* WebColorPicker.h */; };
@@ -3610,6 +3622,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A824ABC5B47A4428A79175F2 /* StateTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateTable.swift; sourceTree = "<group>"; };
 		D7FECB1B1877C086A5A1AA74 /* DigitalCredentialsPresentment.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalCredentialsPresentment.mm; sourceTree = "<group>"; };
 		A10B52D125BBDAC46B45DB39 /* DigitalCredentialsPresentment.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DigitalCredentialsPresentment.h; sourceTree = "<group>"; };
 		5FB49B9D646A0CCC11FB4739 /* WKDocumentPictureInPictureWindowController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = WKDocumentPictureInPictureWindowController.mm; sourceTree = "<group>"; };
@@ -5874,6 +5887,17 @@
 		3AC6E5242A1C59AE0059F092 /* RemoteGraphicsContextGLInitializationState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGraphicsContextGLInitializationState.h; sourceTree = "<group>"; };
 		3AE104BD29CBC8BA00661165 /* OriginQuotaManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OriginQuotaManager.cpp; sourceTree = "<group>"; };
 		3AE104BE29CBC8BB00661165 /* OriginQuotaManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OriginQuotaManager.h; sourceTree = "<group>"; };
+		6DAAAF89C7504B46968D2ED9 /* FileSystemStorageHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemStorageHandle.swift; sourceTree = "<group>"; };
+		7902A73BAA4F464884C9DAC8 /* FileSystemStorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemStorageManager.swift; sourceTree = "<group>"; };
+		F8BCFB38741D4D7B85F5B8CF /* NetworkStorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStorageManager.swift; sourceTree = "<group>"; };
+		C295AF20A56A4F5A909B14F0 /* BackgroundFetchStoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundFetchStoreManager.swift; sourceTree = "<group>"; };
+		20F2C2F521484A6E909989BE /* CacheStorageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheStorageCache.swift; sourceTree = "<group>"; };
+		FAFC470BB11A4BCA8022F577 /* CacheStorageDiskStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheStorageDiskStore.swift; sourceTree = "<group>"; };
+		EC91D37D8B794CB881876507 /* CacheStorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheStorageManager.swift; sourceTree = "<group>"; };
+		93C1915C2BFD44148B052411 /* OriginQuotaManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriginQuotaManager.swift; sourceTree = "<group>"; };
+		2D2357DFE4E14740AC64C8A0 /* NetworkStorageManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStorageManagerMessageReceiver.swift; sourceTree = "<group>"; };
+		4494E86513B34EC9822D4D11 /* NetworkStorageSwiftTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NetworkStorageSwiftTypes.h; sourceTree = "<group>"; };
+		41D44BCF2E27CB397C4444C2 /* SwiftStateKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SwiftStateKey.h; sourceTree = "<group>"; };
 		3AE26CB62CD1B10B00836AB7 /* CacheStorageRecord.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CacheStorageRecord.cpp; sourceTree = "<group>"; };
 		3AEE89912AA595AC00D4DF44 /* PlatformXRARKit.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformXRARKit.mm; sourceTree = "<group>"; };
 		3AEE89922AA595AC00D4DF44 /* PlatformXRARKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlatformXRARKit.h; sourceTree = "<group>"; };
@@ -5905,7 +5929,6 @@
 		4103FBA22061BDB800C2EAF8 /* NetworkLoadChecker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NetworkLoadChecker.cpp; sourceTree = "<group>"; };
 		410482CB1DDD2FB500F006D0 /* RTCNetwork.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RTCNetwork.cpp; sourceTree = "<group>"; };
 		410482CC1DDD2FB500F006D0 /* RTCNetwork.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCNetwork.h; sourceTree = "<group>"; };
-		4105A0652D537C2B00EA2D19 /* FileSystemStorageManagerLock.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FileSystemStorageManagerLock.h; sourceTree = "<group>"; };
 		410BA139257135F2002E2F8A /* NetworkRTCTCPSocketCocoa.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NetworkRTCTCPSocketCocoa.mm; sourceTree = "<group>"; };
 		410BA13A257135F2002E2F8A /* NetworkRTCTCPSocketCocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkRTCTCPSocketCocoa.h; sourceTree = "<group>"; };
 		411051492F1E9A9D007558EA /* ServiceWorkerTimingInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ServiceWorkerTimingInfo.h; sourceTree = "<group>"; };
@@ -14115,6 +14138,7 @@
 				51F060DD1654317500F3282E /* NetworkRTCProviderMessageReceiver.cpp */,
 				31F060DD1654317500F3281C /* NetworkSocketChannelMessageReceiver.cpp */,
 				93085DCC26E2E902000EC6A7 /* NetworkStorageManagerMessageReceiver.cpp */,
+				2D2357DFE4E14740AC64C8A0 /* NetworkStorageManagerMessageReceiver.swift */,
 				93085DCD26E2E902000EC6A7 /* NetworkStorageManagerMessages.h */,
 				51452702271FBA36000467B6 /* NotificationManagerMessageHandlerMessageReceiver.cpp */,
 				51452701271FBA35000467B6 /* NotificationManagerMessageHandlerMessages.h */,
@@ -16004,12 +16028,16 @@
 				4129159F29A8C7A300BE3091 /* BackgroundFetchStoreImpl.h */,
 				41D8D37C29A6637700A570BB /* BackgroundFetchStoreManager.cpp */,
 				41D8D37D29A6637800A570BB /* BackgroundFetchStoreManager.h */,
+				C295AF20A56A4F5A909B14F0 /* BackgroundFetchStoreManager.swift */,
 				935BF7FB2936BF1A00B41326 /* CacheStorageCache.cpp */,
 				935BF7F22936BF1700B41326 /* CacheStorageCache.h */,
+				20F2C2F521484A6E909989BE /* CacheStorageCache.swift */,
 				934CF814294B884B00304F7D /* CacheStorageDiskStore.cpp */,
 				934CF813294B884B00304F7D /* CacheStorageDiskStore.h */,
+				FAFC470BB11A4BCA8022F577 /* CacheStorageDiskStore.swift */,
 				935BF7F92936BF1900B41326 /* CacheStorageManager.cpp */,
 				935BF7F62936BF1800B41326 /* CacheStorageManager.h */,
+				EC91D37D8B794CB881876507 /* CacheStorageManager.swift */,
 				934CF812294B884B00304F7D /* CacheStorageMemoryStore.cpp */,
 				934CF811294B884A00304F7D /* CacheStorageMemoryStore.h */,
 				3AE26CB62CD1B10B00836AB7 /* CacheStorageRecord.cpp */,
@@ -16021,11 +16049,12 @@
 				2D1DE35B2AFA46BA00D955D4 /* FileSystemStorageError.serialization.in */,
 				931A075226F06AB4004474CD /* FileSystemStorageHandle.cpp */,
 				931A075326F06AB4004474CD /* FileSystemStorageHandle.h */,
+				6DAAAF89C7504B46968D2ED9 /* FileSystemStorageHandle.swift */,
 				935B579926F5192F008B48AC /* FileSystemStorageHandleRegistry.cpp */,
 				935B579826F51270008B48AC /* FileSystemStorageHandleRegistry.h */,
 				931A075126F06310004474CD /* FileSystemStorageManager.cpp */,
 				931A075026F06310004474CD /* FileSystemStorageManager.h */,
-				4105A0652D537C2B00EA2D19 /* FileSystemStorageManagerLock.h */,
+				7902A73BAA4F464884C9DAC8 /* FileSystemStorageManager.swift */,
 				93B631E327ABA5F700443A44 /* IDBStorageConnectionToClient.cpp */,
 				93B631E427ABA62700443A44 /* IDBStorageConnectionToClient.h */,
 				93B631E727ABA65C00443A44 /* IDBStorageManager.cpp */,
@@ -16039,8 +16068,11 @@
 				93085DC326E1BBBD000EC6A7 /* NetworkStorageManager.cpp */,
 				93085DC426E1BBBD000EC6A7 /* NetworkStorageManager.h */,
 				93085DC726E1C6EE000EC6A7 /* NetworkStorageManager.messages.in */,
+				F8BCFB38741D4D7B85F5B8CF /* NetworkStorageManager.swift */,
+				4494E86513B34EC9822D4D11 /* NetworkStorageSwiftTypes.h */,
 				3AE104BD29CBC8BA00661165 /* OriginQuotaManager.cpp */,
 				3AE104BE29CBC8BB00661165 /* OriginQuotaManager.h */,
+				93C1915C2BFD44148B052411 /* OriginQuotaManager.swift */,
 				93085DC526E1C6CF000EC6A7 /* OriginStorageManager.cpp */,
 				93085DC626E1C6CF000EC6A7 /* OriginStorageManager.h */,
 				3A7D62D329D38DD300D57DAC /* ServiceWorkerStorageManager.cpp */,
@@ -16049,10 +16081,12 @@
 				93E799CA2760497A0074008A /* SessionStorageManager.h */,
 				93E799D3276121070074008A /* SQLiteStorageArea.cpp */,
 				93E799D4276121070074008A /* SQLiteStorageArea.h */,
+				A824ABC5B47A4428A79175F2 /* StateTable.swift */,
 				93E799D7276121080074008A /* StorageAreaBase.cpp */,
 				93E799D6276121080074008A /* StorageAreaBase.h */,
 				93E799C5276027360074008A /* StorageAreaRegistry.cpp */,
 				93E799C6276027370074008A /* StorageAreaRegistry.h */,
+				41D44BCF2E27CB397C4444C2 /* SwiftStateKey.h */,
 			);
 			path = storage;
 			sourceTree = "<group>";
@@ -19305,6 +19339,7 @@
 				417915B92257046F00D6F97E /* NetworkSocketChannel.h in Headers */,
 				FA5AAE9B2E6A217A00FE693D /* NetworkSoftLink.h in Headers */,
 				93085DE026E5BCFD000EC6A7 /* NetworkStorageManager.h in Headers */,
+				93576D898D794F1A80D0C478 /* NetworkStorageSwiftTypes.h in Headers */,
 				93085DE126E5BD13000EC6A7 /* NetworkStorageManagerMessages.h in Headers */,
 				5CD1E0021234567890ABCDEF /* NetworkStorageSession.h in Headers */,
 				D2E2FE6E29C8C30D00023E6B /* NetworkTaskCocoa.h in Headers */,
@@ -19547,6 +19582,7 @@
 				296BD85D15019BC30071F424 /* StringUtilities.h in Headers */,
 				57FD318622B3516C008D0E8B /* SubFrameSOAuthorizationSession.h in Headers */,
 				A9D82192AE94106CA8BD4C77 /* SwiftCoding.h in Headers */,
+				971C38F663E232EDE9AAA89F /* SwiftStateKey.h in Headers */,
 				2D0FD45E2F75127900B1A53C /* SwipeProgressTrackerMac.h in Headers */,
 				448AC24E267135A700B28921 /* SynapseSPI.h in Headers */,
 				4459984222833E8700E61373 /* SyntheticEditingCommandType.h in Headers */,
@@ -22800,6 +22836,13 @@
 				E34DAD392B753FA700FABEE2 /* ExtensionProcess.mm in Sources */,
 				074D6A672F3854F0006089F6 /* FloatRectCG.swift in Sources */,
 				0ADBE5DEF5F74906894AA722 /* FloatSizeCG.swift in Sources */,
+				B0EA45604F2D4477AAEB3FBE /* BackgroundFetchStoreManager.swift in Sources */,
+				ABDA362A75394D14881A83FF /* CacheStorageCache.swift in Sources */,
+				053E8C2D8DDD48FCB952A66C /* CacheStorageDiskStore.swift in Sources */,
+				F0BF494409454651A6509E0A /* CacheStorageManager.swift in Sources */,
+				C87F73C42BEA4135B324F7D1 /* OriginQuotaManager.swift in Sources */,
+				393AA34E56E04754804D2D66 /* FileSystemStorageHandle.swift in Sources */,
+				1904EEA06DF9483B89ABE744 /* FileSystemStorageManager.swift in Sources */,
 				079A4DA72D72CEDC00CA387F /* Foundation+Extras.swift in Sources */,
 				CDA93DB122F8BCF400490A69 /* FullscreenTouchSecheuristicParameters.cpp in Sources */,
 				D89CD6068EF808220467B402 /* GeneratedSerializers.swift in Sources */,
@@ -22867,6 +22910,8 @@
 				C1C1B30F2540F50D00D9100B /* NetworkConnectionToWebProcessMac.mm in Sources */,
 				41E242E026E0C908009A8C64 /* NetworkRTCUtilitiesCocoa.mm in Sources */,
 				FA5AAE9C2E6A217A00FE693D /* NetworkSoftLink.mm in Sources */,
+				3535DEBDF2314022BE098637 /* NetworkStorageManager.swift in Sources */,
+				555910C7E10A494BA1BDE627 /* NetworkStorageManagerMessageReceiver.swift in Sources */,
 				DD4BDE7B2CA38213001A3339 /* ObjectiveCBlockConversions.swift in Sources */,
 				652C5CF187D079245D7A20DD /* PhoneNumberPossessionController.swift in Sources */,
 				AD68F1ED46BFEA0437BA3D85 /* PhoneNumberPossessionManaging.swift in Sources */,
@@ -23024,6 +23069,7 @@
 				0773A93B3023B0FB002C57FE /* SpatialShim.swift in Sources */,
 				5CCD53272ED9D2F40001626D /* StdlibExtras.swift in Sources */,
 				2DD137ABE8853C5C798C1C20 /* SwiftCoding.swift in Sources */,
+				ED008DD6F1C84C7E8A20F925 /* StateTable.swift in Sources */,
 				5CAAA85029BFBE99003340AE /* TCCSoftLink.mm in Sources */,
 				E36A00E329CF7AC000AC4E8A /* TextTrackRepresentationCocoa.mm in Sources */,
 				EEEEBCBD2EE35A8B000FF6AF /* UIWindowScene+Extras.swift in Sources */,

@@ -37,7 +37,7 @@ class WorkQueue;
 
 namespace WebKit {
 
-class BackgroundFetchStoreManager : public RefCountedAndCanMakeWeakPtr<BackgroundFetchStoreManager> {
+class SWIFT_PRIVATE_FILEID("WebKit/BackgroundFetchStoreManager.swift") BackgroundFetchStoreManager : public RefCountedAndCanMakeWeakPtr<BackgroundFetchStoreManager> {
     WTF_MAKE_TZONE_ALLOCATED(BackgroundFetchStoreManager);
 public:
     using QuotaCheckFunction = Function<void(uint64_t spaceRequested, CompletionHandler<void(bool)>&&)>;
@@ -50,10 +50,10 @@ public:
 
     static String createNewStorageIdentifier();
 
-    using InitializeCallback = CompletionHandler<void(Vector<std::pair<RefPtr<WebCore::SharedBuffer>, String>>&&)>;
+    using StoredFetches = Vector<std::pair<RefPtr<WebCore::SharedBuffer>, String>>;
+    using InitializeCallback = CompletionHandler<void(StoredFetches&&)>;
     void initializeFetches(InitializeCallback&&);
 
-    void clearFetch(const String&);
     void clearFetch(const String&, CompletionHandler<void()>&&);
     void clearAllFetches(const Vector<String>&, CompletionHandler<void()>&&);
 
@@ -65,6 +65,14 @@ public:
 
 private:
     BackgroundFetchStoreManager(const String&, Ref<WTF::WorkQueue>&&, QuotaCheckFunction&&);
+
+    static String createFetchResponseBodyFile(String identifier, size_t index);
+    static void removeFilesWithPrefix(String directoryPath, String identifier);
+    static void removeFetchAndResponseBodies(String filePath);
+    static StoredFetches readStoredFetches(String directoryPath);
+    static RefPtr<WebCore::SharedBuffer> readResponseBody(String filePath);
+    static StoreResult writeFetch(String filePath, std::optional<size_t> responseBodyIndexToClear, Vector<uint8_t> data);
+    static StoreResult writeResponseBodyChunk(String filePath, const WebCore::SharedBuffer& data);
 
     void storeFetchAfterQuotaCheck(const String&, uint64_t downloadTotal, uint64_t uploadTotal, std::optional<size_t> responseBodyIndexToClear, Vector<uint8_t>&&, CompletionHandler<void(StoreResult)>&&);
 

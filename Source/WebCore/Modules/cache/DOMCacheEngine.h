@@ -58,7 +58,6 @@ Exception convertToException(Error);
 Exception convertToExceptionAndLog(ScriptExecutionContext*, Error);
 
 WEBCORE_EXPORT bool queryCacheMatch(const ResourceRequest& request, const ResourceRequest& cachedRequest, const ResourceResponse&, const CacheQueryOptions&);
-WEBCORE_EXPORT bool queryCacheMatch(const ResourceRequest&, const URL&, bool hasVaryStar, const HashMap<String, String>& varyHeaders, const CacheQueryOptions&);
 
 using ResponseBody = Variant<std::nullptr_t, Ref<FormData>, Ref<SharedBuffer>>;
 WEBCORE_EXPORT ResponseBody isolatedResponseBody(const ResponseBody&);

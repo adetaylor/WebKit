@@ -31,31 +31,15 @@
 #include <WebCore/SharedBuffer.h>
 #include <wtf/Borrow.h>
 #include <wtf/CrossThreadCopier.h>
-#include <wtf/FileHandle.h>
 #include <wtf/FileSystem.h>
-#include <wtf/PageBlock.h>
 #include <wtf/TZoneMallocInlines.h>
-#include <wtf/UUID.h>
 #include <wtf/WorkQueue.h>
-#include <wtf/text/MakeString.h>
 
 namespace WebKit {
 
 using namespace WebCore;
 
-static constexpr auto fetchSuffix = "-backgroundfetch"_s;
-
-static bool shouldUseFileMapping(uint64_t fileSize)
-{
-    return fileSize >= pageSize();
-}
-
 WTF_MAKE_TZONE_ALLOCATED_IMPL(BackgroundFetchStoreManager);
-
-String BackgroundFetchStoreManager::createNewStorageIdentifier()
-{
-    return makeString(createVersion4UUIDString(), fetchSuffix);
-}
 
 BackgroundFetchStoreManager::BackgroundFetchStoreManager(const String& path, Ref<WorkQueue>&& taskQueue, QuotaCheckFunction&& quotaCheckFunction)
     : m_path(path)
@@ -80,19 +64,7 @@ void BackgroundFetchStoreManager::initializeFetches(InitializeCallback&& callbac
     }
 
     m_ioQueue->dispatch([queue = Ref { m_taskQueue }, directoryPath = m_path.isolatedCopy(), callback = WTF::move(callback)]() mutable {
-        Vector<std::pair<RefPtr<WebCore::SharedBuffer>, String>> fetches;
-        for (auto& fileName : FileSystem::listDirectory(directoryPath)) {
-            if (!fileName.endsWith(fetchSuffix))
-                continue;
-
-            auto fetchPath = FileSystem::pathByAppendingComponent(directoryPath, fileName);
-            auto fileSize = FileSystem::fileSize(fetchPath);
-            if (!fileSize)
-                continue;
-
-            auto fetchData = SharedBuffer::createWithContentsOfFile(fetchPath, FileSystem::MappedFileMode::Private, shouldUseFileMapping(*fileSize) ? SharedBuffer::MayUseFileMapping::Yes : SharedBuffer::MayUseFileMapping::No);
-            fetches.append(std::pair(WTF::move(fetchData), WTF::move(fileName)));
-        }
+        auto fetches = readStoredFetches(WTF::move(directoryPath));
 
         queue->dispatch([callback = WTF::move(callback), fetches = WTF::move(fetches)]() mutable {
             callback(WTF::move(fetches));
@@ -110,12 +82,8 @@ void BackgroundFetchStoreManager::clearFetch(const String& identifier, Completio
         return;
     }
 
-    auto filePath = FileSystem::pathByAppendingComponents(m_path, std::initializer_list<StringView>({ identifier }));
     m_ioQueue->dispatch([queue = Ref { m_taskQueue }, directoryPath = m_path.isolatedCopy(), identifier = identifier.isolatedCopy(), callback = WTF::move(callback)]() mutable {
-        for (auto& fileName : FileSystem::listDirectory(directoryPath)) {
-            if (fileName.startsWith(identifier))
-                FileSystem::deleteFile(FileSystem::pathByAppendingComponent(directoryPath, fileName));
-        }
+        removeFilesWithPrefix(WTF::move(directoryPath), WTF::move(identifier));
         queue->dispatch(WTF::move(callback));
     });
 }
@@ -135,15 +103,8 @@ void BackgroundFetchStoreManager::clearAllFetches(const Vector<String>& identifi
         return FileSystem::pathByAppendingComponents(m_path, std::initializer_list<StringView>({ identifier }));
     });
     m_ioQueue->dispatch([queue = Ref { m_taskQueue }, filePaths = crossThreadCopy(WTF::move(filePaths)), callback = WTF::move(callback)]() mutable {
-        for (auto& filePath : borrow(filePaths)) {
-            FileSystem::deleteFile(filePath);
-
-            size_t index = 0;
-            String bodyPath;
-            do {
-                bodyPath = makeString(filePath, '-', index++);
-            } while (FileSystem::deleteFile(bodyPath));
-        }
+        for (auto& filePath : borrow(filePaths))
+            removeFetchAndResponseBodies(filePath);
         queue->dispatch(WTF::move(callback));
     });
 }
@@ -186,20 +147,12 @@ void BackgroundFetchStoreManager::storeFetchAfterQuotaCheck(const String& identi
     auto filePath = FileSystem::pathByAppendingComponents(m_path, std::initializer_list<StringView>({ identifier }));
     m_ioQueue->dispatch([queue = Ref { m_taskQueue }, filePath = WTF::move(filePath).isolatedCopy(), responseBodyIndexToClear, data = WTF::move(data), callback = WTF::move(callback)]() mutable {
         // FIXME: Cover the case of partial write.
-        auto writtenSize = FileSystem::overwriteEntireFile(filePath, borrow(data)->span());
-        auto result = writtenSize == data.size() ? StoreResult::OK : StoreResult::InternalError;
-        if (result == StoreResult::OK && responseBodyIndexToClear)
-            FileSystem::deleteFile(makeString(filePath, '-', *responseBodyIndexToClear));
+        auto result = writeFetch(filePath, responseBodyIndexToClear, WTF::move(data));
         RELEASE_LOG_ERROR_IF(result == StoreResult::InternalError, ServiceWorker, "BackgroundFetchStoreManager::storeFetch failed writing");
         queue->dispatch([result, callback = WTF::move(callback)]() mutable {
             callback(result);
         });
     });
-}
-
-static String createFetchResponseBodyFile(const String& identifier, size_t index)
-{
-    return makeString(identifier, '-', index);
 }
 
 void BackgroundFetchStoreManager::storeFetchResponseBodyChunk(const String& identifier, size_t index, const SharedBuffer& data, CompletionHandler<void(StoreResult)>&& callback)
@@ -222,13 +175,8 @@ void BackgroundFetchStoreManager::storeFetchResponseBodyChunk(const String& iden
 
     auto filePath = FileSystem::pathByAppendingComponent(m_path, createFetchResponseBodyFile(identifier, index));
     m_ioQueue->dispatch([queue = Ref { m_taskQueue }, filePath = WTF::move(filePath).isolatedCopy(), data = Ref { data }, callback = WTF::move(callback)]() mutable {
-        auto result = StoreResult::InternalError;
-        if (auto handle = FileSystem::openFile(filePath, FileSystem::FileOpenMode::ReadWrite); handle) {
-            // FIXME: Cover the case of partial write.
-            auto writtenSize = handle.write(data->span());
-            if (writtenSize == data->size())
-                result = StoreResult::OK;
-        }
+        // FIXME: Cover the case of partial write.
+        auto result = writeResponseBodyChunk(filePath, data.get());
 
         RELEASE_LOG_ERROR_IF(result == StoreResult::InternalError, ServiceWorker, "BackgroundFetchStoreManager::storeFetchResponseBodyChunk failed writing");
         queue->dispatch([result, callback = WTF::move(callback)]() mutable {
@@ -253,10 +201,7 @@ void BackgroundFetchStoreManager::retrieveResponseBody(const String& identifier,
 
     auto filePath = FileSystem::pathByAppendingComponent(m_path, createFetchResponseBodyFile(identifier, index));
     m_ioQueue->dispatch([queue = Ref { m_taskQueue }, filePath = WTF::move(filePath).isolatedCopy(), callback = WTF::move(callback)]() mutable {
-        RefPtr<SharedBuffer> buffer;
-        auto fileSize = FileSystem::fileSize(filePath);
-        if (fileSize)
-            buffer = SharedBuffer::createWithContentsOfFile(filePath, FileSystem::MappedFileMode::Private, shouldUseFileMapping(*fileSize) ? SharedBuffer::MayUseFileMapping::Yes : SharedBuffer::MayUseFileMapping::No);
+        auto buffer = readResponseBody(filePath);
 
         queue->dispatch([buffer = WTF::move(buffer), callback = WTF::move(callback)]() mutable {
             callback(WTF::move(buffer));

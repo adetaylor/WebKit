@@ -96,6 +96,17 @@ _CXX_DECODED_TYPES = {
     'WebCore::PathSegment': ('CGRendererPathSegment', 'IPCCoding.CxxDecoded.PathSegment'),
     # Held by the WebCore::CaptureConstraints that Swift evaluates them through.
     'WebCore::MediaConstraints': ('WebCore.CaptureConstraints', 'IPCCoding.CxxDecoded.MediaConstraints'),
+    'WebCore::DOMCacheIdentifier': ('WebCore.DOMCacheIdentifier', 'IPCCoding.CxxDecoded.DOMCacheIdentifier'),
+    'WebCore::ClientOrigin': ('WebCore.ClientOrigin', 'IPCCoding.CxxDecoded.ClientOrigin'),
+    'WebCore::DOMCacheEngine::CacheInfos': ('WebCore.DOMCacheEngine.CacheInfos', 'IPCCoding.CxxDecoded.CacheInfos'),
+}
+
+
+# A UUID, and the FileSystemHandleGlobalIdentifier that is one, which Swift decodes itself and holds as its two 64-bit
+# halves rather than as the C++ object.
+_UUID_TYPES = {
+    'WTF::UUID': ('UUIDHalves', 'IPCCoding.UUID'),
+    'WebCore::FileSystemHandleGlobalIdentifier': ('FileSystemHandleGlobalIdentifier', 'IPCCoding.UUID'),
 }
 
 
@@ -274,6 +285,7 @@ _NESTED_SWIFT_FORM_NAMES = {
     'WebCore::MeterPart::GaugeRegion': 'MeterPartGaugeRegion',
     'WebCore::FilterEffectGeometry::Flags': 'FilterEffectGeometryFlags',
     'WebCore::SVGUnitTypes::SVGUnitType': 'SVGUnitType',
+    'WebCore::DOMCacheEngine::Error': 'DOMCacheEngineError',
 }
 
 
@@ -290,6 +302,10 @@ def swift_cxx_name(cpp_name):
 
 def is_cxx_decoded(cpp_type):
     return strip_cpp_type_decorations(cpp_type).removeprefix('::') in _CXX_DECODED_TYPES
+
+
+def is_uuid(cpp_type):
+    return strip_cpp_type_decorations(cpp_type).removeprefix('::') in _UUID_TYPES
 
 
 def is_owned_primitive(cpp_type):
@@ -343,6 +359,9 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
 
     if is_cxx_decoded(cpp_type):
         return _CXX_DECODED_TYPES[cpp_type.removeprefix('::')]
+
+    if is_uuid(cpp_type):
+        return _UUID_TYPES[cpp_type.removeprefix('::')]
 
     if cpp_type.removeprefix('::') in _OWNED_TYPES:
         swift_type = _OWNED_TYPES[cpp_type.removeprefix('::')]
@@ -439,7 +458,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
                               "double, Seconds, WallTime, MonotonicTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::span of the trivially copyable structs %s, std::array, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
-                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the owned types %s, and %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_TRIVIAL_SPAN_ELEMENT_TYPES)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
+                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the UUID types %s, the owned types %s, and %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_TRIVIAL_SPAN_ELEMENT_TYPES)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_UUID_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
 
 
 def swift_coder(cpp_type):

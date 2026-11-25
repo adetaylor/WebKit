@@ -101,15 +101,17 @@ namespace WebKit {
 enum class BackgroundFetchChange : uint8_t;
 enum class TimeBasedEvictionMode : uint8_t;
 enum class UnifiedOriginStorageLevel : uint8_t;
+class CacheStorageManager;
 class FileSystemStorageHandle;
 class FileSystemStorageHandleRegistry;
+class FileSystemStorageManager;
 class IDBStorageRegistry;
 class NetworkProcess;
 class ServiceWorkerStorageManager;
 class StorageAreaBase;
 class StorageAreaRegistry;
 
-class NetworkStorageManager final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::MainRunLoop> {
+class SWIFT_PRIVATE_FILEID("WebKit/NetworkStorageManager.swift") NetworkStorageManager final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::MainRunLoop> {
     WTF_MAKE_TZONE_ALLOCATED(NetworkStorageManager);
 public:
     static Ref<NetworkStorageManager> create(NetworkProcess&, PAL::SessionID, Markable<WTF::UUID>, std::optional<IPC::Connection::UniqueID>, const String& path, const String& customLocalStoragePath, const String& customIDBStoragePath, const String& customCacheStoragePath, const String& customServiceWorkerStoragePath, uint64_t defaultOriginQuota, std::optional<double> originQuotaRatio, std::optional<double> totalQuotaRatio, std::optional<uint64_t> standardVolumeCapacity, std::optional<uint64_t> volumeCapacityOverride, UnifiedOriginStorageLevel, bool storageSiteValidationEnabled, TimeBasedEvictionMode, Seconds timeBasedEvictionThreshold, std::optional<Seconds> lastModificationTimeUpdateIntervalOverride, std::optional<Seconds> timeBasedEvictionIntervalOverride);
@@ -205,26 +207,12 @@ private:
     void estimate(IPC::Connection&, const WebCore::ClientOrigin&, CompletionHandler<void(std::optional<WebCore::StorageEstimate>)>&&);
 
     // Message handlers for FileSystem.
-    void fileSystemGetDirectory(IPC::Connection&, WebCore::ClientOrigin&&, CompletionHandler<void(std::expected<std::pair<WebCore::FileSystemHandleGlobalIdentifier, WebCore::FileSystemHandleIdentifier>, FileSystemStorageError>)>&&);
-    void closeHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier);
-    void isSameEntry(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemHandleIdentifier, CompletionHandler<void(bool)>&&);
-    void move(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemHandleIdentifier, const String& newName, CompletionHandler<void(std::optional<FileSystemStorageError>)>&&);
-    void getFileHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, String&& name, bool createIfNecessary, CompletionHandler<void(std::expected<std::pair<WebCore::FileSystemHandleGlobalIdentifier, WebCore::FileSystemHandleIdentifier>, FileSystemStorageError>)>&&);
-    void getDirectoryHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, String&& name, bool createIfNecessary, CompletionHandler<void(std::expected<std::pair<WebCore::FileSystemHandleGlobalIdentifier, WebCore::FileSystemHandleIdentifier>, FileSystemStorageError>)>&&);
-    void removeEntry(IPC::Connection&, WebCore::FileSystemHandleIdentifier, const String& name, bool deleteRecursively, CompletionHandler<void(std::optional<FileSystemStorageError>)>&&);
-    void resolve(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemHandleIdentifier, CompletionHandler<void(std::expected<std::optional<Vector<String>>, FileSystemStorageError>)>&&);
-    void getFile(IPC::Connection&, WebCore::FileSystemHandleIdentifier, CompletionHandler<void(std::expected<String, FileSystemStorageError>)>&&);
+    // OriginStorageManager is not imported into Swift.
+    Ref<FileSystemStorageManager> fileSystemStorageManager(const WebCore::ClientOrigin&, ShouldUpdateOriginAccessTime);
+    // NetworkProcess and its web process connections are not imported into Swift.
+    void allowAccessToFile(IPC::Connection&, String&& path, CompletionHandler<void()>&&);
+
     void createSyncAccessHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, CompletionHandler<void(std::expected<FileSystemSyncAccessHandleInfo, FileSystemStorageError>)>&&);
-    void closeSyncAccessHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemSyncAccessHandleIdentifier, CompletionHandler<void()>&&);
-    void requestNewCapacityForSyncAccessHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemSyncAccessHandleIdentifier, uint64_t newCapacity, CompletionHandler<void(std::optional<uint64_t>)>&&);
-    void createWritable(IPC::Connection&, WebCore::FileSystemHandleIdentifier, bool keepExistingData, CompletionHandler<void(std::expected<WebCore::FileSystemWritableFileStreamIdentifier, FileSystemStorageError>)>&&);
-    void closeWritable(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemWritableFileStreamIdentifier, WebCore::FileSystemWriteCloseReason, CompletionHandler<void(std::optional<FileSystemStorageError>)>&&);
-    void executeCommandForWritable(IPC::Connection&, WebCore::FileSystemHandleIdentifier, WebCore::FileSystemWritableFileStreamIdentifier, WebCore::FileSystemWriteCommandType, std::optional<uint64_t> position, std::optional<uint64_t> size, std::span<const uint8_t> dataBytes, bool hasDataError, CompletionHandler<void(std::optional<FileSystemStorageError>)>&&);
-    void getHandleNames(IPC::Connection&, WebCore::FileSystemHandleIdentifier, CompletionHandler<void(std::expected<Vector<String>, FileSystemStorageError>)>&&);
-    void getHandle(IPC::Connection&, WebCore::FileSystemHandleIdentifier, String&& name, CompletionHandler<void(std::expected<std::optional<WebCore::FileSystemHandleInfo>, FileSystemStorageError>)>&&);
-    void addGlobalIdentifierReference(IPC::Connection&, WebCore::ClientOrigin&&, WebCore::FileSystemHandleGlobalIdentifier);
-    void removeGlobalIdentifierReferences(IPC::Connection&, WebCore::ClientOrigin&&, Vector<WebCore::FileSystemHandleGlobalIdentifier>&&);
-    void resolveGlobalIdentifier(IPC::Connection&, WebCore::ClientOrigin&&, WebCore::FileSystemHandleGlobalIdentifier, CompletionHandler<void(std::expected<WebCore::FileSystemHandleIdentifier, FileSystemStorageError>)>&&);
 
     // Message handlers for WebStorage.
     void connectToStorageArea(IPC::Connection&, WebCore::StorageType, StorageAreaMapIdentifier, std::optional<StorageNamespaceIdentifier>, const WebCore::ClientOrigin&, CompletionHandler<void(std::optional<StorageAreaIdentifier>, HashMap<String, String>, uint64_t)>&&);
@@ -267,18 +255,12 @@ private:
     IDBStorageManager& idbStorageManagerForOrigin(const WebCore::ClientOrigin&, ShouldWriteOriginFile = ShouldWriteOriginFile::Yes, ShouldUpdateOriginAccessTime = ShouldUpdateOriginAccessTime::No);
 
     // Message handlers for CacheStorage.
-    void cacheStorageOpenCache(IPC::Connection&, const WebCore::ClientOrigin&, const String& cacheName, WebCore::DOMCacheEngine::CacheIdentifierCallback&&);
-    void cacheStorageRemoveCache(IPC::Connection&, WebCore::DOMCacheIdentifier, WebCore::DOMCacheEngine::RemoveCacheIdentifierCallback&&);
-    void cacheStorageAllCaches(IPC::Connection&, const WebCore::ClientOrigin&, uint64_t updateCounter, WebCore::DOMCacheEngine::CacheInfosCallback&&);
-    void cacheStorageReference(IPC::Connection&, WebCore::DOMCacheIdentifier);
-    void cacheStorageDereference(IPC::Connection&, WebCore::DOMCacheIdentifier);
-    void lockCacheStorage(IPC::Connection&, const WebCore::ClientOrigin&);
-    void unlockCacheStorage(IPC::Connection&, const WebCore::ClientOrigin&);
     void cacheStorageRetrieveRecords(IPC::Connection&, WebCore::DOMCacheIdentifier, WebCore::RetrieveRecordsOptions&&, WebCore::DOMCacheEngine::RetrieveRecordsCallback&&);
-    void cacheStorageRemoveRecords(IPC::Connection&, WebCore::DOMCacheIdentifier, WebCore::ResourceRequest&&, WebCore::CacheQueryOptions&&, WebCore::DOMCacheEngine::RecordIdentifiersCallback&&);
-    void cacheStoragePutRecords(IPC::Connection&, WebCore::DOMCacheIdentifier, Vector<WebCore::DOMCacheEngine::CrossThreadRecord>&&, WebCore::DOMCacheEngine::RecordIdentifiersCallback&&);
-    void cacheStorageClearMemoryRepresentation(IPC::Connection&, const WebCore::ClientOrigin&, CompletionHandler<void()>&&);
     void cacheStorageRepresentation(CompletionHandler<void(const String&)>&&);
+    // OriginStorageManager is not imported into Swift.
+    Ref<CacheStorageManager> cacheStorageManager(const WebCore::ClientOrigin&, ShouldUpdateOriginAccessTime);
+    RefPtr<CacheStorageManager> existingCacheStorageManager(const WebCore::ClientOrigin&);
+    void closeCacheStorageManager(const WebCore::ClientOrigin&);
 
     void cloneSessionStorageNamespace(StorageNamespaceIdentifier, StorageNamespaceIdentifier);
     NODELETE bool shouldManageServiceWorkerRegistrationsByOrigin();
