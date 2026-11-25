@@ -30,6 +30,7 @@
 #import "Helpers/PlatformUtilities.h"
 #import "Helpers/Test.h"
 #import "Helpers/cocoa/HTTPServer.h"
+#import "Helpers/cocoa/HTTPServer/TestCertificates.h"
 #import "Helpers/cocoa/TestNavigationDelegate.h"
 #import <WebKit/WKPagePrivate.h>
 #import <WebKit/WKProcessPoolPrivate.h>

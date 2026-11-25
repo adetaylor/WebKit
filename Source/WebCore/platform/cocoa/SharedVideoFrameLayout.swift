@@ -491,7 +491,7 @@ func sharedVideoFrameCreatePixelBuffer(
             return nil
         }
         // Safety: UInt8 has no alignment, and every bit pattern is a UInt8.
-        let bytes = unsafe Span<UInt8>(_bytes: storage)
+        let bytes = unsafe Span<UInt8>(_unsafeBytes: storage)
         return makePixelBuffer(layout, from: bytes.extracting(droppingFirst: headerSize), pool: pool).map(cvBuffer)
     }
 }

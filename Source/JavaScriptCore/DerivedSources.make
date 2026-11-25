@@ -67,8 +67,8 @@ JavaScriptCore_SCRIPTS_DIR = $(JavaScriptCore)/Scripts
 
 .PHONY : all
 all : \
+    KeywordLookup.swift \
     Lexer.lut.h \
-    KeywordLookup.h \
     LexerUnicodePropertyTables.h \
     RegExpJitTables.h \
     UnicodePatternTables.h \
@@ -248,12 +248,12 @@ $(OBJECT_LUT_HEADERS): %.lut.h : %.cpp $(JavaScriptCore)/create_hash_table
 Lexer.lut.h: Keywords.table $(JavaScriptCore)/create_hash_table
 	$(PERL) $(JavaScriptCore)/create_hash_table $< > $@
 
+KeywordLookup.swift: KeywordLookupGenerator.py Keywords.table
+	$(PYTHON) $^ $@
+
 # character tables for Yarr
 
 RegExpJitTables.h: yarr/create_regex_tables
-	$(PYTHON) $^ > $@
-
-KeywordLookup.h: KeywordLookupGenerator.py Keywords.table
 	$(PYTHON) $^ > $@
 
 # Bytecode files

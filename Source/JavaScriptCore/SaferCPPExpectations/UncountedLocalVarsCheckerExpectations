@@ -67,8 +67,6 @@ interpreter/StackVisitor.cpp
 jit/JITOperations.cpp
 jit/JITWorklist.cpp
 llint/LLIntEntrypoint.cpp
-parser/Lexer.h
-parser/Parser.cpp
 parser/Parser.h
 parser/SourceTaintedness.cpp
 profiler/ProfilerDatabase.cpp

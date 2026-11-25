@@ -163,7 +163,6 @@ jit/JITWorklist.cpp
 jit/PCToCodeOriginMap.cpp
 lol/LOLJIT.cpp
 parser/ASTBuilder.h
-parser/Parser.cpp
 parser/Parser.h
 parser/VariableEnvironment.cpp
 profiler/ProfilerBytecodeSequence.cpp

@@ -29,6 +29,7 @@
 
 #include "JSBigIntSwiftDigits.h"
 #include "Options.h"
+#include "ParserSwiftTypes.h"
 #include "YarrCanonicalize.h"
 #include "YarrInterpreterSwiftTypes.h"
 #include <wtf/DataLog.h>
