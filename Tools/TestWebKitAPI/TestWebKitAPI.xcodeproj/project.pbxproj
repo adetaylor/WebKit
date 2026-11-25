@@ -1345,6 +1345,7 @@
 				WebKit/WKWebView/MSEIsTypeSupportedCaching.mm,
 				WebKit/WKWebView/NoHistoryItemScrollToFragment.mm,
 				WebKit/WKWebView/NowPlayingMetadataObserver.mm,
+				WebKit/WKWebView/OriginStorageBench.mm,
 				WebKit/WKWebView/OrthogonalFlowAvailableSize.mm,
 				WebKit/WKWebView/ParentalControlsContentFilteringTests.mm,
 				WebKit/WKWebView/ResourceLoadStatisticsBench.mm,
