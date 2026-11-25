@@ -75,7 +75,7 @@ enum class AudioVideoRendererObject : uint8_t;
 // rate and time, seeking, readiness and the video sample renderer are AudioVideoRendererAVFObjC.swift's; this keeps the
 // clients' callbacks and promises, the shared timebase, the synchronizer and the renderers it makes and configures,
 // the layer manager, content keys, and the video renderer's decompression session and purge timer.
-class SWIFT_PRIVATE_FILEID("WebCore/AudioVideoRendererAVFObjC.swift") AudioVideoRendererAVFObjC
+class AudioVideoRendererAVFObjC
     : public AudioVideoRenderer
     , public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<AudioVideoRendererAVFObjC, WTF::DestructionThread::Main>
     , private PeriodicSharedTimer::Client
@@ -155,6 +155,9 @@ public:
     WEBCORE_EXPORT void setScreenReserved(bool) final;
     SharedTimebase* sharedTimebase() final { return m_sharedTimebase.get(); }
 
+    void updateSpatialTrackingLabel();
+    void decodeSample(CMSampleBufferRef, uint8_t decodingFlags, uint64_t rendererIdentifier, int32_t flushId);
+
     // AudioInterface
     void setVolume(float) final;
     void setMuted(bool) final;
@@ -210,7 +213,6 @@ private:
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
     void setOutputDeviceIdOnRenderer(AVSampleBufferAudioRenderer *);
 #endif
-    void updateSpatialTrackingLabel();
 
     struct DisplayedPixelBuffer {
         RetainPtr<CVPixelBufferRef> pixelBuffer;
@@ -232,7 +234,6 @@ private:
     void setVideoRendererPurgeTimerFireTime(CMTime);
     void initializeDecompressionSession(uint64_t rendererIdentifier, uint8_t rendererObject);
     RefPtr<WebCoreDecompressionSession> decompressionSession() const;
-    void decodeSample(CMSampleBufferRef, uint8_t decodingFlags, uint64_t rendererIdentifier, int32_t flushId);
     void invalidateDecompressionSession(std::optional<uint64_t> rendererIdentifier);
     double updateFrameRateMonitor();
     uint32_t rendererDroppedVideoFrames(AudioVideoRendererObject) const;
@@ -284,28 +285,31 @@ private:
 
     struct Core;
     // The core is made in the constructor, after the state its init reads; its init must not call the host.
-    const std::unique_ptr<Core> m_core;
+    std::unique_ptr<Core> m_core;
     const uint64_t m_swiftToken;
 
+public:
     bool m_isShutdown { false };
+private:
 
-    // Unsafe in Swift: a callback can replace or clear its own member while it runs, so Swift must not call one in place.
-    SWIFT_UNSAFE Function<void(PlatformMediaError)> m_errorCallback;
-    SWIFT_UNSAFE Function<void()> m_firstFrameAvailableCallback;
-    SWIFT_UNSAFE Function<void(const MediaTime&, double)> m_hasAvailableVideoFrameCallback;
-    SWIFT_UNSAFE Function<void()> m_notifyWhenRequiresFlushToResume;
-    SWIFT_UNSAFE Function<void()> m_renderingModeChangedCallback;
-    SWIFT_UNSAFE Function<void(const MediaTime&, FloatSize)> m_sizeChangedCallback;
-    SWIFT_UNSAFE Function<void(double)> m_effectiveRateChangedCallback;
-    SWIFT_UNSAFE Function<void(const MediaTime&)> m_performTask;
-    SWIFT_UNSAFE Function<void(const MediaTime&)> m_timeObserverCallback;
+    Function<void(PlatformMediaError)> m_errorCallback;
+    Function<void()> m_firstFrameAvailableCallback;
+    Function<void(const MediaTime&, double)> m_hasAvailableVideoFrameCallback;
+    Function<void()> m_notifyWhenRequiresFlushToResume;
+    Function<void()> m_renderingModeChangedCallback;
+    Function<void(const MediaTime&, FloatSize)> m_sizeChangedCallback;
+    Function<void(double)> m_effectiveRateChangedCallback;
+    Function<void(const MediaTime&)> m_performTask;
+    Function<void(const MediaTime&)> m_timeObserverCallback;
     uint64_t m_timeObserverGeneration { 0 };
     HashMap<uint64_t, Function<void(TrackIdentifier, const MediaTime&)>> m_reenqueueCallbacks;
 
     std::optional<MediaTimePromise::Producer> m_stallProducer;
     MediaTime m_stallBoundary;
     std::optional<GenericPromise::AutoRejectProducer> m_seekPromise;
+public:
     MediaTime m_lastSeekTargetTime;
+private:
     std::optional<RequestPromise::AutoRejectProducer> m_requestVideoPromise;
     HashMap<uint64_t, std::unique_ptr<RequestPromise::AutoRejectProducer>> m_requestAudioPromises;
 #if ENABLE(LINEAR_MEDIA_PLAYER)
@@ -323,7 +327,9 @@ private:
     Vector<RetainPtr<AVSampleBufferVideoRenderer>> m_expiringSampleBufferVideoRenderers;
     RetainPtr<CVPixelBufferRef> m_lastPixelBuffer;
     bool m_needsPlaceholderImage { false };
+public:
     bool m_visible { false };
+private:
     IntSize m_presentationSize;
     bool m_shouldMaintainAspectRatio { true };
     bool m_shouldDisableHDR { false };
