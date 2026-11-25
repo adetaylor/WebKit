@@ -167,6 +167,11 @@ public:
     template<typename V> AddResult set(const KeyType&, V&&) LIFETIME_BOUND;
     template<typename V> AddResult set(KeyType&&, V&&) LIFETIME_BOUND;
 
+    // As set(), but returns only whether a new entry was added. Not a template, and returns no iterator, so it can
+    // be called from Swift.
+    bool setValue(const KeyType& key, const MappedType& value) { return set(key, value).isNewEntry; }
+    bool setValue(KeyType&& key, MappedType&& value) { return set(WTF::move(key), WTF::move(value)).isNewEntry; }
+
     // Does nothing if the key is already present.
     // Return value includes both an iterator to the key location,
     // and an isNewEntry boolean that's true if a new entry was added.
