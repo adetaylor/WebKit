@@ -117,11 +117,27 @@ static constexpr JSParseTraitSetter traitSetters[] = {
     { JSParseVariableTrait::Using, &VariableEnvironmentEntry::setIsUsing },
 };
 
+// The VM's well-known names in JSParseWellKnownName's order, built in place in the member.
+static std::array<const Identifier*, static_cast<size_t>(JSParseWellKnownName::Count)> makeWellKnownIdentifiers(VM& vm)
+{
+    auto& names = *vm.propertyNames;
+#define JSC_PARSER_SWIFT_KEYWORD_POINTER(name) &names.name##Keyword,
+#define JSC_PARSER_SWIFT_NAME_POINTER(name) &names.name,
+    return { {
+        JSC_COMMON_IDENTIFIERS_EACH_KEYWORD(JSC_PARSER_SWIFT_KEYWORD_POINTER)
+        JSC_PARSER_SWIFT_OTHER_NAMES(JSC_PARSER_SWIFT_NAME_POINTER)
+        &names.builtinNames().metaPublicName()
+    } };
+#undef JSC_PARSER_SWIFT_NAME_POINTER
+#undef JSC_PARSER_SWIFT_KEYWORD_POINTER
+}
+
 JSParseState::JSParseState(VM& vm, ParserArena& arena, const SourceCode& source, const PrivateNameEnvironment* parentScopePrivateNames, const FixedVector<UnlinkedFunctionExecutable::ClassElementDefinition>* classElementDefinitions, DebuggerParseData* debuggerParseData, bool isModule)
     : m_vm(vm)
     , m_arena(arena)
     , m_identifierArena(arena.identifierArena())
     , m_builder(vm, arena, &source)
+    , m_wellKnownIdentifiers(makeWellKnownIdentifiers(vm))
     , m_functionCache(vm.addSourceProviderCache(source.provider()))
     , m_moduleScopeData(isModule ? RefPtr { ModuleScopeData::create() } : nullptr)
     , m_debuggerParseData(debuggerParseData)
@@ -135,20 +151,17 @@ JSParseState::JSParseState(VM& vm, ParserArena& arena, const SourceCode& source,
     m_nodes.reserveInitialCapacity(std::max<size_t>(1024, reservedLength));
     // One identifier slot per two source characters, on the same bound.
     m_identifiers.reserveInitialCapacity(std::max<size_t>(256, reservedLength / 2));
+    // The three tables the parse starts pushing to are sized at the Vector's minimum capacity, so the first append does not grow them.
+    m_scopes.reserveInitialCapacity(16);
+    m_environments.reserveInitialCapacity(16);
+    m_functionStacks.reserveInitialCapacity(16);
     m_identifiers.append(nullptr);
     m_nodes.append({ nullptr, nullKind });
     m_scopes.append(nullptr);
     m_environments.append(nullptr);
     m_functionStacks.append(nullptr);
-    auto& names = *vm.propertyNames;
-#define JSC_PARSER_SWIFT_APPEND_KEYWORD(name) m_identifiers.append(&names.name##Keyword);
-#define JSC_PARSER_SWIFT_APPEND_NAME(name) m_identifiers.append(&names.name);
-    JSC_COMMON_IDENTIFIERS_EACH_KEYWORD(JSC_PARSER_SWIFT_APPEND_KEYWORD)
-    JSC_PARSER_SWIFT_OTHER_NAMES(JSC_PARSER_SWIFT_APPEND_NAME)
-    m_identifiers.append(&names.builtinNames().metaPublicName());
-#undef JSC_PARSER_SWIFT_APPEND_NAME
-#undef JSC_PARSER_SWIFT_APPEND_KEYWORD
-    RELEASE_ASSERT(m_identifiers.size() == static_cast<size_t>(JSParseWellKnownName::Count) + 1);
+    // The well-known names are identifier handles 1 to Count.
+    m_identifiers.append(std::span<const Identifier* const> { m_wellKnownIdentifiers });
 #if ASSERT_ENABLED
     for (auto [trait, setter] : traitSetters) {
         VariableEnvironmentEntry entry;
@@ -156,8 +169,6 @@ JSParseState::JSParseState(VM& vm, ParserArena& arena, const SourceCode& source,
         ASSERT(entry.bits() == static_cast<uint16_t>(trait));
     }
 #endif
-    for (size_t i = 0; i < m_wellKnownIdentifiers.size(); ++i)
-        m_wellKnownIdentifiers[i] = m_identifiers[i + 1];
 }
 
 JSParseState::~JSParseState() = default;

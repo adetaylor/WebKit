@@ -861,7 +861,7 @@ private:
     IdentifierArena& m_identifierArena;
     ASTBuilder m_builder;
     Vector<const Identifier*> m_identifiers;
-    std::array<const Identifier*, static_cast<size_t>(JSParseWellKnownName::Count)> m_wellKnownIdentifiers { }; // m_identifiers[1, Count].
+    std::array<const Identifier*, static_cast<size_t>(JSParseWellKnownName::Count)> m_wellKnownIdentifiers; // m_identifiers[1, Count].
     Vector<NodeSlot> m_nodes;
     Vector<std::unique_ptr<JSParseScopeStorage>> m_scopes;
     size_t m_scopeDepth { 1 }; // The live scopes are m_scopes[1, m_scopeDepth).
