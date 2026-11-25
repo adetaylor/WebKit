@@ -241,5 +241,76 @@ private:
     Seconds m_initialWriteDelay { 1_s };
 };
 
+// Complete in the header because Swift imports m_activeReadOperations and m_activeWriteOperations.
+class Storage::ReadOperation {
+    WTF_MAKE_TZONE_ALLOCATED(Storage::ReadOperation);
+public:
+    ReadOperation(const Key& key, unsigned priority, RetrieveCompletionHandler&& completionHandler)
+        : m_identifier(Storage::ReadOperationIdentifier::generate())
+        , m_key(key)
+        , m_priority(priority)
+        , m_completionHandler(WTF::move(completionHandler))
+    {
+        ASSERT(isMainRunLoop());
+        ASSERT(m_completionHandler);
+    }
+
+    NODELETE Storage::ReadOperationIdentifier identifier() const { return m_identifier; }
+    NODELETE const Key& key() const { return m_key; }
+    NODELETE unsigned priority() const { return m_priority; }
+    NODELETE bool isCanceled() const { return m_isCanceled; }
+    NODELETE bool canFinish() const { return !m_waitsForRecord && !m_waitsForBlob; }
+
+    void updateForStart(size_t readOperationDispatchCount);
+    void updateForDispatch(bool synchronizationInProgress, bool shrinkInProgress, size_t readOperationDispatchCount);
+    NODELETE void setWaitsForBlob() { m_waitsForBlob = true; }
+    void finishReadRecord(Record&&, MonotonicTime recordIOStartTime, MonotonicTime recordIOEndTime);
+    void finishReadBlob(BlobStorage::Blob&&, MonotonicTime blobIOStartTime, MonotonicTime blobIOEndTime);
+    void cancel();
+    bool finish();
+
+private:
+    Storage::ReadOperationIdentifier m_identifier;
+    const Key m_key;
+    unsigned m_priority;
+    RetrieveCompletionHandler m_completionHandler;
+
+    bool m_waitsForRecord { true };
+    bool m_waitsForBlob { false };
+    bool m_isCanceled { false };
+    Timings m_timings;
+    Record m_record;
+    std::optional<SHA1::Digest> m_blobBodyHash;
+};
+
+class Storage::WriteOperation {
+    WTF_MAKE_TZONE_ALLOCATED(Storage::WriteOperation);
+public:
+    WriteOperation(const Record& record, MappedBodyHandler&& mappedBodyHandler, bool storeBlobInMemoryCache)
+        : m_identifier(Storage::WriteOperationIdentifier::generate())
+        , m_record(record)
+        , m_mappedBodyHandler(WTF::move(mappedBodyHandler))
+        , m_storeBlobInMemoryCache(storeBlobInMemoryCache)
+    {
+        ASSERT(isMainRunLoop());
+    }
+
+    ~WriteOperation()
+    {
+        ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
+    }
+
+    NODELETE Storage::WriteOperationIdentifier identifier() const { return m_identifier; }
+    NODELETE const Record& record() const WTF_REQUIRES_CAPABILITY(mainThread) { return m_record; }
+    void invokeMappedBodyHandler(const Data&);
+    NODELETE bool storeBlobInMemoryCache() const { return m_storeBlobInMemoryCache; }
+
+private:
+    Storage::WriteOperationIdentifier m_identifier;
+    const Record m_record;
+    const MappedBodyHandler m_mappedBodyHandler;
+    bool m_storeBlobInMemoryCache;
+};
+
 }
 }
