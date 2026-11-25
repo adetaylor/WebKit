@@ -126,7 +126,7 @@ template<typename> class Borrow;
 template<typename> class CString;
 template<typename> class CompactPtr;
 template<typename> class CompletionHandler;
-template<typename, size_t = 0> class Deque;
+template<typename T, size_t = 0> class Deque;
 template<typename Key, typename, Key> class EnumeratedArray;
 template<typename> class EnumSet;
 template<typename, typename = EmbeddedFixedVectorMalloc> class FixedVector;
