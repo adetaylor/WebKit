@@ -38,6 +38,9 @@ enum RawStringsBuildMode {
 // facade's message with `appendErrorMessage`.
 enum LexerErrorMessage {
     case text(Swift.String)
+    /// "No space between <hexadecimal, binary or octal> literal and identifier", for the radix 16, 2 or 8: the text is
+    /// made when the message is printed, and not on each number lexed.
+    case identifierAfterRadixLiteral(radix: UInt8)
     case unterminatedRegularExpression(start: Int, end: Int)
     case invalidRegularExpressionFlag(start: Int, end: Int, codePoint: UInt32)
 }
@@ -219,6 +222,12 @@ struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
         switch errorMessage {
         case .text(let text):
             appendErrorText(text, &facade)
+        case .identifierAfterRadixLiteral(let radix):
+            switch radix {
+            case 16: appendErrorText("No space between hexadecimal literal and identifier", &facade)
+            case 2: appendErrorText("No space between binary literal and identifier", &facade)
+            default: appendErrorText("No space between octal literal and identifier", &facade)
+            }
         case .unterminatedRegularExpression(let start, let end):
             appendErrorText("Unterminated regular expression literal '", &facade)
             Unit.appendErrorCharacters(tokenCharacters(start..<end), &facade)

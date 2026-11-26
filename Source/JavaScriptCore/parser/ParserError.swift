@@ -43,6 +43,10 @@ struct ErrorMessage: ExpressibleByStringLiteral {
     enum Storage {
         case literal(StaticString)
         case parts([ErrorMessagePart])
+        /// The unexpected-token head, ". ", the message and ".": one box, so that no array is grown to join them.
+        indirect case tokenError(head: ErrorMessage, message: ErrorMessage)
+        /// The message and ".".
+        indirect case semanticError(ErrorMessage)
     }
 
     private let storage: Storage
@@ -76,33 +80,45 @@ struct ErrorMessage: ExpressibleByStringLiteral {
         self.init([a, b, c, d, e])
     }
 
-    /// Appends this message's parts to `parts`, making no array for a literal.
-    func append(to parts: inout [ErrorMessagePart]) {
+    /// Calls `body` with each part in order.
+    func forEachPart(_ body: (ErrorMessagePart) -> Void) {
         switch storage {
-        case .literal(let text): parts.append(.literal(text))
-        case .parts(let own): parts.append(contentsOf: own)
+        case .literal(let text):
+            body(.literal(text))
+        case .parts(let own):
+            for part in own {
+                body(part)
+            }
+        case .tokenError(let head, let message):
+            head.forEachPart(body)
+            body(.text(". "))
+            message.forEachPart(body)
+            body(.text("."))
+        case .semanticError(let message):
+            message.forEachPart(body)
+            body(.text("."))
         }
     }
 
-    /// How many parts `append(to:)` appends.
-    var partCount: Int {
-        switch storage {
-        case .literal: return 1
-        case .parts(let own): return own.count
-        }
+    /// The message followed by a full stop.
+    static func semantic(_ message: ErrorMessage) -> ErrorMessage {
+        ErrorMessage(storage: .semanticError(message))
     }
 
-    var parts: [ErrorMessagePart] {
-        switch storage {
-        case .literal(let text): return [.literal(text)]
-        case .parts(let parts): return parts
-        }
+    /// The unexpected token's head, then the message.
+    static func tokenError(head: ErrorMessage, message: ErrorMessage) -> ErrorMessage {
+        ErrorMessage(storage: .tokenError(head: head, message: message))
+    }
+
+    private init(storage: Storage) {
+        self.storage = storage
     }
 
     var isEmpty: Bool {
         switch storage {
         case .literal(let text): return text.utf8CodeUnitCount == 0
         case .parts(let parts): return parts.isEmpty
+        case .tokenError, .semanticError: return false
         }
     }
 }
@@ -133,11 +149,7 @@ extension Parser {
         if hasError {
             return
         }
-        var parts: [ErrorMessagePart] = []
-        parts.reserveCapacity(message.partCount + 1)
-        message.append(to: &parts)
-        parts.append(.text("."))
-        errorMessage = ErrorMessage(parts)
+        errorMessage = .semantic(message)
     }
 
     /// True when a failure returns before its message is made.
@@ -155,18 +167,11 @@ extension Parser {
             return
         }
         let head = unexpectedTokenMessage()
-        var parts: [ErrorMessagePart] = []
         if token.type != .eof && !token.type.canBeError {
-            // One allocation for the whole message.
-            parts.reserveCapacity(head.partCount + message.partCount + 2)
-            head.append(to: &parts)
-            parts.append(.text(". "))
-            message.append(to: &parts)
-            parts.append(.text("."))
+            errorMessage = .tokenError(head: head, message: message)
         } else {
-            head.append(to: &parts)
+            errorMessage = head
         }
-        errorMessage = ErrorMessage(parts)
     }
 
     /// Records the message with the token and returns the production's null.
@@ -236,7 +241,7 @@ extension Parser {
             appendErrorText("Unparseable script", &facade)
             return
         }
-        for part in message.parts {
+        message.forEachPart { part in
             switch part {
             case .text(let text):
                 appendErrorText(text, &facade)

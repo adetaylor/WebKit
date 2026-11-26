@@ -33,17 +33,17 @@ struct VariableTraits: OptionSet {
         rawValue = trait.rawValue
     }
 
-    static let captured = VariableTraits(.Captured)
-    static let const = VariableTraits(.Const)
-    static let `var` = VariableTraits(.Var)
-    static let `let` = VariableTraits(.Let)
-    static let exported = VariableTraits(.Exported)
-    static let imported = VariableTraits(.Imported)
-    static let importedNamespace = VariableTraits(.ImportedNamespace)
-    static let function = VariableTraits(.Function)
-    static let parameter = VariableTraits(.Parameter)
-    static let functionDeclaration = VariableTraits(.FunctionDeclaration)
-    static let using = VariableTraits(.Using)
+    static var captured: VariableTraits { @inline(always) get { VariableTraits(.Captured) } }
+    static var const: VariableTraits { @inline(always) get { VariableTraits(.Const) } }
+    static var `var`: VariableTraits { @inline(always) get { VariableTraits(.Var) } }
+    static var `let`: VariableTraits { @inline(always) get { VariableTraits(.Let) } }
+    static var exported: VariableTraits { @inline(always) get { VariableTraits(.Exported) } }
+    static var imported: VariableTraits { @inline(always) get { VariableTraits(.Imported) } }
+    static var importedNamespace: VariableTraits { @inline(always) get { VariableTraits(.ImportedNamespace) } }
+    static var function: VariableTraits { @inline(always) get { VariableTraits(.Function) } }
+    static var parameter: VariableTraits { @inline(always) get { VariableTraits(.Parameter) } }
+    static var functionDeclaration: VariableTraits { @inline(always) get { VariableTraits(.FunctionDeclaration) } }
+    static var using: VariableTraits { @inline(always) get { VariableTraits(.Using) } }
 }
 
 /// The kinds a scope's function is and the boundaries its body makes, in one byte.

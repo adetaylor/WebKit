@@ -42,14 +42,6 @@ private enum RadixLiteral {
         }
     }
 
-    var identifierAfterMessage: Swift.String {
-        switch self {
-        case .hexadecimal: "No space between hexadecimal literal and identifier"
-        case .binary: "No space between binary literal and identifier"
-        case .octal: "No space between octal literal and identifier"
-        }
-    }
-
     var errorToken: JSC.JSTokenType {
         switch self {
         case .hexadecimal: .unterminatedHexNumberError
@@ -100,7 +92,7 @@ extension Lexer {
 
         return finishNumber(
             .double,
-            identifierMessage: "No identifiers allowed directly after numeric literal",
+            identifierMessage: .text("No identifiers allowed directly after numeric literal"),
             errorToken: atEnd ? .unterminatedNumericLiteralError : .invalidNumericLiteralError
         )
     }
@@ -216,7 +208,7 @@ extension Lexer {
 
         return finishNumber(
             token,
-            identifierMessage: "No identifiers allowed directly after numeric literal",
+            identifierMessage: .text("No identifiers allowed directly after numeric literal"),
             errorToken: atEnd ? .unterminatedNumericLiteralError : .invalidNumericLiteralError
         )
     }
@@ -260,7 +252,7 @@ extension Lexer {
         if token != .bigInt {
             token = JSC.JSTokenType(integerLike: data.doubleValue)
         }
-        return finishNumber(token, identifierMessage: literal.identifierAfterMessage, errorToken: literal.errorToken)
+        return finishNumber(token, identifierMessage: .identifierAfterRadixLiteral(radix: literal.radix), errorToken: literal.errorToken)
     }
 
     // MARK: Number parts
@@ -269,7 +261,7 @@ extension Lexer {
     @inline(always)
     private mutating func finishNumber(
         _ token: JSC.JSTokenType,
-        identifierMessage: Swift.String,
+        identifierMessage: LexerErrorMessage,
         errorToken: JSC.JSTokenType
     ) -> JSC.JSTokenType {
         if current.cannotBeIdentStart {
@@ -277,7 +269,7 @@ extension Lexer {
             return token
         }
         if let codePoint = currentCodePoint, codePoint.isIdentStart {
-            errorMessage = .text(identifierMessage)
+            errorMessage = identifierMessage
             return errorToken
         }
         buffer8.removeAll()
