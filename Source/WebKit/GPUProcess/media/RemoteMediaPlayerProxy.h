@@ -69,7 +69,10 @@ class VideoFrame;
 }
 
 #if USE(AVFOUNDATION)
-typedef struct __CVBuffer* CVPixelBufferRef;
+// CoreVideo's own typedef chain, so Swift sees CVPixelBufferRef as CoreVideo's CVPixelBuffer (SharedVideoFrameSwiftBridge.h).
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 #endif
 
 namespace WebKit {
