@@ -128,6 +128,35 @@ extension IPCTypes.SwiftInner: IPCCoder {
 }
 
 extension IPCTypes {
+    struct SwiftConditionalMembers: Sendable, Equatable {
+        var value: Int32
+        #if ENABLE_SWIFT_MEMBER_CONDITION
+        var names: IPCTypes.HashSetInWireOrder<IPCTypes.StringByCodeUnits>
+        #endif
+    }
+}
+
+extension IPCTypes.SwiftConditionalMembers: IPCCoder {
+    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {
+        self.value = try Int32.decode(from: &decoder)
+        #if ENABLE_SWIFT_MEMBER_CONDITION
+        self.names = try IPCCoding.HashSet<IPCTypes.StringByCodeUnits>.decode(from: &decoder)
+        #endif
+    }
+
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> IPCTypes.SwiftConditionalMembers {
+        try IPCTypes.SwiftConditionalMembers(ipcDecodingFrom: &decoder)
+    }
+
+    static func encode(_ value: IPCTypes.SwiftConditionalMembers, to encoder: IPC.SwiftReplyEncoder) {
+        Int32.encode(value.value, to: encoder)
+        #if ENABLE_SWIFT_MEMBER_CONDITION
+        IPCCoding.HashSet<IPCTypes.StringByCodeUnits>.encode(value.names, to: encoder)
+        #endif
+    }
+}
+
+extension IPCTypes {
     struct SwiftStruct: Sendable, Equatable {
         var flag: Bool
         var name: String?
@@ -664,6 +693,7 @@ extension IPCTypes {
     enum CxxName {
         typealias Namespace_SwiftBoolEnum = IPCTypes.SwiftBoolEnum
         typealias Namespace_SwiftCircle = IPCTypes.SwiftCircle
+        typealias Namespace_SwiftConditionalMembers = IPCTypes.SwiftConditionalMembers
         #if ENABLE_SWIFT_TYPE_CONDITION
         typealias Namespace_SwiftDerived = IPCTypes.SwiftDerived
         #endif
@@ -690,5 +720,12 @@ extension IPCTypes {
         typealias WebKit_SwiftAtomicTestIdentifier = IPCTypes.SwiftAtomicTestIdentifier
     }
 }
+
+// The conditions of the members of types marked [Swift] have the same value here as in C++ (GeneratedSerializers.h).
+#if ENABLE_SWIFT_MEMBER_CONDITION
+private typealias SwiftConditionParity0 = IPC.SwiftConditionParity.Condition0IsTrue
+#else
+private typealias SwiftConditionParity0 = IPC.SwiftConditionParity.Condition0IsFalse
+#endif
 
 #endif

@@ -81,6 +81,7 @@ class OuterClass;
 class OtherOuterClass;
 #endif
 struct SwiftInner;
+struct SwiftConditionalMembers;
 struct SwiftStruct;
 class SwiftNode;
 class SwiftLeaf;
@@ -503,6 +504,11 @@ template<> struct ArgumentCoder<Namespace::SwiftInner> {
     static std::optional<Namespace::SwiftInner> decode(Decoder&);
 };
 
+template<> struct ArgumentCoder<Namespace::SwiftConditionalMembers> {
+    static void encode(Encoder&, const Namespace::SwiftConditionalMembers&);
+    static std::optional<Namespace::SwiftConditionalMembers> decode(Decoder&);
+};
+
 template<> struct ArgumentCoder<Namespace::SwiftStruct> {
     static void encode(Encoder&, const Namespace::SwiftStruct&);
     static std::optional<Namespace::SwiftStruct> decode(Decoder&);
@@ -586,6 +592,16 @@ template<> struct ArgumentCoder<Namespace::CxxPolicy> {
     static void encode(Encoder&, const Namespace::CxxPolicy&);
     static std::optional<Namespace::CxxPolicy> decode(Decoder&);
 };
+
+// The conditions of the members of types marked [Swift], as C++ sees them: GeneratedSerializers.swift names
+// each type here under the same condition as Swift sees it, which fails to compile where the two differ.
+namespace SwiftConditionParity {
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+enum class Condition0IsTrue : bool { };
+#else
+enum class Condition0IsFalse : bool { };
+#endif
+} // namespace SwiftConditionParity
 
 } // namespace IPC
 

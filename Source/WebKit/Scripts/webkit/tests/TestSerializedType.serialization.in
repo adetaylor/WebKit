@@ -432,6 +432,13 @@ headers: "SwiftTypes.h"
     String label;
 }
 
+[Swift, CustomHeader] struct Namespace::SwiftConditionalMembers {
+    int32_t value;
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+    HashSet<String> names;
+#endif
+}
+
 [Swift, CustomHeader] struct Namespace::SwiftStruct {
     bool m_flag;
     String m_name;
