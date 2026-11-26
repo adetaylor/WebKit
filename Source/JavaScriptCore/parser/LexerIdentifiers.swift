@@ -65,12 +65,12 @@ extension Lexer {
 
         var orAllChars: UInt32 = 0
         if Unit.bitWidth == 8 {
-            var index = code
-            while UInt(bitPattern: index) < UInt(bitPattern: source.count) && UInt32(source[index]).isIdentPart {
-                index &+= 1
-            }
-            code = index
+            code = Unit.findIdentifierEnd(source, from: code)
             reloadCurrent()
+            // The scan stops at a non-ASCII character, and these are the Latin-1 ones that continue the identifier.
+            while UInt32(current).isIdentPart {
+                shift()
+            }
             if current == .ascii("\\") {
                 return parseIdentifierSlowCase(
                     &data,
@@ -82,13 +82,13 @@ extension Lexer {
                 )
             }
         } else {
-            var index = code
-            while UInt(bitPattern: index) < UInt(bitPattern: source.count) && source[index].isSingleCharacterIdentPart {
-                orAllChars |= UInt32(source[index])
-                index &+= 1
-            }
-            code = index
+            // The scan skips ASCII only, which adds nothing to orAllChars.
+            code = Unit.findIdentifierEnd(source, from: code)
             reloadCurrent()
+            while current.isSingleCharacterIdentPart {
+                orAllChars |= UInt32(current)
+                shift()
+            }
             if UInt32(current).isSurrogate || current == .ascii("\\") {
                 return parseIdentifierSlowCase(
                     &data,

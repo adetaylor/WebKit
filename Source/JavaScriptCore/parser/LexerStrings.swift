@@ -107,15 +107,7 @@ extension Lexer {
     /// 16-bit characters) a non-Latin-1 character; `codeEnd` when there is none.
     private func findStringStop(_ start: Int, _ quote: Unit, buildStrings: Bool) -> Int {
         let checksLatin1 = Unit.bitWidth > 8 && buildStrings
-        var index = start
-        while index < codeEnd {
-            let character = source[index]
-            if character == quote || character == .ascii("\\") || character < 0xE || (checksLatin1 && !character.isLatin1) {
-                return index
-            }
-            index &+= 1
-        }
-        return codeEnd
+        return Unit.findStringStop(source, from: start, quote: quote, checksLatin1: checksLatin1)
     }
 
     /// The fast loop of parseString hit something only the slow case handles: restarts the string from its opening quote.

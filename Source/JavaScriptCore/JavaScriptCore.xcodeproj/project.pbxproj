@@ -1467,6 +1467,7 @@
 		4B5E7BAD62544C12892D7242 /* LexerNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C5412F2F7B14B87B81858AA /* LexerNumbers.swift */; };
 		041652FDEB304B3B902C1CC1 /* LexerScanning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2592D3BA3FC14835BBAB3E56 /* LexerScanning.swift */; };
 		87520830716C455597627869 /* LexerStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE861DA63F20465BBB2D6F40 /* LexerStrings.swift */; };
+		AB1C0DE5F00D4B1C9A0E0001 /* LexerVectorScans.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1C0DE5F00D4B1C9A0E0002 /* LexerVectorScans.swift */; };
 		44D572866FB747398129D784 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50381386D0B6435699BDBB70 /* Parser.swift */; };
 		5CC95467710A4A7580F08518 /* LexerCharacter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4787128FF9DE46878364B50D /* LexerCharacter.swift */; };
 		038CDBCB970C428A8E6230A2 /* LexerCharacterTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57042431002C4AAA8D97FD5A /* LexerCharacterTypes.swift */; };
@@ -5271,6 +5272,7 @@
 		6C5412F2F7B14B87B81858AA /* LexerNumbers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerNumbers.swift; sourceTree = "<group>"; };
 		2592D3BA3FC14835BBAB3E56 /* LexerScanning.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerScanning.swift; sourceTree = "<group>"; };
 		CE861DA63F20465BBB2D6F40 /* LexerStrings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerStrings.swift; sourceTree = "<group>"; };
+		AB1C0DE5F00D4B1C9A0E0002 /* LexerVectorScans.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerVectorScans.swift; sourceTree = "<group>"; };
 		50381386D0B6435699BDBB70 /* Parser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		4787128FF9DE46878364B50D /* LexerCharacter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerCharacter.swift; sourceTree = "<group>"; };
 		57042431002C4AAA8D97FD5A /* LexerCharacterTypes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LexerCharacterTypes.swift; sourceTree = "<group>"; };
@@ -8893,6 +8895,7 @@
 				6C5412F2F7B14B87B81858AA /* LexerNumbers.swift */,
 				2592D3BA3FC14835BBAB3E56 /* LexerScanning.swift */,
 				CE861DA63F20465BBB2D6F40 /* LexerStrings.swift */,
+				AB1C0DE5F00D4B1C9A0E0002 /* LexerVectorScans.swift */,
 				3910AB722F3087E500BAA633 /* LexerUnicodeProperties.cpp */,
 				3910AB732F3087FD00BAA633 /* LexerUnicodeProperties.h */,
 				E3794E731B77EB97005543AE /* ModuleAnalyzer.cpp */,
@@ -14636,6 +14639,7 @@
 				4B5E7BAD62544C12892D7242 /* LexerNumbers.swift in Sources */,
 				041652FDEB304B3B902C1CC1 /* LexerScanning.swift in Sources */,
 				87520830716C455597627869 /* LexerStrings.swift in Sources */,
+				AB1C0DE5F00D4B1C9A0E0001 /* LexerVectorScans.swift in Sources */,
 				44D572866FB747398129D784 /* Parser.swift in Sources */,
 				5CC95467710A4A7580F08518 /* LexerCharacter.swift in Sources */,
 				038CDBCB970C428A8E6230A2 /* LexerCharacterTypes.swift in Sources */,
