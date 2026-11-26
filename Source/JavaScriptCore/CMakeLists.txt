@@ -1910,6 +1910,7 @@ set(_jsc_swift_sources
     parser/LexerNumbers.swift
     parser/LexerScanning.swift
     parser/LexerStrings.swift
+    parser/LexerVectorScans.swift
     parser/Parser.swift
     parser/ParserClasses.swift
     parser/ParserDeclarations.swift

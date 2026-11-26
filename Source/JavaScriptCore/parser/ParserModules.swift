@@ -24,7 +24,28 @@ internal import JSCSwiftBoundary
 /// What the specifiers of an export clause name: their local and exported names, whether a local name is a keyword and
 /// whether one is a module export name string.
 private struct ExportClauseNames {
-    var localNames: [(local: JSC.JSParseIdentifier, exported: JSC.JSParseIdentifier)] = []
+    typealias LocalName = (local: JSC.JSParseIdentifier, exported: JSC.JSParseIdentifier)
+
+    /// The first eight local names are inline, as the C++'s Vector<, 8>; a ninth goes to `spill`, which allocates
+    /// only then.
+    private var inline = InlineArray<8, LocalName>(repeating: (JSC.JSParseIdentifier(), JSC.JSParseIdentifier()))
+    private var spill: [LocalName] = []
+    private(set) var count = 0
+
+    mutating func append(_ name: LocalName) {
+        if count < 8 {
+            inline[count] = name
+        } else {
+            spill.append(name)
+        }
+        count += 1
+    }
+
+    /// The `i`th appended name; `i` must be less than `count`.
+    subscript(i: Int) -> LocalName {
+        i < 8 ? inline[i] : spill[i - 8]
+    }
+
     var hasKeyword = false
     var hasModuleExportName = false
 }
@@ -353,7 +374,7 @@ extension Parser {
         if !exportName(exportedName, &facade) {
             return semanticFail(ErrorMessage(.text("Cannot export a duplicate name '"), .identifier(exportedName), .text("'")))
         }
-        names.localNames.append((localName, exportedName))
+        names.append((localName, exportedName))
         return context.createExportSpecifier(&facade, specifierLocation, localName, exportedName)
     }
 
@@ -608,8 +629,9 @@ extension Parser {
                 // does not have effect on the current module's scope. But,
                 //   export { A, B, C as D }
                 // will reference the current module's bindings.
-                for (localName, exportedName) in names.localNames {
-                    facade.moduleExportBindingAs(localName, exportedName)
+                for i in 0..<names.count {
+                    let name = names[i]
+                    facade.moduleExportBindingAs(name.local, name.exported)
                 }
             }
 

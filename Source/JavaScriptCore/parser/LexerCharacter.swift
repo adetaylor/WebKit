@@ -63,17 +63,34 @@ protocol LexerCharacter: LexerCodePoint & BitwiseCopyable {
         _ facade: inout JSC.JSParseFacade
     )
         -> JSC.JSParseIdentifier
+    /// The first eight characters as one little-endian word, bounds-checked; meaningful for 8-bit characters only.
+    static func leadingWord(_ characters: Span<Self>) -> UInt64
     static func append(_ characters: Span<Self>, to buffer: inout UniqueArray<UInt16>)
     /// Every character must be Latin-1.
     static func appendLatin1(_ characters: Span<Self>, to buffer: inout UniqueArray<UInt8>)
     static func appendErrorCharacters(_ characters: Span<Self>, _ facade: inout JSC.JSParseFacade)
     /// The characters as the parser's error message prints them, through UTF-8: an unpaired surrogate becomes U+FFFD.
     static func appendPrintedErrorCharacters(_ characters: Span<Self>, _ facade: inout JSC.JSParseFacade)
+
+    // The vector scans of LexerVectorScans.swift. Each returns the first index at or after `start` that the scan stops
+    // at, or the span's count; the span is the source up to the end of the code.
+    /// A character that is not [A-Za-z0-9_$]; a span too short for a vector skips every identifier part.
+    static func findIdentifierEnd(_ characters: Span<Self>, from start: Int) -> Int
+    /// A quote, a backslash, a character below 0xE or, for 16-bit characters and `checksLatin1`, one above 0xFF.
+    static func findStringStop(_ characters: Span<Self>, from start: Int, quote: Self, checksLatin1: Bool) -> Int
+    /// White space, a line terminator, a quote or an apostrophe.
+    static func findDirectiveEnd(_ characters: Span<Self>, from start: Int) -> Int
+    static func findLineTerminator(_ characters: Span<Self>, from start: Int) -> Int
 }
 
 // The @inline(always) on these statics and on the predicates in LexerCharacterTypes.swift keeps the per-character
 // helpers inside the scan loops.
 extension UInt8: LexerCharacter {
+    @inline(always)
+    static func leadingWord(_ characters: Span<UInt8>) -> UInt64 {
+        characters.bytes.load(fromByteOffset: 0, as: UInt64.self)
+    }
+
     @inline(always)
     static func makeIdentifier(_ characters: Span<UInt8>, _ facade: inout JSC.JSParseFacade) -> JSC.JSParseIdentifier {
         // The arena makes the empty identifier for no characters, and a std::span is made only from a span with an
@@ -133,6 +150,11 @@ extension UInt8: LexerCharacter {
 }
 
 extension UInt16: LexerCharacter {
+    @inline(always)
+    static func leadingWord(_ characters: Span<UInt16>) -> UInt64 {
+        0
+    }
+
     @inline(always)
     static func makeIdentifier(_ characters: Span<UInt16>, _ facade: inout JSC.JSParseFacade) -> JSC.JSParseIdentifier {
         characters.isEmpty ? facade.makeEmptyIdentifier() : facade.makeIdentifier16(characters)

@@ -192,6 +192,9 @@ public:
 
     // Identifiers (IdentifierArena), each returning a new handle. The spans are characters Swift lexed or decoded.
     ALWAYS_INLINE JSParseIdentifier makeIdentifier8(std::span<const uint8_t> characters NOESCAPE) { auto& s = state(); return s.addIdentifier(s.identifierArena().makeIdentifier(s.vm(), spanReinterpretCast<const Latin1Character>(characters))); }
+    // The handle of a one-character identifier the arena has cached, or the null handle when it has not (or the handle table is full): the
+    // caller then makes it with makeIdentifier8 or 16. The hit path calls nothing.
+    ALWAYS_INLINE JSParseIdentifier cachedShortIdentifier(uint32_t character) { return state().addCachedShortIdentifier(character); }
     ALWAYS_INLINE JSParseIdentifier makeIdentifier16(std::span<const char16_t> characters NOESCAPE) { auto& s = state(); return s.addIdentifier(s.identifierArena().makeIdentifier(s.vm(), characters)); }
     ALWAYS_INLINE JSParseIdentifier makeLatin1Identifier(std::span<const char16_t> characters NOESCAPE) { auto& s = state(); return s.addIdentifier(s.identifierArena().makeLatin1Identifier(s.vm(), characters)); }
     ALWAYS_INLINE JSParseIdentifier makeEmptyIdentifier() { auto& s = state(); return s.addIdentifier(s.identifierArena().makeEmptyIdentifier(s.vm())); }
@@ -209,13 +212,37 @@ public:
     ALWAYS_INLINE uintptr_t identifierKey(JSParseIdentifier a) { auto* x = state().identifierOrNull(a); return x ? std::bit_cast<uintptr_t>(x->impl()) : 0; }
     // Entry 0 is null and every other entry is non-null (addIdentifier takes a reference), so x && y is a.index && b.index.
     ALWAYS_INLINE bool sameIdentifier(JSParseIdentifier a, JSParseIdentifier b) { auto& s = state(); auto* x = s.identifierOrNull(a); auto* y = s.identifierOrNull(b); return x == y || (x && y && *x == *y); }
-    // sameIdentifier(a, wellKnownIdentifier(name)) with the name read from a fixed table, so a constant name costs no check.
-    ALWAYS_INLINE bool isWellKnownIdentifier(JSParseIdentifier a, JSParseWellKnownName name) { auto& s = state(); auto* x = s.identifierOrNull(a); auto* y = s.wellKnownIdentifierPointer(name); return x == y || (x && *x == *y); }
+    // The key of a well-known name, from a fixed table, so a constant name costs no check; identifierKey(a) == wellKnownKey(name) is
+    // sameIdentifier(a, wellKnownIdentifier(name)): two Identifiers are equal when their impl pointers are, and the key of the null handle is 0.
+    ALWAYS_INLINE uintptr_t wellKnownKey(JSParseWellKnownName name) { return state().wellKnownKey(name); }
 
     // Scopes: the C++ containers of each scope Swift pushes, by its depth, which must be a live one.
     ALWAYS_INLINE JSParseScope pushScope() { return state().pushScope(); }
-    ALWAYS_INLINE void popScope(JSParseScope scope) { state().popScope(scope); }
+    // The whole container work of popping a scope in one crossing (Scope.popScope in ParserScopeStack.swift); flags are
+    // JSParseState's pop bits.
+    ALWAYS_INLINE JSParsePoppedScope popScope(JSParseScope nested, JSParseScope parent, uint8_t flags) { return state().popScope(nested, parent, flags); }
     ALWAYS_INLINE bool environmentAdd(JSParseScope scope, JSParseEnvironmentKind kind, JSParseIdentifier identifier, uint16_t traits) { auto& s = state(); auto result = s.environment(scope, kind).add(s.identifier(identifier)); s.setTraits(result.iterator->value, traits); return result.isNewEntry; }
+    // Scope::declareParameter's three outcomes, as bits: isDuplicateParameter, isArgumentsIdent and isValidStrictMode.
+    static constexpr uint8_t declaredParameterDuplicate = 1;
+    static constexpr uint8_t declaredParameterIsArguments = 2;
+    static constexpr uint8_t declaredParameterValidStrictMode = 4;
+    // Scope::declareParameter's body (Parser.h): one hash probe, the entry updated in place, the name added to the declared parameters.
+    ALWAYS_INLINE uint8_t declareParameter(JSParseScope scope, JSParseIdentifier identifier)
+    {
+        auto& s = state();
+        auto& ident = s.identifier(identifier);
+        auto key = std::bit_cast<uintptr_t>(ident.impl());
+        auto result = s.environment(scope, JSParseEnvironmentKind::Declared).add(ident);
+        auto& entry = result.iterator->value;
+        bool isDuplicate = !result.isNewEntry && entry.isParameter();
+        bool isArguments = key == s.wellKnownKey(JSParseWellKnownName::arguments);
+        bool isValid = !isDuplicate && key != s.wellKnownKey(JSParseWellKnownName::eval) && !isArguments && !s.isStrictModeReservedKey(key);
+        entry.clearIsVar();
+        entry.setIsParameter();
+        s.nameSetAdd(s.mutableScope(scope), JSParseNameSetKind::DeclaredParameters, ident.impl());
+        return (isDuplicate ? declaredParameterDuplicate : 0) | (isArguments ? declaredParameterIsArguments : 0) | (isValid ? declaredParameterValidStrictMode : 0);
+    }
+    ALWAYS_INLINE bool isStrictModeReservedWord(JSParseIdentifier identifier) { auto& s = state(); return s.isStrictModeReservedKey(std::bit_cast<uintptr_t>(s.identifier(identifier).impl())); }
     // The entry's traits, or std::nullopt when the environment has no entry for the name.
     ALWAYS_INLINE std::optional<uint16_t> environmentTraits(JSParseScope scope, JSParseEnvironmentKind kind, JSParseIdentifier identifier) { auto& s = state(); auto& environment = s.readEnvironment(scope, kind); auto iterator = environment.find(s.identifier(identifier).impl()); return iterator == environment.end() ? std::nullopt : std::optional<uint16_t>(iterator->value.bits()); }
     ALWAYS_INLINE bool environmentContains(JSParseScope scope, JSParseEnvironmentKind kind, JSParseIdentifier identifier) { auto& s = state(); return s.readEnvironment(scope, kind).contains(s.identifier(identifier).impl()); }
@@ -246,9 +273,7 @@ public:
     // The function declarations and Annex B hoisting candidates, by node handle.
     ALWAYS_INLINE void appendFunction(JSParseScope scope, JSParseNode metadata) { auto& s = state(); s.mutableScope(scope).functionDeclarations.append(s.template node<FunctionMetadataNode>(metadata)); }
     ALWAYS_INLINE void addSloppyModeFunctionHoistingCandidate(JSParseScope scope, JSParseNode metadata, bool needsDuplicateDeclarationCheck) { auto& s = state(); s.mutableScope(scope).sloppyModeFunctionHoistingCandidates.add(s.template node<FunctionMetadataNode>(metadata), needsDuplicateDeclarationCheck); }
-    ALWAYS_INLINE bool hasSloppyModeFunctionHoistingCandidates(JSParseScope scope) { return !state().scope(scope).sloppyModeFunctionHoistingCandidates.isEmpty(); }
     void finalizeSloppyModeFunctionHoisting(JSParseScope scope) { state().finalizeSloppyModeFunctionHoisting(state().mutableScope(scope)); }
-    void bubbleSloppyModeFunctionHoistingCandidates(JSParseScope from, JSParseScope into, bool isSimpleCatchParameterScope) { state().bubbleSloppyModeFunctionHoistingCandidates(from, into, isSimpleCatchParameterScope); }
     // The containers a node takes: moved out of the scope into a handle the node's forwarder consumes once.
     ALWAYS_INLINE JSParseEnvironment takeEnvironment(JSParseScope scope, JSParseEnvironmentKind kind) { auto& s = state(); return s.addEnvironment(WTF::move(s.environment(scope, kind))); }
     ALWAYS_INLINE JSParseFunctionStack takeFunctionDeclarations(JSParseScope scope) { auto& s = state(); return s.addFunctionStack(WTF::move(s.mutableScope(scope).functionDeclarations)); }
@@ -292,7 +317,7 @@ public:
     // The first private name the scope uses that neither it nor the eval's parent scopes declare, or the null handle.
     JSParseIdentifier undeclaredPrivateName(JSParseScope scope) { return state().undeclaredPrivateName(scope); }
     unsigned usedPrivateNameCount(JSParseScope scope) { return state().usedPrivateNameCount(scope); }
-    bool hasRecordedCacheParameters(JSParseScope scope) { return !!state().scope(scope).cacheParameters; }
+    bool hasRecordedCacheParameters(JSParseScope scope) { return !!state().scope(scope).cacheRecord; }
     // Marks the scope's captured declared variables captured.
     void markCapturedVariablesAsCaptured(JSParseScope scope, bool allDeclaredVariablesAreCaptured) { state().markCapturedVariablesAsCaptured(scope, allDeclaredVariablesAreCaptured); }
     ALWAYS_INLINE bool hasDebuggerParseData() { return !!state().debuggerParseData(); }
@@ -574,7 +599,12 @@ struct JSParseScopeStorage {
     DeclarationStacks::FunctionStack functionDeclarations;
     Vector<UniquedStringImplPtrSet, 6> usedVariables;
     UniquedStringImpl* lastAddedUsedVariable { nullptr };
-    std::optional<SourceProviderCacheItemCreationParameters> cacheParameters;
+    // The cached function recorded for this scope: the scalars as Swift filled them, and the used variables that are free in
+    // it (the first cacheFreeVariableCount) followed by its parameter expressions' non-local captures. popScope builds the
+    // SourceProviderCacheItem from them directly.
+    std::optional<JSParseCachedFunction> cacheRecord;
+    Vector<UniquedStringImpl*, 8> cacheUsedVariables;
+    unsigned cacheFreeVariableCount { 0 };
 
     // A default-constructed environment in place of environment: its map back in inline storage, as a fresh one's,
     // so later iteration order matches a fresh one's.
@@ -601,7 +631,9 @@ struct JSParseScopeStorage {
         functionDeclarations.clear();
         usedVariables.shrink(0);
         lastAddedUsedVariable = nullptr;
-        cacheParameters = std::nullopt;
+        cacheRecord = std::nullopt;
+        cacheUsedVariables.shrink(0);
+        cacheFreeVariableCount = 0;
     }
 };
 
@@ -651,6 +683,14 @@ public:
         m_identifiers.append(&identifier);
         return { static_cast<uint32_t>(m_identifiers.size() - 1) };
     }
+    JSParseIdentifier addCachedShortIdentifier(uint32_t character)
+    {
+        auto* identifier = identifierArena().cachedShortIdentifier(character);
+        if (!identifier || m_identifiers.size() == m_identifiers.capacity())
+            return { };
+        m_identifiers.append(identifier);
+        return { static_cast<uint32_t>(m_identifiers.size() - 1) };
+    }
     JSParseIdentifier addIdentifierOrNull(const Identifier* identifier) { return identifier ? addIdentifier(*identifier) : JSParseIdentifier { }; }
     const Identifier& identifier(JSParseIdentifier handle)
     {
@@ -659,7 +699,16 @@ public:
         return *identifier;
     }
     const Identifier* identifierOrNull(JSParseIdentifier handle) { return m_identifiers[handle.index]; }
-    const Identifier* wellKnownIdentifierPointer(JSParseWellKnownName name) { return m_wellKnownIdentifiers[static_cast<size_t>(name)]; }
+    uintptr_t wellKnownKey(JSParseWellKnownName name) { return m_wellKnownKeys[static_cast<size_t>(name)]; }
+    // Parser.h's isStrictModeReservedWord: its nine names, by key.
+    bool isStrictModeReservedKey(uintptr_t key)
+    {
+        return key == wellKnownKey(JSParseWellKnownName::implementsKeyword) || key == wellKnownKey(JSParseWellKnownName::interfaceKeyword)
+            || key == wellKnownKey(JSParseWellKnownName::letKeyword) || key == wellKnownKey(JSParseWellKnownName::packageKeyword)
+            || key == wellKnownKey(JSParseWellKnownName::privateKeyword) || key == wellKnownKey(JSParseWellKnownName::protectedKeyword)
+            || key == wellKnownKey(JSParseWellKnownName::publicKeyword) || key == wellKnownKey(JSParseWellKnownName::staticKeyword)
+            || key == wellKnownKey(JSParseWellKnownName::yieldKeyword);
+    }
     // The null handle is the null Identifier (a parse whose root has no callee name passes it as the body's name).
     const Identifier& identifierOrNullIdentifier(JSParseIdentifier handle) { return handle.index ? identifier(handle) : vm().propertyNames->nullIdentifier; }
 
@@ -678,20 +727,25 @@ public:
     }
     // A node parameter ASTBuilder dereferences: the null handle traps (on the slow path, so the hot path is the one
     // kind compare).
-    template<typename T> T* node(JSParseNode handle)
+    template<typename T> ALWAYS_INLINE T* node(JSParseNode handle)
     {
         auto& slot = m_nodes[handle.index];
-        if (slot.kind() == kindOf<T>()) [[likely]]
-            return static_cast<T*>(slot.pointer());
+        // A base class (Node, ExpressionNode) is no kind a slot holds, so its kind compare would never match.
+        if constexpr (kindOf<T>() != nullKind + 1) {
+            if (slot.kind() == kindOf<T>()) [[likely]]
+                return static_cast<T*>(slot.pointer());
+        }
         RELEASE_ASSERT(slot.kind() != nullKind);
         return convertedNode<T>(slot, std::make_index_sequence<std::tuple_size_v<JSParseNodeTypes>>());
     }
     // A node parameter ASTBuilder takes as optional: the null handle is nullptr.
-    template<typename T> T* nodeOrNull(JSParseNode handle)
+    template<typename T> ALWAYS_INLINE T* nodeOrNull(JSParseNode handle)
     {
         auto& slot = m_nodes[handle.index];
-        if (slot.kind() == kindOf<T>()) [[likely]]
-            return static_cast<T*>(slot.pointer());
+        if constexpr (kindOf<T>() != nullKind + 1) {
+            if (slot.kind() == kindOf<T>()) [[likely]]
+                return static_cast<T*>(slot.pointer());
+        }
         if (slot.kind() == nullKind)
             return nullptr;
         return convertedNode<T>(slot, std::make_index_sequence<std::tuple_size_v<JSParseNodeTypes>>());
@@ -753,19 +807,30 @@ public:
     {
         // Slot 0 is the null handle's. The storages live until the parse ends; depth picks the live ones.
         size_t index = m_scopeDepth++;
-        if (index == m_scopes.size())
-            m_scopes.append(nullptr);
+        // The first push at a depth makes the slot and its storage: out of line, so that the common push keeps no frame for them.
+        if (index == m_scopes.size()) [[unlikely]]
+            return pushNewScope(index);
         auto& slot = m_scopes[index];
-        if (!slot) [[unlikely]] {
-            slot = makeUnique<JSParseScopeStorage>();
-            slot->usedVariables.constructAndAppend();
-        } else if (slot->dirty) [[unlikely]] {
+        if (!slot) [[unlikely]]
+            return pushNewScope(index);
+        if (slot->dirty) {
             slot->reset();
             slot->usedVariables.constructAndAppend();
         }
         return { static_cast<uint32_t>(index) };
     }
-    void popScope(JSParseScope);
+    // The bits of popScope's flags, which Swift's PopScopeFlags (ParserScopeStack.swift) spells the same.
+    static constexpr uint8_t popMarkLexicalVariablesCaptured = 1 << 0;
+    static constexpr uint8_t popTrackClosedVariables = 1 << 1;
+    static constexpr uint8_t popFilterArguments = 1 << 2;
+    static constexpr uint8_t popNestedIsFunctionBoundary = 1 << 3;
+    static constexpr uint8_t popNestedIsLexicalScope = 1 << 4;
+    static constexpr uint8_t popIsSimpleCatchParameterScope = 1 << 5;
+    static constexpr uint8_t popTakeContainers = 1 << 6;
+    static constexpr uint8_t popQueryUsesArguments = 1 << 7;
+    // Pops the last live scope, nested, whose parent is the one below it: finalizes its lexical environment, moves its free
+    // variables and Annex B candidates to the parent, takes its containers for a node, and releases the storage.
+    JSParsePoppedScope popScope(JSParseScope nested, JSParseScope parent, uint8_t flags);
     // scope()'s check alone, for a caller that needs no storage.
     void checkLiveScope(JSParseScope handle) { scope(handle); }
     // Traps unless the handle is a live scope (1 <= index < m_scopeDepth); the unsigned subtraction makes 0 fail the same compare.
@@ -807,10 +872,11 @@ public:
     void mergeIntoPreviousUsedVariables(JSParseScopeStorage&, unsigned count);
     void markLastUsedVariablesSetAsCaptured(JSParseScopeStorage&, unsigned from);
     void collectFreeVariables(JSParseScope into, JSParseScope nested, bool shouldTrackClosedVariables, bool filterArguments, bool nestedIsFunctionBoundary, bool nestedIsLexicalScope);
+    void collectFreeVariables(JSParseScopeStorage& into, JSParseScopeStorage& nested, bool shouldTrackClosedVariables, bool filterArguments, bool nestedIsFunctionBoundary, bool nestedIsLexicalScope);
     void computeLexicallyCapturedVariablesAndPurgeCandidates(JSParseScopeStorage&);
     void collectNonLocalCapturesFromParameterExpressions(JSParseScopeStorage&);
     void finalizeSloppyModeFunctionHoisting(JSParseScopeStorage&);
-    void bubbleSloppyModeFunctionHoistingCandidates(JSParseScope from, JSParseScope into, bool isSimpleCatchParameterScope);
+    void bubbleSloppyModeFunctionHoistingCandidates(JSParseScopeStorage& from, JSParseScopeStorage& into, bool isSimpleCatchParameterScope);
     std::optional<JSParseCachedFunction> findCachedFunction(JSParseScope, int32_t parametersStart);
     void recordCachedFunction(JSParseScope, const JSParseCachedFunction&);
     void addRecordedCachedFunction(int32_t startOffset);
@@ -827,6 +893,11 @@ public:
     JSParseNode createPropertyList(const JSTokenLocation&, JSParseNode property, JSParseNode tail);
 
 private:
+    // pushScope's first push at a depth: the slot (when the depth is new) and the storage.
+    NEVER_INLINE JSParseScope pushNewScope(size_t index);
+    // popScope's scope with a recorded cached function: the item the parser adds to the cache once the function is parsed.
+    NEVER_INLINE void createRecordedCacheItem(JSParseScopeStorage&);
+
     using NodeSlot = JSParseNodeSlot;
     static constexpr uint8_t nullKind = std::tuple_size_v<JSParseNodeTypes>;
     template<typename T, size_t index = 0> static constexpr uint8_t kindOf()
@@ -838,16 +909,9 @@ private:
         else
             return kindOf<T, index + 1>();
     }
-    template<typename T, size_t... indices> T* convertedNode(const NodeSlot& slot, std::index_sequence<indices...>)
-    {
-        if (slot.kind() == nullKind)
-            return nullptr;
-        T* result = nullptr;
-        bool converted = ((slot.kind() == indices && convertNode<T, std::tuple_element_t<indices, JSParseNodeTypes>>(slot.pointer(), result)) || ...);
-        RELEASE_ASSERT(converted);
-        return result;
-    }
-    template<typename T, typename Stored> static bool convertNode(void* pointer, T*& result)
+    // Converts the slot's pointer, which is a Stored*, to T*: when T is a base of Stored the conversion is a constant add (none
+    // for the first base) the compiler folds, since the base classes are non-virtual.
+    template<typename T, typename Stored> static ALWAYS_INLINE bool convertNode(void* pointer, T*& result)
     {
         if constexpr (std::is_base_of_v<T, Stored>) {
             result = static_cast<Stored*>(pointer);
@@ -855,18 +919,27 @@ private:
         } else
             return false;
     }
+    // Loads a slot as a base class (or a subclass) of the type it holds, inline in place of a call. The callers took the null
+    // kind; a kind the table does not hold, or one T is no base of, traps.
+    template<typename T, size_t... indices> static ALWAYS_INLINE T* convertedNode(const NodeSlot& slot, std::index_sequence<indices...>)
+    {
+        T* result = nullptr;
+        bool converted = ((slot.kind() == indices && convertNode<T, std::tuple_element_t<indices, JSParseNodeTypes>>(slot.pointer(), result)) || ...);
+        RELEASE_ASSERT(converted);
+        return result;
+    }
 
     VM& m_vm;
     ParserArena& m_arena;
     IdentifierArena& m_identifierArena;
     ASTBuilder m_builder;
     Vector<const Identifier*> m_identifiers;
-    std::array<const Identifier*, static_cast<size_t>(JSParseWellKnownName::Count)> m_wellKnownIdentifiers { }; // m_identifiers[1, Count].
+    std::array<uintptr_t, static_cast<size_t>(JSParseWellKnownName::Count)> m_wellKnownKeys { }; // Each one's impl pointer.
     Vector<NodeSlot> m_nodes;
-    Vector<std::unique_ptr<JSParseScopeStorage>> m_scopes;
+    Vector<std::unique_ptr<JSParseScopeStorage>, 16> m_scopes; // Inline: the parse's block holds the first sixteen.
     size_t m_scopeDepth { 1 }; // The live scopes are m_scopes[1, m_scopeDepth).
-    Vector<std::unique_ptr<VariableEnvironment>> m_environments;
-    Vector<std::unique_ptr<DeclarationStacks::FunctionStack>> m_functionStacks;
+    Vector<std::unique_ptr<VariableEnvironment>, 16> m_environments;
+    Vector<std::unique_ptr<DeclarationStacks::FunctionStack>, 16> m_functionStacks;
     std::unique_ptr<SourceProviderCacheItem> m_recordedCacheItem;
     RefPtr<SourceProviderCache> m_functionCache;
     RefPtr<ModuleScopeData> m_moduleScopeData;

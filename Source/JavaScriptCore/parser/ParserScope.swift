@@ -33,17 +33,17 @@ struct VariableTraits: OptionSet {
         rawValue = trait.rawValue
     }
 
-    static let captured = VariableTraits(.Captured)
-    static let const = VariableTraits(.Const)
-    static let `var` = VariableTraits(.Var)
-    static let `let` = VariableTraits(.Let)
-    static let exported = VariableTraits(.Exported)
-    static let imported = VariableTraits(.Imported)
-    static let importedNamespace = VariableTraits(.ImportedNamespace)
-    static let function = VariableTraits(.Function)
-    static let parameter = VariableTraits(.Parameter)
-    static let functionDeclaration = VariableTraits(.FunctionDeclaration)
-    static let using = VariableTraits(.Using)
+    static var captured: VariableTraits { @inline(always) get { VariableTraits(.Captured) } }
+    static var const: VariableTraits { @inline(always) get { VariableTraits(.Const) } }
+    static var `var`: VariableTraits { @inline(always) get { VariableTraits(.Var) } }
+    static var `let`: VariableTraits { @inline(always) get { VariableTraits(.Let) } }
+    static var exported: VariableTraits { @inline(always) get { VariableTraits(.Exported) } }
+    static var imported: VariableTraits { @inline(always) get { VariableTraits(.Imported) } }
+    static var importedNamespace: VariableTraits { @inline(always) get { VariableTraits(.ImportedNamespace) } }
+    static var function: VariableTraits { @inline(always) get { VariableTraits(.Function) } }
+    static var parameter: VariableTraits { @inline(always) get { VariableTraits(.Parameter) } }
+    static var functionDeclaration: VariableTraits { @inline(always) get { VariableTraits(.FunctionDeclaration) } }
+    static var using: VariableTraits { @inline(always) get { VariableTraits(.Using) } }
 }
 
 /// The kinds a scope's function is and the boundaries its body makes, in one byte.
@@ -90,21 +90,20 @@ struct LexicallyScopedFeatureSet: OptionSet {
 }
 
 extension JSC.JSParseIdentifier {
-    /// Whether this is the VM's well-known name `name`.
+    /// Whether this is the VM's well-known name `name`: the identifier keys are equal, with no table walk to a structural compare.
     @inline(always)
     func matches(_ name: JSC.JSParseWellKnownName, _ facade: inout JSC.JSParseFacade) -> Bool {
-        facade.isWellKnownIdentifier(self, name)
+        facade.identifierKey(self) == facade.wellKnownKey(name)
     }
 
     @inline(always)
     func isEvalOrArguments(_ facade: inout JSC.JSParseFacade) -> Bool {
-        matches(.eval, &facade) || matches(.arguments, &facade)
+        let key = facade.identifierKey(self)
+        return key == facade.wellKnownKey(.eval) || key == facade.wellKnownKey(.arguments)
     }
 
     func isStrictModeReservedWord(_ facade: inout JSC.JSParseFacade) -> Bool {
-        matches(.implementsKeyword, &facade) || matches(.interfaceKeyword, &facade) || matches(.letKeyword, &facade)
-            || matches(.packageKeyword, &facade) || matches(.privateKeyword, &facade) || matches(.protectedKeyword, &facade)
-            || matches(.publicKeyword, &facade) || matches(.staticKeyword, &facade) || matches(.yieldKeyword, &facade)
+        facade.isStrictModeReservedWord(self)
     }
 }
 
@@ -409,12 +408,12 @@ struct Scope: ~Copyable {
     mutating func setInnerArrowFunctionUsesNewTarget() { innerArrowFunctionFeatures.insert(.newTarget) }
     mutating func setInnerArrowFunctionUsesArguments() { innerArrowFunctionFeatures.insert(.arguments) }
 
-    mutating func setInnerArrowFunctionUsesEvalAndUseArgumentsIfNeeded(_ facade: inout JSC.JSParseFacade) {
+    mutating func setInnerArrowFunctionUsesEvalAndUseArgumentsIfNeeded(usesArguments: Bool) {
         assert(isArrowFunction)
         if usesEval {
             setInnerArrowFunctionUsesEval()
         }
-        if usedVariablesContains(facade.wellKnownIdentifier(.arguments), &facade) {
+        if usesArguments {
             setInnerArrowFunctionUsesArguments()
         }
     }
@@ -687,22 +686,19 @@ struct Scope: ~Copyable {
 
     mutating func declareParameter(_ ident: JSC.JSParseIdentifier, _ facade: inout JSC.JSParseFacade) -> DeclarationResult {
         assert(allowsVarDeclarations)
+        // One facade call does Scope::declareParameter's container work; its bits are isDuplicateParameter (1),
+        // isArgumentsIdent (2) and isValidStrictMode (4).
+        let bits = facade.declareParameter(storage, ident)
         var result = DeclarationResult.valid
-        let isArgumentsIdent = ident.matches(.arguments, &facade)
-        let isDuplicateParameter = environmentEntry(.Declared, ident, &facade)?.contains(.parameter) ?? false
-        let isValidStrictMode =
-            !isDuplicateParameter && !ident.matches(.eval, &facade) && !isArgumentsIdent && !ident.isStrictModeReservedWord(&facade)
-        _ = facade.environmentAdd(storage, .Declared, ident, VariableTraits.parameter.rawValue)
-        facade.environmentClearIsVar(storage, .Declared, ident)
+        let isValidStrictMode = bits & 4 != 0
         self.isValidStrictMode = self.isValidStrictMode && isValidStrictMode
-        _ = facade.nameSetAdd(storage, .DeclaredParameters, ident)
         if !isValidStrictMode {
             result.insert(.invalidStrictMode)
         }
-        if isArgumentsIdent {
+        if bits & 2 != 0 {
             shadowsArguments = true
         }
-        if isDuplicateParameter {
+        if bits & 1 != 0 {
             result.insert(.invalidDuplicateDeclaration)
         }
 
@@ -751,10 +747,6 @@ struct Scope: ~Copyable {
     }
 
     // MARK: Sloppy mode function hoisting
-
-    func hasSloppyModeFunctionHoistingCandidates(_ facade: inout JSC.JSParseFacade) -> Bool {
-        facade.hasSloppyModeFunctionHoistingCandidates(storage)
-    }
 
     func finalizeSloppyModeFunctionHoisting(_ facade: inout JSC.JSParseFacade) {
         assert(allowsVarDeclarations)

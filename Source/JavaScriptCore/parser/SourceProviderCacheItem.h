@@ -71,6 +71,9 @@ public:
     using Base = TrailingArray<SourceProviderCacheItem, PackedRefPtr<UniquedStringImpl>>;
 
     static std::unique_ptr<SourceProviderCacheItem> create(const SourceProviderCacheItemCreationParameters&);
+    // From any record with the creation parameters' scalar fields (the Swift parser's JSParseCachedFunction) and the used
+    // variables apart from it.
+    template<typename Parameters> static std::unique_ptr<SourceProviderCacheItem> create(const Parameters&, std::span<UniquedStringImpl* const> usedVariables);
 
     JSToken endFunctionToken() const 
     {
@@ -113,17 +116,26 @@ public:
     std::span<const PackedRefPtr<UniquedStringImpl>> usedVariables() const LIFETIME_BOUND { return span(); }
 
 private:
-    SourceProviderCacheItem(const SourceProviderCacheItemCreationParameters&);
+    SourceProviderCacheItem(const SourceProviderCacheItemCreationParameters& parameters)
+        : SourceProviderCacheItem(parameters, parameters.usedVariables.span())
+    {
+    }
+    template<typename Parameters> SourceProviderCacheItem(const Parameters&, std::span<UniquedStringImpl* const> usedVariables);
 };
 
 inline std::unique_ptr<SourceProviderCacheItem> SourceProviderCacheItem::create(const SourceProviderCacheItemCreationParameters& parameters)
 {
-    void* slot = SourceProviderCacheItemMalloc::malloc(Base::allocationSize(parameters.usedVariables.size()));
-    return std::unique_ptr<SourceProviderCacheItem>(new (NotNull, slot) SourceProviderCacheItem(parameters));
+    return create(parameters, std::span<UniquedStringImpl* const> { parameters.usedVariables.span() });
 }
 
-inline SourceProviderCacheItem::SourceProviderCacheItem(const SourceProviderCacheItemCreationParameters& parameters)
-    : Base(parameters.usedVariables.span())
+template<typename Parameters> inline std::unique_ptr<SourceProviderCacheItem> SourceProviderCacheItem::create(const Parameters& parameters, std::span<UniquedStringImpl* const> usedVariables)
+{
+    void* slot = SourceProviderCacheItemMalloc::malloc(Base::allocationSize(usedVariables.size()));
+    return std::unique_ptr<SourceProviderCacheItem>(new (NotNull, slot) SourceProviderCacheItem(parameters, usedVariables));
+}
+
+template<typename Parameters> inline SourceProviderCacheItem::SourceProviderCacheItem(const Parameters& parameters, std::span<UniquedStringImpl* const> usedVariables)
+    : Base(usedVariables)
     , needsFullActivation(parameters.needsFullActivation)
     , endFunctionOffset(parameters.endFunctionOffset)
     , usesEval(parameters.usesEval)

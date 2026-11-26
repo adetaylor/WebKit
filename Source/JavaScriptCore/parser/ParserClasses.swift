@@ -92,8 +92,10 @@ extension Parser {
         withScope(classHeadScope) {
             $0.setIsLexicalScope()
             $0.preventVarDeclarations()
-            $0.setStrictMode()
         }
+        // The class head scope was just pushed, so it is the current one, whose strict mode setStrictMode keeps.
+        assert(classHeadScope.index == topScope)
+        setStrictMode()
         next([], &facade)
         if scopes[topScope].isStaticBlock && match(.awaitKeyword) {
             return semanticFail("Cannot use 'await' as a class name within static block")
@@ -149,9 +151,11 @@ extension Parser {
         withScope(classScope) {
             $0.setIsLexicalScope()
             $0.preventVarDeclarations()
-            $0.setStrictMode()
             $0.setIsClassScope()
         }
+        // The class scope was just pushed, so it is the current one, whose strict mode setStrictMode keeps.
+        assert(classScope.index == topScope)
+        setStrictMode()
 
         var declaresPrivateMethod = false
         var declaresPrivateAccessor = false

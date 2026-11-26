@@ -32,6 +32,22 @@ struct CallOrApplyDepthScope {
     }
 }
 
+/// What the facade's popScope needs of the scope it pops; the bits are JSParseState::popScope's (ParserSwiftFacadeInlines.h).
+struct PopScopeFlags: OptionSet {
+    let rawValue: UInt8
+
+    /// The scope uses eval or needs a full activation: every lexical variable is captured.
+    static let markLexicalVariablesCaptured = PopScopeFlags(rawValue: 1 << 0)
+    static let trackClosedVariables = PopScopeFlags(rawValue: 1 << 1)
+    static let filterArguments = PopScopeFlags(rawValue: 1 << 2)
+    static let nestedIsFunctionBoundary = PopScopeFlags(rawValue: 1 << 3)
+    static let nestedIsLexicalScope = PopScopeFlags(rawValue: 1 << 4)
+    static let isSimpleCatchParameterScope = PopScopeFlags(rawValue: 1 << 5)
+    static let takeContainers = PopScopeFlags(rawValue: 1 << 6)
+    /// The scope is an arrow function: the result says whether its used variables hold `arguments`.
+    static let queryUsesArguments = PopScopeFlags(rawValue: 1 << 7)
+}
+
 extension Parser {
     // MARK: Scopes
 
@@ -66,7 +82,12 @@ extension Parser {
         ScopeRef(index: index, generation: scopes[index].generation)
     }
 
-    var strictMode: Bool { scopes[topScope].strictMode }
+    /// The current scope's strict mode, held beside the stack (`topStrictMode`) so that `next()` reads no scope.
+    @inline(always)
+    var strictMode: Bool {
+        assert(topStrictMode == scopes[topScope].strictMode)
+        return topStrictMode
+    }
 
     var isValidStrictMode: Bool {
         let index = topScope
@@ -154,18 +175,30 @@ extension Parser {
     mutating func pushScope(_ facade: inout JSC.JSParseFacade) -> ScopeRef {
         let storage = facade.pushScope()
         scopeGeneration += 1
-        let scope =
-            topScope >= 0
-            ? Scope(storage: storage, generation: scopeGeneration, labelsBase: labelStack.count, inheriting: scopes[topScope])
-            : Scope(
+        if topScope >= 0 {
+            // A pushed scope inherits its parent's features, strict mode included: topStrictMode stays.
+            let scope = Scope(storage: storage, generation: scopeGeneration, labelsBase: labelStack.count, inheriting: scopes[topScope])
+            scopes.append(scope)
+        } else {
+            appendRootScope(storage)
+        }
+        topScope = scopes.count - 1
+        assert(topStrictMode == scopes[topScope].strictMode)
+        return ScopeRef(index: topScope, generation: scopeGeneration)
+    }
+
+    /// The parse's first scope, which has no parent to inherit from and is not strict until the modes say so.
+    @inline(never)
+    private mutating func appendRootScope(_ storage: JSC.JSParseScope) {
+        scopes.append(
+            Scope(
                 storage: storage,
                 generation: scopeGeneration,
                 implementationVisibility: implementationVisibility,
                 labelsBase: labelStack.count
             )
-        scopes.append(scope)
-        topScope = scopes.count - 1
-        return ScopeRef(index: topScope, generation: scopeGeneration)
+        )
+        topStrictMode = false
     }
 
     mutating func resetImplementationVisibilityIfNeeded() {
@@ -193,6 +226,10 @@ extension Parser {
     // When takeContainers, the scope's lexical environment and function declarations are returned for its node;
     // otherwise they are dropped with the storage and the result is null handles, which the node-less checker's callers
     // pass on unused.
+    //
+    // One crossing into the facade does the container work of the pop (the lexical environment's capture marks, the free
+    // variables, the Annex B candidates, the containers taken, the storage released); the flags it needs are read from the
+    // scope here, and the Swift-side flag propagation follows.
     @discardableResult
     mutating func popScope(
         _ scope: ScopeRef,
@@ -205,42 +242,62 @@ extension Parser {
         let last = scope.index
         let parent = last - 1
 
-        scopes[last].finalizeLexicalEnvironment(&facade)
-
-        collectFreeVariables(into: parent, from: last, shouldTrackClosedVariables, &facade)
-
-        if scopes[last].hasSloppyModeFunctionHoistingCandidates(&facade) {
-            facade.bubbleSloppyModeFunctionHoistingCandidates(
-                scopes[last].storage,
-                scopes[parent].storage,
-                scopes[last].isSimpleCatchParameterScope
-            )
+        let usesEval = scopes[last].usesEval
+        let usesImportMeta = scopes[last].usesImportMeta
+        let isFunctionBoundary = scopes[last].isFunctionBoundary
+        let isArrowFunction = scopes[last].isArrowFunction
+        var flags: PopScopeFlags = []
+        if usesEval || scopes[last].needsFullActivation {
+            flags.insert(.markLexicalVariablesCaptured)
+        }
+        if shouldTrackClosedVariables {
+            flags.insert(.trackClosedVariables)
+        }
+        // If nestedScope is a non-arrow function and there is an "arguments" reference,
+        // we need to filter it because it should not propagate out.
+        if isFunctionBoundary {
+            flags.insert(.nestedIsFunctionBoundary)
+            if scopes[last].hasArguments && !scopes[last].isArrowFunctionBoundary {
+                flags.insert(.filterArguments)
+            }
+        }
+        if scopes[last].isLexicalScope {
+            flags.insert(.nestedIsLexicalScope)
+        }
+        if scopes[last].isSimpleCatchParameterScope {
+            flags.insert(.isSimpleCatchParameterScope)
+        }
+        if takeContainers {
+            flags.insert(.takeContainers)
+        }
+        if isArrowFunction {
+            flags.insert(.queryUsesArguments)
         }
 
-        if scopes[last].isArrowFunction {
-            scopes[last].setInnerArrowFunctionUsesEvalAndUseArgumentsIfNeeded(&facade)
+        let popped = facade.popScope(scopes[last].storage, scopes[parent].storage, flags.rawValue)
+
+        scopes[parent].propagateFlags(usesEval: usesEval, usesImportMeta: usesImportMeta)
+
+        if isArrowFunction {
+            scopes[last].setInnerArrowFunctionUsesEvalAndUseArgumentsIfNeeded(usesArguments: popped.usesArguments)
         }
 
-        if !(scopes[last].isFunctionBoundary && !scopes[last].isArrowFunctionBoundary) {
+        if !(isFunctionBoundary && !scopes[last].isArrowFunctionBoundary) {
             scopes[parent].mergeInnerArrowFunctionFeatures(scopes[last].innerArrowFunctionFeatures)
         }
 
-        if !scopes[last].isFunctionBoundary && scopes[last].needsFullActivation {
+        if !isFunctionBoundary && scopes[last].needsFullActivation {
             scopes[parent].setNeedsFullActivation()
         }
-        let result =
-            takeContainers
-            ? (facade.takeEnvironment(scopes[last].storage, .Lexical), facade.takeFunctionDeclarations(scopes[last].storage))
-            : (JSC.JSParseEnvironment(), JSC.JSParseFunctionStack())
-        facade.popScope(scopes[last].storage)
         // Only when the scope pushed labels: removeSubrange on the shared empty array takes the non-unique path, which
         // makes a new buffer on every pop.
-        if labelStack.count > scopes[topScope].labelsBase {
-            labelStack.removeSubrange(scopes[topScope].labelsBase...)
+        if labelStack.count > scopes[last].labelsBase {
+            labelStack.removeSubrange(scopes[last].labelsBase...)
         }
         scopes.removeLast()
-        topScope = last - 1
-        return result
+        topScope = parent
+        topStrictMode = scopes[parent].strictMode
+        return (popped.lexicalVariables, popped.functionDeclarations)
     }
 
     /// Propagates nested's flags to parent; the facade moves the free variables.
@@ -398,7 +455,10 @@ extension Parser {
 
     mutating func endSwitch() { scopes[topScope].endSwitch() }
 
-    mutating func setStrictMode() { scopes[topScope].setStrictMode() }
+    mutating func setStrictMode() {
+        scopes[topScope].setStrictMode()
+        topStrictMode = true
+    }
 
     var breakIsValid: Bool {
         mutating get {

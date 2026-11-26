@@ -26,6 +26,9 @@ internal import JSCSwiftBoundary
 /// facade's StringBuilder receives it once, when the parse fails.
 enum ErrorMessagePart {
     case text(Swift.String)
+    /// A literal message's text, as the pointer and length it is: the String is made when the message is printed, and not
+    /// each time a save point's backtracking records one.
+    case literal(StaticString)
     case identifier(JSC.JSParseIdentifier)
     case number(Int64)
     /// The characters of the provider from `start` to `end`.
@@ -40,6 +43,10 @@ struct ErrorMessage: ExpressibleByStringLiteral {
     enum Storage {
         case literal(StaticString)
         case parts([ErrorMessagePart])
+        /// The unexpected-token head, ". ", the message and ".": one box, so that no array is grown to join them.
+        indirect case tokenError(head: ErrorMessage, message: ErrorMessage)
+        /// The message and ".".
+        indirect case semanticError(ErrorMessage)
     }
 
     private let storage: Storage
@@ -73,17 +80,45 @@ struct ErrorMessage: ExpressibleByStringLiteral {
         self.init([a, b, c, d, e])
     }
 
-    var parts: [ErrorMessagePart] {
+    /// Calls `body` with each part in order.
+    func forEachPart(_ body: (ErrorMessagePart) -> Void) {
         switch storage {
-        case .literal(let text): return [.text(text.description)]
-        case .parts(let parts): return parts
+        case .literal(let text):
+            body(.literal(text))
+        case .parts(let own):
+            for part in own {
+                body(part)
+            }
+        case .tokenError(let head, let message):
+            head.forEachPart(body)
+            body(.text(". "))
+            message.forEachPart(body)
+            body(.text("."))
+        case .semanticError(let message):
+            message.forEachPart(body)
+            body(.text("."))
         }
+    }
+
+    /// The message followed by a full stop.
+    static func semantic(_ message: ErrorMessage) -> ErrorMessage {
+        ErrorMessage(storage: .semanticError(message))
+    }
+
+    /// The unexpected token's head, then the message.
+    static func tokenError(head: ErrorMessage, message: ErrorMessage) -> ErrorMessage {
+        ErrorMessage(storage: .tokenError(head: head, message: message))
+    }
+
+    private init(storage: Storage) {
+        self.storage = storage
     }
 
     var isEmpty: Bool {
         switch storage {
         case .literal(let text): return text.utf8CodeUnitCount == 0
         case .parts(let parts): return parts.isEmpty
+        case .tokenError, .semanticError: return false
         }
     }
 }
@@ -114,9 +149,7 @@ extension Parser {
         if hasError {
             return
         }
-        var parts = message.parts
-        parts.append(.text("."))
-        errorMessage = ErrorMessage(parts)
+        errorMessage = .semantic(message)
     }
 
     /// True when a failure returns before its message is made.
@@ -133,13 +166,12 @@ extension Parser {
         if hasError {
             return
         }
-        var parts = unexpectedTokenMessage().parts
+        let head = unexpectedTokenMessage()
         if token.type != .eof && !token.type.canBeError {
-            parts.append(.text(". "))
-            parts.append(contentsOf: message.parts)
-            parts.append(.text("."))
+            errorMessage = .tokenError(head: head, message: message)
+        } else {
+            errorMessage = head
         }
-        errorMessage = ErrorMessage(parts)
     }
 
     /// Records the message with the token and returns the production's null.
@@ -209,10 +241,12 @@ extension Parser {
             appendErrorText("Unparseable script", &facade)
             return
         }
-        for part in message.parts {
+        message.forEachPart { part in
             switch part {
             case .text(let text):
                 appendErrorText(text, &facade)
+            case .literal(let text):
+                appendErrorText(text.description, &facade)
             case .identifier(let identifier):
                 facade.appendErrorIdentifier(identifier)
             case .number(let number):

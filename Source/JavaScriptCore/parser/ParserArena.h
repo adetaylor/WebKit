@@ -53,6 +53,9 @@ namespace JSC {
         ALWAYS_INLINE const Identifier& makeLatin1Identifier(VM&, std::span<const char16_t> characters);
         ALWAYS_INLINE const Identifier& makeIdentifier(VM&, SymbolImpl*);
 
+        // The cached one-character identifier, or null when the character is not cached (yet).
+        ALWAYS_INLINE Identifier* cachedShortIdentifier(unsigned character) const { return character < MaximumCachableCharacter ? m_shortIdentifiers[character] : nullptr; }
+
         const Identifier* makeBigIntDecimalIdentifier(VM&, const Identifier&, uint8_t radix);
         const Identifier& makeNumericIdentifier(VM&, double number);
         const Identifier& makePrivateIdentifier(VM&, ASCIILiteral, unsigned);
@@ -70,6 +73,10 @@ namespace JSC {
         }
 
     private:
+        // The one-character cache miss, out of line so that the hit path of makeIdentifier needs no call frame.
+        template <typename T>
+        NEVER_INLINE const Identifier& makeShortIdentifierOnMiss(VM&, std::span<const T> characters);
+
         IdentifierVector m_identifiers;
         std::array<Identifier*, MaximumCachableCharacter> m_shortIdentifiers;
         std::array<Identifier*, MaximumCachableCharacter> m_recentIdentifiers;
@@ -87,15 +94,21 @@ namespace JSC {
         if (characters.size() == 1) {
             if (Identifier* ident = m_shortIdentifiers[characters.front()])
                 return *ident;
-            m_identifiers.append(Identifier::fromString(vm, characters));
-            m_shortIdentifiers[characters.front()] = &m_identifiers.last();
-            return m_identifiers.last();
+            return makeShortIdentifierOnMiss(vm, characters);
         }
         Identifier* ident = m_recentIdentifiers[characters.front()];
         if (ident && Identifier::equal(ident->impl(), characters))
             return *ident;
         m_identifiers.append(Identifier::fromString(vm, characters));
         m_recentIdentifiers[characters.front()] = &m_identifiers.last();
+        return m_identifiers.last();
+    }
+
+    template <typename T>
+    NEVER_INLINE const Identifier& IdentifierArena::makeShortIdentifierOnMiss(VM& vm, std::span<const T> characters)
+    {
+        m_identifiers.append(Identifier::fromString(vm, characters));
+        m_shortIdentifiers[characters.front()] = &m_identifiers.last();
         return m_identifiers.last();
     }
 
@@ -122,9 +135,7 @@ namespace JSC {
         if (characters.size() == 1) {
             if (Identifier* ident = m_shortIdentifiers[characters.front()])
                 return *ident;
-            m_identifiers.append(Identifier::fromString(vm, characters));
-            m_shortIdentifiers[characters.front()] = &m_identifiers.last();
-            return m_identifiers.last();
+            return makeShortIdentifierOnMiss(vm, characters);
         }
         Identifier* ident = m_recentIdentifiers[characters.front()];
         if (ident && Identifier::equal(ident->impl(), characters))

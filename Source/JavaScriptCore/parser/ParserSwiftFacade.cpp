@@ -140,15 +140,27 @@ JSParseState::JSParseState(VM& vm, ParserArena& arena, const SourceCode& source,
     m_scopes.append(nullptr);
     m_environments.append(nullptr);
     m_functionStacks.append(nullptr);
+    // The well-known names are identifier handles 1 to Count, in JSParseWellKnownName's order; each one's pointer
+    // and key are stored in one pass, in place.
     auto& names = *vm.propertyNames;
-#define JSC_PARSER_SWIFT_APPEND_KEYWORD(name) m_identifiers.append(&names.name##Keyword);
-#define JSC_PARSER_SWIFT_APPEND_NAME(name) m_identifiers.append(&names.name);
-    JSC_COMMON_IDENTIFIERS_EACH_KEYWORD(JSC_PARSER_SWIFT_APPEND_KEYWORD)
-    JSC_PARSER_SWIFT_OTHER_NAMES(JSC_PARSER_SWIFT_APPEND_NAME)
-    m_identifiers.append(&names.builtinNames().metaPublicName());
-#undef JSC_PARSER_SWIFT_APPEND_NAME
-#undef JSC_PARSER_SWIFT_APPEND_KEYWORD
-    RELEASE_ASSERT(m_identifiers.size() == static_cast<size_t>(JSParseWellKnownName::Count) + 1);
+    constexpr size_t wellKnownCount = static_cast<size_t>(JSParseWellKnownName::Count);
+    m_identifiers.grow(1 + wellKnownCount);
+    size_t wellKnownIndex = 0;
+#define JSC_PARSER_SWIFT_STORE_WELL_KNOWN(expression) { \
+        const Identifier* pointer = &(expression); \
+        m_identifiers[1 + wellKnownIndex] = pointer; \
+        m_wellKnownKeys[wellKnownIndex] = std::bit_cast<uintptr_t>(pointer->impl()); \
+        ++wellKnownIndex; \
+    }
+#define JSC_PARSER_SWIFT_STORE_KEYWORD(name) JSC_PARSER_SWIFT_STORE_WELL_KNOWN(names.name##Keyword)
+#define JSC_PARSER_SWIFT_STORE_NAME(name) JSC_PARSER_SWIFT_STORE_WELL_KNOWN(names.name)
+    JSC_COMMON_IDENTIFIERS_EACH_KEYWORD(JSC_PARSER_SWIFT_STORE_KEYWORD)
+    JSC_PARSER_SWIFT_OTHER_NAMES(JSC_PARSER_SWIFT_STORE_NAME)
+    JSC_PARSER_SWIFT_STORE_WELL_KNOWN(names.builtinNames().metaPublicName())
+#undef JSC_PARSER_SWIFT_STORE_NAME
+#undef JSC_PARSER_SWIFT_STORE_KEYWORD
+#undef JSC_PARSER_SWIFT_STORE_WELL_KNOWN
+    RELEASE_ASSERT(wellKnownIndex == wellKnownCount);
 #if ASSERT_ENABLED
     for (auto [trait, setter] : traitSetters) {
         VariableEnvironmentEntry entry;
@@ -156,19 +168,59 @@ JSParseState::JSParseState(VM& vm, ParserArena& arena, const SourceCode& source,
         ASSERT(entry.bits() == static_cast<uint16_t>(trait));
     }
 #endif
-    for (size_t i = 0; i < m_wellKnownIdentifiers.size(); ++i)
-        m_wellKnownIdentifiers[i] = m_identifiers[i + 1];
 }
 
 JSParseState::~JSParseState() = default;
 
-void JSParseState::popScope(JSParseScope handle)
+JSParseScope JSParseState::pushNewScope(size_t index)
 {
-    RELEASE_ASSERT(handle.index && handle.index == m_scopeDepth - 1);
-    auto& storage = scope(handle);
-    if (storage.cacheParameters)
-        m_recordedCacheItem = SourceProviderCacheItem::create(*storage.cacheParameters);
+    if (index == m_scopes.size())
+        m_scopes.append(nullptr);
+    auto& slot = m_scopes[index];
+    if (!slot) {
+        slot = makeUnique<JSParseScopeStorage>();
+        slot->usedVariables.constructAndAppend();
+    }
+    return { static_cast<uint32_t>(index) };
+}
+
+void JSParseState::createRecordedCacheItem(JSParseScopeStorage& storage)
+{
+    ASSERT(storage.cacheRecord);
+    m_recordedCacheItem = SourceProviderCacheItem::create(*storage.cacheRecord, storage.cacheUsedVariables.span());
+}
+
+JSParsePoppedScope JSParseState::popScope(JSParseScope nestedHandle, JSParseScope parentHandle, uint8_t flags)
+{
+    // The nested scope is the last live one and the parent the one below it (the root, which is never popped, is the lowest).
+    RELEASE_ASSERT(nestedHandle.index == m_scopeDepth - 1 && parentHandle.index == nestedHandle.index - 1);
+    auto& nested = mutableScope(nestedHandle);
+    auto& parent = mutableScope(parentHandle);
+
+    // Scope::finalizeLexicalEnvironment.
+    if (flags & popMarkLexicalVariablesCaptured)
+        nested.lexicalVariables.markAllVariablesAsCaptured();
+    else
+        computeLexicallyCapturedVariablesAndPurgeCandidates(nested);
+
+    collectFreeVariables(parent, nested, flags & popTrackClosedVariables, flags & popFilterArguments, flags & popNestedIsFunctionBoundary, flags & popNestedIsLexicalScope);
+
+    if (!nested.sloppyModeFunctionHoistingCandidates.isEmpty())
+        bubbleSloppyModeFunctionHoistingCandidates(nested, parent, flags & popIsSimpleCatchParameterScope);
+
+    JSParsePoppedScope result;
+    if (flags & popQueryUsesArguments)
+        result.usesArguments = usedVariablesContains(nested, m_vm.propertyNames->arguments.impl());
+
+    if (flags & popTakeContainers) {
+        result.lexicalVariables = addEnvironment(WTF::move(nested.lexicalVariables));
+        result.functionDeclarations = addFunctionStack(WTF::move(nested.functionDeclarations));
+    }
+
+    if (nested.cacheRecord) [[unlikely]]
+        createRecordedCacheItem(nested);
     --m_scopeDepth;
+    return result;
 }
 
 std::unique_ptr<JSParseScopeStorage> JSParseState::takeRootScope(JSParseScope handle)
@@ -252,8 +304,11 @@ void JSParseState::markLastUsedVariablesSetAsCaptured(JSParseScopeStorage& stora
 
 void JSParseState::collectFreeVariables(JSParseScope intoHandle, JSParseScope nestedHandle, bool shouldTrackClosedVariables, bool filterArguments, bool nestedIsFunctionBoundary, bool nestedIsLexicalScope)
 {
-    auto& into = mutableScope(intoHandle);
-    auto& nested = scope(nestedHandle);
+    collectFreeVariables(mutableScope(intoHandle), scope(nestedHandle), shouldTrackClosedVariables, filterArguments, nestedIsFunctionBoundary, nestedIsLexicalScope);
+}
+
+void JSParseState::collectFreeVariables(JSParseScopeStorage& into, JSParseScopeStorage& nested, bool shouldTrackClosedVariables, bool filterArguments, bool nestedIsFunctionBoundary, bool nestedIsLexicalScope)
+{
     auto& destinationSet = into.usedVariables.last();
     auto* argumentsOrNull = filterArguments ? m_vm.propertyNames->arguments.impl() : nullptr;
     bool doTrackClosedVariables = shouldTrackClosedVariables && (nestedIsFunctionBoundary || !nestedIsLexicalScope);
@@ -264,9 +319,8 @@ void JSParseState::collectFreeVariables(JSParseScope intoHandle, JSParseScope ne
         if (doTrackClosedVariables)
             into.closedVariableCandidates.add(impl);
     };
-    if (nested.cacheParameters) {
-        auto& parameters = *nested.cacheParameters;
-        for (auto* impl : parameters.freeVariables())
+    if (nested.cacheRecord) {
+        for (auto* impl : nested.cacheUsedVariables.span().first(nested.cacheFreeVariableCount))
             propagate(impl);
     } else {
         for (auto& set : nested.usedVariables) {
@@ -318,10 +372,8 @@ void JSParseState::finalizeSloppyModeFunctionHoisting(JSParseScopeStorage& stora
     }
 }
 
-void JSParseState::bubbleSloppyModeFunctionHoistingCandidates(JSParseScope fromHandle, JSParseScope intoHandle, bool isSimpleCatchParameterScope)
+void JSParseState::bubbleSloppyModeFunctionHoistingCandidates(JSParseScopeStorage& from, JSParseScopeStorage& into, bool isSimpleCatchParameterScope)
 {
-    auto& from = scope(fromHandle);
-    auto& into = mutableScope(intoHandle);
     for (auto& iterator : from.sloppyModeFunctionHoistingCandidates) {
         FunctionMetadataNode* metadata = iterator.key;
         if (!iterator.value || !from.lexicalVariables.contains(metadata->ident().impl()) || isSimpleCatchParameterScope)
@@ -363,36 +415,22 @@ std::optional<JSParseCachedFunction> JSParseState::findCachedFunction(JSParseSco
 void JSParseState::recordCachedFunction(JSParseScope handle, const JSParseCachedFunction& record)
 {
     auto& storage = mutableScope(handle);
-    // In place, in the storage: no allocation for the parameters object, and the used-variable list is sized once.
-    auto& parameters = storage.cacheParameters.emplace();
+    // The record is kept as Swift filled it, one copy; popScope builds the item from it. The used-variable list is sized once.
+    storage.cacheRecord = record;
     size_t usedCount = storage.nonLocalCapturesFromParameterExpressions.size();
     for (auto& set : storage.usedVariables)
         usedCount += set.size();
-    parameters.usedVariables.reserveInitialCapacity(usedCount);
-    parameters.endFunctionOffset = record.endFunctionOffset;
-    parameters.lastTokenStartOffset = record.lastTokenStartOffset;
-    parameters.lastTokenEndOffset = record.lastTokenEndOffset;
-    parameters.usesEval = record.usesEval;
-    parameters.usesImportMeta = record.usesImportMeta;
-    parameters.needsFullActivation = record.needsFullActivation;
-    parameters.needsSuperBinding = record.needsSuperBinding;
-    parameters.isBodyArrowExpression = record.isBodyArrowExpression;
-    parameters.parameterCount = record.parameterCount;
-    parameters.tokenType = record.tokenType;
-    parameters.innerArrowFunctionFeatures = record.innerArrowFunctionFeatures;
-    parameters.lexicallyScopedFeatures = record.lexicallyScopedFeatures;
-    parameters.constructorKind = record.constructorKind;
-    parameters.expectedSuperBinding = record.expectedSuperBinding;
-    parameters.implementationVisibility = record.implementationVisibility;
+    storage.cacheUsedVariables.shrink(0);
+    storage.cacheUsedVariables.reserveCapacity(usedCount);
     for (auto& set : storage.usedVariables) {
         for (auto* impl : set) {
             if (!storage.declaredVariables.contains(impl) && !storage.lexicalVariables.contains(impl))
-                parameters.usedVariables.append(impl);
+                storage.cacheUsedVariables.append(impl);
         }
     }
-    parameters.freeVariableCount = parameters.usedVariables.size();
+    storage.cacheFreeVariableCount = storage.cacheUsedVariables.size();
     for (auto* impl : storage.nonLocalCapturesFromParameterExpressions)
-        parameters.usedVariables.append(impl);
+        storage.cacheUsedVariables.append(impl);
 }
 
 void JSParseState::addRecordedCachedFunction(int32_t startOffset)

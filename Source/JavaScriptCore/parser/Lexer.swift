@@ -38,6 +38,9 @@ enum RawStringsBuildMode {
 // facade's message with `appendErrorMessage`.
 enum LexerErrorMessage {
     case text(Swift.String)
+    /// "No space between <hexadecimal, binary or octal> literal and identifier", for the radix 16, 2 or 8: the text is
+    /// made when the message is printed, and not on each number lexed.
+    case identifierAfterRadixLiteral(radix: UInt8)
     case unterminatedRegularExpression(start: Int, end: Int)
     case invalidRegularExpressionFlag(start: Int, end: Int, codePoint: UInt32)
 }
@@ -72,11 +75,15 @@ extension JSC.JSTokenType {
 }
 
 /// The lexer, over the characters of the whole source provider. `code` is an index into `source` and `codeEnd` the end
-/// of the range being lexed, so every read of the source is bounds-checked against the provider.
+/// of the range being lexed (the span's count, so a read below it is one bounds check), so every read of the source is
+/// bounds-checked against the provider.
 struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
     let source: Span<Unit>
     var code: Int
-    let codeEnd: Int
+    /// The source is cut at the end of the range, so its count is the end.
+    var codeEnd: Int {
+        @inline(always) get { source.count }
+    }
     var current: Unit
     var hasLineTerminatorBeforeToken = false
     var atLineStart = true
@@ -102,7 +109,6 @@ struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
         parsingBuiltinFunction = modes.builtinMode == .Builtin || modes.exposePrivateIdentifiers
         scriptMode = modes.scriptMode
         code = Int(modes.startOffset)
-        codeEnd = end
         current = self.source.count > code && code >= 0 ? self.source[code] : 0
         buffer8.reserveCapacity(Self.initialReadBufferCapacity)
         buffer16.reserveCapacity(Self.initialReadBufferCapacity)
@@ -216,6 +222,12 @@ struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
         switch errorMessage {
         case .text(let text):
             appendErrorText(text, &facade)
+        case .identifierAfterRadixLiteral(let radix):
+            switch radix {
+            case 16: appendErrorText("No space between hexadecimal literal and identifier", &facade)
+            case 2: appendErrorText("No space between binary literal and identifier", &facade)
+            default: appendErrorText("No space between octal literal and identifier", &facade)
+            }
         case .unterminatedRegularExpression(let start, let end):
             appendErrorText("Unterminated regular expression literal '", &facade)
             Unit.appendErrorCharacters(tokenCharacters(start..<end), &facade)
@@ -314,10 +326,12 @@ struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
         Unit.appendLatin1(source.extracting(range), to: &buffer8)
     }
 
+    @inline(always)
     mutating func append16(_ range: Range<Int>) {
         Unit.append(source.extracting(range), to: &buffer16)
     }
 
+    @inline(always)
     mutating func appendRaw(_ range: Range<Int>) {
         Unit.append(source.extracting(range), to: &bufferForRawTemplateString16)
     }

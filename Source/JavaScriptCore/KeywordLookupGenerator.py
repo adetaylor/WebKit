@@ -99,6 +99,35 @@ def hexByte(c):
     return "0x%02X" % ord(c)
 
 
+def printKeywordSwitch(entries, wide, indent):
+    """The switch on the first character; `wide` compares characters 1 to 7 of a word as one masked 64-bit compare."""
+    print(indent + "switch window[0] {")
+    for first in sorted(set(word[0] for word, _ in entries)):
+        # Most frequent first (keyWordWeights); at most one test matches, since each ends at a character that cannot
+        # continue an identifier. The sort is stable, so equal weights stay in the table's order.
+        group = sorted([e for e in entries if e[0][0] == first], key=lambda e: -keyWordWeights.get(e[0], 0))
+        print(indent + "case %s: // %s" % (hexByte(first), first))
+        for word, token in group:
+            operands = []
+            if wide:
+                head = min(len(word), 8)
+                mask = sum(0xFF << (8 * i) for i in range(1, head))
+                value = sum(ord(word[i]) << (8 * i) for i in range(1, head))
+                operands.append("word & 0x%016X == 0x%016X" % (mask, value))
+                rest = range(head, len(word))
+            else:
+                rest = range(1, len(word))
+            operands += ["window[%d] == %s" % (i, hexByte(word[i])) for i in rest]
+            operands.append("window[%d].cannotBeIdentPartOrEscapeStart" % len(word))
+            print(indent + "    if " + ("\n" + indent + "        && ").join(operands) + "\n" + indent + "    {")
+            print(indent + "        return (.%s, .%sKeyword, %d)" % (token, word, len(word)))
+            print(indent + "    }")
+        print(indent + "    return nil")
+    print(indent + "default:")
+    print(indent + "    return nil")
+    print(indent + "}")
+
+
 def printAsSwift(keywords):
     entries = [(word, tokenName(word, value)) for word, value in keywords]
     maxLength = max(len(word) for word, _ in entries)
@@ -112,26 +141,20 @@ def printAsSwift(keywords):
     print("    static var maxTokenLength: Int { %d }" % (maxLength + 1))
     print("")
     print("    /// The keyword at the cursor and its length, if the character after it cannot continue an identifier.")
+    print("    // Inlined into its callers: a call would move the caller's live arguments through callee-saved registers and give it a frame.")
+    print("    @inline(always)")
     print("    func keywordAtCursor() -> (type: JSC.JSTokenType, name: JSC.JSParseWellKnownName, length: Int)? {")
     print("        // One range check for the whole window; the reads below are at constant offsets into it. The wrapping add keeps")
     print("        // the window's count a constant; a wrapped end is caught by the range's own check.")
     print("        let window = source.extracting(code..<code &+ Self.maxTokenLength)")
-    print("        switch window[0] {")
-    for first in sorted(set(word[0] for word, _ in entries)):
-        # Most frequent first (keyWordWeights); at most one test matches, since each ends at a character that cannot
-        # continue an identifier. The sort is stable, so equal weights stay in the table's order.
-        group = sorted([e for e in entries if e[0][0] == first], key=lambda e: -keyWordWeights.get(e[0], 0))
-        print("        case %s: // %s" % (hexByte(first), first))
-        for word, token in group:
-            operands = ["window[%d] == %s" % (i, hexByte(c)) for i, c in enumerate(word) if i > 0]
-            operands.append("window[%d].cannotBeIdentPartOrEscapeStart" % len(word))
-            print("            if " + "\n                && ".join(operands) + "\n            {")
-            print("                return (.%s, .%sKeyword, %d)" % (token, word, len(word)))
-            print("            }")
-        print("            return nil")
-    print("        default:")
-    print("            return nil")
+    print("        // An 8-bit source compares the first eight characters as one word, as the C++'s compareCharacters does; a 16-bit")
+    print("        // one compares character by character, since a unit above 0xFF must not alias a Latin-1 one.")
+    print("        if Unit.self == UInt8.self {")
+    print("            // One bounds-checked 64-bit load of the window's first eight bytes (little-endian, as the C++ reads them).")
+    print("            let word = Unit.leadingWord(window)")
+    printKeywordSwitch(entries, True, "            ")
     print("        }")
+    printKeywordSwitch(entries, False, "        ")
     print("    }")
     print("")
     print("    /// The keyword `characters` spell, if any.")

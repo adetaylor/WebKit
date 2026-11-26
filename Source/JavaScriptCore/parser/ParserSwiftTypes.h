@@ -72,6 +72,14 @@ struct JSParseFunctionStack {
     uint32_t index { 0 };
 };
 
+// What JSParseState::popScope returns: the containers a node takes (null handles unless the pop was asked for them) and, for
+// an arrow function's scope, whether its used variables held `arguments`.
+struct JSParsePoppedScope {
+    JSParseEnvironment lexicalVariables;
+    JSParseFunctionStack functionDeclarations;
+    bool usesArguments { false };
+};
+
 // What the parse makes: the ParsedNode type of the entry.
 enum class JSParseRootKind : uint8_t { Program, ModuleProgram, Eval, Function };
 

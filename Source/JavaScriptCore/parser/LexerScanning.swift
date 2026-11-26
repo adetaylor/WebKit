@@ -93,24 +93,8 @@ extension Lexer {
     private mutating func parseCommentDirectiveValue() -> JSC.JSParseExtent? {
         skipWhitespace()
         let start = code
-        if Unit.bitWidth == 8 {
-            var index = start
-            while index < codeEnd {
-                let character = source[index]
-                if character.isWhiteSpace || character.isLineTerminator || character == .ascii("\"") || character == .ascii("'") {
-                    break
-                }
-                index += 1
-            }
-            code = index
-            reloadCurrent()
-        } else {
-            while !current.isWhiteSpace && !current.isLineTerminator && current != .ascii("\"") && current != .ascii("'")
-                && !atEnd
-            {
-                shift()
-            }
-        }
+        code = Unit.findDirectiveEnd(source, from: start)
+        reloadCurrent()
         let end = code
 
         skipWhitespace()
@@ -138,11 +122,7 @@ extension Lexer {
 
         let endPosition = currentPosition
 
-        var index = code
-        while index < codeEnd && !source[index].isLineTerminator {
-            index &+= 1
-        }
-        code = index
+        code = Unit.findLineTerminator(source, from: code)
         if code == codeEnd {
             current = 0
             fillTokenInfo(&tokenRecord, endPosition)
