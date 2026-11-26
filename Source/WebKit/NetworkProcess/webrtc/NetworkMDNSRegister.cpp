@@ -84,10 +84,6 @@ NODELETE static HashMap<NetworkMDNSRegister::PendingRegistrationRequestIdentifie
     return map.get();
 }
 
-struct NetworkMDNSRegister::DNSServiceDeallocator {
-    void operator()(DNSServiceRef service) const { DNSServiceRefDeallocate(service); }
-};
-
 void NetworkMDNSRegister::unregisterMDNSNames(WebCore::ScriptExecutionContextIdentifier documentIdentifier)
 {
     m_services.remove(documentIdentifier);
