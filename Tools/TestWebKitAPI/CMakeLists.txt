@@ -322,6 +322,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/FlowModeTests.cpp
         Tests/WebCore/FontCascade.cpp
         Tests/WebCore/FontShadowTests.cpp
+        Tests/WebCore/GPUProcessBench.cpp
         Tests/WebCore/GradientColorStopsTests.cpp
         Tests/WebCore/GridPosition.cpp
         Tests/WebCore/H264UtilitiesTests.cpp
@@ -515,6 +516,7 @@ if (ENABLE_WEBKIT)
         Tests/WebKit/WKPage/ForceRepaint.cpp
         Tests/WebKit/WKPage/FrameMIMETypeHTML.cpp
         Tests/WebKit/WKPage/FrameMIMETypePNG.cpp
+        Tests/WebKit/WKPage/GPUProcessBench.cpp
         Tests/WebKit/WKPage/Geolocation.cpp
         Tests/WebKit/WKPage/GetInjectedBundleInitializationUserDataCallback.cpp
         Tests/WebKit/WKPage/HitTestResultNodeHandle.cpp
