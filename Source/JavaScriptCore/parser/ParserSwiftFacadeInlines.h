@@ -217,6 +217,27 @@ public:
     ALWAYS_INLINE JSParseScope pushScope() { return state().pushScope(); }
     ALWAYS_INLINE void popScope(JSParseScope scope) { state().popScope(scope); }
     ALWAYS_INLINE bool environmentAdd(JSParseScope scope, JSParseEnvironmentKind kind, JSParseIdentifier identifier, uint16_t traits) { auto& s = state(); auto result = s.environment(scope, kind).add(s.identifier(identifier)); s.setTraits(result.iterator->value, traits); return result.isNewEntry; }
+    // Scope::declareParameter's three outcomes, as bits: isDuplicateParameter, isArgumentsIdent and isValidStrictMode.
+    static constexpr uint8_t declaredParameterDuplicate = 1;
+    static constexpr uint8_t declaredParameterIsArguments = 2;
+    static constexpr uint8_t declaredParameterValidStrictMode = 4;
+    // Scope::declareParameter's body (Parser.h): one hash probe, the entry updated in place, the name added to the declared parameters.
+    ALWAYS_INLINE uint8_t declareParameter(JSParseScope scope, JSParseIdentifier identifier)
+    {
+        auto& s = state();
+        auto& ident = s.identifier(identifier);
+        auto key = std::bit_cast<uintptr_t>(ident.impl());
+        auto result = s.environment(scope, JSParseEnvironmentKind::Declared).add(ident);
+        auto& entry = result.iterator->value;
+        bool isDuplicate = !result.isNewEntry && entry.isParameter();
+        bool isArguments = key == s.wellKnownKey(JSParseWellKnownName::arguments);
+        bool isValid = !isDuplicate && key != s.wellKnownKey(JSParseWellKnownName::eval) && !isArguments && !s.isStrictModeReservedKey(key);
+        entry.clearIsVar();
+        entry.setIsParameter();
+        s.nameSetAdd(s.mutableScope(scope), JSParseNameSetKind::DeclaredParameters, ident.impl());
+        return (isDuplicate ? declaredParameterDuplicate : 0) | (isArguments ? declaredParameterIsArguments : 0) | (isValid ? declaredParameterValidStrictMode : 0);
+    }
+    ALWAYS_INLINE bool isStrictModeReservedWord(JSParseIdentifier identifier) { auto& s = state(); return s.isStrictModeReservedKey(std::bit_cast<uintptr_t>(s.identifier(identifier).impl())); }
     // The entry's traits, or std::nullopt when the environment has no entry for the name.
     ALWAYS_INLINE std::optional<uint16_t> environmentTraits(JSParseScope scope, JSParseEnvironmentKind kind, JSParseIdentifier identifier) { auto& s = state(); auto& environment = s.readEnvironment(scope, kind); auto iterator = environment.find(s.identifier(identifier).impl()); return iterator == environment.end() ? std::nullopt : std::optional<uint16_t>(iterator->value.bits()); }
     ALWAYS_INLINE bool environmentContains(JSParseScope scope, JSParseEnvironmentKind kind, JSParseIdentifier identifier) { auto& s = state(); return s.readEnvironment(scope, kind).contains(s.identifier(identifier).impl()); }
@@ -660,8 +681,16 @@ public:
         return *identifier;
     }
     const Identifier* identifierOrNull(JSParseIdentifier handle) { return m_identifiers[handle.index]; }
-    const Identifier* wellKnownIdentifierPointer(JSParseWellKnownName name) { return m_wellKnownIdentifiers[static_cast<size_t>(name)]; }
     uintptr_t wellKnownKey(JSParseWellKnownName name) { return m_wellKnownKeys[static_cast<size_t>(name)]; }
+    // Parser.h's isStrictModeReservedWord: its nine names, by key.
+    bool isStrictModeReservedKey(uintptr_t key)
+    {
+        return key == wellKnownKey(JSParseWellKnownName::implementsKeyword) || key == wellKnownKey(JSParseWellKnownName::interfaceKeyword)
+            || key == wellKnownKey(JSParseWellKnownName::letKeyword) || key == wellKnownKey(JSParseWellKnownName::packageKeyword)
+            || key == wellKnownKey(JSParseWellKnownName::privateKeyword) || key == wellKnownKey(JSParseWellKnownName::protectedKeyword)
+            || key == wellKnownKey(JSParseWellKnownName::publicKeyword) || key == wellKnownKey(JSParseWellKnownName::staticKeyword)
+            || key == wellKnownKey(JSParseWellKnownName::yieldKeyword);
+    }
     // The null handle is the null Identifier (a parse whose root has no callee name passes it as the body's name).
     const Identifier& identifierOrNullIdentifier(JSParseIdentifier handle) { return handle.index ? identifier(handle) : vm().propertyNames->nullIdentifier; }
 
@@ -863,13 +892,12 @@ private:
     IdentifierArena& m_identifierArena;
     ASTBuilder m_builder;
     Vector<const Identifier*> m_identifiers;
-    std::array<const Identifier*, static_cast<size_t>(JSParseWellKnownName::Count)> m_wellKnownIdentifiers; // m_identifiers[1, Count].
     std::array<uintptr_t, static_cast<size_t>(JSParseWellKnownName::Count)> m_wellKnownKeys { }; // Each one's impl pointer.
     Vector<NodeSlot> m_nodes;
-    Vector<std::unique_ptr<JSParseScopeStorage>> m_scopes;
+    Vector<std::unique_ptr<JSParseScopeStorage>, 16> m_scopes; // Inline: the parse's block holds the first sixteen.
     size_t m_scopeDepth { 1 }; // The live scopes are m_scopes[1, m_scopeDepth).
-    Vector<std::unique_ptr<VariableEnvironment>> m_environments;
-    Vector<std::unique_ptr<DeclarationStacks::FunctionStack>> m_functionStacks;
+    Vector<std::unique_ptr<VariableEnvironment>, 16> m_environments;
+    Vector<std::unique_ptr<DeclarationStacks::FunctionStack>, 16> m_functionStacks;
     std::unique_ptr<SourceProviderCacheItem> m_recordedCacheItem;
     RefPtr<SourceProviderCache> m_functionCache;
     RefPtr<ModuleScopeData> m_moduleScopeData;

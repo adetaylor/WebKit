@@ -72,11 +72,15 @@ extension JSC.JSTokenType {
 }
 
 /// The lexer, over the characters of the whole source provider. `code` is an index into `source` and `codeEnd` the end
-/// of the range being lexed, so every read of the source is bounds-checked against the provider.
+/// of the range being lexed (the span's count, so a read below it is one bounds check), so every read of the source is
+/// bounds-checked against the provider.
 struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
     let source: Span<Unit>
     var code: Int
-    let codeEnd: Int
+    /// The source is cut at the end of the range, so its count is the end.
+    var codeEnd: Int {
+        @inline(always) get { source.count }
+    }
     var current: Unit
     var hasLineTerminatorBeforeToken = false
     var atLineStart = true
@@ -102,7 +106,6 @@ struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
         parsingBuiltinFunction = modes.builtinMode == .Builtin || modes.exposePrivateIdentifiers
         scriptMode = modes.scriptMode
         code = Int(modes.startOffset)
-        codeEnd = end
         current = self.source.count > code && code >= 0 ? self.source[code] : 0
         buffer8.reserveCapacity(Self.initialReadBufferCapacity)
         buffer16.reserveCapacity(Self.initialReadBufferCapacity)

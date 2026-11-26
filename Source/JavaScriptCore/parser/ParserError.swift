@@ -73,6 +73,22 @@ struct ErrorMessage: ExpressibleByStringLiteral {
         self.init([a, b, c, d, e])
     }
 
+    /// Appends this message's parts to `parts`, making no array for a literal.
+    func append(to parts: inout [ErrorMessagePart]) {
+        switch storage {
+        case .literal(let text): parts.append(.text(text.description))
+        case .parts(let own): parts.append(contentsOf: own)
+        }
+    }
+
+    /// How many parts `append(to:)` appends.
+    var partCount: Int {
+        switch storage {
+        case .literal: return 1
+        case .parts(let own): return own.count
+        }
+    }
+
     var parts: [ErrorMessagePart] {
         switch storage {
         case .literal(let text): return [.text(text.description)]
@@ -114,7 +130,9 @@ extension Parser {
         if hasError {
             return
         }
-        var parts = message.parts
+        var parts: [ErrorMessagePart] = []
+        parts.reserveCapacity(message.partCount + 1)
+        message.append(to: &parts)
         parts.append(.text("."))
         errorMessage = ErrorMessage(parts)
     }
@@ -133,11 +151,17 @@ extension Parser {
         if hasError {
             return
         }
-        var parts = unexpectedTokenMessage().parts
+        let head = unexpectedTokenMessage()
+        var parts: [ErrorMessagePart] = []
         if token.type != .eof && !token.type.canBeError {
+            // One allocation for the whole message.
+            parts.reserveCapacity(head.partCount + message.partCount + 2)
+            head.append(to: &parts)
             parts.append(.text(". "))
-            parts.append(contentsOf: message.parts)
+            message.append(to: &parts)
             parts.append(.text("."))
+        } else {
+            head.append(to: &parts)
         }
         errorMessage = ErrorMessage(parts)
     }

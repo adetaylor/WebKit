@@ -103,12 +103,7 @@ extension JSC.JSParseIdentifier {
     }
 
     func isStrictModeReservedWord(_ facade: inout JSC.JSParseFacade) -> Bool {
-        let key = facade.identifierKey(self)
-        return key == facade.wellKnownKey(.implementsKeyword) || key == facade.wellKnownKey(.interfaceKeyword)
-            || key == facade.wellKnownKey(.letKeyword) || key == facade.wellKnownKey(.packageKeyword)
-            || key == facade.wellKnownKey(.privateKeyword) || key == facade.wellKnownKey(.protectedKeyword)
-            || key == facade.wellKnownKey(.publicKeyword) || key == facade.wellKnownKey(.staticKeyword)
-            || key == facade.wellKnownKey(.yieldKeyword)
+        facade.isStrictModeReservedWord(self)
     }
 }
 
@@ -691,22 +686,19 @@ struct Scope: ~Copyable {
 
     mutating func declareParameter(_ ident: JSC.JSParseIdentifier, _ facade: inout JSC.JSParseFacade) -> DeclarationResult {
         assert(allowsVarDeclarations)
+        // One facade call does Scope::declareParameter's container work; its bits are isDuplicateParameter (1),
+        // isArgumentsIdent (2) and isValidStrictMode (4).
+        let bits = facade.declareParameter(storage, ident)
         var result = DeclarationResult.valid
-        let isArgumentsIdent = ident.matches(.arguments, &facade)
-        let isDuplicateParameter = environmentEntry(.Declared, ident, &facade)?.contains(.parameter) ?? false
-        let isValidStrictMode =
-            !isDuplicateParameter && !ident.matches(.eval, &facade) && !isArgumentsIdent && !ident.isStrictModeReservedWord(&facade)
-        _ = facade.environmentAdd(storage, .Declared, ident, VariableTraits.parameter.rawValue)
-        facade.environmentClearIsVar(storage, .Declared, ident)
+        let isValidStrictMode = bits & 4 != 0
         self.isValidStrictMode = self.isValidStrictMode && isValidStrictMode
-        _ = facade.nameSetAdd(storage, .DeclaredParameters, ident)
         if !isValidStrictMode {
             result.insert(.invalidStrictMode)
         }
-        if isArgumentsIdent {
+        if bits & 2 != 0 {
             shadowsArguments = true
         }
-        if isDuplicateParameter {
+        if bits & 1 != 0 {
             result.insert(.invalidDuplicateDeclaration)
         }
 
