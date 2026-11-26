@@ -727,7 +727,7 @@ public:
     }
     // A node parameter ASTBuilder dereferences: the null handle traps (on the slow path, so the hot path is the one
     // kind compare).
-    template<typename T> T* node(JSParseNode handle)
+    template<typename T> ALWAYS_INLINE T* node(JSParseNode handle)
     {
         auto& slot = m_nodes[handle.index];
         // A base class (Node, ExpressionNode) is no kind a slot holds, so its kind compare would never match.
@@ -739,7 +739,7 @@ public:
         return convertedNode<T>(slot, std::make_index_sequence<std::tuple_size_v<JSParseNodeTypes>>());
     }
     // A node parameter ASTBuilder takes as optional: the null handle is nullptr.
-    template<typename T> T* nodeOrNull(JSParseNode handle)
+    template<typename T> ALWAYS_INLINE T* nodeOrNull(JSParseNode handle)
     {
         auto& slot = m_nodes[handle.index];
         if constexpr (kindOf<T>() != nullKind + 1) {
