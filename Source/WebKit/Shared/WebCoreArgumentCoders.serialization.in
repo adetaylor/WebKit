@@ -3151,7 +3151,7 @@ header: <WebCore/TextManipulationControllerManipulationFailure.h>
     Vector<uint64_t> succeededIndexes;
 };
 
-struct WebCore::BackgroundFetchInformation {
+[Swift] struct WebCore::BackgroundFetchInformation {
     WebCore::ServiceWorkerRegistrationIdentifier registrationIdentifier;
     String identifier;
     uint64_t uploadTotal;
@@ -3795,7 +3795,7 @@ enum class WebCore::ServiceWorkerRegistrationState : uint8_t {
     Active,
 };
 
-enum class WebCore::ServiceWorkerState : uint8_t {
+[Swift] enum class WebCore::ServiceWorkerState : uint8_t {
     Parsed,
     Installing,
     Installed,
@@ -3811,16 +3811,22 @@ enum class WebCore::ServiceWorkerClientFrameType : uint8_t {
     None
 };
 
-enum class WebCore::ServiceWorkerIsInspectable : bool
+[Swift] enum class WebCore::ServiceWorkerIsInspectable : bool {
+    No,
+    Yes,
+};
 enum class WebCore::ShouldNotifyWhenResolved : bool
 
-enum class WebCore::ServiceWorkerUpdateViaCache : uint8_t {
+[Swift] enum class WebCore::ServiceWorkerUpdateViaCache : uint8_t {
     Imports,
     All,
     None,
 };
 
-enum class WebCore::LastNavigationWasAppInitiated : bool;
+[Swift] enum class WebCore::LastNavigationWasAppInitiated : bool {
+    No,
+    Yes,
+};
 
 struct WebCore::ServiceWorkerClientData {
     WebCore::ScriptExecutionContextIdentifier identifier;
@@ -3952,7 +3958,7 @@ class WebCore::Exception {
     String message();
 };
 
-struct WebCore::ExceptionData {
+[Swift] struct WebCore::ExceptionData {
     WebCore::ExceptionCode code;
     String message;
 };
@@ -6012,7 +6018,7 @@ header: <WebCore/WheelEventTestMonitor.h>
 
 header: <WebCore/CrossOriginAccessControl.h>
 
-enum class WebCore::ExceptionCode : uint8_t {
+[Swift] enum class WebCore::ExceptionCode : uint8_t {
     IndexSizeError,
     HierarchyRequestError,
     WrongDocumentError,
@@ -6054,7 +6060,7 @@ enum class WebCore::ExceptionCode : uint8_t {
 }
 
 header: <WebCore/BackgroundFetchFailureReason.h>
-enum class WebCore::BackgroundFetchFailureReason : uint8_t {
+[Swift] enum class WebCore::BackgroundFetchFailureReason : uint8_t {
     EmptyString,
     Aborted,
     BadStatus,
@@ -6064,7 +6070,7 @@ enum class WebCore::BackgroundFetchFailureReason : uint8_t {
 };
 
 header: <WebCore/BackgroundFetchResult.h>
-enum class WebCore::BackgroundFetchResult : uint8_t {
+[Swift] enum class WebCore::BackgroundFetchResult : uint8_t {
     EmptyString,
     Success,
     Failure

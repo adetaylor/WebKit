@@ -3855,6 +3855,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     workers/service/server/SWRegistrationStore.h
     workers/service/server/SWServer.h
     workers/service/server/SWServerDelegate.h
+    workers/service/server/SWServerJobQueue.h
     workers/service/server/SWServerRegistration.h
     workers/service/server/SWServerToContextConnection.h
     workers/service/server/SWServerWorker.h

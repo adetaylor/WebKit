@@ -3439,6 +3439,17 @@ set(WebCore_RENDER_LAYER_SWIFT_SOURCES
     rendering/RenderLayerTree.swift
     rendering/UniqueOwner.swift
 )
+# Members of the service worker server that are implemented only in Swift, on every port, as in WebCore.xcodeproj;
+# the sources are added to WebCore below.
+set(WebCore_SERVICE_WORKER_SWIFT_SOURCES
+    workers/service/ServiceWorkerRoute.swift
+    workers/service/server/SWOriginStore.swift
+    workers/service/server/SWServer.swift
+    workers/service/server/SWServerJobQueue.swift
+    workers/service/server/SWServerRegistration.swift
+    workers/service/server/SWServerToContextConnection.swift
+    workers/service/server/SWServerWorker.swift
+)
 # The audio DSP is Swift on every port with Web Audio (there is no C++ for it). Its interop .cpp files include
 # WebCoreSwift-Generated.h, so they build in WebCore_SwiftInterop, like the other ports' above; the Swift
 # sources are added to WebCore below.
@@ -5071,6 +5082,9 @@ endif ()
 
 list(TRANSFORM WebCore_RENDER_LAYER_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")
 target_sources(WebCore PRIVATE ${WebCore_RENDER_LAYER_SWIFT_SOURCES})
+
+list(TRANSFORM WebCore_SERVICE_WORKER_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")
+target_sources(WebCore PRIVATE ${WebCore_SERVICE_WORKER_SWIFT_SOURCES})
 
 if (ENABLE_WEB_AUDIO)
     list(TRANSFORM WebCore_AUDIO_DSP_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")

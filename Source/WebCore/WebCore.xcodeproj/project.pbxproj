@@ -453,6 +453,13 @@
 		0E7A8658B4F64928A9F9A1A1 /* HTTPHeaderField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 914F5BCE704847D6814CBA14 /* HTTPHeaderField.swift */; };
 		276C5875AD7947CBAB50FED9 /* ServerTimingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A374757C5700487B9BA2DAFC /* ServerTimingParser.swift */; };
 		4D77AF60753E44A6ADD704F7 /* LinkHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D688ADC579D4FE6A08E3FBA /* LinkHeader.swift */; };
+		AD47E8F1AE9D28D14B0CDF94 /* SWOriginStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0DFFB5C5136AEADF291240 /* SWOriginStore.swift */; };
+		88901C5C73FD48EAD3E8C3E9 /* SWServerJobQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F73296806CFE8AD15263F3 /* SWServerJobQueue.swift */; };
+		3F6B2E17B70A1C0186C67BF9 /* SWServerRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF400322B277377CB2F019F /* SWServerRegistration.swift */; };
+		9C41A7E2D05B4F18A3E6B207 /* SWServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C41A7E2D05B4F18A3E6B208 /* SWServer.swift */; };
+		9C41A7E2D05B4F18A3E6B205 /* SWServerToContextConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C41A7E2D05B4F18A3E6B206 /* SWServerToContextConnection.swift */; };
+		9C41A7E2D05B4F18A3E6B203 /* SWServerWorker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C41A7E2D05B4F18A3E6B204 /* SWServerWorker.swift */; };
+		9C41A7E2D05B4F18A3E6B201 /* ServiceWorkerRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C41A7E2D05B4F18A3E6B202 /* ServiceWorkerRoute.swift */; };
 		32F3E81AEAF3467D8F698B2E /* CacheValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAA1976F4E8146B58E771CE3 /* CacheValidation.swift */; };
 		DF322B9C422742B1965AD990 /* RFC8941.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041CD30082B142D9A333CFA1 /* RFC8941.swift */; };
 		73FC2C4848AE4B508B0E0CE8 /* SecurityPoliciesSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 55494FF478F54036850837C7 /* SecurityPoliciesSwiftTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -3719,7 +3726,7 @@
 		830A36BD1DAC5FAD006D7D09 /* JSMouseEventInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 830A36BB1DAC5FA7006D7D09 /* JSMouseEventInit.h */; };
 		830D0B6924F57D67007ED122 /* IIRProcessor.h in Headers */ = {isa = PBXBuildFile; fileRef = 830D0B6624F57D50007ED122 /* IIRProcessor.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		83102B271F9EADD900E404B9 /* JSExtendableMessageEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 83102B231F9EADC200E404B9 /* JSExtendableMessageEvent.h */; };
-		8311C0031FAA2E9500E3C8E5 /* SWServerJobQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = 8311C0021FAA2E8900E3C8E5 /* SWServerJobQueue.h */; };
+		8311C0031FAA2E9500E3C8E5 /* SWServerJobQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = 8311C0021FAA2E8900E3C8E5 /* SWServerJobQueue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		83120C711C56F3FB001CB112 /* HTMLDataElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 834B86A71C56E83A00F3F0E3 /* HTMLDataElement.h */; };
 		83198FBF24A160DD00420B05 /* BaseAudioContext.h in Headers */ = {isa = PBXBuildFile; fileRef = 83198FBE24A160C100420B05 /* BaseAudioContext.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		831C738A94C0624DA28D7466 /* airplay-placard@1x.png in Copy Modern Media Controls Images */ = {isa = PBXBuildFile; fileRef = 71D6AA711DA4EAF700B23969 /* airplay-placard@1x.png */; platformFilters = (ios, maccatalyst, tvos, xros, ); };
@@ -23514,6 +23521,13 @@
 		E43A023A17EB370A004CDD25 /* RenderElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderElement.h; sourceTree = "<group>"; };
 		E43A023C17EB3713004CDD25 /* RenderElement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RenderElement.cpp; sourceTree = "<group>"; };
 		E43AF8E41AC5B7DD00CA717E /* CacheValidation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CacheValidation.cpp; sourceTree = "<group>"; };
+		6C0DFFB5C5136AEADF291240 /* SWOriginStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWOriginStore.swift; sourceTree = "<group>"; };
+		F4F73296806CFE8AD15263F3 /* SWServerJobQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServerJobQueue.swift; sourceTree = "<group>"; };
+		6AF400322B277377CB2F019F /* SWServerRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServerRegistration.swift; sourceTree = "<group>"; };
+		9C41A7E2D05B4F18A3E6B208 /* SWServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServer.swift; sourceTree = "<group>"; };
+		9C41A7E2D05B4F18A3E6B206 /* SWServerToContextConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServerToContextConnection.swift; sourceTree = "<group>"; };
+		9C41A7E2D05B4F18A3E6B204 /* SWServerWorker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServerWorker.swift; sourceTree = "<group>"; };
+		9C41A7E2D05B4F18A3E6B202 /* ServiceWorkerRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceWorkerRoute.swift; sourceTree = "<group>"; };
 		BAA1976F4E8146B58E771CE3 /* CacheValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheValidation.swift; sourceTree = "<group>"; };
 		E43AF8E51AC5B7DD00CA717E /* CacheValidation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CacheValidation.h; sourceTree = "<group>"; };
 		E43E64F52C6365E50060F493 /* LayoutIntegrationFormattingContextLayout.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LayoutIntegrationFormattingContextLayout.cpp; sourceTree = "<group>"; };
@@ -29972,6 +29986,7 @@
 			children = (
 				4151E5B91FBA4C7600E47E2D /* SWOriginStore.cpp */,
 				4151E5B71FBA4C7500E47E2D /* SWOriginStore.h */,
+				6C0DFFB5C5136AEADF291240 /* SWOriginStore.swift */,
 				3A7D62D729D49EC800D57DAC /* SWRegistrationDatabase.cpp */,
 				3A7D62D829D49EC800D57DAC /* SWRegistrationDatabase.h */,
 				3AC4C04229D345D800402716 /* SWRegistrationStore.h */,
@@ -29979,15 +29994,20 @@
 				46273CAC260E59DF006FAA91 /* SWScriptStorage.h */,
 				517A52EF1F47535900DCDC0A /* SWServer.cpp */,
 				517A52EE1F47535900DCDC0A /* SWServer.h */,
+				9C41A7E2D05B4F18A3E6B208 /* SWServer.swift */,
 				41A51366298C14C700C88EC7 /* SWServerDelegate.h */,
 				8311C0001FAA2E8900E3C8E5 /* SWServerJobQueue.cpp */,
 				8311C0021FAA2E8900E3C8E5 /* SWServerJobQueue.h */,
+				F4F73296806CFE8AD15263F3 /* SWServerJobQueue.swift */,
 				51F645951F4A686100B54DED /* SWServerRegistration.cpp */,
 				51F645941F4A684F00B54DED /* SWServerRegistration.h */,
+				6AF400322B277377CB2F019F /* SWServerRegistration.swift */,
 				5185430A1FB6783F00478F95 /* SWServerToContextConnection.cpp */,
 				518543091FB6783E00478F95 /* SWServerToContextConnection.h */,
+				9C41A7E2D05B4F18A3E6B206 /* SWServerToContextConnection.swift */,
 				517A53431F50C16100DCDC0A /* SWServerWorker.cpp */,
 				517A53421F50C16100DCDC0A /* SWServerWorker.h */,
+				9C41A7E2D05B4F18A3E6B204 /* SWServerWorker.swift */,
 			);
 			path = server;
 			sourceTree = "<group>";
@@ -30210,6 +30230,7 @@
 				51F1754A1F3EBC0C00C74950 /* ServiceWorkerRegistrationOptions.h */,
 				419B36162D50FB4600F11700 /* ServiceWorkerRoute.cpp */,
 				419B36152D50FB4600F11700 /* ServiceWorkerRoute.h */,
+				9C41A7E2D05B4F18A3E6B202 /* ServiceWorkerRoute.swift */,
 				515E37F41FAA938800D7F22A /* ServiceWorkerTypes.h */,
 				51F175471F3EBC0C00C74950 /* ServiceWorkerUpdateViaCache.h */,
 				51F175461F3EBC0C00C74950 /* ServiceWorkerUpdateViaCache.idl */,
@@ -52874,6 +52895,13 @@
 				5C1A7E000000000000004D02 /* SwiftMediaPlayerClientAdapter.swift in Sources */,
 				92C095638807E40F0E344621 /* SVGFilterRenderer.swift in Sources */,
 				A833C7CA0A2CF06B00D57664 /* SVGNames.cpp in Sources */,
+				AD47E8F1AE9D28D14B0CDF94 /* SWOriginStore.swift in Sources */,
+				88901C5C73FD48EAD3E8C3E9 /* SWServerJobQueue.swift in Sources */,
+				3F6B2E17B70A1C0186C67BF9 /* SWServerRegistration.swift in Sources */,
+				9C41A7E2D05B4F18A3E6B207 /* SWServer.swift in Sources */,
+				9C41A7E2D05B4F18A3E6B205 /* SWServerToContextConnection.swift in Sources */,
+				9C41A7E2D05B4F18A3E6B203 /* SWServerWorker.swift in Sources */,
+				9C41A7E2D05B4F18A3E6B201 /* ServiceWorkerRoute.swift in Sources */,
 				2F13F722BC0D42E7D835C00E /* WebAuthnU2f.swift in Sources */,
 				359E6608BF267C6ED91115E9 /* WebAuthnCtapResponses.swift in Sources */,
 				F907276A950C2BAA4213D1AF /* WebAuthnCtapRequests.swift in Sources */,

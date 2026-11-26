@@ -1868,6 +1868,14 @@
 		7AFA6F712A9F590A0055322A /* WebDisplayRefreshMonitor.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AFA6F702A9F58FB0055322A /* WebDisplayRefreshMonitor.h */; };
 		7AFBD36321E50F39005DBACB /* WebResourceLoadStatisticsStore.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AFBD36221E50F39005DBACB /* WebResourceLoadStatisticsStore.h */; };
 		4F723CF78DC040AE98532353 /* ResourceLoadStatisticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAC0939395845FBB9F01048 /* ResourceLoadStatisticsStore.swift */; };
+		F9426F9FAA7CAC30EA4EC629 /* ServiceWorkerFetchTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A735EFE5120905705ADA625D /* ServiceWorkerFetchTask.swift */; };
+		5B11A0C1D2E3F40516273849 /* ServiceWorkerSoftUpdateLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B11A0C0D2E3F40516273849 /* ServiceWorkerSoftUpdateLoader.swift */; };
+		5B11A0C3D2E3F40516273849 /* WebSWOriginStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B11A0C2D2E3F40516273849 /* WebSWOriginStore.swift */; };
+		282DB10E78C7A6CF6B65194A /* ServiceWorkerFetchTaskMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7A625C902EF848241EC5B0F /* ServiceWorkerFetchTaskMessageReceiver.swift */; };
+		5B11A0C5D2E3F40516273849 /* WebSWServerConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B11A0C4D2E3F40516273849 /* WebSWServerConnection.swift */; };
+		5B11A0C7D2E3F40516273849 /* WebSWServerToContextConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B11A0C6D2E3F40516273849 /* WebSWServerToContextConnection.swift */; };
+		5B11A0C9D2E3F40516273849 /* WebSWServerConnectionMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B11A0C8D2E3F40516273849 /* WebSWServerConnectionMessageReceiver.swift */; };
+		5B11A0CBD2E3F40516273849 /* WebSWServerToContextConnectionMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B11A0CAD2E3F40516273849 /* WebSWServerToContextConnectionMessageReceiver.swift */; };
 		7AFBD36F21E546F8005DBACB /* PersistencyUtils.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AFBD36D21E546E3005DBACB /* PersistencyUtils.h */; };
 		7B483F1F25CDDA9C00120486 /* MessageReceiveQueueMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B483F1B25CDDA9B00120486 /* MessageReceiveQueueMap.h */; };
 		7B483F2025CDDA9C00120486 /* MessageReceiveQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B483F1C25CDDA9B00120486 /* MessageReceiveQueue.h */; };
@@ -6003,6 +6011,12 @@
 		41518535222704F5005430C6 /* ServiceWorkerFetchTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ServiceWorkerFetchTask.h; sourceTree = "<group>"; };
 		41518536222704F6005430C6 /* ServiceWorkerFetchTask.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ServiceWorkerFetchTask.cpp; sourceTree = "<group>"; };
 		4151853822270F53005430C6 /* ServiceWorkerFetchTask.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ServiceWorkerFetchTask.messages.in; sourceTree = "<group>"; };
+		A735EFE5120905705ADA625D /* ServiceWorkerFetchTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceWorkerFetchTask.swift; sourceTree = "<group>"; };
+		B7A625C902EF848241EC5B0F /* ServiceWorkerFetchTaskMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceWorkerFetchTaskMessageReceiver.swift; sourceTree = "<group>"; };
+		5B11A0C4D2E3F40516273849 /* WebSWServerConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSWServerConnection.swift; sourceTree = "<group>"; };
+		5B11A0C6D2E3F40516273849 /* WebSWServerToContextConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSWServerToContextConnection.swift; sourceTree = "<group>"; };
+		5B11A0C8D2E3F40516273849 /* WebSWServerConnectionMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSWServerConnectionMessageReceiver.swift; sourceTree = "<group>"; };
+		5B11A0CAD2E3F40516273849 /* WebSWServerToContextConnectionMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSWServerToContextConnectionMessageReceiver.swift; sourceTree = "<group>"; };
 		4151E5C31FBB90A900E47E2D /* FormDataReference.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FormDataReference.h; sourceTree = "<group>"; };
 		4157853021276B6F00DD3800 /* copy-webcontent-resources-to-private-headers.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "copy-webcontent-resources-to-private-headers.sh"; sourceTree = "<group>"; };
 		4158649A23BE092400A0A61E /* VideoEncoderIdentifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VideoEncoderIdentifier.h; sourceTree = "<group>"; };
@@ -6059,6 +6073,7 @@
 		41D129D91F3D101400D15E47 /* WebCacheStorageProvider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCacheStorageProvider.h; sourceTree = "<group>"; };
 		41D5C6D8238EB20D00B9B3CB /* ServiceWorkerSoftUpdateLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ServiceWorkerSoftUpdateLoader.h; sourceTree = "<group>"; };
 		41D5C6D9238EB20E00B9B3CB /* ServiceWorkerSoftUpdateLoader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ServiceWorkerSoftUpdateLoader.cpp; sourceTree = "<group>"; };
+		5B11A0C0D2E3F40516273849 /* ServiceWorkerSoftUpdateLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceWorkerSoftUpdateLoader.swift; sourceTree = "<group>"; };
 		41D8D37C29A6637700A570BB /* BackgroundFetchStoreManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BackgroundFetchStoreManager.cpp; sourceTree = "<group>"; };
 		41D8D37D29A6637800A570BB /* BackgroundFetchStoreManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BackgroundFetchStoreManager.h; sourceTree = "<group>"; };
 		41DC04F827A816BB008CF968 /* SharedVideoFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SharedVideoFrame.h; sourceTree = "<group>"; };
@@ -7906,6 +7921,7 @@
 		93BA04DD2151ADF3007F455F /* WebSWServerToContextConnection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebSWServerToContextConnection.cpp; sourceTree = "<group>"; };
 		93BA04DE2151ADF4007F455F /* WebSWOriginStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSWOriginStore.h; sourceTree = "<group>"; };
 		93BA04DF2151ADF4007F455F /* WebSWOriginStore.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebSWOriginStore.cpp; sourceTree = "<group>"; };
+		5B11A0C2D2E3F40516273849 /* WebSWOriginStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSWOriginStore.swift; sourceTree = "<group>"; };
 		93BA04E02151ADF4007F455F /* WebSWServerConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSWServerConnection.h; sourceTree = "<group>"; };
 		93BA04E12151ADF4007F455F /* WebSWServerConnection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebSWServerConnection.cpp; sourceTree = "<group>"; };
 		93D1EEF429669D73009B31D6 /* UnifiedOriginStorageLevel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UnifiedOriginStorageLevel.h; sourceTree = "<group>"; };
@@ -14351,6 +14367,7 @@
 				E18E6913169B667B009B6670 /* SecItemShimProxyMessageReceiver.cpp */,
 				E18E6914169B667B009B6670 /* SecItemShimProxyMessages.h */,
 				51AD56882B1ABFC1001A0ECB /* SerializedTypeInfo.mm */,
+				B7A625C902EF848241EC5B0F /* ServiceWorkerFetchTaskMessageReceiver.swift */,
 				2DE6943B18BD2A68005C15E5 /* SmartMagnificationControllerMessageReceiver.cpp */,
 				2DE6943C18BD2A68005C15E5 /* SmartMagnificationControllerMessages.h */,
 				93AB9B4F257589110098B10E /* SpeechRecognitionRealtimeMediaSourceManagerMessageReceiver.cpp */,
@@ -14459,8 +14476,10 @@
 				460F488E1F996F6C00CF4B87 /* WebSWContextManagerConnectionMessages.h */,
 				517A52D71F43A9B600DCDC0A /* WebSWServerConnectionMessageReceiver.cpp */,
 				517A52D61F43A9B600DCDC0A /* WebSWServerConnectionMessages.h */,
+				5B11A0C8D2E3F40516273849 /* WebSWServerConnectionMessageReceiver.swift */,
 				515262BA1FB951310070E579 /* WebSWServerToContextConnectionMessageReceiver.cpp */,
 				515262BB1FB951310070E579 /* WebSWServerToContextConnectionMessages.h */,
+				5B11A0CAD2E3F40516273849 /* WebSWServerToContextConnectionMessageReceiver.swift */,
 				1AAF08B519269E6D00B6390C /* WebUserContentControllerMessageReceiver.cpp */,
 				1AAF08B619269E6D00B6390C /* WebUserContentControllerMessages.h */,
 			);
@@ -16138,20 +16157,25 @@
 				41518536222704F6005430C6 /* ServiceWorkerFetchTask.cpp */,
 				41518535222704F5005430C6 /* ServiceWorkerFetchTask.h */,
 				4151853822270F53005430C6 /* ServiceWorkerFetchTask.messages.in */,
+				A735EFE5120905705ADA625D /* ServiceWorkerFetchTask.swift */,
 				41EB4D3B274CE04500A9272B /* ServiceWorkerNavigationPreloader.cpp */,
 				41EB4D3A274CE04500A9272B /* ServiceWorkerNavigationPreloader.h */,
 				41D5C6D9238EB20E00B9B3CB /* ServiceWorkerSoftUpdateLoader.cpp */,
 				41D5C6D8238EB20D00B9B3CB /* ServiceWorkerSoftUpdateLoader.h */,
+				5B11A0C0D2E3F40516273849 /* ServiceWorkerSoftUpdateLoader.swift */,
 				93BA04DF2151ADF4007F455F /* WebSWOriginStore.cpp */,
 				93BA04DE2151ADF4007F455F /* WebSWOriginStore.h */,
+				5B11A0C2D2E3F40516273849 /* WebSWOriginStore.swift */,
 				3A7D62D229D35D9D00D57DAC /* WebSWRegistrationStore.cpp */,
 				3AC4C04529D35D1500402716 /* WebSWRegistrationStore.h */,
 				93BA04E12151ADF4007F455F /* WebSWServerConnection.cpp */,
 				93BA04E02151ADF4007F455F /* WebSWServerConnection.h */,
 				93BA04DA2151ADF3007F455F /* WebSWServerConnection.messages.in */,
+				5B11A0C4D2E3F40516273849 /* WebSWServerConnection.swift */,
 				93BA04DD2151ADF3007F455F /* WebSWServerToContextConnection.cpp */,
 				93BA04DB2151ADF3007F455F /* WebSWServerToContextConnection.h */,
 				93BA04DC2151ADF3007F455F /* WebSWServerToContextConnection.messages.in */,
+				5B11A0C6D2E3F40516273849 /* WebSWServerToContextConnection.swift */,
 			);
 			path = ServiceWorker;
 			sourceTree = "<group>";
@@ -22786,6 +22810,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F9426F9FAA7CAC30EA4EC629 /* ServiceWorkerFetchTask.swift in Sources */,
+				5B11A0C1D2E3F40516273849 /* ServiceWorkerSoftUpdateLoader.swift in Sources */,
+				5B11A0C3D2E3F40516273849 /* WebSWOriginStore.swift in Sources */,
+				282DB10E78C7A6CF6B65194A /* ServiceWorkerFetchTaskMessageReceiver.swift in Sources */,
+				5B11A0C5D2E3F40516273849 /* WebSWServerConnection.swift in Sources */,
+				5B11A0C7D2E3F40516273849 /* WebSWServerToContextConnection.swift in Sources */,
+				5B11A0C9D2E3F40516273849 /* WebSWServerConnectionMessageReceiver.swift in Sources */,
+				5B11A0CBD2E3F40516273849 /* WebSWServerToContextConnectionMessageReceiver.swift in Sources */,
 				5790A67125679F1A0077C5A7 /* _WKAuthenticationExtensionsClientInputs.mm in Sources */,
 				5790A67D2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.mm in Sources */,
 				5790A6892567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.mm in Sources */,

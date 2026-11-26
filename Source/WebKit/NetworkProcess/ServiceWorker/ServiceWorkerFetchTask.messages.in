@@ -23,7 +23,8 @@
 [
     EnabledBy=ServiceWorkersEnabled,
     DispatchedFrom=WebContent,
-    DispatchedTo=Networking
+    DispatchedTo=Networking,
+    SwiftImplementation
 ]
 messages -> ServiceWorkerFetchTask {
     DidNotHandle()

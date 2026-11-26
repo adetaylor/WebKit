@@ -59,7 +59,7 @@ class NetworkProcess;
 class ServiceWorkerDownloadTask;
 class WebSWServerConnection;
 
-class WebSWServerToContextConnection final: public WebCore::SWServerToContextConnection, public IPC::MessageSender, public IPC::MessageReceiver {
+class SWIFT_PRIVATE_FILEID("WebKit/WebSWServerToContextConnection.swift") WebSWServerToContextConnection final: public WebCore::SWServerToContextConnection, public IPC::MessageSender, public IPC::MessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(WebSWServerToContextConnection);
 public:
     USING_CAN_MAKE_WEAKPTR(WebCore::SWServerToContextConnection);
@@ -73,6 +73,11 @@ public:
     void stop();
 
     NODELETE IPC::Connection* ipcConnection() const;
+    // Swift reads the connection through these (WebSWServerToContextConnection.swift).
+    RefPtr<IPC::Connection> protectedIPCConnection() const { return ipcConnection(); }
+    bool isServerContextConnection() const;
+    // Calls SWServerToContextConnection::didFinishActivation, not this class's override.
+    void didFinishActivationInBase(WebCore::ServiceWorkerIdentifier identifier) { SWServerToContextConnection::didFinishActivation(identifier); }
 
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;

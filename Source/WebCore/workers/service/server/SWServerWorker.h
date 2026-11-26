@@ -34,6 +34,7 @@
 #include <WebCore/ServiceWorkerContextData.h>
 #include <WebCore/ServiceWorkerData.h>
 #include <WebCore/ServiceWorkerIdentifier.h>
+#include <WebCore/ServiceWorkerJobDataIdentifier.h>
 #include <WebCore/ServiceWorkerRegistrationKey.h>
 #include <WebCore/ServiceWorkerRoute.h>
 #include <WebCore/ServiceWorkerTypes.h>
@@ -54,12 +55,16 @@ class SWServerRegistration;
 class SWServerToContextConnection;
 struct ServiceWorkerClientQueryOptions;
 struct ServiceWorkerContextData;
-struct ServiceWorkerJobDataIdentifier;
 struct ServiceWorkerRoute;
 enum class WorkerThreadMode : bool;
 enum class WorkerType : bool;
 
-class SWServerWorker : public RefCountedAndCanMakeWeakPtr<SWServerWorker> {
+// Swift names a std::optional specialization only through a type alias.
+using OptionalRouterSource = std::optional<RouterSource>;
+using OptionalScriptExecutionContextIdentifier = std::optional<ScriptExecutionContextIdentifier>;
+using OptionalServiceWorkerJobDataIdentifier = std::optional<ServiceWorkerJobDataIdentifier>;
+
+class SWIFT_PRIVATE_FILEID("WebCore/SWServerWorker.swift") SWServerWorker : public RefCountedAndCanMakeWeakPtr<SWServerWorker> {
 public:
     template <typename... Args> static Ref<SWServerWorker> create(Args&&... args)
     {
@@ -69,7 +74,8 @@ public:
     SWServerWorker(const SWServerWorker&) = delete;
     WEBCORE_EXPORT ~SWServerWorker();
 
-    WEBCORE_EXPORT void terminate(CompletionHandler<void()>&& = [] { });
+    WEBCORE_EXPORT void terminate();
+    WEBCORE_EXPORT void terminate(CompletionHandler<void()>&&);
     WEBCORE_EXPORT void whenTerminated(CompletionHandler<void()>&&);
 
     WEBCORE_EXPORT void whenActivated(CompletionHandler<void(bool)>&&);
@@ -102,17 +108,17 @@ public:
     bool hasPendingEvents() const { return m_hasPendingEvents; }
     void setHasPendingEvents(bool);
 
-    void scriptContextFailedToStart(const std::optional<ServiceWorkerJobDataIdentifier>&, const String& message);
-    void scriptContextStarted(const std::optional<ServiceWorkerJobDataIdentifier>&, bool doesHandleFetch);
-    void didFinishInstall(const std::optional<ServiceWorkerJobDataIdentifier>&, bool wasSuccessful);
+    void scriptContextFailedToStart(std::optional<ServiceWorkerJobDataIdentifier>, String message);
+    void scriptContextStarted(std::optional<ServiceWorkerJobDataIdentifier>, bool doesHandleFetch);
+    void didFinishInstall(std::optional<ServiceWorkerJobDataIdentifier>, bool wasSuccessful);
     void didFinishActivation();
     void contextTerminated();
-    WEBCORE_EXPORT std::optional<ServiceWorkerClientData> findClientByIdentifier(const ScriptExecutionContextIdentifier&) const;
+    WEBCORE_EXPORT std::optional<ServiceWorkerClientData> findClientByIdentifier(ScriptExecutionContextIdentifier) const;
     WEBCORE_EXPORT void findClientByVisibleIdentifier(const String& clientIdentifier, CompletionHandler<void(std::optional<WebCore::ServiceWorkerClientData>&&)>&&);
     void matchAll(const ServiceWorkerClientQueryOptions&, ServiceWorkerClientsMatchAllCallback&&);
     void setScriptResource(URL&&, ServiceWorkerContextData::ImportedScript&&);
-    void didSaveScriptsToDisk(ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts);
-    void setWorkerScripts(ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts);
+    void didSaveScriptsToDisk(ScriptBuffer mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer> importedScripts);
+    void setWorkerScripts(ScriptBuffer mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer> importedScripts);
 
     bool needsScriptLoading() const { return m_needsScriptLoading; }
     void setNeedsScriptLoading() { m_needsScriptLoading = true; }
@@ -139,7 +145,7 @@ public:
     String userAgent() const;
 
     bool hasRouterRules() const { return !m_routes.isEmpty(); }
-    WEBCORE_EXPORT std::optional<RouterSource> getRouterSource(const FetchOptions&, const ResourceRequest&) const;
+    WEBCORE_EXPORT std::optional<RouterSource> getRouterSource(FetchOptionsMode, FetchOptionsDestination, URL, String httpMethod) const;
     NODELETE WEBCORE_EXPORT RouterSource defaultRouterSource() const;
 
     NODELETE WEBCORE_EXPORT SWServerRegistration* registration() const;
@@ -161,7 +167,7 @@ public:
 
     Vector<URL> importedScriptURLs() const;
     const MemoryCompactRobinHoodHashMap<URL, ServiceWorkerContextData::ImportedScript>& scriptResourceMap() const LIFETIME_BOUND { return m_scriptResourceMap; }
-    bool matchingImportedScripts(const Vector<std::pair<URL, ScriptBuffer>>&) const;
+    bool matchingImportedScripts(Vector<std::pair<URL, ScriptBuffer>>) const;
 
     void markActivateEventAsFired() { m_isActivateEventFired = true; }
 

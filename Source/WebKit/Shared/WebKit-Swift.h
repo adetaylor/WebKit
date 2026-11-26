@@ -59,6 +59,14 @@
 #include "WebBackForwardListSwiftUtilities.h"
 #include "WebPageProxy.h"
 
+// The network process's service worker receivers.
+#include "ServiceWorkerFetchTask.h"
+#include "ServiceWorkerFetchTaskMessages.h"
+#include "WebSWServerConnection.h"
+#include "WebSWServerConnectionMessages.h"
+#include "WebSWServerToContextConnection.h"
+#include "WebSWServerToContextConnectionMessages.h"
+
 #if ENABLE(GPU_PROCESS)
 #include "GPUConnectionToWebProcess.h"
 #include "GPUConnectionToWebProcessMessages.h"

@@ -27,6 +27,7 @@
 
 #include "SharedStringHashStore.h"
 #include <WebCore/SWOriginStore.h>
+#include <wtf/Ref.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/TypeCasts.h>
 #include <wtf/WeakHashSet.h>
@@ -35,16 +36,18 @@ namespace WebKit {
 
 class WebSWServerConnection;
 
-class WebSWOriginStore final : public WebCore::SWOriginStore, public SharedStringHashStore::Client {
+class SWIFT_PRIVATE_FILEID("WebKit/WebSWOriginStore.swift") WebSWOriginStore final : public WebCore::SWOriginStore, public SharedStringHashStore::Client {
     WTF_MAKE_TZONE_ALLOCATED(WebSWOriginStore);
 public:
-    WebSWOriginStore();
+    static Ref<WebSWOriginStore> create() { return adoptRef(*new WebSWOriginStore); }
 
     void registerSWServerConnection(WebSWServerConnection&);
     void unregisterSWServerConnection(WebSWServerConnection&);
     void importComplete() final;
 
 private:
+    WebSWOriginStore();
+
     bool isWebSWOriginStore() const final { return true; }
 
     void sendStoreHandle(WebSWServerConnection&);

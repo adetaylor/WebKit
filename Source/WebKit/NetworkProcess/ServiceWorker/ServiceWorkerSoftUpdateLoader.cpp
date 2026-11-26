@@ -31,11 +31,9 @@
 #include "NetworkLoad.h"
 #include "NetworkSession.h"
 #include <WebCore/AdvancedPrivacyProtections.h>
-#include <WebCore/HTTPStatusCodes.h>
 #include <WebCore/ServiceWorkerJob.h>
 #include <WebCore/TextResourceDecoder.h>
 #include <WebCore/WorkerFetchResult.h>
-#include <WebCore/WorkerScriptLoader.h>
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebKit {
@@ -111,7 +109,7 @@ void ServiceWorkerSoftUpdateLoader::fail(ResourceError&& error)
 
 void ServiceWorkerSoftUpdateLoader::loadWithCacheEntry(NetworkCache::Entry& entry)
 {
-    auto error = processResponse(entry.response());
+    auto error = processResponse(ResourceResponse { entry.response() });
     if (!error.isNull()) {
         fail(WTF::move(error));
         return;
@@ -149,41 +147,27 @@ void ServiceWorkerSoftUpdateLoader::willSendRedirectedRequest(ResourceRequest&&,
 
 void ServiceWorkerSoftUpdateLoader::didReceiveResponse(ResourceResponse&& response, PrivateRelayed, ResponseCompletionHandler&& completionHandler)
 {
-    m_certificateInfo = *response.certificateInfo();
-    if (response.httpStatusCode() == httpStatus304NotModified && m_cacheEntry) {
-        loadWithCacheEntry(*m_cacheEntry);
-        completionHandler(PolicyAction::Ignore);
-        return;
-    }
-    auto error = processResponse(response);
-    if (!error.isNull()) {
-        fail(WTF::move(error));
-        completionHandler(PolicyAction::Ignore);
-        return;
-    }
-    completionHandler(PolicyAction::Use);
+    completionHandler(policyForResponse(WTF::move(response)));
 }
 
-// https://w3c.github.io/ServiceWorker/#update-algorithm, steps 9.7 to 9.17
-ResourceError ServiceWorkerSoftUpdateLoader::processResponse(const ResourceResponse& response)
+bool ServiceWorkerSoftUpdateLoader::loadWithCacheEntryIfAny()
 {
-    auto source = m_jobData.workerType == WorkerType::Module ? WorkerScriptLoader::Source::ModuleScript : WorkerScriptLoader::Source::ClassicWorkerScript;
-    auto error = WorkerScriptLoader::validateWorkerResponse(response, source, FetchOptions::Destination::Serviceworker);
-    if (!error.isNull())
-        return error;
+    if (!m_cacheEntry)
+        return false;
+    loadWithCacheEntry(*m_cacheEntry);
+    return true;
+}
 
-    error = ServiceWorkerJob::validateServiceWorkerResponse(m_jobData, response);
-    if (!error.isNull())
-        return error;
+ResourceError ServiceWorkerSoftUpdateLoader::validateServiceWorkerResponse(const ResourceResponse& response) const
+{
+    return ServiceWorkerJob::validateServiceWorkerResponse(m_jobData, response);
+}
 
-    m_contentSecurityPolicy = ContentSecurityPolicyResponseHeaders { response };
+CrossOriginEmbedderPolicy ServiceWorkerSoftUpdateLoader::crossOriginEmbedderPolicy(const ResourceResponse& response)
+{
     // Service workers are always secure contexts.
     // FIXME: A soft update has no web process whose preferences say whether credentialless policies are supported.
-    m_crossOriginEmbedderPolicy = obtainCrossOriginEmbedderPolicy(response, IsSecureContext::Yes, CredentiallessSupport::No, nullptr);
-    m_referrerPolicy = response.httpHeaderField(HTTPHeaderName::ReferrerPolicy);
-    m_responseEncoding = response.textEncodingName();
-
-    return { };
+    return obtainCrossOriginEmbedderPolicy(response, IsSecureContext::Yes, CredentiallessSupport::No, nullptr);
 }
 
 void ServiceWorkerSoftUpdateLoader::didReceiveBuffer(const WebCore::FragmentedSharedBuffer& buffer)
@@ -219,6 +203,16 @@ void ServiceWorkerSoftUpdateLoader::didComplete()
     m_networkLoad = nullptr;
     if (CheckedPtr session = m_session.get())
         session->removeSoftUpdateLoader(this);
+}
+
+CertificateInfo ServiceWorkerSoftUpdateLoader::certificateInfo(const ResourceResponse& response)
+{
+    return *response.certificateInfo();
+}
+
+String ServiceWorkerSoftUpdateLoader::textEncodingName(const ResourceResponse& response)
+{
+    return response.textEncodingName();
 }
 
 } // namespace WebKit

@@ -29,8 +29,8 @@
 #include "ServiceWorkerJobData.h"
 #include "Timer.h"
 #include "WorkerFetchResult.h"
-#include <wtf/CheckedPtr.h>
 #include <wtf/Deque.h>
+#include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/TZoneMalloc.h>
 
 namespace WebCore {
@@ -39,11 +39,10 @@ class SWServerWorker;
 class ServiceWorkerJob;
 struct WorkerFetchResult;
 
-class SWServerJobQueue final : public CanMakeCheckedPtr<SWServerJobQueue>, public CanMakeWeakPtr<SWServerJobQueue> {
+class SWIFT_PRIVATE_FILEID("WebCore/SWServerJobQueue.swift") SWServerJobQueue final : public RefCountedAndCanMakeWeakPtr<SWServerJobQueue> {
     WTF_MAKE_TZONE_ALLOCATED(SWServerJobQueue);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(SWServerJobQueue);
 public:
-    explicit SWServerJobQueue(SWServer&, const ServiceWorkerRegistrationKey&);
+    static Ref<SWServerJobQueue> create(SWServer& server, const ServiceWorkerRegistrationKey& key) { return adoptRef(*new SWServerJobQueue(server, key)); }
     SWServerJobQueue(const SWServerRegistration&) = delete;
     ~SWServerJobQueue();
 
@@ -52,33 +51,46 @@ public:
     void enqueueJob(ServiceWorkerJobData&& jobData) { m_jobQueue.append(WTF::move(jobData)); }
     size_t size() const { return m_jobQueue.size(); }
 
+    struct FirstJobSnapshot {
+        ServiceWorkerJobDataIdentifier identifier;
+        ServiceWorkerJobType type;
+        SWServerConnectionIdentifier connectionIdentifier;
+    };
+    ALWAYS_INLINE FirstJobSnapshot firstJobSnapshot() const
+    {
+        auto& job = m_jobQueue.first();
+        return { job.identifier(), job.type, job.connectionIdentifier() };
+    }
+
     void runNextJob();
 
-    void scriptFetchFinished(const ServiceWorkerJobDataIdentifier&, const std::optional<ProcessIdentifier>&, WorkerFetchResult&&);
-    void importedScriptsFetchFinished(const ServiceWorkerJobDataIdentifier&, const Vector<std::pair<URL, ScriptBuffer>>&, const std::optional<ProcessIdentifier>&);
-    void scriptContextFailedToStart(const ServiceWorkerJobDataIdentifier&, ServiceWorkerIdentifier, const String& message);
-    void scriptContextStarted(const ServiceWorkerJobDataIdentifier&, ServiceWorkerIdentifier);
-    void didFinishInstall(const ServiceWorkerJobDataIdentifier&, SWServerWorker&, bool wasSuccessful);
+    void scriptFetchFinished(ServiceWorkerJobDataIdentifier, std::optional<ProcessIdentifier>, WorkerFetchResult);
+    void importedScriptsFetchFinished(ServiceWorkerJobDataIdentifier, Vector<std::pair<URL, ScriptBuffer>>, std::optional<ProcessIdentifier>);
+    void scriptContextFailedToStart(ServiceWorkerJobDataIdentifier, ServiceWorkerIdentifier, String message);
+    void scriptContextStarted(ServiceWorkerJobDataIdentifier, ServiceWorkerIdentifier);
+    void didFinishInstall(ServiceWorkerJobDataIdentifier, SWServerWorker&, bool wasSuccessful);
     void didResolveRegistrationPromise();
     void cancelJobsFromConnection(SWServerConnectionIdentifier);
     void cancelJobsFromServiceWorker(ServiceWorkerIdentifier);
 
-    NODELETE bool isCurrentlyProcessingJob(const ServiceWorkerJobDataIdentifier&) const;
+    NODELETE bool isCurrentlyProcessingJob(ServiceWorkerJobDataIdentifier) const;
 
 private:
+    SWServerJobQueue(SWServer&, const ServiceWorkerRegistrationKey&);
+
     void jobTimerFired();
     void runNextJobSynchronously();
-    void rejectCurrentJob(const ExceptionData&);
+    void rejectCurrentJob(ExceptionData);
     void finishCurrentJob();
 
-    void runRegisterJob(const ServiceWorkerJobData&);
-    void runUnregisterJob(const ServiceWorkerJobData&);
-    void runUpdateJob(const ServiceWorkerJobData&);
+    void runRegisterJob(ServiceWorkerJobData);
+    void runUnregisterJob(ServiceWorkerJobData);
+    void runUpdateJob(ServiceWorkerJobData);
 
     void install(SWServerRegistration&, ServiceWorkerIdentifier);
 
     void removeAllJobsMatching(NOESCAPE const Function<bool(ServiceWorkerJobData&)>&);
-    void scriptAndImportedScriptsFetchFinished(const ServiceWorkerJobData&, SWServerRegistration&);
+    void scriptAndImportedScriptsFetchFinished(ServiceWorkerJobData, SWServerRegistration&);
 
     SWServer& server() const { return m_server.get(); }
 

@@ -78,11 +78,6 @@ void WebSWOriginStore::registerSWServerConnection(WebSWServerConnection& connect
         connection.send(Messages::WebSWClientConnection::SetSWOriginTableIsImported());
 }
 
-void WebSWOriginStore::unregisterSWServerConnection(WebSWServerConnection& connection)
-{
-    m_webSWServerConnections.remove(connection);
-}
-
 void WebSWOriginStore::sendStoreHandle(WebSWServerConnection& connection)
 {
     auto handle = m_store->createSharedMemoryHandle();

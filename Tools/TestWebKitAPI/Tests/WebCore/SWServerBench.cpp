@@ -546,7 +546,7 @@ public:
             if (fillStore)
                 fillStore(*m_store);
         }
-        m_server = WebCore::SWServer::create(*m_delegate, makeUniqueRef<TestOriginStore>(*this), true, String { }, PAL::SessionID::defaultSessionID(), false, m_options.hasServiceWorkerEntitlement, m_options.registrationCountLimit, WebCore::ServiceWorkerIsInspectable::No);
+        m_server = WebCore::SWServer::create(*m_delegate, adoptRef(*new TestOriginStore(*this)), true, String { }, PAL::SessionID::defaultSessionID(), false, m_options.hasServiceWorkerEntitlement, m_options.registrationCountLimit, WebCore::ServiceWorkerIsInspectable::No);
         for (unsigned i = 0; i < m_options.connectionCount; ++i)
             addConnection();
         settle();
@@ -1686,7 +1686,7 @@ static String routeCapacities(const String& scope, const Vector<RouteRequest>& r
     unsigned matched = 0;
     for (auto& request : requests) {
         size_t tried = routes.size();
-        if (auto source = worker->getRouterSource(request.options, request.request)) {
+        if (auto source = worker->getRouterSource(request.options.mode, request.options.destination, request.request.url(), request.request.httpMethod())) {
             if (auto* dict = std::get_if<WebCore::RouterSourceDict>(&*source)) {
                 tried = parseInteger<unsigned>(StringView { dict->cacheName }.substring(5)).value_or(routes.size() - 1) + 1;
                 ++matched;
@@ -1720,7 +1720,7 @@ static size_t routeMatch(Digest& digest, Excluded& excluded)
         return bytes;
     }
     for (auto& request : requests) {
-        auto source = worker->getRouterSource(request.options, request.request);
+        auto source = worker->getRouterSource(request.options.mode, request.options.destination, request.request.url(), request.request.httpMethod());
         harness->record(Event::RouteResult, { routeSourceName(source) });
     }
     excluded.measure([&] {
@@ -2105,7 +2105,7 @@ static size_t realisticMix(Digest& digest, Excluded& excluded)
             if (auto* worker = harness.activeWorker(scope)) {
                 for (unsigned i = 0; i < 8; ++i) {
                     auto& request = requests[(load * 8 + i) % requests.size()];
-                    harness.record(Event::RouteResult, { routeSourceName(worker->getRouterSource(request.options, request.request)) });
+                    harness.record(Event::RouteResult, { routeSourceName(worker->getRouterSource(request.options.mode, request.options.destination, request.request.url(), request.request.httpMethod())) });
                     bytes += request.request.url().string().length();
                 }
             }

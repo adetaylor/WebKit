@@ -26,45 +26,10 @@
 #include "config.h"
 #include "SWOriginStore.h"
 
-#include "SecurityOrigin.h"
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(SWOriginStore);
-
-void SWOriginStore::add(const SecurityOriginData& origin)
-{
-    ++m_originCounts.ensure(origin, [&] {
-        addToStore(origin);
-        return 0;
-    }).iterator->value;
-}
-
-void SWOriginStore::remove(const SecurityOriginData& origin)
-{
-    auto iterator = m_originCounts.find(origin);
-    ASSERT(iterator != m_originCounts.end());
-    if (iterator == m_originCounts.end())
-        return;
-
-    if (--iterator->value)
-        return;
-
-    m_originCounts.remove(iterator);
-    removeFromStore(origin);
-}
-
-void SWOriginStore::clear(const SecurityOriginData& origin)
-{
-    m_originCounts.remove(origin);
-    removeFromStore(origin);
-}
-
-void SWOriginStore::clearAll()
-{
-    m_originCounts.clear();
-    clearStore();
-}
 
 } // namespace WebCore

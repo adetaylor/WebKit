@@ -65,8 +65,6 @@ namespace WebCore {
 WTF_MAKE_TZONE_ALLOCATED_IMPL(SWServer);
 WTF_MAKE_TZONE_ALLOCATED_IMPL(SWServer::Connection);
 
-static const unsigned defaultMaxRegistrationCount = 3;
-
 SWServer::Connection::Connection(SWServer& server, Identifier identifier)
     : m_server(server)
     , m_identifier(identifier)
@@ -79,7 +77,7 @@ SWServer::Connection::~Connection()
         request.callback({ });
 }
 
-Ref<SWServer> SWServer::create(SWServerDelegate& delegate, UniqueRef<SWOriginStore>&& originStore, bool processTerminationDelayEnabled, String&& registrationDatabaseDirectory, PAL::SessionID sessionID, bool shouldRunServiceWorkersOnMainThreadForTesting, bool hasServiceWorkerEntitlement, std::optional<unsigned> overrideServiceWorkerRegistrationCountTestingValue, ServiceWorkerIsInspectable isInspectable)
+Ref<SWServer> SWServer::create(SWServerDelegate& delegate, Ref<SWOriginStore>&& originStore, bool processTerminationDelayEnabled, String&& registrationDatabaseDirectory, PAL::SessionID sessionID, bool shouldRunServiceWorkersOnMainThreadForTesting, bool hasServiceWorkerEntitlement, std::optional<unsigned> overrideServiceWorkerRegistrationCountTestingValue, ServiceWorkerIsInspectable isInspectable)
 {
     return adoptRef(*new SWServer(delegate, WTF::move(originStore), processTerminationDelayEnabled, WTF::move(registrationDatabaseDirectory), sessionID, shouldRunServiceWorkersOnMainThreadForTesting, hasServiceWorkerEntitlement, overrideServiceWorkerRegistrationCountTestingValue, isInspectable));
 }
@@ -126,41 +124,6 @@ RefPtr<SWServerWorker> SWServer::workerByID(ServiceWorkerIdentifier identifier) 
     return worker;
 }
 
-std::optional<ServiceWorkerClientData> SWServer::serviceWorkerClientWithOriginByID(const ClientOrigin& clientOrigin, const ScriptExecutionContextIdentifier& clientIdentifier) const
-{
-    auto iterator = m_clientIdentifiersPerOrigin.find(clientOrigin);
-    if (iterator == m_clientIdentifiersPerOrigin.end())
-        return std::nullopt;
-
-    if (!iterator->value.identifiers.contains(clientIdentifier))
-        return std::nullopt;
-
-    auto clientIterator = m_clientsById.find(clientIdentifier);
-    if (clientIterator == m_clientsById.end()) [[unlikely]] {
-        ASSERT_NOT_REACHED();
-        return std::nullopt;
-    }
-    return clientIterator->value;
-}
-
-std::optional<ServiceWorkerClientData> SWServer::topLevelServiceWorkerClientFromPageIdentifier(const ClientOrigin& clientOrigin, PageIdentifier pageIdentifier) const
-{
-    auto iterator = m_clientIdentifiersPerOrigin.find(clientOrigin);
-    if (iterator == m_clientIdentifiersPerOrigin.end())
-        return { };
-
-    for (auto clientIdentifier : iterator->value.identifiers) {
-        auto clientIterator = m_clientsById.find(clientIdentifier);
-        if (clientIterator == m_clientsById.end()) {
-            ASSERT_NOT_REACHED();
-            continue;
-        }
-        if (clientIterator->value->frameType == ServiceWorkerClientFrameType::TopLevel && clientIterator->value->pageIdentifier == pageIdentifier)
-            return clientIterator->value;
-    }
-    return { };
-}
-
 String SWServer::serviceWorkerClientUserAgent(const ClientOrigin& clientOrigin) const
 {
     auto iterator = m_clientIdentifiersPerOrigin.find(clientOrigin);
@@ -178,13 +141,6 @@ SWServerWorker* SWServer::activeWorkerFromRegistrationID(ServiceWorkerRegistrati
 SWServerRegistration* SWServer::getRegistration(const ServiceWorkerRegistrationKey& registrationKey)
 {
     return m_scopeToRegistrationMap.get(registrationKey);
-}
-
-bool SWServer::isImportCompletedForOrigin(const SecurityOriginData& topOrigin) const
-{
-    if (topOrigin.isNull() || topOrigin.isOpaque())
-        return true;
-    return m_importedTopOrigins.contains(topOrigin);
 }
 
 void SWServer::originImportComplete(const SecurityOriginData& topOrigin, MonotonicTime startTime)
@@ -350,61 +306,34 @@ void SWServer::loadWorkerScripts(const SWServerWorker& worker, CompletionHandler
         });
 }
 
+void SWServer::setScopeToRegistration(const ServiceWorkerRegistrationKey& key, SWServerRegistration& registration)
+{
+    m_scopeToRegistrationMap.set(key, registration);
+}
+
+bool SWServer::removeScopeToRegistrationIfSame(const ServiceWorkerRegistrationKey& key, const SWServerRegistration& registration)
+{
+    auto it = m_scopeToRegistrationMap.find(key);
+    if (it == m_scopeToRegistrationMap.end() || it->value.ptr() != &registration)
+        return false;
+    m_scopeToRegistrationMap.remove(it);
+    return true;
+}
+
+bool SWServer::isTopOriginLocalHostOrLoopbackIPAddress(const ServiceWorkerRegistrationKey& key)
+{
+    return SecurityOrigin::isLocalHostOrLoopbackIPAddress(key.topOrigin().host());
+}
+
+void SWServer::addServiceWorkerPageIdentifierToRegistration(ScriptExecutionContextIdentifier serviceWorkerPageIdentifier, SWServerRegistration& registration)
+{
+    m_serviceWorkerPageIdentifierToRegistrationMap.add(serviceWorkerPageIdentifier, registration);
+}
+
 void SWServer::didSaveWorkerScriptsToDisk(ServiceWorkerIdentifier serviceWorkerIdentifier, ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts)
 {
     if (RefPtr worker = workerByID(serviceWorkerIdentifier))
         worker->didSaveScriptsToDisk(WTF::move(mainScript), WTF::move(importedScripts));
-}
-
-void SWServer::addRegistration(Ref<SWServerRegistration>&& registration)
-{
-    LOG_WITH_STREAM(ServiceWorker, stream << "Adding registration live for "_s << registration->key().loggingString());
-
-    if (!m_scopeToRegistrationMap.contains(registration->key()) && !allowLoopbackIPAddress(registration->key().topOrigin().host()))
-        m_uniqueRegistrationCount++;
-
-    if (registration->serviceWorkerPageIdentifier())
-        m_serviceWorkerPageIdentifierToRegistrationMap.add(*registration->serviceWorkerPageIdentifier(), registration.get());
-
-    m_originStore->add(registration->key().topOrigin());
-    auto registrationID = registration->identifier();
-    ASSERT(!m_scopeToRegistrationMap.contains(registration->key()));
-    m_scopeToRegistrationMap.set(registration->key(), registration.get());
-    auto addResult1 = m_registrations.add(registrationID, WTF::move(registration));
-    ASSERT_UNUSED(addResult1, addResult1.isNewEntry);
-}
-
-void SWServer::removeRegistration(ServiceWorkerRegistrationIdentifier registrationID)
-{
-    RefPtr registration = m_registrations.take(registrationID);
-    ASSERT(registration);
-
-    if (registration->serviceWorkerPageIdentifier())
-        m_serviceWorkerPageIdentifierToRegistrationMap.remove(*registration->serviceWorkerPageIdentifier());
-    
-    auto it = m_scopeToRegistrationMap.find(registration->key());
-    if (it != m_scopeToRegistrationMap.end() && it->value.ptr() == registration.get()) {
-        m_scopeToRegistrationMap.remove(it);
-        if (!SecurityOrigin::isLocalHostOrLoopbackIPAddress(registration->key().topOrigin().host()))
-            m_uniqueRegistrationCount--;
-    }
-
-    m_originStore->remove(registration->key().topOrigin());
-    if (RefPtr store = m_registrationStore)
-        store->removeRegistration(registration->key());
-
-    protect(backgroundFetchEngine())->remove(*registration);
-}
-
-void SWServer::didReconnectServiceWorkerPage(SWServerRegistration& registration, ScriptExecutionContextIdentifier newServiceWorkerPageIdentifier)
-{
-    if (auto previousIdentifier = registration.serviceWorkerPageIdentifier())
-        m_serviceWorkerPageIdentifierToRegistrationMap.remove(*previousIdentifier);
-
-    registration.setServiceWorkerPageIdentifier(newServiceWorkerPageIdentifier);
-    m_serviceWorkerPageIdentifierToRegistrationMap.add(newServiceWorkerPageIdentifier, registration);
-
-    replaceContextConnectionIfNotInServiceWorkerPageProcess(registration, newServiceWorkerPageIdentifier);
 }
 
 void SWServer::replaceContextConnectionIfNotInServiceWorkerPageProcess(SWServerRegistration& registration, ScriptExecutionContextIdentifier serviceWorkerPageIdentifier)
@@ -598,7 +527,7 @@ void SWServer::Connection::unregisterServiceWorkerInServer(ServiceWorkerIdentifi
         server->unregisterServiceWorkerConnection(*this, identifier);
 }
 
-SWServer::SWServer(SWServerDelegate& delegate, UniqueRef<SWOriginStore>&& originStore, bool processTerminationDelayEnabled, String&& registrationDatabaseDirectory, PAL::SessionID sessionID, bool shouldRunServiceWorkersOnMainThreadForTesting, bool hasServiceWorkerEntitlement, std::optional<unsigned> overrideServiceWorkerRegistrationCountTestingValue, ServiceWorkerIsInspectable inspectable)
+SWServer::SWServer(SWServerDelegate& delegate, Ref<SWOriginStore>&& originStore, bool processTerminationDelayEnabled, String&& registrationDatabaseDirectory, PAL::SessionID sessionID, bool shouldRunServiceWorkersOnMainThreadForTesting, bool hasServiceWorkerEntitlement, std::optional<unsigned> overrideServiceWorkerRegistrationCountTestingValue, ServiceWorkerIsInspectable inspectable)
     : m_delegate(delegate)
     , m_originStore(WTF::move(originStore))
     , m_sessionID(sessionID)
@@ -643,14 +572,6 @@ SWServer::SWServer(SWServerDelegate& delegate, UniqueRef<SWOriginStore>&& origin
         m_originStore->importComplete();
 
     UNUSED_PARAM(registrationDatabaseDirectory);
-}
-
-unsigned SWServer::maxRegistrationCount()
-{
-    if (m_overrideServiceWorkerRegistrationCountTestingValue)
-        return *m_overrideServiceWorkerRegistrationCountTestingValue;
-
-    return defaultMaxRegistrationCount;
 }
 
 bool SWServer::allowLoopbackIPAddress(const String& domain)
@@ -699,8 +620,8 @@ void SWServer::scheduleJob(ServiceWorkerJobData&& jobData)
             if (!protectedThis)
                 return;
             if (protectedThis->m_hasServiceWorkerEntitlement || isValid) {
-                CheckedRef jobQueue = *protectedThis->m_jobQueues.ensure(jobData.registrationKey(), [&] {
-                    return makeUnique<SWServerJobQueue>(*protectedThis, jobData.registrationKey());
+                Ref jobQueue = protectedThis->m_jobQueues.ensure(jobData.registrationKey(), [&] {
+                    return SWServerJobQueue::create(*protectedThis, jobData.registrationKey());
                 }).iterator->value;
 
                 if (!jobQueue->size()) {
@@ -722,49 +643,6 @@ void SWServer::scheduleJob(ServiceWorkerJobData&& jobData)
                 protectedThis->rejectJob(jobData, { ExceptionCode::TypeError, "Job rejected for non app-bound domain"_s });
         });
     });
-}
-
-void SWServer::scheduleUnregisterJob(ServiceWorkerJobDataIdentifier jobDataIdentifier, SWServerRegistration& registration, ServiceWorkerOrClientIdentifier contextIdentifier, URL&& clientCreationURL)
-{
-    ServiceWorkerJobData jobData { jobDataIdentifier, contextIdentifier };
-    jobData.clientCreationURL = WTF::move(clientCreationURL);
-    jobData.topOrigin = registration.data().key.topOrigin();
-    jobData.type = ServiceWorkerJobType::Unregister;
-    jobData.scopeURL = registration.data().scopeURL;
-
-    scheduleJob(WTF::move(jobData));
-}
-
-void SWServer::rejectJob(const ServiceWorkerJobData& jobData, const ExceptionData& exceptionData)
-{
-    LOG_WITH_STREAM(ServiceWorker, stream << "Rejected ServiceWorker job "_s << jobData.identifier().loggingString() << " in server"_s);
-    RefPtr connection = m_connections.get(jobData.connectionIdentifier());
-    if (!connection)
-        return;
-
-    connection->rejectJobInClient(jobData.identifier().jobIdentifier, exceptionData);
-}
-
-void SWServer::resolveRegistrationJob(const ServiceWorkerJobData& jobData, const ServiceWorkerRegistrationData& registrationData, ShouldNotifyWhenResolved shouldNotifyWhenResolved)
-{
-    LOG_WITH_STREAM(ServiceWorker, stream << "Resolved ServiceWorker job "_s << jobData.identifier().loggingString() << " in server with registration "_s << registrationData.identifier.loggingString());
-    RefPtr connection = m_connections.get(jobData.connectionIdentifier());
-    if (!connection) {
-        if (shouldNotifyWhenResolved == ShouldNotifyWhenResolved::Yes && jobData.connectionIdentifier() == Process::identifier())
-            didResolveRegistrationPromise(nullptr, registrationData.key);
-        return;
-    }
-
-    connection->resolveRegistrationJobInClient(jobData.identifier().jobIdentifier, registrationData, shouldNotifyWhenResolved);
-}
-
-void SWServer::resolveUnregistrationJob(const ServiceWorkerJobData& jobData, const ServiceWorkerRegistrationKey& registrationKey, bool unregistrationResult)
-{
-    RefPtr connection = m_connections.get(jobData.connectionIdentifier());
-    if (!connection)
-        return;
-
-    connection->resolveUnregistrationJobInClient(jobData.identifier().jobIdentifier, registrationKey, unregistrationResult);
 }
 
 static void addFetchMetadataHeaders(ResourceRequest& request, const SecurityOrigin& scriptOrigin, ASCIILiteral destination, ASCIILiteral mode)
@@ -843,6 +721,16 @@ void SWServer::startScriptFetch(const ServiceWorkerJobData& jobData, SWServerReg
     ASSERT_WITH_MESSAGE(connection, "If the connection was lost, this job should have been cancelled");
 }
 
+void SWServer::scriptFetchFinished(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, const ServiceWorkerRegistrationKey& registrationKey, const std::optional<ProcessIdentifier>& requestingProcessIdentifier, WorkerFetchResult&& result)
+{
+    LOG_WITH_STREAM(ServiceWorker, stream << "Server handling scriptFetchFinished for current job "_s << jobDataIdentifier.loggingString() << " in client"_s);
+
+    ASSERT(m_connections.contains(jobDataIdentifier.connectionIdentifier) || jobDataIdentifier.connectionIdentifier == Process::identifier());
+
+    if (RefPtr jobQueue = m_jobQueues.get(registrationKey))
+        jobQueue->scriptFetchFinished(jobDataIdentifier, requestingProcessIdentifier, WTF::move(result));
+}
+
 class RefreshImportedScriptsHandler : public RefCounted<RefreshImportedScriptsHandler> {
 public:
     using Callback = CompletionHandler<void(Vector<std::pair<URL, ScriptBuffer>>&&)>;
@@ -869,16 +757,6 @@ private:
     Vector<std::pair<URL, ScriptBuffer>> m_scripts;
 };
 
-void SWServer::scriptFetchFinished(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, const ServiceWorkerRegistrationKey& registrationKey, const std::optional<ProcessIdentifier>& requestingProcessIdentifier, WorkerFetchResult&& result)
-{
-    LOG_WITH_STREAM(ServiceWorker, stream << "Server handling scriptFetchFinished for current job "_s << jobDataIdentifier.loggingString() << " in client"_s);
-
-    ASSERT(m_connections.contains(jobDataIdentifier.connectionIdentifier) || jobDataIdentifier.connectionIdentifier == Process::identifier());
-
-    if (CheckedPtr jobQueue = m_jobQueues.get(registrationKey))
-        jobQueue->scriptFetchFinished(jobDataIdentifier, requestingProcessIdentifier, WTF::move(result));
-}
-
 void SWServer::refreshImportedScripts(const ServiceWorkerJobData& jobData, SWServerRegistration& registration, const Vector<URL>& urls, const std::optional<ProcessIdentifier>& requestingProcessIdentifier)
 {
     RefreshImportedScriptsHandler::Callback callback = [weakThis = WeakPtr { *this }, jobDataIdentifier = jobData.identifier(), registrationKey = jobData.registrationKey(), rpi = requestingProcessIdentifier](auto&& scripts) {
@@ -897,81 +775,104 @@ void SWServer::refreshImportedScripts(const ServiceWorkerJobData& jobData, SWSer
 
 void SWServer::refreshImportedScriptsFinished(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, const ServiceWorkerRegistrationKey& registrationKey, const Vector<std::pair<URL, ScriptBuffer>>& scripts, const std::optional<ProcessIdentifier>& requestingProcessIdentifier)
 {
-    if (CheckedPtr jobQueue = m_jobQueues.get(registrationKey))
+    if (RefPtr jobQueue = m_jobQueues.get(registrationKey))
         jobQueue->importedScriptsFetchFinished(jobDataIdentifier, scripts, requestingProcessIdentifier);
 }
 
-void SWServer::scriptContextFailedToStart(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, SWServerWorker& worker, const String& message)
+RefPtr<SWServerJobQueue> SWServer::jobQueueForWorker(const SWServerWorker& worker)
 {
-    if (!jobDataIdentifier)
-        return;
+    return m_jobQueues.get(worker.registrationKey());
+}
 
+SWServerJobQueue* SWServer::jobQueue(const ServiceWorkerRegistrationKey& registrationKey) const
+{
+    return m_jobQueues.get(registrationKey);
+}
+
+void SWServer::logRejectedJob(const ServiceWorkerJobData& jobData) const
+{
+    UNUSED_PARAM(jobData);
+    LOG_WITH_STREAM(ServiceWorker, stream << "Rejected ServiceWorker job "_s << jobData.identifier().loggingString() << " in server"_s);
+}
+
+void SWServer::logResolvedRegistrationJob(const ServiceWorkerJobData& jobData, const ServiceWorkerRegistrationData& registrationData) const
+{
+    UNUSED_PARAM(jobData);
+    UNUSED_PARAM(registrationData);
+    LOG_WITH_STREAM(ServiceWorker, stream << "Resolved ServiceWorker job "_s << jobData.identifier().loggingString() << " in server with registration "_s << registrationData.identifier.loggingString());
+}
+
+void SWServer::logScriptContextFailedToStart(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, const String& message) const
+{
     RELEASE_LOG_ERROR(ServiceWorker, "%p - SWServer::scriptContextFailedToStart: Failed to start SW for job %s, error: %s", this, jobDataIdentifier->loggingString().utf8(), message.utf8());
-
-    CheckedPtr jobQueue = m_jobQueues.get(worker.registrationKey());
-    if (!jobQueue || !jobQueue->isCurrentlyProcessingJob(*jobDataIdentifier)) {
-        // The job which started this worker has been canceled, terminate this worker.
-        terminatePreinstallationWorker(worker);
-        return;
-    }
-    jobQueue->scriptContextFailedToStart(*jobDataIdentifier, worker.identifier(), message);
 }
 
-void SWServer::scriptContextStarted(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, SWServerWorker& worker)
-{
-    if (!jobDataIdentifier)
-        return;
-
-    CheckedPtr jobQueue = m_jobQueues.get(worker.registrationKey());
-    if (!jobQueue || !jobQueue->isCurrentlyProcessingJob(*jobDataIdentifier)) {
-        // The job which started this worker has been canceled, terminate this worker.
-        terminatePreinstallationWorker(worker);
-        return;
-    }
-    jobQueue->scriptContextStarted(*jobDataIdentifier, worker.identifier());
-}
-
-void SWServer::terminatePreinstallationWorker(SWServerWorker& worker)
-{
-    worker.terminate();
-    RefPtr registration = worker.registration();
-    if (registration && registration->preInstallationWorker() == &worker)
-        registration->setPreInstallationWorker(nullptr);
-}
-
-void SWServer::didFinishInstall(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, SWServerWorker& worker, bool wasSuccessful)
+void SWServer::logDidFinishInstall(const SWServerWorker& worker, bool wasSuccessful) const
 {
     RELEASE_LOG(ServiceWorker, "%p - SWServer::didFinishInstall: Finished install for service worker %" PRIu64 ", success is %d", this, worker.identifier().toUInt64(), wasSuccessful);
-
-    if (!jobDataIdentifier)
-        return;
-
-    if (wasSuccessful)
-        storeRegistrationForWorkerIfNecessary(worker);
-
-    if (CheckedPtr jobQueue = m_jobQueues.get(worker.registrationKey()))
-        jobQueue->didFinishInstall(*jobDataIdentifier, worker, wasSuccessful);
 }
 
-void SWServer::didFinishActivation(SWServerWorker& worker)
+void SWServer::logDidFinishActivation(const SWServerWorker& worker) const
 {
     RELEASE_LOG(ServiceWorker, "%p - SWServer::didFinishActivation: Finished activation for service worker %" PRIu64, this, worker.identifier().toUInt64());
-
-    if (RefPtr registration = worker.registration())
-        registration->didFinishActivation(worker.identifier());
 }
 
-void SWServer::storeRegistrationForWorkerIfNecessary(SWServerWorker& worker)
+void SWServer::logStoreRegistrationForWorker(const SWServerWorker& worker) const
 {
     RELEASE_LOG(ServiceWorker, "%p - SWServer::storeRegistrationForWorkerIfNecessary: service worker %" PRIu64, this, worker.identifier().toUInt64());
+}
 
-    if (!worker.shouldPersistToDisk()) {
-        RELEASE_LOG(ServiceWorker, "%p - SWServer::storeRegistrationForWorkerIfNecessary: Not saving service worker %" PRIu64 " to disk since it is backing a browser extension", this, worker.identifier().toUInt64());
-        return;
-    }
+void SWServer::logNotSavingWorkerBackingExtension(const SWServerWorker& worker) const
+{
+    RELEASE_LOG(ServiceWorker, "%p - SWServer::storeRegistrationForWorkerIfNecessary: Not saving service worker %" PRIu64 " to disk since it is backing a browser extension", this, worker.identifier().toUInt64());
+}
 
-    if (RefPtr store = m_registrationStore)
-        store->updateRegistration(worker.contextData());
+void SWServer::logMissingRegistrationForClientRegistration() const
+{
+    LOG_ERROR("Request to add client-side ServiceWorkerRegistration to non-existent server-side registration");
+}
+
+void SWServer::logMissingContextConnectionForInstallEvent() const
+{
+    RELEASE_LOG_ERROR(ServiceWorker, "Request to fire install event on a worker whose context connection does not exist");
+}
+
+void SWServer::logFireInstallEvent(const SWServerWorker& worker) const
+{
+    RELEASE_LOG(ServiceWorker, "%p - SWServer::fireInstallEvent on worker %" PRIu64, this, worker.identifier().toUInt64());
+}
+
+void SWServer::logAddingRegistration(const Ref<SWServerRegistration>& registration) const
+{
+    UNUSED_PARAM(registration);
+    LOG_WITH_STREAM(ServiceWorker, stream << "Adding registration live for "_s << registration->key().loggingString());
+}
+
+Vector<Ref<SWServer::Connection>> SWServer::connectionValues() const
+{
+    return copyToVector(m_connections.values());
+}
+
+Vector<Ref<SWServerRegistration>> SWServer::registrationValues() const
+{
+    return copyToVector(m_registrations.values());
+}
+
+Vector<Ref<SWServerJobQueue>> SWServer::jobQueueValues() const
+{
+    return copyToVector(m_jobQueues.values());
+}
+
+Vector<Ref<SWServerWorker>> SWServer::runningOrTerminatingWorkerValues() const
+{
+    return copyToVector(m_runningOrTerminatingWorkers.values());
+}
+
+Vector<Ref<SWServerToContextConnection>> SWServer::contextConnectionValues() const
+{
+    return WTF::map(m_contextConnections.values(), [](auto& connection) {
+        return Ref { connection.get() };
+    });
 }
 
 // https://w3c.github.io/ServiceWorker/#clients-getall
@@ -1059,43 +960,6 @@ std::optional<ExceptionData> SWServer::claim(SWServerWorker& worker)
         registration->controlClient(clientData.identifier);
     });
     return { };
-}
-
-void SWServer::didResolveRegistrationPromise(Connection* connection, const ServiceWorkerRegistrationKey& registrationKey)
-{
-    ASSERT_UNUSED(connection, !connection || m_connections.contains(connection->identifier()));
-
-    if (CheckedPtr jobQueue = m_jobQueues.get(registrationKey))
-        jobQueue->didResolveRegistrationPromise();
-}
-
-void SWServer::addClientServiceWorkerRegistration(Connection& connection, ServiceWorkerRegistrationIdentifier identifier)
-{
-    RefPtr registration = m_registrations.get(identifier);
-    if (!registration) {
-        LOG_ERROR("Request to add client-side ServiceWorkerRegistration to non-existent server-side registration");
-        return;
-    }
-    
-    registration->addClientServiceWorkerRegistration(connection.identifier());
-}
-
-void SWServer::removeClientServiceWorkerRegistration(Connection& connection, ServiceWorkerRegistrationIdentifier identifier)
-{
-    if (RefPtr registration = m_registrations.get(identifier))
-        registration->removeClientServiceWorkerRegistration(connection.identifier());
-}
-
-void SWServer::registerServiceWorkerConnection(Connection& connection, ServiceWorkerIdentifier identifier)
-{
-    if (RefPtr worker = m_runningOrTerminatingWorkers.get(identifier))
-        worker->registerServiceWorkerConnection(connection.identifier());
-}
-
-void SWServer::unregisterServiceWorkerConnection(Connection& connection, ServiceWorkerIdentifier identifier)
-{
-    if (RefPtr worker = m_runningOrTerminatingWorkers.get(identifier))
-        worker->unregisterServiceWorkerConnection(connection.identifier());
 }
 
 void SWServer::updateWorker(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, const std::optional<ProcessIdentifier>& requestingProcessIdentifier, SWServerRegistration& registration, const URL& url, const ScriptBuffer& script, const CertificateInfo& certificateInfo, const ContentSecurityPolicyResponseHeaders& contentSecurityPolicy, const CrossOriginEmbedderPolicy& coep, const String& referrerPolicy, WorkerType type, MemoryCompactRobinHoodHashMap<URL, ServiceWorkerContextData::ImportedScript>&& scriptResourceMap, std::optional<ScriptExecutionContextIdentifier> serviceWorkerPageIdentifier)
@@ -1237,7 +1101,7 @@ void SWServer::installContextData(const ServiceWorkerContextData& data)
 
     if (data.jobDataIdentifier) {
         // Abort if the job that scheduled this has been cancelled.
-        CheckedPtr jobQueue = m_jobQueues.get(data.registration.key);
+        RefPtr jobQueue = m_jobQueues.get(data.registration.key);
         if (!jobQueue || !jobQueue->isCurrentlyProcessingJob(*data.jobDataIdentifier))
             return;
     }
@@ -1325,15 +1189,6 @@ void SWServer::runServiceWorkerIfNecessary(SWServerWorker& worker, RunServiceWor
     callback(success ? contextConnection.get() : nullptr);
 }
 
-bool SWServer::runServiceWorker(ServiceWorkerIdentifier identifier)
-{
-    RefPtr worker = workerByID(identifier);
-    if (!worker)
-        return false;
-
-    return runServiceWorker(*worker);
-}
-
 bool SWServer::runServiceWorker(SWServerWorker& worker)
 {
     // If the registration for a worker has been removed then the request to run the worker is moot.
@@ -1356,47 +1211,6 @@ bool SWServer::runServiceWorker(SWServerWorker& worker)
     return true;
 }
 
-void SWServer::markAllWorkersForRegistrableDomainAsTerminated(const RegistrableDomain& registrableDomain)
-{
-    Vector<Ref<SWServerWorker>> terminatedWorkers;
-    for (auto& worker : m_runningOrTerminatingWorkers.values()) {
-        if (worker->topRegistrableDomain() == registrableDomain)
-            terminatedWorkers.append(worker);
-    }
-    for (auto& terminatedWorker : terminatedWorkers)
-        workerContextTerminated(terminatedWorker);
-}
-
-void SWServer::workerContextTerminated(SWServerWorker& worker)
-{
-    // At this point if no registrations are referencing the worker then it will be destroyed,
-    // removing itself from the m_workersByID map.
-    auto result = m_runningOrTerminatingWorkers.take(worker.identifier());
-    if (!result) {
-        ASSERT(worker.isNotRunning());
-        return;
-    }
-
-    ASSERT_UNUSED(result, result == &worker);
-
-    worker.setState(SWServerWorker::State::NotRunning);
-
-    if (CheckedPtr jobQueue = m_jobQueues.get(worker.registrationKey()))
-        jobQueue->cancelJobsFromServiceWorker(worker.identifier());
-}
-
-void SWServer::fireInstallEvent(SWServerWorker& worker)
-{
-    RefPtr contextConnection = worker.contextConnection();
-    if (!contextConnection) {
-        RELEASE_LOG_ERROR(ServiceWorker, "Request to fire install event on a worker whose context connection does not exist");
-        return;
-    }
-
-    RELEASE_LOG(ServiceWorker, "%p - SWServer::fireInstallEvent on worker %" PRIu64, this, worker.identifier().toUInt64());
-    contextConnection->fireInstallEvent(worker.identifier());
-}
-
 void SWServer::runServiceWorkerAndFireActivateEvent(SWServerWorker& worker)
 {
     runServiceWorkerIfNecessary(worker, [worker = Ref { worker }](auto* contextConnection) {
@@ -1412,25 +1226,6 @@ void SWServer::runServiceWorkerAndFireActivateEvent(SWServerWorker& worker)
         worker->markActivateEventAsFired();
         contextConnection->fireActivateEvent(worker->identifier());
     });
-}
-
-void SWServer::addConnection(Ref<Connection>&& connection)
-{
-    auto identifier = connection->identifier();
-    ASSERT(!m_connections.contains(identifier));
-    m_connections.add(identifier, WTF::move(connection));
-}
-
-void SWServer::removeConnection(SWServerConnectionIdentifier connectionIdentifier)
-{
-    ASSERT(m_connections.contains(connectionIdentifier));
-    m_connections.remove(connectionIdentifier);
-
-    for (auto& registration : m_registrations.values())
-        Ref { registration }->unregisterServerConnection(connectionIdentifier);
-
-    for (auto& jobQueue : m_jobQueues.values())
-        CheckedRef { *jobQueue }->cancelJobsFromConnection(connectionIdentifier);
 }
 
 RefPtr<SWServerRegistration> SWServer::doRegistrationMatchingSync(const SecurityOriginData& topOrigin, const URL& clientURL)
@@ -1453,14 +1248,6 @@ SWServerRegistration* SWServer::registrationFromServiceWorkerIdentifier(ServiceW
     if (iterator == m_runningOrTerminatingWorkers.end())
         return nullptr;
     return iterator->value->registration();
-}
-
-void SWServer::updateAppInitiatedValueForWorkers(const ClientOrigin& clientOrigin, LastNavigationWasAppInitiated lastNavigationWasAppInitiated)
-{
-    for (Ref worker : m_runningOrTerminatingWorkers.values()) {
-        if (worker->origin().clientRegistrableDomain() == clientOrigin.clientRegistrableDomain())
-            worker->updateAppInitiatedValue(lastNavigationWasAppInitiated);
-    }
 }
 
 #if ASSERT_ENABLED
@@ -1593,7 +1380,7 @@ void SWServer::unregisterServiceWorkerClientInternal(const ClientOrigin& clientO
             } else {
                 removeFromScopeToRegistrationMap(registration->key());
                 if (RefPtr preinstallingServiceWorker = registration->preInstallationWorker()) {
-                    if (CheckedPtr jobQueue = m_jobQueues.get(registration->key()))
+                    if (RefPtr jobQueue = m_jobQueues.get(registration->key()))
                         jobQueue->cancelJobsFromServiceWorker(preinstallingServiceWorker->identifier());
                 }
                 registration->clear(); // Will destroy the registration.
@@ -1720,23 +1507,14 @@ void SWServer::handleLowMemoryWarning()
     }
 }
 
-void SWServer::removeFromScopeToRegistrationMap(const ServiceWorkerRegistrationKey& key)
+void SWServer::removeScopeToRegistration(const ServiceWorkerRegistrationKey& key)
 {
-    if (m_scopeToRegistrationMap.contains(key) && !allowLoopbackIPAddress(key.topOrigin().host()))
-        m_uniqueRegistrationCount--;
-
     m_scopeToRegistrationMap.remove(key);
 }
 
 bool SWServer::needsContextConnectionForRegistrableDomain(const RegistrableDomain& registrableDomain) const
 {
     return m_clientsByRegistrableDomain.contains(registrableDomain);
-}
-
-void SWServer::resolveRegistrationReadyRequests(SWServerRegistration& registration)
-{
-    for (Ref connection : m_connections.values())
-        connection->resolveRegistrationReadyRequests(registration);
 }
 
 void SWServer::Connection::whenRegistrationReady(const SecurityOriginData& topOrigin, const URL& clientURL, CompletionHandler<void(std::optional<ServiceWorkerRegistrationData>&&)>&& callback)
@@ -2200,22 +1978,6 @@ void SWServer::postMessageToServiceWorkerClient(ScriptExecutionContextIdentifier
         return;
     }
     iterator->value.append({ message, sourceServiceWorker->data(), sourceOrigin });
-}
-
-Vector<ServiceWorkerClientPendingMessage> SWServer::releaseServiceWorkerClientPendingMessage(ScriptExecutionContextIdentifier contextIdentifier)
-{
-    return m_clientsToBeCreatedById.take(contextIdentifier);
-}
-
-void SWServer::setInspectable(ServiceWorkerIsInspectable inspectable)
-{
-    if (m_isInspectable == inspectable)
-        return;
-
-    m_isInspectable = inspectable;
-
-    for (auto& connection : m_contextConnections.values())
-        Ref { connection.get() }->setInspectable(inspectable);
 }
 
 SWServerRegistration* SWServer::getRegistration(ServiceWorkerRegistrationIdentifier identifier)
