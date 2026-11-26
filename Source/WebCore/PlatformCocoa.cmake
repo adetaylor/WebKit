@@ -858,7 +858,6 @@ list(REMOVE_ITEM WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/indexeddb/IDBActiveDOMObjectInlines.h
     Modules/indexeddb/IDBCursor.h
     Modules/indexeddb/IDBIndex.h
-    Modules/indexeddb/IDBObjectStore.h
 
     Modules/mediasession/MediaImage.h
     Modules/mediasession/MediaMetadata.h
