@@ -90,21 +90,25 @@ struct LexicallyScopedFeatureSet: OptionSet {
 }
 
 extension JSC.JSParseIdentifier {
-    /// Whether this is the VM's well-known name `name`.
+    /// Whether this is the VM's well-known name `name`: the identifier keys are equal, with no table walk to a structural compare.
     @inline(always)
     func matches(_ name: JSC.JSParseWellKnownName, _ facade: inout JSC.JSParseFacade) -> Bool {
-        facade.isWellKnownIdentifier(self, name)
+        facade.identifierKey(self) == facade.wellKnownKey(name)
     }
 
     @inline(always)
     func isEvalOrArguments(_ facade: inout JSC.JSParseFacade) -> Bool {
-        matches(.eval, &facade) || matches(.arguments, &facade)
+        let key = facade.identifierKey(self)
+        return key == facade.wellKnownKey(.eval) || key == facade.wellKnownKey(.arguments)
     }
 
     func isStrictModeReservedWord(_ facade: inout JSC.JSParseFacade) -> Bool {
-        matches(.implementsKeyword, &facade) || matches(.interfaceKeyword, &facade) || matches(.letKeyword, &facade)
-            || matches(.packageKeyword, &facade) || matches(.privateKeyword, &facade) || matches(.protectedKeyword, &facade)
-            || matches(.publicKeyword, &facade) || matches(.staticKeyword, &facade) || matches(.yieldKeyword, &facade)
+        let key = facade.identifierKey(self)
+        return key == facade.wellKnownKey(.implementsKeyword) || key == facade.wellKnownKey(.interfaceKeyword)
+            || key == facade.wellKnownKey(.letKeyword) || key == facade.wellKnownKey(.packageKeyword)
+            || key == facade.wellKnownKey(.privateKeyword) || key == facade.wellKnownKey(.protectedKeyword)
+            || key == facade.wellKnownKey(.publicKeyword) || key == facade.wellKnownKey(.staticKeyword)
+            || key == facade.wellKnownKey(.yieldKeyword)
     }
 }
 

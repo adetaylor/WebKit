@@ -209,8 +209,9 @@ public:
     ALWAYS_INLINE uintptr_t identifierKey(JSParseIdentifier a) { auto* x = state().identifierOrNull(a); return x ? std::bit_cast<uintptr_t>(x->impl()) : 0; }
     // Entry 0 is null and every other entry is non-null (addIdentifier takes a reference), so x && y is a.index && b.index.
     ALWAYS_INLINE bool sameIdentifier(JSParseIdentifier a, JSParseIdentifier b) { auto& s = state(); auto* x = s.identifierOrNull(a); auto* y = s.identifierOrNull(b); return x == y || (x && y && *x == *y); }
-    // sameIdentifier(a, wellKnownIdentifier(name)) with the name read from a fixed table, so a constant name costs no check.
-    ALWAYS_INLINE bool isWellKnownIdentifier(JSParseIdentifier a, JSParseWellKnownName name) { auto& s = state(); auto* x = s.identifierOrNull(a); auto* y = s.wellKnownIdentifierPointer(name); return x == y || (x && *x == *y); }
+    // The key of a well-known name, from a fixed table, so a constant name costs no check; identifierKey(a) == wellKnownKey(name) is
+    // sameIdentifier(a, wellKnownIdentifier(name)): two Identifiers are equal when their impl pointers are, and the key of the null handle is 0.
+    ALWAYS_INLINE uintptr_t wellKnownKey(JSParseWellKnownName name) { return state().wellKnownKey(name); }
 
     // Scopes: the C++ containers of each scope Swift pushes, by its depth, which must be a live one.
     ALWAYS_INLINE JSParseScope pushScope() { return state().pushScope(); }
@@ -660,6 +661,7 @@ public:
     }
     const Identifier* identifierOrNull(JSParseIdentifier handle) { return m_identifiers[handle.index]; }
     const Identifier* wellKnownIdentifierPointer(JSParseWellKnownName name) { return m_wellKnownIdentifiers[static_cast<size_t>(name)]; }
+    uintptr_t wellKnownKey(JSParseWellKnownName name) { return m_wellKnownKeys[static_cast<size_t>(name)]; }
     // The null handle is the null Identifier (a parse whose root has no callee name passes it as the body's name).
     const Identifier& identifierOrNullIdentifier(JSParseIdentifier handle) { return handle.index ? identifier(handle) : vm().propertyNames->nullIdentifier; }
 
@@ -862,6 +864,7 @@ private:
     ASTBuilder m_builder;
     Vector<const Identifier*> m_identifiers;
     std::array<const Identifier*, static_cast<size_t>(JSParseWellKnownName::Count)> m_wellKnownIdentifiers; // m_identifiers[1, Count].
+    std::array<uintptr_t, static_cast<size_t>(JSParseWellKnownName::Count)> m_wellKnownKeys { }; // Each one's impl pointer.
     Vector<NodeSlot> m_nodes;
     Vector<std::unique_ptr<JSParseScopeStorage>> m_scopes;
     size_t m_scopeDepth { 1 }; // The live scopes are m_scopes[1, m_scopeDepth).

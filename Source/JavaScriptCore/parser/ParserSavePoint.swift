@@ -25,9 +25,11 @@ extension Parser {
     /// The parser state (with the builder's unary token stack depth) and the lexer's.
     mutating func createSavePoint<B: TreeBuilder>(_ context: inout B, _ facade: inout JSC.JSParseFacade) -> SavePoint {
         assert(!hasError)
-        var state = parserState
-        state.unaryTokenStackDepth = context.unaryTokenStackDepth(&facade)
-        return SavePoint(parserState: state, lexerState: internalSaveLexerState())
+        return SavePoint(
+            parserState: parserState,
+            unaryTokenStackDepth: context.unaryTokenStackDepth(&facade),
+            lexerState: internalSaveLexerState()
+        )
     }
 
     // If you're using this directly, you probably should be using
@@ -66,25 +68,26 @@ extension Parser {
     mutating func restoreSavePoint<B: TreeBuilder>(_ context: inout B, _ savePoint: SavePoint, _ facade: inout JSC.JSParseFacade) {
         restoreLexerState(savePoint.lexerState, &facade)
         parserState = savePoint.parserState
-        context.setUnaryTokenStackDepth(&facade, parserState.unaryTokenStackDepth)
+        context.setUnaryTokenStackDepth(&facade, savePoint.unaryTokenStackDepth)
         errorMessage = nil
     }
 
     // If you're using this directly, you probably should be using
     // createSavePoint() instead.
-    mutating func saveParserStateForFunction<B: TreeBuilder>(_ context: inout B, _ facade: inout JSC.JSParseFacade) -> ParserState {
-        var state = parserState
-        state.unaryTokenStackDepth = context.unaryTokenStackDepth(&facade)
-        return state
+    mutating func saveParserStateForFunction<B: TreeBuilder>(
+        _ context: inout B,
+        _ facade: inout JSC.JSParseFacade
+    ) -> (parserState: ParserState, unaryTokenStackDepth: Int32) {
+        (parserState, context.unaryTokenStackDepth(&facade))
     }
 
     mutating func restoreParserStateForFunction<B: TreeBuilder>(
         _ context: inout B,
-        _ state: ParserState,
+        _ state: (parserState: ParserState, unaryTokenStackDepth: Int32),
         _ facade: inout JSC.JSParseFacade
     ) {
-        parserState = state
-        context.setUnaryTokenStackDepth(&facade, parserState.unaryTokenStackDepth)
+        parserState = state.parserState
+        context.setUnaryTokenStackDepth(&facade, state.unaryTokenStackDepth)
     }
 
     mutating func lexCurrentTokenAgainUnderCurrentContext<B: TreeBuilder>(_ context: inout B, _ facade: inout JSC.JSParseFacade) {
@@ -101,6 +104,8 @@ extension Parser {
 
     struct SavePoint {
         var parserState: ParserState
+        /// The builder's unary token stack depth, which the parser state does not hold.
+        var unaryTokenStackDepth: Int32
         var lexerState: LexerState
     }
 
@@ -119,12 +124,11 @@ extension Parser {
         _ facade: inout JSC.JSParseFacade
     ) -> SavePointWithError {
         // Not createSavePoint, which asserts that no error is pending.
-        var state = parserState
-        // Make sure we set our new savepoints unary stack to what oldSavePoint had as it currently may contain stale info.
-        state.unaryTokenStackDepth = oldSavePoint.parserState.unaryTokenStackDepth
         let result = SavePointWithError(
             savePoint: SavePoint(
-                parserState: state,
+                parserState: parserState,
+                // Make sure we set our new savepoints unary stack to what oldSavePoint had as it currently may contain stale info.
+                unaryTokenStackDepth: oldSavePoint.unaryTokenStackDepth,
                 lexerState: internalSaveLexerState()
             ),
             lexerError: lexer.sawError,

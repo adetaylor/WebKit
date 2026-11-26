@@ -162,6 +162,8 @@ JSParseState::JSParseState(VM& vm, ParserArena& arena, const SourceCode& source,
     m_functionStacks.append(nullptr);
     // The well-known names are identifier handles 1 to Count.
     m_identifiers.append(std::span<const Identifier* const> { m_wellKnownIdentifiers });
+    for (size_t i = 0; i < m_wellKnownIdentifiers.size(); ++i)
+        m_wellKnownKeys[i] = std::bit_cast<uintptr_t>(m_wellKnownIdentifiers[i]->impl());
 #if ASSERT_ENABLED
     for (auto [trait, setter] : traitSetters) {
         VariableEnvironmentEntry entry;

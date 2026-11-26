@@ -108,12 +108,16 @@ struct SyntaxChecker: TreeBuilder {
         case importMeta
     }
 
-    // A node is only its kind: the grammar asks what a node is, never for its contents.
+    // A node is only its kind, held as a plain integer with null as 0 (as the C++ SyntaxChecker's NoneExpr), so a null
+    // test is one compare against zero: the grammar asks what a node is, never for its contents.
     struct Node: TreeHandle, BitwiseCopyable, Equatable {
-        let kind: Kind
+        let rawValue: Int32
+
+        @inline(always)
+        init(kind: Kind) { rawValue = kind.rawValue }
 
         static var null: Node { Node(kind: .null) }
-        var isNull: Bool { kind == .null }
+        var isNull: Bool { rawValue == 0 }
         var parseNode: JSC.JSParseNode? { nil }
     }
 
@@ -268,7 +272,7 @@ struct SyntaxChecker: TreeBuilder {
     mutating func setIsParenthesized(_ facade: inout JSC.JSParseFacade, _ expr: Node) {}
     @inline(always)
     mutating func isMetaProperty(_ facade: inout JSC.JSParseFacade, _ node: Node) -> Bool {
-        node.kind == .newTarget || node.kind == .importMeta
+        node.rawValue == Kind.newTarget.rawValue || node.rawValue == Kind.importMeta.rawValue
     }
     @inline(always)
     mutating func isNewTarget(_ facade: inout JSC.JSParseFacade, _ node: Node) -> Bool { node == Node(kind: .newTarget) }

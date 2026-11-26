@@ -347,7 +347,7 @@ extension Parser {
             // https://tc39.es/ecma262/#sec-assignment-operators-static-semantics-early-errors
             let isLogical = op == .CoalesceEq || op == .OrEq || op == .AndEq
             if !isSimpleAssignmentTarget(&context, lhs, ignoringStrictCheck: isLogical, &facade) {
-                return semanticFail("Left side of assignment is not a reference")
+                return failLeftSideNotReference()
             }
             context.assignmentStackAppend(&facade, &assignmentStack, lhs, start, tokenStartPosition, parserState.assignmentCount, op)
             start = tokenStartPosition
@@ -356,16 +356,16 @@ extension Parser {
             if strictMode && !parserState.lastIdentifier.isNull && context.isResolve(&facade, lhs) {
                 let lastIdentifier = parserState.lastIdentifier
                 if lastIdentifier.matches(.eval, &facade) {
-                    return semanticFail("Cannot modify 'eval' in strict mode")
+                    return failCannotModifyEval()
                 }
                 if lastIdentifier.matches(.arguments, &facade) {
-                    return semanticFail("Cannot modify 'arguments' in strict mode")
+                    return failCannotModifyArguments()
                 }
                 parserState.lastIdentifier = JSC.JSParseIdentifier()
             }
             lhs = parseAssignmentExpression(&context, &facade)
             if lhs.isNull {
-                return fail("Cannot parse the right hand side of an assignment expression")
+                return failCannotParseAssignmentRightHandSide()
             }
             if initialNonLHSCount != parserState.nonLHSCount {
                 if token.type.isAssignmentOperator {
@@ -411,6 +411,27 @@ extension Parser {
     @inline(never)
     private mutating func failLeftHandSideMustBeReference<Result: TreeHandle>() -> Result {
         semanticFail(ErrorMessage(.text("Left hand side of operator '"), tokenSourceText, .text("' must be a reference")))
+    }
+
+    // The failure arms below take a literal and are out of line for rdar://193663779, as in parseUnaryExpression.
+    @inline(never)
+    private mutating func failLeftSideNotReference<Result: TreeHandle>() -> Result {
+        semanticFail("Left side of assignment is not a reference")
+    }
+
+    @inline(never)
+    private mutating func failCannotModifyEval<Result: TreeHandle>() -> Result {
+        semanticFail("Cannot modify 'eval' in strict mode")
+    }
+
+    @inline(never)
+    private mutating func failCannotModifyArguments<Result: TreeHandle>() -> Result {
+        semanticFail("Cannot modify 'arguments' in strict mode")
+    }
+
+    @inline(never)
+    private mutating func failCannotParseAssignmentRightHandSide<Result: TreeHandle>() -> Result {
+        fail("Cannot parse the right hand side of an assignment expression")
     }
 
     @inline(never)

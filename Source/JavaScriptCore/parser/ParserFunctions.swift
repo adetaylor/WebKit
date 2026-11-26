@@ -683,7 +683,7 @@ extension Parser {
 
         var syntaxChecker = SyntaxChecker()
 
-        let oldState: ParserState
+        let oldState: (parserState: ParserState, unaryTokenStackDepth: Int32)
         if mode == .ArrowFunctionMode || mode == .AsyncArrowFunctionMode {
             startLocation = tokenLocation
 

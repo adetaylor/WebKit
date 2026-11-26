@@ -42,7 +42,6 @@ struct ParserState {
     var nonLHSCount: Int32 = 0
     var nonTrivialExpressionCount: Int32 = 0
     var returnStatementCount: Int32 = 0
-    var unaryTokenStackDepth: Int32 = 0
     var functionParsePhase = FunctionParsePhase.body
     var lastIdentifier = JSC.JSParseIdentifier()
     var lastFunctionName = JSC.JSParseIdentifier()

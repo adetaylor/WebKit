@@ -557,14 +557,64 @@ extension Parser {
         fail(ErrorMessage(.text("Cannot parse subexpression of "), .text(op.operatorName(isPrefix: true)), .text("operator")))
     }
 
+    // The failure arms of the inlined unary production below are out-of-line helpers that build their own literals: a
+    // literal built in the inlined body is hoisted by LICM and spilled in parseBinaryExpression's loop (rdar://193663779).
     @inline(never)
-    private mutating func failMetaPropertyOperand<B: TreeBuilder>(
+    private mutating func failMetaPropertyAfterPrefix<B: TreeBuilder>(
         _ context: inout B,
         _ expr: B.Expression,
-        _ suffix: Swift.String,
         _ facade: inout JSC.JSParseFacade
     ) -> B.Expression {
-        semanticFail(ErrorMessage(.text(metaPropertyName(&context, expr, &facade)), .text(suffix)))
+        semanticFail(ErrorMessage(.text(metaPropertyName(&context, expr, &facade)), .text(" can't come after a prefix operator")))
+    }
+
+    @inline(never)
+    private mutating func failMetaPropertyBeforePostfix<B: TreeBuilder>(
+        _ context: inout B,
+        _ expr: B.Expression,
+        _ facade: inout JSC.JSParseFacade
+    ) -> B.Expression {
+        semanticFail(ErrorMessage(.text(metaPropertyName(&context, expr, &facade)), .text(" can't come before a postfix operator")))
+    }
+
+    // rdar://193663779
+    @inline(never)
+    private mutating func failPostfixNotReference<Result: TreeHandle>(isIncrement: Bool) -> Result {
+        semanticFail(
+            isIncrement
+                ? "Postfix ++ operator applied to value that is not a reference"
+                : "Postfix -- operator applied to value that is not a reference"
+        )
+    }
+
+    // rdar://193663779
+    @inline(never)
+    private mutating func failDeleteUnqualified<Result: TreeHandle>() -> Result {
+        semanticFail(
+            ErrorMessage(
+                .text("Cannot delete unqualified property '"),
+                .identifier(parserState.lastIdentifier),
+                .text("' in strict mode")
+            )
+        )
+    }
+
+    // rdar://193663779
+    @inline(never)
+    private mutating func failDeletePrivate<Result: TreeHandle>() -> Result {
+        semanticFail(ErrorMessage(.text("Cannot delete private field "), .identifier(parserState.lastPrivateName)))
+    }
+
+    // rdar://193663779
+    @inline(never)
+    private mutating func failAwaitInStaticBlock<Result: TreeHandle>() -> Result {
+        semanticFail("Cannot use 'await' within static block")
+    }
+
+    // rdar://193663779
+    @inline(never)
+    private mutating func failCannotParseMemberExpression<Result: TreeHandle>() -> Result {
+        fail("Cannot parse member expression")
     }
 
     @inline(never)
@@ -610,7 +660,7 @@ extension Parser {
             && (scopes[currentFunctionScope().index].isAsyncFunctionBoundary || isModuleParseMode)
         {
             if scopes[topScope].isStaticBlock {
-                return semanticFail("Cannot use 'await' within static block")
+                return failAwaitInStaticBlock()
             }
             return parseAwaitExpression(&context, &facade)
         }
@@ -639,11 +689,11 @@ extension Parser {
             if let lastOperator {
                 return failSubexpressionOfOperator(lastOperator)
             }
-            return fail("Cannot parse member expression")
+            return failCannotParseMemberExpression()
         }
         if let lastOperator, lastOperator.isUpdateOp {
             if context.isMetaProperty(&facade, expr) {
-                return failMetaPropertyOperand(&context, expr, " can't come after a prefix operator", &facade)
+                return failMetaPropertyAfterPrefix(&context, expr, &facade)
             }
             if !isSimpleAssignmentTarget(&context, expr, ignoringStrictCheck: false, &facade) {
                 return failPrefixNotReference(lastOperator)
@@ -656,10 +706,10 @@ extension Parser {
         switch token.type {
         case .plusPlus:
             if context.isMetaProperty(&facade, expr) {
-                return failMetaPropertyOperand(&context, expr, " can't come before a postfix operator", &facade)
+                return failMetaPropertyBeforePostfix(&context, expr, &facade)
             }
             if !isSimpleAssignmentTarget(&context, expr, ignoringStrictCheck: false, &facade) {
-                return semanticFail("Postfix ++ operator applied to value that is not a reference")
+                return failPostfixNotReference(isIncrement: true)
             }
             parserState.nonTrivialExpressionCount &+= 1
             parserState.nonLHSCount &+= 1
@@ -674,10 +724,10 @@ extension Parser {
             next([], &facade)
         case .minusMinus:
             if context.isMetaProperty(&facade, expr) {
-                return failMetaPropertyOperand(&context, expr, " can't come before a postfix operator", &facade)
+                return failMetaPropertyBeforePostfix(&context, expr, &facade)
             }
             if !isSimpleAssignmentTarget(&context, expr, ignoringStrictCheck: false, &facade) {
-                return semanticFail("Postfix -- operator applied to value that is not a reference")
+                return failPostfixNotReference(isIncrement: false)
             }
             parserState.nonTrivialExpressionCount &+= 1
             parserState.nonLHSCount &+= 1
@@ -719,16 +769,10 @@ extension Parser {
                 expr = context.createVoid(&facade, location, expr)
             case .deleteKeyword:
                 if strictMode && context.isResolve(&facade, expr) {
-                    return semanticFail(
-                        ErrorMessage(
-                            .text("Cannot delete unqualified property '"),
-                            .identifier(parserState.lastIdentifier),
-                            .text("' in strict mode")
-                        )
-                    )
+                    return failDeleteUnqualified()
                 }
                 if context.isPrivateLocation(&facade, expr) {
-                    return semanticFail(ErrorMessage(.text("Cannot delete private field "), .identifier(parserState.lastPrivateName)))
+                    return failDeletePrivate()
                 }
                 expr = context.makeDeleteNode(&facade, location, expr, subExprStart, end, end)
             default:
