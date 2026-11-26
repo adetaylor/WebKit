@@ -340,6 +340,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/IDBBackingStore.cpp
         Tests/WebCore/IDBBackingStoreBench.cpp
         Tests/WebCore/IDBKeyData.cpp
+        Tests/WebCore/IDBServerBench.cpp
         Tests/WebCore/IDBSerializationTest.cpp
         Tests/WebCore/IPAddressSpaceTests.cpp
         Tests/WebCore/IPAddressTests.cpp

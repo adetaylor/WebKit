@@ -94,6 +94,8 @@ using namespace WebCore::IDBServer;
 
 namespace IDBBackingStoreBenchmark {
 
+using namespace IDBBenchmarkSupport;
+
 // Each workload's expected checksum. A mismatch fails the test and prints the checksum
 // ("<Test>: checksum=<digest> (recorded <value>)").
 namespace Recorded {
@@ -119,168 +121,6 @@ constexpr uint64_t realisticMix = 0xfd2a8c680a486da8;
 constexpr uint64_t memoryStoreRandomPutDelete = 0xb3a3978d73bb4b64;
 constexpr uint64_t memoryStoreRandomPutDeleteIndex = 0x08d2a6bb9006806c;
 constexpr uint64_t memoryStoreRandomPutIndex = 0x242e6b628a072e6a;
-}
-
-// Inputs and digest.
-
-class Random {
-public:
-    explicit Random(uint64_t seed)
-        : m_state(seed)
-    {
-    }
-
-    unsigned below(unsigned bound)
-    {
-        m_state = m_state * 6364136223846793005ULL + 1442695040888963407ULL;
-        return static_cast<unsigned>(m_state >> 33) % bound;
-    }
-
-private:
-    uint64_t m_state;
-};
-
-class Digest {
-public:
-    void addByte(uint8_t byte)
-    {
-        m_value ^= byte;
-        m_value *= 0x100000001b3ULL;
-    }
-
-    void addInteger(uint64_t value)
-    {
-        for (unsigned i = 0; i < 8; ++i)
-            addByte(static_cast<uint8_t>(value >> (i * 8)));
-    }
-
-    void addBytes(std::span<const uint8_t> bytes)
-    {
-        addInteger(bytes.size());
-        for (auto byte : bytes)
-            addByte(byte);
-    }
-
-    // Code units, so an 8-bit and a 16-bit string with the same code units agree.
-    void addString(const String& string)
-    {
-        addInteger(string.length());
-        for (unsigned i = 0; i < string.length(); ++i)
-            addInteger(string[i]);
-    }
-
-    void addError(const IDBError& error)
-    {
-        addInteger(error.code() ? static_cast<uint64_t>(*error.code()) + 1 : 0);
-        addString(error.messageForSerialization());
-    }
-
-    void addKey(const IDBKeyData& key)
-    {
-        auto type = key.type();
-        addInteger(static_cast<uint64_t>(static_cast<int64_t>(type)));
-        switch (type) {
-        case IndexedDB::KeyType::Array:
-            addInteger(key.array().size());
-            for (auto& element : key.array())
-                addKey(element);
-            break;
-        case IndexedDB::KeyType::Binary:
-            if (auto* data = key.binary().data())
-                addBytes(data->span());
-            else
-                addInteger(0);
-            break;
-        case IndexedDB::KeyType::String:
-            addString(key.string());
-            break;
-        case IndexedDB::KeyType::Date:
-            addInteger(std::bit_cast<uint64_t>(key.date()));
-            break;
-        case IndexedDB::KeyType::Number:
-            addInteger(std::bit_cast<uint64_t>(key.number()));
-            break;
-        case IndexedDB::KeyType::Max:
-        case IndexedDB::KeyType::Invalid:
-        case IndexedDB::KeyType::Min:
-            break;
-        }
-    }
-
-    void addValue(const IDBValue& value)
-    {
-        if (auto* data = value.data().data())
-            addBytes(data->span());
-        else
-            addInteger(0);
-        addInteger(value.blobURLs().size());
-    }
-
-    void addRecord(const IDBKeyData& key, const IDBKeyData& primaryKey, const IDBValue& value)
-    {
-        addKey(key);
-        addKey(primaryKey);
-        addValue(value);
-    }
-
-    void addGetResult(const IDBGetResult& result)
-    {
-        addInteger(result.isDefined());
-        addRecord(result.keyData(), result.primaryKeyData(), result.value());
-        addInteger(result.prefetchedRecords().size());
-        for (auto& record : result.prefetchedRecords())
-            addRecord(record.key, record.primaryKey, record.value);
-    }
-
-    void addGetAllResult(const IDBGetAllResult& result)
-    {
-        addInteger(static_cast<uint64_t>(result.type()));
-        addInteger(result.keys().size());
-        for (auto& key : result.keys())
-            addKey(key);
-        addInteger(result.primaryKeys().size());
-        for (auto& key : result.primaryKeys())
-            addKey(key);
-        addInteger(result.values().size());
-        for (auto& value : result.values())
-            addValue(value);
-    }
-
-    uint64_t value() const { return m_value; }
-
-private:
-    uint64_t m_value { 0xcbf29ce484222325ULL };
-};
-
-static IDBKeyData stringKey(const String& string)
-{
-    return IDBKeyData { IDBKeyData::ValueVariant { string } };
-}
-
-static IDBKeyRangeData rangeOf(const IDBKeyData& lower, const IDBKeyData& upper, bool lowerOpen = false, bool upperOpen = false)
-{
-    return IDBKeyRangeData { IDBKeyData(lower), IDBKeyData(upper), lowerOpen, upperOpen };
-}
-
-static IDBKeyRangeData exactly(const IDBKeyData& key)
-{
-    return rangeOf(key, key);
-}
-
-// IDBValue::size() is not exported.
-static size_t valueSize(const IDBValue& value)
-{
-    auto* data = value.data().data();
-    return data ? data->size() : 0;
-}
-
-static IDBValue makeValue(uint64_t seed, size_t size)
-{
-    Vector<uint8_t> bytes;
-    bytes.reserveInitialCapacity(size);
-    for (size_t j = 0; j < size; ++j)
-        bytes.append(static_cast<uint8_t>(seed * 31 + j * 7 + (j >> 3)));
-    return IDBValue { ThreadSafeDataBuffer::create(WTF::move(bytes)) };
 }
 
 // Keys of every type, 8-bit and 16-bit strings (with unpaired surrogates), binaries and arrays nested to depth 3.
@@ -328,47 +168,7 @@ static IDBKeyData makeMixedKey(Random& random, unsigned depth = 0)
 // The server-side environment a store needs: an IDBConnectionToClient to mint resource identifiers from, and
 // a transaction, cursor and schema helper that follows what UniqueIDBDatabase and IDBCursor do.
 
-// Time a pass spends outside what it measures.
-class Excluded {
-public:
-    template<typename Function>
-    void measure(Function&& function)
-    {
-        auto start = MonotonicTime::now();
-        function();
-        m_total += MonotonicTime::now() - start;
-    }
-
-    Seconds total() const { return m_total; }
-
-private:
-    Seconds m_total;
-};
-
-class TemporaryDirectory {
-public:
-    TemporaryDirectory()
-    {
-        String path = FileSystem::createTemporaryFile("IDBBackingStoreBench"_s);
-        FileSystem::deleteFile(path);
-        FileSystem::makeAllDirectories(path);
-        m_path = path;
-    }
-
-    ~TemporaryDirectory() { FileSystem::deleteNonEmptyDirectory(m_path); }
-
-    const String& path() const { return m_path; }
-
-private:
-    String m_path;
-};
-
 enum class StoreKind { SQLiteFile, SQLiteMemory, Memory };
-
-struct IndexSpec {
-    IDBIndexIdentifier identifier;
-    bool multiEntry { false };
-};
 
 class Session {
 public:

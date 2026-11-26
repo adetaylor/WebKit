@@ -969,6 +969,7 @@
 				WebCore/IDBBackingStore.cpp,
 				WebCore/IDBBackingStoreBench.cpp,
 				WebCore/IDBKeyData.cpp,
+				WebCore/IDBServerBench.cpp,
 				WebCore/IDBSerializationTest.cpp,
 				WebCore/ImageBufferTests.cpp,
 				WebCore/InitDataRegistryTests.cpp,
