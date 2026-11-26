@@ -3391,6 +3391,8 @@ if (ENABLE_WEB_AUTHN)
         "(^|/)CBORBytes\\.cpp( |$)"
         "(^|/)AuthenticatorGetInfoResponse\\.cpp( |$)"
         "(^|/)Pin\\.cpp( |$)")
+    # PlatformCocoa.cmake also lists the first two in WebCore_SOURCES.
+    list(REMOVE_ITEM WebCore_SOURCES ${_webcore_webauthn_swift_interop_sources})
 endif ()
 
 # The C++ of WebCore's Swift ports that includes WebCore-Swift.h compiles in WebCore_SwiftInterop, after WebCore's
@@ -3436,6 +3438,17 @@ set(WebCore_RENDER_LAYER_SWIFT_SOURCES
     rendering/RenderLayerPaintOrderLists.swift
     rendering/RenderLayerTree.swift
     rendering/UniqueOwner.swift
+)
+# Members of the service worker server that are implemented only in Swift, on every port, as in WebCore.xcodeproj;
+# the sources are added to WebCore below.
+set(WebCore_SERVICE_WORKER_SWIFT_SOURCES
+    workers/service/ServiceWorkerRoute.swift
+    workers/service/server/SWOriginStore.swift
+    workers/service/server/SWServer.swift
+    workers/service/server/SWServerJobQueue.swift
+    workers/service/server/SWServerRegistration.swift
+    workers/service/server/SWServerToContextConnection.swift
+    workers/service/server/SWServerWorker.swift
 )
 # The audio DSP is Swift on every port with Web Audio (there is no C++ for it). Its interop .cpp files include
 # WebCoreSwift-Generated.h, so they build in WebCore_SwiftInterop, like the other ports' above; the Swift
@@ -5069,6 +5082,9 @@ endif ()
 
 list(TRANSFORM WebCore_RENDER_LAYER_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")
 target_sources(WebCore PRIVATE ${WebCore_RENDER_LAYER_SWIFT_SOURCES})
+
+list(TRANSFORM WebCore_SERVICE_WORKER_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")
+target_sources(WebCore PRIVATE ${WebCore_SERVICE_WORKER_SWIFT_SOURCES})
 
 if (ENABLE_WEB_AUDIO)
     list(TRANSFORM WebCore_AUDIO_DSP_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")

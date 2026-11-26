@@ -142,6 +142,15 @@ public:
     {
     }
 
+    // Anything a T&& parameter accepts implicitly, such as a lambda passed where a CompletionHandler is taken: going
+    // through T would otherwise be two user-defined conversions, which C++ does not chain.
+    template<typename U>
+        requires (!std::is_same_v<std::remove_cvref_t<U>, T> && !std::is_same_v<std::remove_cvref_t<U>, MoveOnlyArgument> && std::is_convertible_v<U&&, T>)
+    MoveOnlyArgument(U&& value)
+        : MoveOnlyArgument(T(std::forward<U>(value)))
+    {
+    }
+
     T take() const { return m_box->take(); }
 
 private:

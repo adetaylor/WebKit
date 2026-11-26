@@ -27,10 +27,10 @@
 messages -> WebSWClientConnection {
     # When possible, these messages can be implemented directly by WebCore::SWServer::Connection
     JobRejectedInServer(WebCore::ServiceWorkerJobIdentifier jobDataIdentifier, struct WebCore::ExceptionData exception)
-    RegistrationJobResolvedInServer(WebCore::ServiceWorkerJobIdentifier jobDataIdentifier, struct WebCore::ServiceWorkerRegistrationData registration, enum:bool WebCore::ShouldNotifyWhenResolved shouldNotifyWhenResolved)
-    StartScriptFetchForServer(WebCore::ServiceWorkerJobIdentifier jobDataIdentifier, WebCore::ServiceWorkerRegistrationKey registrationKey, enum:uint8_t WebCore::FetchOptionsCache cachePolicy)
+    RegistrationJobResolvedInServer(WebCore::ServiceWorkerJobIdentifier jobDataIdentifier, struct WebCore::ServiceWorkerRegistrationData registration, enum:bool WebCore::ShouldNotifyWhenResolved shouldNotifyWhenResolved) SentFromCxx
+    StartScriptFetchForServer(WebCore::ServiceWorkerJobIdentifier jobDataIdentifier, WebCore::ServiceWorkerRegistrationKey registrationKey, enum:uint8_t WebCore::FetchOptionsCache cachePolicy) SentFromCxx
 
-    UpdateRegistrationState(WebCore::ServiceWorkerRegistrationIdentifier identifier, enum:uint8_t WebCore::ServiceWorkerRegistrationState state, struct std::optional<WebCore::ServiceWorkerData> serviceWorkerIdentifier)
+    UpdateRegistrationState(WebCore::ServiceWorkerRegistrationIdentifier identifier, enum:uint8_t WebCore::ServiceWorkerRegistrationState state, struct std::optional<WebCore::ServiceWorkerData> serviceWorkerIdentifier) SentFromCxx
     UpdateWorkerState(WebCore::ServiceWorkerIdentifier serviceWorkerIdentifier, enum:uint8_t WebCore::ServiceWorkerState state)
     FireUpdateFoundEvent(WebCore::ServiceWorkerRegistrationIdentifier identifier)
     SetRegistrationLastUpdateTime(WebCore::ServiceWorkerRegistrationIdentifier identifier, WallTime lastUpdateTime)
@@ -41,17 +41,17 @@ messages -> WebSWClientConnection {
 
     SetSWOriginTableIsImported()
     SetSWOriginTableSharedMemory(WebCore::SharedMemory::Handle handle)
-    PostMessageToServiceWorkerClient(WebCore::ScriptExecutionContextIdentifier destinationContextIdentifier, struct WebCore::MessageWithMessagePorts message, struct WebCore::ServiceWorkerData source, WebCore::SecurityOriginData sourceOrigin)
+    PostMessageToServiceWorkerClient(WebCore::ScriptExecutionContextIdentifier destinationContextIdentifier, struct WebCore::MessageWithMessagePorts message, struct WebCore::ServiceWorkerData source, WebCore::SecurityOriginData sourceOrigin) SentFromCxx
     PostMessageToServiceWorkerClientAndNotifyWhenDispatched(WebCore::ScriptExecutionContextIdentifier destinationContextIdentifier, struct WebCore::MessageWithMessagePorts message, struct WebCore::ServiceWorkerData source, WebCore::SecurityOriginData sourceOrigin) -> ()
 
     SetServiceWorkerClientIsControlled(WebCore::ScriptExecutionContextIdentifier workerIdentifier, struct WebCore::ServiceWorkerRegistrationData data) -> (bool isSuccess)
 
     FocusServiceWorkerClient(WebCore::ScriptExecutionContextIdentifier clientIdentifier) -> (struct std::optional<WebCore::ServiceWorkerClientData> result)
 
-    NotifyRecordResponseBodyChunk(WebKit::RetrieveRecordResponseBodyCallbackIdentifier identifier, IPC::SharedBufferReference data);
-    NotifyRecordResponseBodyEnd(WebKit::RetrieveRecordResponseBodyCallbackIdentifier identifier, WebCore::ResourceError error);
+    NotifyRecordResponseBodyChunk(WebKit::RetrieveRecordResponseBodyCallbackIdentifier identifier, IPC::SharedBufferReference data) SentFromCxx
+    NotifyRecordResponseBodyEnd(WebKit::RetrieveRecordResponseBodyCallbackIdentifier identifier, WebCore::ResourceError error) SentFromCxx
 
 #if ENABLE(CONTENT_EXTENSIONS)
-    ReportNetworkUsageToWorkerClient(WebCore::ScriptExecutionContextIdentifier destinationContextIdentifier, uint64_t bytesTransferredOverNetworkDelta);
+    ReportNetworkUsageToWorkerClient(WebCore::ScriptExecutionContextIdentifier destinationContextIdentifier, uint64_t bytesTransferredOverNetworkDelta) SentFromCxx
 #endif
 }

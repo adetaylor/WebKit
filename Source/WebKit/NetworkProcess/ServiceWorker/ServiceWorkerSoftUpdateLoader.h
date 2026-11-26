@@ -47,7 +47,7 @@ namespace WebKit {
 class NetworkLoad;
 class NetworkSession;
 
-class ServiceWorkerSoftUpdateLoader final : public NetworkLoadClient, public RefCounted<ServiceWorkerSoftUpdateLoader> {
+class SWIFT_PRIVATE_FILEID("WebKit/ServiceWorkerSoftUpdateLoader.swift") ServiceWorkerSoftUpdateLoader final : public NetworkLoadClient, public RefCounted<ServiceWorkerSoftUpdateLoader> {
     WTF_MAKE_TZONE_ALLOCATED(ServiceWorkerSoftUpdateLoader);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ServiceWorkerSoftUpdateLoader);
 public:
@@ -75,7 +75,18 @@ private:
     void loadFromNetwork(NetworkSession&, WebCore::ResourceRequest&&);
     void fail(WebCore::ResourceError&&);
     void didComplete();
-    WebCore::ResourceError processResponse(const WebCore::ResourceResponse&);
+    WebCore::ResourceError processResponse(WebCore::ResourceResponse);
+    WebCore::PolicyAction policyForResponse(WebCore::ResourceResponse);
+    // Swift reads these const references as pointers.
+    static WebCore::CertificateInfo certificateInfo(const WebCore::ResourceResponse&);
+    static String textEncodingName(const WebCore::ResourceResponse&);
+
+    // Swift cannot dereference the std::unique_ptr of the cache entry.
+    bool loadWithCacheEntryIfAny();
+    // Swift cannot pass obtainCrossOriginEmbedderPolicy() its null ScriptExecutionContext pointer.
+    static WebCore::CrossOriginEmbedderPolicy crossOriginEmbedderPolicy(const WebCore::ResourceResponse&);
+    // Swift copies m_jobData to pass it by const reference.
+    WebCore::ResourceError validateServiceWorkerResponse(const WebCore::ResourceResponse&) const;
 
     Handler m_completionHandler;
     WebCore::ServiceWorkerJobData m_jobData;

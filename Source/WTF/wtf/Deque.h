@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <bit>
 #include <iterator>
+#include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
 
 namespace WTF {
@@ -146,7 +147,7 @@ private:
 #ifndef NDEBUG
     mutable IteratorBase* m_iterators;
 #endif
-};
+} SWIFT_SELF_CONTAINED_IF(T) SWIFT_COPYABLE_IF(T);
 
 template<typename T, size_t inlineCapacity = 0>
 class DequeIteratorBase {

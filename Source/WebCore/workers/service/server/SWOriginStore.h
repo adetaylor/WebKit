@@ -27,18 +27,19 @@
 
 #include <WebCore/SecurityOriginData.h>
 #include <wtf/HashMap.h>
+#include <wtf/RefCounted.h>
 #include <wtf/TZoneMalloc.h>
 
 namespace WebCore {
 
-class SWOriginStore {
+class SWIFT_PRIVATE_FILEID("WebCore/SWOriginStore.swift") SWOriginStore : public RefCounted<SWOriginStore> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(SWOriginStore, WEBCORE_EXPORT);
 public:
     virtual ~SWOriginStore() = default;
 
-    void add(const SecurityOriginData&);
-    void remove(const SecurityOriginData&);
-    void clear(const SecurityOriginData&);
+    void add(SecurityOriginData);
+    void remove(SecurityOriginData);
+    void clear(SecurityOriginData);
     void clearAll();
 
     virtual void importComplete() = 0;
@@ -49,6 +50,9 @@ private:
     virtual void addToStore(const SecurityOriginData&) = 0;
     virtual void removeFromStore(const SecurityOriginData&) = 0;
     virtual void clearStore() = 0;
+
+    // Swift copies a stored HashMap before calling a const member function on it; this looks up in place.
+    uint64_t originCount(const SecurityOriginData& origin) const { return m_originCounts.get(origin); }
 
     HashMap<SecurityOriginData, uint64_t> m_originCounts;
 };

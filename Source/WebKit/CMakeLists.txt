@@ -1667,7 +1667,10 @@ set_source_files_properties(
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/ServiceWorkerFetchTaskMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/WebSWServerConnectionMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/WebSWServerToContextConnectionMessageReceiver.swift
     PROPERTIES GENERATED TRUE)
 list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/GPUProcess/GPUConnectionToWebProcess.swift
@@ -1692,7 +1695,15 @@ list(APPEND WebKit_SOURCES
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementDatabase.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementManager.swift
+    ${WEBKIT_DIR}/NetworkProcess/ServiceWorker/ServiceWorkerFetchTask.swift
+    ${WEBKIT_DIR}/NetworkProcess/ServiceWorker/ServiceWorkerSoftUpdateLoader.swift
+    ${WEBKIT_DIR}/NetworkProcess/ServiceWorker/WebSWOriginStore.swift
+    ${WEBKIT_DIR}/NetworkProcess/ServiceWorker/WebSWServerConnection.swift
+    ${WEBKIT_DIR}/NetworkProcess/ServiceWorker/WebSWServerToContextConnection.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/ServiceWorkerFetchTaskMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/WebSWServerConnectionMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/WebSWServerToContextConnectionMessageReceiver.swift
     ${WEBKIT_DIR}/Platform/Logging.swift
     ${WEBKIT_DIR}/Shared/API/APIArray.swift
     ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift

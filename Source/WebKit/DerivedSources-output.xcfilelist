@@ -426,6 +426,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/SerializedTypeInfo.mm
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/ServiceWorkerDownloadTaskMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/ServiceWorkerDownloadTaskMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/ServiceWorkerFetchTaskMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/ServiceWorkerFetchTaskMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/ServiceWorkerFetchTaskMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/SmartMagnificationControllerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/SmartMagnificationControllerMessages.h
@@ -571,8 +572,10 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWClientConnectionMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWContextManagerConnectionMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWContextManagerConnectionMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWServerConnectionMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWServerConnectionMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWServerConnectionMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWServerToContextConnectionMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWServerToContextConnectionMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebSWServerToContextConnectionMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebScreenOrientationManagerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/WebScreenOrientationManagerMessages.h

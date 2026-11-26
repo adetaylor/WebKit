@@ -23,7 +23,9 @@
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
-    DispatchedTo=Networking
+    DispatchedTo=Networking,
+    SwiftImplementation,
+    SwiftSends=WebSWContextManagerConnection
 ]
 messages -> WebSWServerToContextConnection {
     # When possible, these messages can be implemented directly by WebCore::SWServerToContextConnection

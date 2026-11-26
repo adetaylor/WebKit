@@ -117,7 +117,9 @@ private:
     HashMap<WebCore::ScriptExecutionContextIdentifier, Vector<String>> m_perDocumentRegisteredNames;
 
 #if ENABLE_MDNS
-    struct DNSServiceDeallocator;
+    struct DNSServiceDeallocator {
+        void operator()(DNSServiceRef service) const { DNSServiceRefDeallocate(service); }
+    };
     HashMap<WebCore::ScriptExecutionContextIdentifier, std::unique_ptr<_DNSServiceRef_t, DNSServiceDeallocator>> m_services;
 #endif
 #if USE(GLIB)

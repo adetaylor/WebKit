@@ -37,12 +37,13 @@
 
 namespace WebCore {
 
-class ResourceRequest;
-struct FetchOptions;
-
 struct ServiceWorkerRoutePattern {
-    ServiceWorkerRoutePattern isolatedCopy() &&;
-    ServiceWorkerRoutePattern isolatedCopy() const &;
+    ServiceWorkerRoutePattern isolatedCopy() && { return crossThreadCopied(WTF::move(*this)); }
+    ServiceWorkerRoutePattern isolatedCopy() const & { return crossThreadCopied(*this); }
+    static ServiceWorkerRoutePattern crossThreadCopied(ServiceWorkerRoutePattern);
+
+    // Swift cannot build URLPattern's input variant nor read its ExceptionOr result safely: compiling stays C++.
+    bool matches(const URL&) const;
 
     using Component = String;
 
@@ -64,6 +65,13 @@ struct ServiceWorkerRouteCondition {
     ServiceWorkerRouteCondition isolatedCopy() const &;
     ServiceWorkerRouteCondition copy() const;
 
+    // The not-condition, read through a subscript that asserts it is set.
+    enum class NotConditionTag : uint8_t { Condition };
+    bool hasNotCondition() const { return !!notCondition; }
+    // Reading the pattern out of the optional would copy its eight strings per match.
+    bool urlPatternMatches(const URL& url) const { return !urlPattern || urlPattern->matches(url); }
+    const ServiceWorkerRouteCondition& operator[](NotConditionTag) const LIFETIME_BOUND { RELEASE_ASSERT(notCondition); return *notCondition; }
+
     std::optional<ServiceWorkerRoutePattern> urlPattern;
     String requestMethod;
     std::optional<FetchRequestMode> requestMode;
@@ -76,6 +84,15 @@ struct ServiceWorkerRouteCondition {
 
 using RouterSource = Variant<RouterSourceDict, RouterSourceEnum>;
 
+// Swift cannot construct a C++ Variant, nor pick one of its alternatives.
+inline RouterSource makeRouterSource(RouterSourceEnum source) { return source; }
+inline std::optional<RouterSourceEnum> routerSourceEnum(const RouterSource& source)
+{
+    if (auto* value = std::get_if<RouterSourceEnum>(&source))
+        return *value;
+    return std::nullopt;
+}
+
 struct ServiceWorkerRoute {
     ServiceWorkerRouteCondition condition;
     RouterSource source;
@@ -87,7 +104,5 @@ struct ServiceWorkerRoute {
 
 NODELETE std::optional<size_t> countRouterInnerConditions(const ServiceWorkerRouteCondition&, size_t result, size_t depth);
 std::optional<ExceptionData> validateServiceWorkerRoute(ServiceWorkerRoute&);
-
-bool matchRouterCondition(const ServiceWorkerRouteCondition&, const FetchOptions&, const ResourceRequest&, bool isServiceWorkerRunning);
 
 } // namespace WebCore

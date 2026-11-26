@@ -1038,7 +1038,7 @@ SWServer& NetworkSession::ensureSWServer()
         // If there's not, then where did this PAL::SessionID come from?
         ASSERT(m_sessionID.isEphemeral() || !path.isEmpty());
         auto inspectable = m_inspectionForServiceWorkersAllowed ? ServiceWorkerIsInspectable::Yes : ServiceWorkerIsInspectable::No;
-        m_swServer = SWServer::create(*this, makeUniqueRef<WebSWOriginStore>(), info.processTerminationDelayEnabled, WTF::move(path), m_sessionID, shouldRunServiceWorkersOnMainThreadForTesting(), NetworkProcess::singleton().parentProcessHasServiceWorkerEntitlement(), overrideServiceWorkerRegistrationCountTestingValue(), inspectable);
+        m_swServer = SWServer::create(*this, WebSWOriginStore::create(), info.processTerminationDelayEnabled, WTF::move(path), m_sessionID, shouldRunServiceWorkersOnMainThreadForTesting(), NetworkProcess::singleton().parentProcessHasServiceWorkerEntitlement(), overrideServiceWorkerRegistrationCountTestingValue(), inspectable);
     }
     return *m_swServer;
 }

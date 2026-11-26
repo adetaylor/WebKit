@@ -27,9 +27,7 @@
 #include "ServiceWorkerRoute.h"
 
 #include "ExceptionOr.h"
-#include "FetchOptions.h"
 #include "HTTPParsers.h"
-#include "ResourceRequest.h"
 #include "URLPattern.h"
 #include "URLPatternInit.h"
 #include "URLPatternOptions.h"
@@ -113,56 +111,13 @@ std::optional<ExceptionData> validateServiceWorkerRoute(ServiceWorkerRoute& rout
     return validateServiceWorkerRouteCondition(route.condition);
 }
 
-static bool matchURLPattern(const ServiceWorkerRoutePattern& urlPattern, const URL& url)
+bool ServiceWorkerRoutePattern::matches(const URL& url) const
 {
-    auto maybePattern = compileRoutePattern(urlPattern);
+    auto maybePattern = compileRoutePattern(*this);
     if (maybePattern.hasException())
         return false;
     Ref pattern = maybePattern.releaseReturnValue();
     return pattern->testWithoutRegExp(url);
-}
-
-// https://w3c.github.io/ServiceWorker/#match-router-condition
-bool matchRouterCondition(const ServiceWorkerRouteCondition& condition, const FetchOptions& options, const ResourceRequest& request, bool isServiceWorkerRunning)
-{
-    if (!condition.orConditions.isEmpty()) {
-        for (auto& condition : condition.orConditions) {
-            if (matchRouterCondition(condition, options, request, isServiceWorkerRunning))
-                return true;
-        }
-        return false;
-    }
-
-    if (condition.notCondition)
-        return !matchRouterCondition(*condition.notCondition, options, request, isServiceWorkerRunning);
-
-    if (condition.urlPattern) {
-        if (!matchURLPattern(*condition.urlPattern, request.url()))
-            return false;
-    }
-
-    if (!condition.requestMethod.isNull()) {
-        if (condition.requestMethod != request.httpMethod())
-            return false;
-    }
-
-    if (condition.requestMode) {
-        if (*condition.requestMode != options.mode)
-            return false;
-    }
-
-    if (condition.requestDestination) {
-        if (*condition.requestDestination != options.destination)
-            return false;
-    }
-
-    if (condition.runningStatus) {
-        bool isRunningStatus = *condition.runningStatus == RunningStatus::Running;
-        if (isRunningStatus != isServiceWorkerRunning)
-            return false;
-    }
-
-    return true;
 }
 
 ServiceWorkerRouteCondition ServiceWorkerRouteCondition::isolatedCopy() &&
@@ -211,36 +166,6 @@ ServiceWorkerRouteCondition ServiceWorkerRouteCondition::copy() const
         runningStatus,
         orConditions.map([](auto& condition) { return condition.copy(); }),
         WTF::move(notConditionCopy)
-    };
-}
-
-ServiceWorkerRoutePattern ServiceWorkerRoutePattern::isolatedCopy() &&
-{
-    return {
-        shouldIgnoreCase,
-        crossThreadCopy(WTF::move(protocol)),
-        crossThreadCopy(WTF::move(username)),
-        crossThreadCopy(WTF::move(password)),
-        crossThreadCopy(WTF::move(hostname)),
-        crossThreadCopy(WTF::move(port)),
-        crossThreadCopy(WTF::move(pathname)),
-        crossThreadCopy(WTF::move(search)),
-        crossThreadCopy(WTF::move(hash))
-    };
-}
-
-ServiceWorkerRoutePattern ServiceWorkerRoutePattern::isolatedCopy() const  &
-{
-    return {
-        shouldIgnoreCase,
-        crossThreadCopy(protocol),
-        crossThreadCopy(username),
-        crossThreadCopy(password),
-        crossThreadCopy(hostname),
-        crossThreadCopy(port),
-        crossThreadCopy(pathname),
-        crossThreadCopy(search),
-        crossThreadCopy(hash)
     };
 }
 

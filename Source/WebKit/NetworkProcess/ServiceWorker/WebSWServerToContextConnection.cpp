@@ -107,10 +107,10 @@ void WebSWServerToContextConnection::stop()
         server->removeContextConnection(*this);
 }
 
-void WebSWServerToContextConnection::terminateIdleServiceWorkers()
+bool WebSWServerToContextConnection::isServerContextConnection() const
 {
-    if (RefPtr server = this->server(); server && server->contextConnectionForRegistrableDomain(registrableDomain(), crossOriginEmbedderPolicyValue()) == this)
-        server->terminateIdleServiceWorkers(*this);
+    RefPtr server = this->server();
+    return server && server->contextConnectionForRegistrableDomain(registrableDomain(), crossOriginEmbedderPolicyValue()) == this;
 }
 
 NetworkProcess* WebSWServerToContextConnection::networkProcess()
@@ -159,21 +159,6 @@ void WebSWServerToContextConnection::skipWaiting(ServiceWorkerIdentifier service
 void WebSWServerToContextConnection::installServiceWorkerContext(const ServiceWorkerContextData& contextData, const ServiceWorkerData& workerData, const String& userAgent, WorkerThreadMode workerThreadMode, OptionSet<AdvancedPrivacyProtections> advancedPrivacyProtections)
 {
     send(Messages::WebSWContextManagerConnection::InstallServiceWorker { contextData, workerData, userAgent, workerThreadMode, m_isInspectable, advancedPrivacyProtections });
-}
-
-void WebSWServerToContextConnection::updateAppInitiatedValue(ServiceWorkerIdentifier serviceWorkerIdentifier, WebCore::LastNavigationWasAppInitiated lastNavigationWasAppInitiated)
-{
-    send(Messages::WebSWContextManagerConnection::UpdateAppInitiatedValue(serviceWorkerIdentifier, lastNavigationWasAppInitiated));
-}
-
-void WebSWServerToContextConnection::fireInstallEvent(ServiceWorkerIdentifier serviceWorkerIdentifier)
-{
-    send(Messages::WebSWContextManagerConnection::FireInstallEvent(serviceWorkerIdentifier));
-}
-
-void WebSWServerToContextConnection::fireActivateEvent(ServiceWorkerIdentifier serviceWorkerIdentifier)
-{
-    send(Messages::WebSWContextManagerConnection::FireActivateEvent(serviceWorkerIdentifier));
 }
 
 void WebSWServerToContextConnection::firePushEvent(ServiceWorkerIdentifier serviceWorkerIdentifier, const std::optional<Vector<uint8_t>>& data, std::optional<NotificationPayload>&& proposedPayload, CompletionHandler<void(bool, std::optional<NotificationPayload>&&)>&& callback)
@@ -290,20 +275,6 @@ void WebSWServerToContextConnection::workerTerminated(ServiceWorkerIdentifier se
         protect(NetworkProcess::singleton().parentProcessConnection())->send(Messages::NetworkProcessProxy::EndServiceWorkerBackgroundProcessing { webProcessIdentifier() }, 0);
 }
 
-void WebSWServerToContextConnection::didFinishActivation(WebCore::ServiceWorkerIdentifier serviceWorkerIdentifier)
-{
-    RefPtr worker = SWServerWorker::existingWorkerForIdentifier(serviceWorkerIdentifier);
-    if (!worker)
-        return;
-
-    auto state = worker->state();
-    if (state == ServiceWorkerState::Redundant)
-        return;
-
-    MESSAGE_CHECK(state == ServiceWorkerState::Activating);
-    SWServerToContextConnection::didFinishActivation(serviceWorkerIdentifier);
-}
-
 void WebSWServerToContextConnection::didFinishInstall(const std::optional<WebCore::ServiceWorkerJobDataIdentifier>& jobDataIdentifier, WebCore::ServiceWorkerIdentifier serviceWorkerIdentifier, bool wasSuccessful)
 {
     RefPtr worker = SWServerWorker::existingWorkerForIdentifier(serviceWorkerIdentifier);
@@ -387,17 +358,6 @@ void WebSWServerToContextConnection::connectionIsNoLongerNeeded()
 {
     if (RefPtr connection = m_connection.get())
         connection->serviceWorkerServerToContextConnectionNoLongerNeeded();
-}
-
-void WebSWServerToContextConnection::setThrottleState(bool isThrottleable)
-{
-    m_isThrottleable = isThrottleable;
-    send(Messages::WebSWContextManagerConnection::SetThrottleState { isThrottleable });
-}
-
-void WebSWServerToContextConnection::startFetch(ServiceWorkerFetchTask& task)
-{
-    task.start(*this);
 }
 
 void WebSWServerToContextConnection::startPendingStreamUploadForwarding(WebCore::FetchIdentifier fetchIdentifier)
@@ -567,15 +527,6 @@ void WebSWServerToContextConnection::navigate(ScriptExecutionContextIdentifier c
         });
         callback(WTF::move(clientData));
     });
-}
-
-void WebSWServerToContextConnection::setInspectable(ServiceWorkerIsInspectable inspectable)
-{
-    if (m_isInspectable == inspectable)
-        return;
-
-    m_isInspectable = inspectable;
-    send(Messages::WebSWContextManagerConnection::SetInspectable { inspectable });
 }
 
 #if ENABLE(CONTENT_EXTENSIONS)

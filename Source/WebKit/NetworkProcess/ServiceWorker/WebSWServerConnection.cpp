@@ -167,37 +167,9 @@ void WebSWServerConnection::updateRegistrationStateInClient(ServiceWorkerRegistr
         sendToContextProcess(*contextConnection, Messages::WebSWContextManagerConnection::UpdateRegistrationState(identifier, state, serviceWorkerData));
 }
 
-void WebSWServerConnection::fireUpdateFoundEvent(ServiceWorkerRegistrationIdentifier identifier)
-{
-    send(Messages::WebSWClientConnection::FireUpdateFoundEvent(identifier));
-    if (RefPtr contextConnection = m_networkConnectionToWebProcess->swContextConnection())
-        sendToContextProcess(*contextConnection, Messages::WebSWContextManagerConnection::FireUpdateFoundEvent(identifier));
-}
-
-void WebSWServerConnection::setRegistrationLastUpdateTime(ServiceWorkerRegistrationIdentifier identifier, WallTime lastUpdateTime)
-{
-    send(Messages::WebSWClientConnection::SetRegistrationLastUpdateTime(identifier, lastUpdateTime));
-    if (RefPtr contextConnection = m_networkConnectionToWebProcess->swContextConnection())
-        sendToContextProcess(*contextConnection, Messages::WebSWContextManagerConnection::SetRegistrationLastUpdateTime(identifier, lastUpdateTime));
-}
-
-void WebSWServerConnection::setRegistrationUpdateViaCache(ServiceWorkerRegistrationIdentifier identifier, ServiceWorkerUpdateViaCache updateViaCache)
-{
-    send(Messages::WebSWClientConnection::SetRegistrationUpdateViaCache(identifier, updateViaCache));
-    if (RefPtr contextConnection = m_networkConnectionToWebProcess->swContextConnection())
-        sendToContextProcess(*contextConnection, Messages::WebSWContextManagerConnection::SetRegistrationUpdateViaCache(identifier, updateViaCache));
-}
-
 void WebSWServerConnection::notifyClientsOfControllerChange(const HashSet<ScriptExecutionContextIdentifier>& contextIdentifiers, const std::optional<ServiceWorkerData>& newController)
 {
     send(Messages::WebSWClientConnection::NotifyClientsOfControllerChange(contextIdentifiers, newController));
-}
-
-void WebSWServerConnection::updateWorkerStateInClient(ServiceWorkerIdentifier worker, ServiceWorkerState state)
-{
-    send(Messages::WebSWClientConnection::UpdateWorkerState(worker, state));
-    if (RefPtr contextConnection = m_networkConnectionToWebProcess->swContextConnection())
-        sendToContextProcess(*contextConnection, Messages::WebSWContextManagerConnection::UpdateWorkerState(worker, state));
 }
 
 void WebSWServerConnection::controlClient(const NetworkResourceLoadParameters& parameters, SWServerRegistration& registration, const ResourceRequest& request, WebCore::ProcessIdentifier webProcessIdentifier)
@@ -284,7 +256,8 @@ RefPtr<ServiceWorkerFetchTask> WebSWServerConnection::createFetchTask(NetworkRes
 
     bool shouldRaceNetworkAndFetchHandler = false;
     String cacheName;
-    auto routerSource = worker->getRouterSource(loader.parameters().options, request);
+    auto& options = loader.parameters().options;
+    auto routerSource = worker->hasRouterRules() ? worker->getRouterSource(options.mode, options.destination, request.url(), request.httpMethod()) : std::nullopt;
     auto routerSourceOrDefault = routerSource.value_or(worker->defaultRouterSource());
     if (auto* routerSourceEnum = std::get_if<RouterSourceEnum>(&routerSourceOrDefault)) {
         if (routerSource)
@@ -429,24 +402,6 @@ void WebSWServerConnection::postMessageToServiceWorker(ServiceWorkerIdentifier d
         }
         Ref { downcast<WebSWServerToContextConnection>(*contextConnection) }->sendWithAsyncReply(Messages::WebSWContextManagerConnection::PostMessageToServiceWorkerAndNotifyWhenDispatched { destinationIdentifier, WTF::move(message), WTF::move(sourceData) }, [blobURLsInFlight = WTF::move(blobURLsInFlight)] { });
     });
-}
-
-void WebSWServerConnection::scheduleJobInServer(ServiceWorkerJobData&& jobData)
-{
-    if (!checkTopOrigin(jobData.topOrigin))
-        return;
-
-    ASSERT(!jobData.scopeURL.isNull());
-    if (jobData.scopeURL.isNull()) {
-        rejectJobInClient(jobData.identifier().jobIdentifier, ExceptionData { ExceptionCode::InvalidStateError, "Scope URL is empty"_s });
-        return;
-    }
-
-    SWSERVERCONNECTION_RELEASE_LOG("Scheduling ServiceWorker job %s in server", jobData.identifier().loggingString().utf8());
-    ASSERT(identifier() == jobData.connectionIdentifier());
-
-    if (RefPtr server = this->server())
-        server->scheduleJob(WTF::move(jobData));
 }
 
 URL WebSWServerConnection::clientURLFromIdentifier(ServiceWorkerOrClientIdentifier contextIdentifier)
@@ -633,13 +588,6 @@ void WebSWServerConnection::unregisterServiceWorkerClient(const ScriptExecutionC
     }
 }
 
-bool WebSWServerConnection::hasMatchingClient(const RegistrableDomain& domain) const
-{
-    return std::ranges::any_of(m_clientOrigins.values(), [&domain](auto& origin) {
-        return domain.matches(origin.clientOrigin);
-    });
-}
-
 bool WebSWServerConnection::computeThrottleState(const RegistrableDomain& domain) const
 {
     RefPtr server = this->server();
@@ -650,12 +598,6 @@ bool WebSWServerConnection::computeThrottleState(const RegistrableDomain& domain
         Ref connection = downcast<WebSWServerConnection>(serverConnection.get());
         return connection->isThrottleable() || !connection->hasMatchingClient(domain);
     });
-}
-
-void WebSWServerConnection::setThrottleState(bool isThrottleable)
-{
-    m_isThrottleable = isThrottleable;
-    updateThrottleState();
 }
 
 void WebSWServerConnection::updateThrottleState()
@@ -840,11 +782,6 @@ void WebSWServerConnection::whenServiceWorkerIsTerminatedForTesting(WebCore::Ser
     worker->whenTerminated(WTF::move(completionHandler));
 }
 
-PAL::SessionID WebSWServerConnection::sessionID() const
-{
-    return server()->sessionID();
-}
-
 NetworkSession* WebSWServerConnection::session()
 {
     RefPtr networkProcess = this->networkProcess();
@@ -854,20 +791,6 @@ NetworkSession* WebSWServerConnection::session()
 template<typename U> void WebSWServerConnection::sendToContextProcess(WebCore::SWServerToContextConnection& connection, U&& message)
 {
     Ref { downcast<WebSWServerToContextConnection>(connection) }->send(WTF::move(message));
-}
-
-void WebSWServerConnection::fetchTaskTimedOut(ServiceWorkerIdentifier serviceWorkerIdentifier)
-{
-    RefPtr server = this->server();
-    if (!server)
-        return;
-
-    RefPtr worker = server->workerByID(serviceWorkerIdentifier);
-    if (!worker)
-        return;
-
-    worker->setHasTimedOutAnyFetchTasks();
-    worker->terminate();
 }
 
 void WebSWServerConnection::fetchTaskReceivedMainResourceResponse(std::optional<ServiceWorkerIdentifier> serviceWorkerIdentifier, const ResourceResponse& response, FrameIdentifier frameID)
@@ -963,20 +886,6 @@ void WebSWServerConnection::focusServiceWorkerClient(WebCore::ScriptExecutionCon
 void WebSWServerConnection::transferServiceWorkerLoadToNewWebProcess(NetworkResourceLoader& loader, WebCore::SWServerRegistration& registration, const WebCore::ResourceRequest& request)
 {
     controlClient(loader.parameters(), registration, request, loader.connectionToWebProcess().webProcessIdentifier());
-}
-
-std::optional<SWServer::GatheredClientData> WebSWServerConnection::gatherClientData(ScriptExecutionContextIdentifier clientIdentifier)
-{
-    ASSERT(clientIdentifier.processIdentifier() == identifier());
-    auto iterator = m_clientOrigins.find(clientIdentifier);
-    if (iterator == m_clientOrigins.end())
-        return { };
-
-    RefPtr server = this->server();
-    if (!server)
-        return { };
-
-    return server->gatherClientData(iterator->value, clientIdentifier);
 }
 
 void WebSWServerConnection::updateBackgroundFetchRegistration(const WebCore::BackgroundFetchInformation& information)

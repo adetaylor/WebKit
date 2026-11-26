@@ -27,6 +27,7 @@
 #include <wtf/HashTable.h>
 #include <wtf/HashTraits.h>
 #include <wtf/RobinHoodHashTable.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WTF {
 
@@ -228,7 +229,7 @@ public:
 
 private:
     HashTableType m_impl;
-};
+} SWIFT_SELF_CONTAINED_IF(ValueArg) SWIFT_COPYABLE_IF(ValueArg);
 
 struct IdentityExtractor {
     template<typename T> static const T& extract(const T& t) { return t; }

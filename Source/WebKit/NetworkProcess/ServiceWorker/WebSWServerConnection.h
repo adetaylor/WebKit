@@ -42,6 +42,9 @@
 #include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
+#include <wtf/RawPointer.h>
+#include <wtf/RefCountable.h>
+#include <wtf/StringPrintStream.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
 
@@ -70,11 +73,12 @@ class NetworkConnectionToWebProcess;
 class NetworkProcess;
 class NetworkResourceLoader;
 class ServiceWorkerFetchTask;
+class WebSWServerToContextConnection;
 
 struct NetworkResourceLoadParameters;
 struct SharedPreferencesForWebProcess;
 
-class WebSWServerConnection final : public WebCore::SWServer::Connection, public IPC::MessageSender, public IPC::MessageReceiver {
+class SWIFT_PRIVATE_FILEID("WebKit/WebSWServerConnection.swift") WebSWServerConnection final : public WebCore::SWServer::Connection, public IPC::MessageSender, public IPC::MessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(WebSWServerConnection);
 public:
     static Ref<WebSWServerConnection> create(NetworkConnectionToWebProcess&, WebCore::SWServer&, IPC::Connection&, WebCore::ProcessIdentifier);
@@ -100,7 +104,9 @@ public:
     void fetchTaskReceivedMainResourceResponse(std::optional<WebCore::ServiceWorkerIdentifier>, const WebCore::ResourceResponse&, WebCore::FrameIdentifier);
 
     void transferServiceWorkerLoadToNewWebProcess(NetworkResourceLoader&, WebCore::SWServerRegistration&, const WebCore::ResourceRequest&);
-    std::optional<WebCore::SWServer::GatheredClientData> gatherClientData(WebCore::ScriptExecutionContextIdentifier);
+    // The result type of gatherClientData, named for its Swift implementation.
+    using OptionalGatheredClientData = std::optional<WebCore::SWServer::GatheredClientData>;
+    OptionalGatheredClientData gatherClientData(WebCore::ScriptExecutionContextIdentifier);
 
     void registerServiceWorkerClient(WebCore::ClientOrigin&&, WebCore::ServiceWorkerClientData&&, const std::optional<WebCore::ServiceWorkerRegistrationIdentifier>&, String&& userAgent);
     void registerServiceWorkerClientInternal(WebCore::ClientOrigin&&, WebCore::ServiceWorkerClientData&&, const std::optional<WebCore::ServiceWorkerRegistrationIdentifier>&, String&& userAgent, WebCore::SWServer::IsBeingCreatedClient);
@@ -126,7 +132,7 @@ private:
     void notifyClientsOfControllerChange(const HashSet<WebCore::ScriptExecutionContextIdentifier>& contextIdentifiers, const std::optional<WebCore::ServiceWorkerData>& newController);
     void focusServiceWorkerClient(WebCore::ScriptExecutionContextIdentifier, CompletionHandler<void(std::optional<WebCore::ServiceWorkerClientData>&&)>&&) final;
 
-    void scheduleJobInServer(WebCore::ServiceWorkerJobData&&);
+    void scheduleJobInServer(WebCore::ServiceWorkerJobData);
 
     using UnregisterJobResult = std::expected<bool, WebCore::ExceptionData>;
     void scheduleUnregisterJobInServer(WebCore::ServiceWorkerJobIdentifier, WebCore::ServiceWorkerRegistrationIdentifier, WebCore::ServiceWorkerOrClientIdentifier, CompletionHandler<void(UnregisterJobResult&&)>&&);
@@ -146,7 +152,11 @@ private:
     void updateBackgroundFetchRegistration(const WebCore::BackgroundFetchInformation&) final;
 
     bool isThrottleable() const { return m_isThrottleable; }
-    bool hasMatchingClient(const WebCore::RegistrableDomain&) const;
+    bool hasMatchingClient(WebCore::RegistrableDomain) const;
+    // A copy of the client origins' values.
+    Vector<WebCore::ClientOrigin> clientOriginValues() const { return copyToVector(m_clientOrigins.values()); }
+    // Swift copies a stored HashMap before calling a const member function on it; this looks up in place.
+    std::optional<WebCore::ClientOrigin> clientOrigin(WebCore::ScriptExecutionContextIdentifier identifier) const { return m_clientOrigins.getOptional(identifier); }
     bool computeThrottleState(const WebCore::RegistrableDomain&) const;
     void setThrottleState(bool isThrottleable);
     void updateThrottleState();
@@ -181,6 +191,8 @@ private:
     bool checkTopOrigin(const WebCore::SecurityOriginData&);
 
     URL clientURLFromIdentifier(WebCore::ServiceWorkerOrClientIdentifier);
+
+    String logIdentifier() const { return WTF::toString(RawPointer(this)); } // RELEASE_LOG's "%p" of this.
 
     IPC::Connection* messageSenderConnection() const final { return m_contentConnection.ptr(); }
     uint64_t messageSenderDestinationID() const final { return 0; }

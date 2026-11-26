@@ -28,6 +28,7 @@
 #include <WebCore/CookieChangeSubscription.h>
 #include <WebCore/NavigationPreloadState.h>
 #include <WebCore/SWServer.h>
+#include <WebCore/SWServerWorker.h>
 #include <WebCore/ScriptExecutionContextIdentifier.h>
 #include <WebCore/ServiceWorkerRegistrationData.h>
 #include <WebCore/ServiceWorkerTypes.h>
@@ -54,15 +55,19 @@ struct ServiceWorkerContextData;
 
 enum class IsAppInitiated : bool { No, Yes };
 
-class SWServerRegistration : public RefCountedAndCanMakeWeakPtr<SWServerRegistration>, public Identified<ServiceWorkerRegistrationIdentifier> {
+using RefPtrSWServerWorker = RefPtr<SWServerWorker>;
+
+class SWIFT_PRIVATE_FILEID("WebCore/SWServerRegistration.swift") SWServerRegistration : public RefCountedAndCanMakeWeakPtr<SWServerRegistration>, public Identified<ServiceWorkerRegistrationIdentifier> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(SWServerRegistration, WEBCORE_EXPORT);
 public:
     static Ref<SWServerRegistration> create(SWServer&, const ServiceWorkerRegistrationKey&, ServiceWorkerUpdateViaCache, const URL& scopeURL, const URL& scriptURL, std::optional<ScriptExecutionContextIdentifier> serviceWorkerPageIdentifier, NavigationPreloadState&&);
     WEBCORE_EXPORT ~SWServerRegistration();
 
     const ServiceWorkerRegistrationKey& key() const LIFETIME_BOUND { return m_registrationKey; }
+    ServiceWorkerRegistrationKey keyValue() const { return m_registrationKey; }
+    ServiceWorkerRegistrationIdentifier identifierValue() const { return identifier(); }
 
-    NODELETE SWServerWorker* getNewestWorker();
+    RefPtrSWServerWorker getNewestWorker();
     WEBCORE_EXPORT ServiceWorkerRegistrationData data() const;
 
     void setLastUpdateTime(WallTime);
@@ -88,8 +93,8 @@ public:
     MonotonicTime creationTime() const { return m_creationTime; }
 
     bool hasClientsUsingRegistration() const { return !m_clientsUsingRegistration.isEmpty(); }
-    void addClientUsingRegistration(const ScriptExecutionContextIdentifier&);
-    void removeClientUsingRegistration(const ScriptExecutionContextIdentifier&);
+    void addClientUsingRegistration(ScriptExecutionContextIdentifier);
+    void removeClientUsingRegistration(ScriptExecutionContextIdentifier);
     void unregisterServerConnection(SWServerConnectionIdentifier);
 
     void notifyClientsOfControllerChange();
@@ -105,7 +110,7 @@ public:
 
     void forEachConnection(NOESCAPE const Function<void(SWServer::Connection&)>&);
 
-    WEBCORE_EXPORT bool shouldSoftUpdate(const FetchOptions&) const;
+    WEBCORE_EXPORT bool shouldSoftUpdate(FetchOptions) const;
     WEBCORE_EXPORT void scheduleSoftUpdate(IsAppInitiated);
     static constexpr Seconds softUpdateDelay { 1_s };
 
@@ -118,11 +123,11 @@ public:
 
     WEBCORE_EXPORT std::optional<ExceptionData> enableNavigationPreload();
     WEBCORE_EXPORT std::optional<ExceptionData> disableNavigationPreload();
-    WEBCORE_EXPORT std::optional<ExceptionData> setNavigationPreloadHeaderValue(String&&);
+    WEBCORE_EXPORT std::optional<ExceptionData> setNavigationPreloadHeaderValue(String);
     const NavigationPreloadState& navigationPreloadState() const LIFETIME_BOUND { return m_preloadState; }
 
-    WEBCORE_EXPORT void addCookieChangeSubscriptions(Vector<CookieChangeSubscription>&&);
-    WEBCORE_EXPORT void removeCookieChangeSubscriptions(Vector<CookieChangeSubscription>&&);
+    WEBCORE_EXPORT void addCookieChangeSubscriptions(Vector<CookieChangeSubscription>);
+    WEBCORE_EXPORT void removeCookieChangeSubscriptions(Vector<CookieChangeSubscription>);
     WEBCORE_EXPORT Vector<CookieChangeSubscription> cookieChangeSubscriptions() const;
 
 private:

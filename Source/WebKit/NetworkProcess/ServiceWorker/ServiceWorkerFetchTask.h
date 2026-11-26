@@ -34,7 +34,9 @@
 #include <WebCore/ServiceWorkerTypes.h>
 #include <WebCore/Timer.h>
 #include <pal/SessionID.h>
+#include <wtf/RawPointer.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
+#include <wtf/StringPrintStream.h>
 #include <wtf/TZoneMalloc.h>
 
 namespace WebCore {
@@ -68,7 +70,7 @@ class ServiceWorkerNavigationPreloader;
 class WebSWServerConnection;
 class WebSWServerToContextConnection;
 
-class ServiceWorkerFetchTask : public RefCountedAndCanMakeWeakPtr<ServiceWorkerFetchTask> {
+class SWIFT_PRIVATE_FILEID("WebKit/ServiceWorkerFetchTask.swift") ServiceWorkerFetchTask : public RefCountedAndCanMakeWeakPtr<ServiceWorkerFetchTask> {
     WTF_MAKE_TZONE_ALLOCATED(ServiceWorkerFetchTask);
 public:
     static RefPtr<ServiceWorkerFetchTask> fromNavigationPreloader(WebSWServerConnection&, NetworkResourceLoader&, const WebCore::ResourceRequest&, NetworkSession*);
@@ -82,7 +84,7 @@ public:
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
 
     void continueDidReceiveFetchResponse();
-    void continueFetchTaskWith(WebCore::ResourceRequest&&);
+    void continueFetchTaskWith(WebCore::ResourceRequest);
     void cancelPendingStreamUpload();
 
     WebCore::FetchIdentifier fetchIdentifier() const { return m_fetchIdentifier; }
@@ -101,24 +103,26 @@ public:
 
     NODELETE std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
+    // Public because the Swift members that take it are serialized into WebKit's module, which a private C++ type crashes.
+    enum class ShouldSetSource : bool { No, Yes };
+
 private:
     ServiceWorkerFetchTask(WebSWServerConnection&, NetworkResourceLoader&, WebCore::ResourceRequest&&, WebCore::SWServerConnectionIdentifier, WebCore::ServiceWorkerIdentifier, WebCore::SWServerRegistration&, NetworkSession*, bool isWorkerReady, bool shouldRaceNetworkAndFetchHandler);
     ServiceWorkerFetchTask(WebSWServerConnection&, NetworkResourceLoader&, RefPtr<ServiceWorkerNavigationPreloader>&&);
     ServiceWorkerFetchTask(NetworkResourceLoader&, WebCore::ResourceRequest&&);
 
-    enum class ShouldSetSource : bool { No, Yes };
-    void didReceiveRedirectResponse(WebCore::ResourceResponse&&);
-    void didReceiveResponse(WebCore::ResourceResponse&&, const URL& firstResponseURL, bool needsContinueDidReceiveResponseMessage);
-    void didReceiveData(const IPC::SharedBufferReference&);
+    void didReceiveRedirectResponse(WebCore::ResourceResponse);
+    void didReceiveResponse(WebCore::ResourceResponse, URL firstResponseURL, bool needsContinueDidReceiveResponseMessage);
+    void didReceiveData(IPC::SharedBufferReference);
     void didReceiveDataFromPreloader(const WebCore::FragmentedSharedBuffer&);
     NODELETE void didReceiveFormData(const IPC::FormDataReference&);
-    void didFinish(const WebCore::NetworkLoadMetrics&);
-    void didFail(const WebCore::ResourceError&);
+    void didFinish(WebCore::NetworkLoadMetrics);
+    void didFail(WebCore::ResourceError);
     void didNotHandle();
     void usePreload();
 
-    void processRedirectResponse(WebCore::ResourceResponse&&, ShouldSetSource);
-    void processResponse(WebCore::ResourceResponse&&, const URL& firstResponseURL, bool needsContinueDidReceiveResponseMessage, ShouldSetSource);
+    void processRedirectResponse(WebCore::ResourceResponse, ShouldSetSource);
+    void processResponse(WebCore::ResourceResponse, URL firstResponseURL, bool needsContinueDidReceiveResponseMessage, ShouldSetSource);
 
     void startFetch();
 
@@ -135,13 +139,37 @@ private:
     void loadFromCache(NetworkStorageManager&, WebCore::ClientOrigin&&, WebCore::RetrieveRecordsOptions&&, String&&);
     void respondWithCacheResponse(std::optional<WebCore::DOMCacheEngine::Record>&&);
     void finishLoadingWithCacheResponse(WebCore::DOMCacheEngine::Record&&);
-    void sendData(Ref<WebCore::SharedBuffer>&&);
+    void sendData(WebCore::SharedBuffer&);
 
     NODELETE RefPtr<IPC::Connection> serviceWorkerConnection();
     template<typename Message> bool sendToClient(Message&&);
 
     void sendNavigationPreloadUpdate();
     void processPreloadResponse();
+
+    // Swift cannot start, stop or read a WebCore::Timer.
+    void startTimeoutTimer();
+    void stopTimeoutTimer() { if (m_timeoutTimer) m_timeoutTimer->stop(); }
+    bool isTimeoutTimerActive() const { return m_timeoutTimer && m_timeoutTimer->isActive(); }
+    // Swift cannot build the WTF::Function that waitForPreloadResponse() passes.
+    void waitForPreloadResponse();
+    void setServiceWorkerConnection(WebSWServerToContextConnection*);
+    // Swift cannot move a value out of an std::optional.
+    bool finishLoadingWithPendingCacheResponse();
+    // Swift imports NetworkResourceLoader::parameters() as an unsafe pointer, and cannot pass OriginAccessPatterns or a
+    // CORPViolationReportContext pointer.
+    std::optional<WebCore::ResourceError> crossOriginResourcePolicyError(const WebCore::ResourceResponse&, const URL& firstResponseURL);
+    WebCore::ResourceRequest redirectedCurrentRequest(const WebCore::ResourceResponse&);
+    // Swift cannot name these messages, whose arguments have no Swift form.
+    void sendDidReceiveData(WebCore::SharedBuffer&);
+    void sendDidFinishResourceLoad(const WebCore::NetworkLoadMetrics&);
+    // Swift cannot make an ASCIILiteral.
+    static WebCore::ResourceError contextClosedError();
+    // Swift reads these const references as pointers.
+    bool preloadResponseIsSuccessful() const;
+    static String mimeType(const WebCore::ResourceResponse&);
+    static String errorDomain(const WebCore::ResourceError&);
+    String logIdentifier() const { return WTF::toString(RawPointer(this)); } // RELEASE_LOG's "%p" of this.
 
     WeakPtr<WebSWServerConnection> m_swServerConnection;
     WeakPtr<NetworkResourceLoader> m_loader;

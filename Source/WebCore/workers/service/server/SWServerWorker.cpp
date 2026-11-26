@@ -97,15 +97,9 @@ ServiceWorkerContextData SWServerWorker::contextData() const
     };
 }
 
-void SWServerWorker::updateAppInitiatedValue(LastNavigationWasAppInitiated lastNavigationWasAppInitiated)
+void SWServerWorker::terminate()
 {
-    m_lastNavigationWasAppInitiated = lastNavigationWasAppInitiated;
-
-    if (!isRunning())
-        return;
-
-    if (RefPtr connection = contextConnection())
-        connection->updateAppInitiatedValue(identifier(), lastNavigationWasAppInitiated);
+    terminate([] { });
 }
 
 void SWServerWorker::terminate(CompletionHandler<void()>&& callback)
@@ -194,48 +188,7 @@ SWServerToContextConnection* SWServerWorker::contextConnection()
     return server ? server->contextConnectionForRegistrableDomain(topRegistrableDomain(), m_crossOriginEmbedderPolicy.value) : nullptr;
 }
 
-void SWServerWorker::scriptContextFailedToStart(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, const String& message)
-{
-    ASSERT(m_server);
-    if (RefPtr server = m_server.get())
-        server->scriptContextFailedToStart(jobDataIdentifier, *this, message);
-}
-
-void SWServerWorker::scriptContextStarted(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, bool doesHandleFetch)
-{
-    m_shouldSkipHandleFetch = !doesHandleFetch;
-    ASSERT(m_server);
-    if (RefPtr server = m_server.get())
-        server->scriptContextStarted(jobDataIdentifier, *this);
-}
-
-void SWServerWorker::didFinishInstall(const std::optional<ServiceWorkerJobDataIdentifier>& jobDataIdentifier, bool wasSuccessful)
-{
-    ASSERT(m_server && this->state() == ServiceWorkerState::Installing);
-    if (RefPtr server = m_server.get())
-        server->didFinishInstall(jobDataIdentifier, *this, wasSuccessful);
-}
-
-void SWServerWorker::didFinishActivation()
-{
-    auto state = this->state();
-    if (state == ServiceWorkerState::Redundant)
-        return;
-
-    ASSERT(m_server);
-    RELEASE_ASSERT_WITH_MESSAGE(state == ServiceWorkerState::Activating, "State is %hhu", static_cast<uint8_t>(state));
-    if (RefPtr server = m_server.get())
-        server->didFinishActivation(*this);
-}
-
-void SWServerWorker::contextTerminated()
-{
-    ASSERT(m_server);
-    if (RefPtr server = m_server.get())
-        server->workerContextTerminated(*this);
-}
-
-std::optional<ServiceWorkerClientData> SWServerWorker::findClientByIdentifier(const ScriptExecutionContextIdentifier& clientId) const
+std::optional<ServiceWorkerClientData> SWServerWorker::findClientByIdentifier(ScriptExecutionContextIdentifier clientId) const
 {
     ASSERT(m_server);
     if (!m_server)
@@ -280,7 +233,7 @@ void SWServerWorker::setScriptResource(URL&& url, ServiceWorkerContextData::Impo
     m_scriptResourceMap.set(WTF::move(url), WTF::move(script));
 }
 
-void SWServerWorker::didSaveScriptsToDisk(ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts)
+void SWServerWorker::didSaveScriptsToDisk(ScriptBuffer mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer> importedScripts)
 {
     // Send mmap'd version of the scripts to the ServiceWorker process so we can save dirty memory.
     if (RefPtr contextConnection = this->contextConnection())
@@ -299,7 +252,7 @@ void SWServerWorker::didSaveScriptsToDisk(ScriptBuffer&& mainScript, MemoryCompa
     }
 }
 
-void SWServerWorker::setWorkerScripts(ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts)
+void SWServerWorker::setWorkerScripts(ScriptBuffer mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer> importedScripts)
 {
     ASSERT(m_needsScriptLoading);
     m_script = WTF::move(mainScript);
@@ -309,35 +262,6 @@ void SWServerWorker::setWorkerScripts(ScriptBuffer&& mainScript, MemoryCompactRo
             it->value.script = WTF::move(script);
     }
     m_needsScriptLoading = false;
-}
-
-void SWServerWorker::skipWaiting()
-{
-    m_isSkipWaitingFlagSet = true;
-
-    ASSERT(m_registration || isTerminating());
-    if (RefPtr registration = m_registration.get())
-        registration->tryActivate();
-}
-
-void SWServerWorker::setHasPendingEvents(bool hasPendingEvents)
-{
-    if (m_hasPendingEvents == hasPendingEvents)
-        return;
-
-    m_hasPendingEvents = hasPendingEvents;
-    if (m_hasPendingEvents)
-        return;
-
-    // Do tryClear/tryActivate, as per https://w3c.github.io/ServiceWorker/#wait-until-method.
-    RefPtr registration = m_registration.get();
-    if (!registration)
-        return;
-
-    if (registration->isUnregistered() && registration->tryClear())
-        return;
-
-    registration->tryActivate();
 }
 
 bool SWServerWorker::isIdle(Seconds idleTime) const
@@ -389,68 +313,9 @@ void SWServerWorker::callWhenActivatedHandler(bool success)
         handler(success);
 }
 
-void SWServerWorker::setState(State state)
-{
-    ASSERT(state != State::Running || m_registration);
-    ASSERT(state != State::Running || m_state != State::Terminating);
-    m_state = state;
-
-    switch (state) {
-    case State::Running:
-        needsRunning();
-        m_shouldSkipHandleFetch = false;
-        break;
-    case State::Terminating:
-        callWhenActivatedHandler(false);
-        break;
-    case State::NotRunning: {
-        bool isActivateEventAlreadyFired = m_isActivateEventFired;
-        terminationCompleted();
-        callWhenActivatedHandler(false);
-
-        // As per https://w3c.github.io/ServiceWorker/#activate, a worker goes to activated even if activating fails.
-        if (m_data.state == ServiceWorkerState::Activating && isActivateEventAlreadyFired)
-            didFinishActivation();
-        }
-        break;
-    }
-}
-
 SWServerRegistration* SWServerWorker::registration() const
 {
     return m_registration.get();
-}
-
-void SWServerWorker::didFailHeartBeatCheck()
-{
-    terminate();
-}
-
-WorkerThreadMode SWServerWorker::workerThreadMode() const
-{
-    if ((m_server && server()->shouldRunServiceWorkersOnMainThreadForTesting()) || serviceWorkerPageIdentifier())
-        return WorkerThreadMode::UseMainThread;
-    return WorkerThreadMode::CreateNewThread;
-}
-
-std::optional<ScriptExecutionContextIdentifier> SWServerWorker::serviceWorkerPageIdentifier() const
-{
-    if (!m_registration)
-        return std::nullopt;
-    return m_registration->serviceWorkerPageIdentifier();
-}
-
-void SWServerWorker::decrementFunctionalEventCounter()
-{
-    ASSERT(m_functionalEventCounter);
-    --m_functionalEventCounter;
-    terminateIfPossible();
-}
-
-void SWServerWorker::setAsInspected(bool isInspected)
-{
-    m_isInspected = isInspected;
-    terminateIfPossible();
 }
 
 bool SWServerWorker::shouldBeTerminated() const
@@ -477,20 +342,12 @@ void SWServerWorker::terminationIfPossibleTimerFired()
     protect(server())->removeContextConnectionIfPossible(topRegistrableDomain());
 }
 
-bool SWServerWorker::isClientActiveServiceWorker(ScriptExecutionContextIdentifier clientIdentifier) const
-{
-    if (!m_server)
-        return false;
-    auto registrationIdentifier = server()->clientIdentifierToControllingRegistration(clientIdentifier);
-    return registrationIdentifier == m_data.registrationIdentifier;
-}
-
 Vector<URL> SWServerWorker::importedScriptURLs() const
 {
     return copyToVector(m_scriptResourceMap.keys());
 }
 
-bool SWServerWorker::matchingImportedScripts(const Vector<std::pair<URL, ScriptBuffer>>& scripts) const
+bool SWServerWorker::matchingImportedScripts(Vector<std::pair<URL, ScriptBuffer>> scripts) const
 {
     for (auto& script : scripts) {
         auto iterator = m_scriptResourceMap.find(script.first);
@@ -498,16 +355,6 @@ bool SWServerWorker::matchingImportedScripts(const Vector<std::pair<URL, ScriptB
             return false;
     }
     return true;
-}
-
-void SWServerWorker::registerServiceWorkerConnection(SWServerConnectionIdentifier connectionIdentifier)
-{
-    m_connectionsWithServiceWorker.add(connectionIdentifier);
-}
-
-void SWServerWorker::unregisterServiceWorkerConnection(SWServerConnectionIdentifier connectionIdentifier)
-{
-    m_connectionsWithServiceWorker.remove(connectionIdentifier);
 }
 
 // https://w3c.github.io/ServiceWorker/#check-router-registration-limit-algorithm
@@ -542,28 +389,6 @@ std::optional<ExceptionData> SWServerWorker::addRoutes(Vector<ServiceWorkerRoute
     m_routes.appendVector(WTF::move(routes));
 
     return { };
-}
-
-// https://w3c.github.io/ServiceWorker/#get-router-source
-std::optional<RouterSource> SWServerWorker::getRouterSource(const FetchOptions& options, const ResourceRequest& request) const
-{
-    for (auto& route : m_routes) {
-        if (matchRouterCondition(route.condition, options, request, isRunning()))
-            return route.source;
-    }
-
-    return { };
-}
-
-RouterSource SWServerWorker::defaultRouterSource() const
-{
-    return m_shouldSkipHandleFetch ? RouterSourceEnum::Network : RouterSourceEnum::FetchEvent;
-}
-
-bool SWServerWorker::shouldPersistToDisk() const
-{
-    // Do not persist service workers backing browser extensions to disk.
-    return m_registration && !m_registration->serviceWorkerPageIdentifier();
 }
 
 } // namespace WebCore
