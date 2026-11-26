@@ -125,7 +125,9 @@ public:
     WebCore::NowPlayingManager& nowPlayingManager() LIFETIME_BOUND;
 
 #if ENABLE(MEDIA_STREAM)
+#if PLATFORM(COCOA)
     WorkQueue& videoMediaStreamTrackRendererQueue() { return m_videoMediaStreamTrackRendererQueue; }
+#endif
     void ensureAVCaptureServerConnection();
     SWIFT_MAIN_ACTOR void didApplyCaptureEnvironment(WebCore::ProcessIdentifier, WebCore::PageIdentifier);
     bool setCaptureAttributionString(WebCore::SecurityOriginData);
@@ -323,7 +325,9 @@ private:
 #if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
     std::optional<String> m_savedPreferredMicrophoneID;
 #endif
+#if PLATFORM(COCOA)
     const Ref<WorkQueue> m_videoMediaStreamTrackRendererQueue { WorkQueue::create("RemoteVideoMediaStreamTrackRenderer"_s, WorkQueue::QOS::UserInitiated) };
+#endif
 #endif
 #if USE(LIBWEBRTC)
     const Ref<WorkQueue> m_libWebRTCCodecsQueue { WorkQueue::create("LibWebRTCCodecsQueue"_s, WorkQueue::QOS::UserInitiated) };
