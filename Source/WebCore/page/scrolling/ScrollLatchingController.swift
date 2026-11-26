@@ -60,7 +60,8 @@ extension WebCore.ScrollLatchingController {
 
     @cxx
     @implementation
-    func removeLatchingStateForTarget(_ element: borrowing WebCore.Element) {
+    func removeLatchingStateForTarget(_ borrowedElement: borrowing WebCore.Element) {
+        let element = copy borrowedElement
         if m_frameStateStack.isEmpty() {
             return
         }
@@ -77,7 +78,8 @@ extension WebCore.ScrollLatchingController {
 
     @cxx
     @implementation
-    func removeLatchingStateForFrame(_ frame: borrowing WebCore.LocalFrame) {
+    func removeLatchingStateForFrame(_ borrowedFrame: borrowing WebCore.LocalFrame) {
+        let frame = copy borrowedFrame
         if m_frameStateStack.isEmpty() {
             return
         }
