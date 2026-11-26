@@ -26,6 +26,8 @@ internal import JSCSwiftBoundary
 
 extension Lexer {
     /// The identifier, keyword or private name at the cursor.
+    // Inlined into its two call sites: a call frame (saving and restoring ten registers) costs more than the scan it wraps.
+    @inline(always)
     mutating func parseIdentifier(
         _ data: inout TokenData,
         lexerFlags: LexerFlags,
@@ -47,6 +49,29 @@ extension Lexer {
             }
         }
 
+        // Everything after the keyword probe calls out (the scan's slow case, the arena), so it is one function of its own: this
+        // one then has no call but this tail call, and so no call frame.
+        return parseIdentifierAfterKeywordProbe(
+            &data,
+            lexerFlags: lexerFlags,
+            strictMode: strictMode,
+            buildIdentifiers: buildIdentifiers,
+            remaining: remaining,
+            &facade
+        )
+    }
+
+    /// The identifier or private name at the cursor, once no keyword starts there.
+    @inline(never)
+    private mutating func parseIdentifierAfterKeywordProbe(
+        _ data: inout TokenData,
+        lexerFlags: LexerFlags,
+        strictMode: Bool,
+        buildIdentifiers: Bool,
+        remaining: Int,
+        _ facade: inout JSC.JSParseFacade
+    ) -> JSC.JSTokenType {
+        let ignoreReservedWords = lexerFlags.contains(.ignoreReservedWords)
         let isPrivateName = current == .ascii("#")
         let isBuiltinName = Unit.bitWidth == 8 && current == .ascii("@") && parsingBuiltinFunction
         var isWellKnownSymbol = false
@@ -255,6 +280,19 @@ extension Lexer {
         Unit.makeIdentifier(source.extracting(start..<end), &facade)
     }
 
+    /// The one-character identifier at the cursor, when the arena has not seen it. The arena's cold work (a new identifier, the
+    /// handle table's growth) is all here, so that the hit path of `lexIdentifierStartingAtCursor` has no call frame.
+    @inline(never)
+    private mutating func makeShortIdentifierOnMiss(
+        _ data: inout TokenData,
+        _ facade: inout JSC.JSParseFacade
+    ) -> JSC.JSTokenType {
+        let start = code
+        shift()
+        data.ident = makeIdentifier(start, start + 1, &facade)
+        return .identifier
+    }
+
     /// An identifier, keyword or private name at the cursor, or a one-character identifier when the next character ends it.
     mutating func lexIdentifierStartingAtCursor(
         _ data: inout TokenData,
@@ -268,11 +306,18 @@ extension Lexer {
             let next = peek(1)
             // This quickly detects the character is not a part of identifier-part *and* back-slash.
             if next.isLatin1 && CharacterType(latin1: UInt8(truncatingIfNeeded: next)) > .backSlash {
-                let start = code
-                shift()
-                data.ident =
-                    lexerFlags.contains(.dontBuildKeywords) ? JSC.JSParseIdentifier() : makeIdentifier(start, start + 1, &facade)
-                return .identifier
+                if lexerFlags.contains(.dontBuildKeywords) {
+                    shift()
+                    data.ident = JSC.JSParseIdentifier()
+                    return .identifier
+                }
+                let cached = facade.cachedShortIdentifier(UInt32(current))
+                if !cached.isNull {
+                    shift()
+                    data.ident = cached
+                    return .identifier
+                }
+                return makeShortIdentifierOnMiss(&data, &facade)
             }
         }
         // Each call specializes the scan for a constant buildIdentifiers.

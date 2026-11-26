@@ -317,10 +317,12 @@ struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
         Unit.appendLatin1(source.extracting(range), to: &buffer8)
     }
 
+    @inline(always)
     mutating func append16(_ range: Range<Int>) {
         Unit.append(source.extracting(range), to: &buffer16)
     }
 
+    @inline(always)
     mutating func appendRaw(_ range: Range<Int>) {
         Unit.append(source.extracting(range), to: &bufferForRawTemplateString16)
     }

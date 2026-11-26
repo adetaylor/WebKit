@@ -192,6 +192,9 @@ public:
 
     // Identifiers (IdentifierArena), each returning a new handle. The spans are characters Swift lexed or decoded.
     ALWAYS_INLINE JSParseIdentifier makeIdentifier8(std::span<const uint8_t> characters NOESCAPE) { auto& s = state(); return s.addIdentifier(s.identifierArena().makeIdentifier(s.vm(), spanReinterpretCast<const Latin1Character>(characters))); }
+    // The handle of a one-character identifier the arena has cached, or the null handle when it has not (or the handle table is full): the
+    // caller then makes it with makeIdentifier8 or 16. The hit path calls nothing.
+    ALWAYS_INLINE JSParseIdentifier cachedShortIdentifier(uint32_t character) { return state().addCachedShortIdentifier(character); }
     ALWAYS_INLINE JSParseIdentifier makeIdentifier16(std::span<const char16_t> characters NOESCAPE) { auto& s = state(); return s.addIdentifier(s.identifierArena().makeIdentifier(s.vm(), characters)); }
     ALWAYS_INLINE JSParseIdentifier makeLatin1Identifier(std::span<const char16_t> characters NOESCAPE) { auto& s = state(); return s.addIdentifier(s.identifierArena().makeLatin1Identifier(s.vm(), characters)); }
     ALWAYS_INLINE JSParseIdentifier makeEmptyIdentifier() { auto& s = state(); return s.addIdentifier(s.identifierArena().makeEmptyIdentifier(s.vm())); }
@@ -678,6 +681,14 @@ public:
     JSParseIdentifier addIdentifier(const Identifier& identifier)
     {
         m_identifiers.append(&identifier);
+        return { static_cast<uint32_t>(m_identifiers.size() - 1) };
+    }
+    JSParseIdentifier addCachedShortIdentifier(uint32_t character)
+    {
+        auto* identifier = identifierArena().cachedShortIdentifier(character);
+        if (!identifier || m_identifiers.size() == m_identifiers.capacity())
+            return { };
+        m_identifiers.append(identifier);
         return { static_cast<uint32_t>(m_identifiers.size() - 1) };
     }
     JSParseIdentifier addIdentifierOrNull(const Identifier* identifier) { return identifier ? addIdentifier(*identifier) : JSParseIdentifier { }; }
