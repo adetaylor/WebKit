@@ -421,6 +421,10 @@ private:
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
     SWIFT_MAIN_ACTOR void releaseGPU(WebGPUIdentifier);
+#else
+    // No WebGPU on this port: the messages exist on every port, and these ignore them.
+    void createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&) { }
+    void releaseGPU(WebGPUIdentifier) { }
 #endif
 
     void setNowPlayingInfoForPage(WebCore::NowPlayingInfo&&, std::optional<WebCore::PageIdentifier>);
