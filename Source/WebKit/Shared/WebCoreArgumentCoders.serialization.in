@@ -405,7 +405,7 @@ enum class WebCore::IndexedDB::RequestType : uint8_t {
 };
 
 header: <WebCore/ResourceLoadStatistics.h>
-[OptionSet] enum class WebCore::NavigatorAPIsAccessed : uint64_t {
+[Swift, OptionSet] enum class WebCore::NavigatorAPIsAccessed : uint64_t {
     AppVersion,
     UserAgent,
     Plugins,
@@ -413,7 +413,7 @@ header: <WebCore/ResourceLoadStatistics.h>
     CookieEnabled
 };
 
-[OptionSet] enum class WebCore::ScreenAPIsAccessed : uint64_t {
+[Swift, OptionSet] enum class WebCore::ScreenAPIsAccessed : uint64_t {
     Height,
     Width,
     ColorDepth,
@@ -3638,7 +3638,7 @@ header: <WebCore/ImageTypes.h>
     float end;
 };
 
-struct WebCore::CanvasActivityRecord {
+[Swift] struct WebCore::CanvasActivityRecord {
     HashSet<String> textWritten;
     bool wasDataRead;
 };
