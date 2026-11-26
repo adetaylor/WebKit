@@ -87,6 +87,27 @@ extension IPCCoder {
     }
 }
 
+/// The element of a HashSet<T> (IPCCoding.HashSet): what C++'s HashSet compares of the element, by the hash and traits
+/// HashSet<T> has by default.
+protocol IPCHashSetElement: IPCCoder where Value: Hashable {
+    associatedtype CxxHashKey: Hashable
+
+    /// The element as the hash traits of HashSet<T> compare it, two elements being the same entry exactly when their keys
+    /// are equal; nil for a value that HashSet<T>::isValidValue() rejects, its empty or deleted value.
+    static func cxxHashKey(_ value: Value) -> CxxHashKey?
+
+    /// An element and its key, taken from the bytes decoded where the Swift value loses something the hash traits compare
+    /// (a String's unpaired surrogates), so that two elements C++ keeps apart are never one key.
+    static func decodeWithCxxHashKey(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> (value: Value, key: CxxHashKey?)
+}
+
+extension IPCHashSetElement {
+    static func decodeWithCxxHashKey(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> (value: Value, key: CxxHashKey?) {
+        let value = try decode(from: &decoder)
+        return (value, cxxHashKey(value))
+    }
+}
+
 /// A trivially copyable primitive, a Vector of which C++ encodes as one block that Swift decodes in one call.
 protocol IPCBlockPrimitive: IPCCoder, AdditiveArithmetic, Sendable where Value == Self {
     @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
@@ -675,6 +696,51 @@ enum IPCCoding {
         }
     }
 
+    /// HashSet<T>: its count, as an unsigned, then its elements, which Swift takes as a Set and as the sequence they
+    /// arrived in (IPCTypes.HashSetInWireOrder).
+    ///
+    /// As in C++ (ArgumentCoder<HashSet>), an element that C++'s hash traits reject (its key is nil) or one equal under
+    /// them to an earlier one makes the set malformed.
+    enum HashSet<Element: IPCHashSetElement>: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> IPCTypes.HashSetInWireOrder<Element.Value> {
+            let count = Int(try UInt32.decode(from: &decoder))
+            // As in C++, reserve at most 1MB for an untrusted count, because large reservations can crash the
+            // allocator.
+            let reservation = min(count, decoder.remainingByteCount(), 1024 * 1024 / MemoryLayout<Element.Value>.stride)
+            var set = Set<Element.Value>(minimumCapacity: reservation)
+            var elementsInWireOrder: [Element.Value] = []
+            elementsInWireOrder.reserveCapacity(reservation)
+            var keys = Set<Element.CxxHashKey>(minimumCapacity: reservation)
+            for _ in 0..<count {
+                let (element, key) = try Element.decodeWithCxxHashKey(from: &decoder)
+                guard let key, keys.insert(key).inserted else {
+                    throw IPCDecodingError()
+                }
+                // Two elements C++ keeps apart are one Swift value only where the Swift value lost what told them apart
+                // (two domains differing only in unpaired surrogates, each U+FFFD in Swift): the Set holds it once, the
+                // wire order each time it came.
+                set.insert(element)
+                elementsInWireOrder.append(element)
+            }
+            return IPCTypes.HashSetInWireOrder(set: set, elementsInWireOrder: elementsInWireOrder)
+        }
+
+        /// The elements in their wire order, each Swift value once.
+        static func encode(_ value: IPCTypes.HashSetInWireOrder<Element.Value>, to encoder: IPC.SwiftReplyEncoder) {
+            var keys = Set<Element.CxxHashKey>(minimumCapacity: value.set.count)
+            for element in value.set {
+                guard let key = Element.cxxHashKey(element), keys.insert(key).inserted else {
+                    preconditionFailure("A HashSet holds no element that its C++ hash traits reject or that equals another under them")
+                }
+            }
+            encoder.encode(UInt32(value.set.count))
+            var encoded = Set<Element.Value>(minimumCapacity: value.set.count)
+            for element in value.elementsInWireOrder where encoded.insert(element).inserted {
+                Element.encode(element, to: encoder)
+            }
+        }
+    }
+
     /// std::span<const T, N>: its N elements, with no count before them, which Swift takes a copy of. Extent gives N.
     enum FixedSpan<Element: IPCCoder, Extent: IPCSpanExtent>: IPCCoder {
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Element.Value] {
@@ -819,6 +885,33 @@ enum IPCCoding {
                 return String(scalars)
             }
             return String(decoding: try UInt16.decodeArray(count: count, from: &decoder), as: Unicode.UTF16.self)
+        }
+
+        /// A WTF::String as decode(from:) decodes it, with the code units decoded (an 8-bit string's widened), which keep
+        /// the unpaired surrogates the String does not; both nil for the null string.
+        static func decodeWithCodeUnits(
+            from decoder: inout IPC.SwiftDecoder
+        ) throws(IPCDecodingError) -> (string: String?, codeUnits: [UInt16]?) {
+            let length = try UInt32.decode(from: &decoder)
+            if length == nullStringLength {
+                return (nil, nil)
+            }
+            let is8Bit = try Bool.decode(from: &decoder)
+            // Aligned and bounded as C++ decodes the characters, even none, which the element decoders then read.
+            guard let count = Int(exactly: length), decoder.beginArray(count, is8Bit ? 1 : 2) else {
+                throw IPCDecodingError()
+            }
+            if is8Bit {
+                let characters = try UInt8.decodeArray(count: count, from: &decoder)
+                var scalars = String.UnicodeScalarView()
+                scalars.reserveCapacity(count)
+                for character in characters {
+                    scalars.append(Unicode.Scalar(character))
+                }
+                return (String(scalars), characters.map { UInt16($0) })
+            }
+            let codeUnits = try UInt16.decodeArray(count: count, from: &decoder)
+            return (String(decoding: codeUnits, as: Unicode.UTF16.self), codeUnits)
         }
 
         /// The longest 8-bit string whose UTF-8 is converted on the stack; most strings in messages are short.
@@ -2010,6 +2103,117 @@ struct UUIDHalves: Sendable, Hashable {
 extension UUIDHalves {
     init(_ uuid: WTF.UUID) {
         self.init(high: uuid.high(), low: uuid.low())
+    }
+}
+
+/// As C++ compares a RegistrableDomain (operator==, which compares its String), by its UTF-16 code units: Swift's String
+/// compares canonical equivalents as equal, which would make a Set of them drop one of two domains C++ keeps.
+extension IPCTypes.RegistrableDomain: Hashable {
+    static func == (a: Self, b: Self) -> Bool {
+        a.string.map { Array($0.utf16) } == b.string.map { Array($0.utf16) }
+    }
+
+    func hash(into hasher: inout Swift.Hasher) {
+        hasher.combine(string.map { Array($0.utf16) })
+    }
+}
+
+/// HashSet<RegistrableDomain>, whose hash traits (RegistrableDomainHash) compare domains' code units ignoring ASCII case,
+/// after RegistrableDomain::fromRawString() has made a null or empty one "nullOrigin". No domain is its empty or deleted
+/// value (a null String, String's deleted value) after that, so none is rejected as invalid.
+extension IPCTypes.RegistrableDomain: IPCHashSetElement {
+    static func cxxHashKey(_ value: Self) -> [UInt16]? {
+        cxxHashKey(codeUnits: value.string.map { Array($0.utf16) })
+    }
+
+    /// The key of the code units decoded, which keep any unpaired surrogate the Swift String makes U+FFFD.
+    static func decodeWithCxxHashKey(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> (value: Self, key: [UInt16]?) {
+        let (string, codeUnits) = try IPCCoding.WTFString.decodeWithCodeUnits(from: &decoder)
+        return (Self(string: string), cxxHashKey(codeUnits: codeUnits))
+    }
+
+    private static func cxxHashKey(codeUnits: [UInt16]?) -> [UInt16] {
+        let units = codeUnits.flatMap { $0.isEmpty ? nil : $0 } ?? Array("nullOrigin".utf16)
+        return units.map { (0x41...0x5A).contains($0) ? $0 | 0x20 : $0 }
+    }
+}
+
+extension IPCTypes {
+    /// The Swift form of a HashSet<T>: its elements as a Set, and, for the C++ code that rebuilds the HashSet's
+    /// iteration order (which the order elements arrive in decides), every element in the order it arrived.
+    ///
+    /// A decoded value's elementsInWireOrder has one entry per element on the wire, as many as the C++ HashSet holds,
+    /// including the ones the Set holds once because Swift made them one value (two domains differing only in unpaired
+    /// surrogates, each U+FFFD). Equality is the Set's.
+    struct HashSetInWireOrder<Element: Hashable>: Equatable {
+        let set: Set<Element>
+        let elementsInWireOrder: [Element]
+
+        /// A HashSet Swift builds, its order the Set's.
+        init(_ set: Set<Element>) {
+            self.set = set
+            self.elementsInWireOrder = Array(set)
+        }
+
+        fileprivate init(set: Set<Element>, elementsInWireOrder: [Element]) {
+            self.set = set
+            self.elementsInWireOrder = elementsInWireOrder
+        }
+
+        var isEmpty: Bool {
+            self.set.isEmpty
+        }
+
+        static func == (a: Self, b: Self) -> Bool {
+            a.set == b.set
+        }
+    }
+}
+
+extension IPCTypes.HashSetInWireOrder: Sendable where Element: Sendable {}
+
+extension IPCTypes {
+    /// An element of a HashSet<String>, compared as StringHash compares it, by its UTF-16 code units: Swift's String
+    /// compares canonical equivalents as equal, which would make a Set of them drop one of two strings C++ keeps.
+    struct StringByCodeUnits: Sendable, Hashable {
+        var string: String
+
+        static func == (a: Self, b: Self) -> Bool {
+            a.string.utf16.elementsEqual(b.string.utf16)
+        }
+
+        func hash(into hasher: inout Swift.Hasher) {
+            hasher.combine(string.utf16.count)
+            for codeUnit in string.utf16 {
+                hasher.combine(codeUnit)
+            }
+        }
+    }
+}
+
+/// HashSet<String>, whose hash traits (StringHash) compare strings' code units, and whose empty value, the null String,
+/// isValidValue() rejects; String's deleted value never decodes. The key is the code units decoded, which keep any
+/// unpaired surrogate the Swift String makes U+FFFD.
+extension IPCTypes.StringByCodeUnits: IPCHashSetElement {
+    /// A non-null WTF::String: a null one is only ever decoded as a HashSet element, which C++ rejects.
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
+        guard let string = try IPCCoding.WTFString.decode(from: &decoder) else {
+            throw IPCDecodingError()
+        }
+        return Self(string: string)
+    }
+
+    static func encode(_ value: Self, to encoder: IPC.SwiftReplyEncoder) {
+        IPCCoding.WTFString.encode(value.string, to: encoder)
+    }
+
+    static func cxxHashKey(_ value: Self) -> [UInt16]? {
+        Array(value.string.utf16)
+    }
+
+    static func decodeWithCxxHashKey(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> (value: Self, key: [UInt16]?) {
+        let (string, codeUnits) = try IPCCoding.WTFString.decodeWithCodeUnits(from: &decoder)
+        return (Self(string: string ?? ""), codeUnits)
     }
 }
 

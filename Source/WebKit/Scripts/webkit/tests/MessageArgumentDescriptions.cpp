@@ -513,6 +513,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncReplyValue>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SetDomains:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SetDomains>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementation_SendCxxString:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendCxxString>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementation_SendStringAsyncReply:
@@ -521,6 +523,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncReplyValueReply>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValueReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValueReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SetDomainsReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SetDomainsReply>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementationAndSuperclass_SendString:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndSuperclass_SendString>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync:
@@ -872,6 +876,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_AsyncReplyValue>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SetDomains:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_SetDomains>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementationAndSuperclass_TestSyncMessage:
@@ -2016,6 +2022,10 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "value"_s, "uint32_t"_s },
         };
+    case MessageName::TestWithSwiftImplementation_SetDomains:
+        return Vector<ArgumentDescription> {
+            { "domains"_s, "HashSet<WebCore::RegistrableDomain>"_s },
+        };
     case MessageName::TestWithSwiftImplementation_SendCxxString:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -2029,6 +2039,8 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "reply"_s, "bool"_s },
         };
     case MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValueReply:
+        return Vector<ArgumentDescription> { };
+    case MessageName::TestWithSwiftImplementation_SetDomainsReply:
         return Vector<ArgumentDescription> { };
     case MessageName::TestWithSwiftImplementationAndSuperclass_SendString:
         return Vector<ArgumentDescription> {
@@ -2692,6 +2704,8 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
             { "reply"_s, "bool"_s },
         };
     case MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue:
+        return Vector<ArgumentDescription> { };
+    case MessageName::TestWithSwiftImplementation_SetDomains:
         return Vector<ArgumentDescription> { };
     case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync:
         return Vector<ArgumentDescription> {

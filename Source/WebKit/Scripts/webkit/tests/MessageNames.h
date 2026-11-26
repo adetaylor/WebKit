@@ -239,6 +239,7 @@ enum class MessageName : uint16_t {
     TestWithSwiftImplementation_SendDirect,
     TestWithSwiftImplementation_SendString,
     TestWithSwiftImplementation_SendStringAsyncReply,
+    TestWithSwiftImplementation_SetDomainsReply,
     TestWithSwiftTarget_SendString,
     TestWithSwiftTypesOptIn_CxxTypedMessageReply,
     TestWithSwiftTypesOptIn_SwiftTypedMessageReply,
@@ -384,6 +385,7 @@ enum class MessageName : uint16_t {
     TestWithSwiftImplementation_AsyncEmptyReplyValue,
     TestWithSwiftImplementation_AsyncReplyValue,
     TestWithSwiftImplementation_SendStringAsync,
+    TestWithSwiftImplementation_SetDomains,
     TestWithSwiftTypesOptIn_CxxTypedMessage,
     TestWithSwiftTypesOptIn_SwiftTypedMessage,
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)

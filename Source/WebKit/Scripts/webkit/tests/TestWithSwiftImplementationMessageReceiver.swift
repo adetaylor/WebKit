@@ -302,6 +302,37 @@ extension SwiftDispatch.TestWithSwiftImplementation {
         }
         return true
     }
+
+    @cxx
+    @implementation
+    static func dispatchSetDomains(
+        _ target: sending WebKit.TestWithSwiftImplementation,
+        _ connection: sending IPC.Connection,
+        _ decoder: IPC.SwiftDecoder,
+        _ replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        var decoder = decoder
+        let domains: IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>
+        do {
+            domains = try IPCCoding.HashSet<IPCTypes.CxxName.WebCore_RegistrableDomain>.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            do throws(InvalidMessage) {
+                try mayThrowInvalidMessage(
+                    target.setDomains(
+                        connection: connection,
+                        domains: domains,
+                        reply: TestWithSwiftImplementationSetDomainsReply(replyEncoder: replyEncoder)
+                    )
+                )
+            } catch {
+                markMessageInvalid(error, on: connection)
+            }
+        }
+        return true
+    }
 }
 
 struct TestWithSwiftImplementationAsyncReplyValueReply: ~Copyable {
@@ -328,6 +359,28 @@ struct TestWithSwiftImplementationAsyncReplyValueReply: ~Copyable {
 }
 
 struct TestWithSwiftImplementationAsyncEmptyReplyValueReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send() {
+        replyEncoder.send()
+    }
+
+    // send() as a completion handler, which sends the reply the first time it is called.
+    consuming func completionHandler() -> () -> Void {
+        var reply = Optional(self)
+        return { reply.take()?.send() }
+    }
+
+    deinit {
+        replyEncoder.endAsyncReply()
+    }
+}
+
+struct TestWithSwiftImplementationSetDomainsReply: ~Copyable {
     private let replyEncoder: IPC.SwiftReplyEncoder
 
     fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {

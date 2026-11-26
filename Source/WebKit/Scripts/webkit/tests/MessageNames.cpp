@@ -173,6 +173,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftImplementation_SendDirect"_s, ReceiverName::TestWithSwiftImplementation, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftImplementation_SendString"_s, ReceiverName::TestWithSwiftImplementation, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftImplementation_SendStringAsyncReply"_s, ReceiverName::TestWithSwiftImplementation, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithSwiftImplementation_SetDomainsReply"_s, ReceiverName::TestWithSwiftImplementation, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTarget_SendString"_s, ReceiverName::TestWithSwiftTarget, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypesOptIn_CxxTypedMessageReply"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypesOptIn_SwiftTypedMessageReply"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
@@ -316,6 +317,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftImplementation_AsyncEmptyReplyValue"_s, ReceiverName::TestWithSwiftImplementation, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftImplementation_AsyncReplyValue"_s, ReceiverName::TestWithSwiftImplementation, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftImplementation_SendStringAsync"_s, ReceiverName::TestWithSwiftImplementation, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithSwiftImplementation_SetDomains"_s, ReceiverName::TestWithSwiftImplementation, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypesOptIn_CxxTypedMessage"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypesOptIn_SwiftTypedMessage"_s, ReceiverName::TestWithSwiftTypesOptIn, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)

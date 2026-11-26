@@ -84,6 +84,26 @@ class GeneratedSwiftTest(unittest.TestCase):
                                    ('std::optional<WebCore::FrameIdentifier>', 'optionalFrameIdentifier')]:
             self.assertEqual(generate_serializers.swift_variant_case_name(cpp_type), expected)
 
+    def test_hash_set_member(self):
+        swift = generate_swift('''
+[Swift, CreateUsing=fromRawString, SwiftCreateUsing=Memberwise] class WebCore::RegistrableDomain {
+    String string()
+}
+[Swift] struct WebKit::S {
+    HashSet<WebCore::RegistrableDomain> domains;
+}
+''')
+        self.assertIn('        var domains: IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>\n', swift)
+        self.assertIn('        self.domains = try IPCCoding.HashSet<IPCTypes.RegistrableDomain>.decode(from: &decoder)\n', swift)
+        self.assertIn('        IPCCoding.HashSet<IPCTypes.RegistrableDomain>.encode(value.domains, to: encoder)\n', swift)
+        # A String element is compared by its code units, as StringHash compares it, so canonical equivalents stay two.
+        swift = generate_swift('[Swift] struct WebKit::S {\n    HashSet<String> names;\n}\n')
+        self.assertIn('        var names: IPCTypes.HashSetInWireOrder<IPCTypes.StringByCodeUnits>\n', swift)
+        self.assertIn('        self.names = try IPCCoding.HashSet<IPCTypes.StringByCodeUnits>.decode(from: &decoder)\n', swift)
+        self.assertIn('        IPCCoding.HashSet<IPCTypes.StringByCodeUnits>.encode(value.names, to: encoder)\n', swift)
+        with self.assertRaisesRegex(Exception, r"\[Swift\] WebKit::S.*'HashSet<AtomString>' has no Swift form"):
+            generate_swift('[Swift] struct WebKit::S {\n    HashSet<AtomString> names;\n}\n')
+
     def test_no_swift_types(self):
         swift = generate_swift('struct WebKit::NotSwift {\n    uint32_t value;\n}\n')
         self.assertIn('#if ENABLE_SWIFT_IPC_RECEIVERS\n\nimport WebCore_Private\nimport WebKit_Internal\n\n#endif\n', swift)

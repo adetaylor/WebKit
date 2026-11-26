@@ -29,6 +29,7 @@
 #include "MessageNames.h"
 #include "SwiftCoding.h"
 #include <wtf/Forward.h>
+#include <wtf/HashSet.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/text/WTFString.h>
@@ -210,6 +211,36 @@ private:
     uint32_t m_value;
 };
 
+class SetDomains {
+public:
+    using Arguments = std::tuple<HashSet<WebCore::RegistrableDomain>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftImplementation_SetDomains; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftImplementation_SetDomainsReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<>;
+    using Reply = CompletionHandler<void()>;
+    using Promise = WTF::NativePromise<void, IPC::Error>;
+    explicit SetDomains(const HashSet<WebCore::RegistrableDomain>& domains)
+        : m_domains(domains)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_domains;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const HashSet<WebCore::RegistrableDomain>& m_domains;
+};
+
 class SendCxxString {
 public:
     using Arguments = std::tuple<String>;
@@ -307,6 +338,28 @@ public:
 private:
 };
 
+class SetDomainsReply {
+public:
+    using Arguments = std::tuple<>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftImplementation_SetDomainsReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    SetDomainsReply()
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+    }
+
+private:
+};
+
 } // namespace TestWithSwiftImplementation
 } // namespace Messages
 namespace WebKit {
@@ -324,6 +377,7 @@ bool dispatchSendStringSync(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IP
 bool dispatchSendDirect(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder);
 bool dispatchAsyncReplyValue(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);
 bool dispatchAsyncEmptyReplyValue(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);
+bool dispatchSetDomains(WebKit::TestWithSwiftImplementation* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);
 
 } // namespace TestWithSwiftImplementation
 } // namespace SwiftDispatch

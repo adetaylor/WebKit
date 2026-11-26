@@ -65,6 +65,22 @@ _SINGLE_ARGUMENT_TEMPLATES = {
     'RefPtr': ('%s?', 'IPCCoding.StdOptional<%s>'),
 }
 
+# The element types of the HashSets that messages carry, whose Swift form is an IPCTypes.HashSetInWireOrder of the
+# element's Swift form: a Set, and the elements in the order they arrived, which decides C++'s iteration order. Each has an
+# IPCHashSetElement conformance in SwiftCoding.swift, which says what C++'s HashSet takes for the same element: the value
+# its hash traits compare (RegistrableDomain's is ASCII case-insensitive), and which values isValidValue() rejects (a
+# hash table's empty and deleted values, String's null), so that IPCCoding.HashSet fails to decode exactly where
+# ArgumentCoder<HashSet> does. A HashSet with its own hash or traits arguments compares elements differently, so has no
+# Swift form.
+_HASH_SET_ELEMENT_TYPES = frozenset(['WebCore::RegistrableDomain', 'String', 'WTF::String'])
+
+# HashSet elements whose Swift form in the Set is not the element's own: a String is compared by its code units, as
+# StringHash compares it, where a Swift String would make canonical equivalents one element (SwiftCoding.swift).
+_HASH_SET_ELEMENT_FORMS = {
+    'String': 'IPCTypes.StringByCodeUnits',
+    'WTF::String': 'IPCTypes.StringByCodeUnits',
+}
+
 # Ref<T> is encoded as T, and OptionSet<E> is the Swift OptionSet generated for E.
 _TRANSPARENT_TEMPLATES = ('Ref', 'OptionSet')
 
@@ -401,6 +417,16 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
             first_type, first_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
             second_type, second_coder = swift_type_and_coder(arguments[1], cxx_name_coders)
             return (value_format % (first_type, second_type), coder_format % (first_coder, second_coder))
+        # A HashSet is its count, as an unsigned, then its elements, each one different under the set's hash traits; Swift
+        # keeps their order too.
+        if template == 'HashSet':
+            if len(arguments) != 1 or strip_cpp_type_decorations(arguments[0]).removeprefix('::') not in _HASH_SET_ELEMENT_TYPES:
+                raise UnmappableSwiftType("'%s' has no Swift form: messages that take Swift types support a HashSet, with its default hash and traits, of %s." % (cpp_type, ', '.join(sorted(_HASH_SET_ELEMENT_TYPES))))
+            element_form = _HASH_SET_ELEMENT_FORMS.get(strip_cpp_type_decorations(arguments[0]).removeprefix('::'))
+            if element_form:
+                return ('IPCTypes.HashSetInWireOrder<%s>' % element_form, 'IPCCoding.HashSet<%s>' % element_form)
+            element_type, element_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
+            return ('IPCTypes.HashSetInWireOrder<%s>' % element_type, 'IPCCoding.HashSet<%s>' % element_coder)
         if template in _SINGLE_ARGUMENT_TEMPLATES and (len(arguments) == 1 or template == 'Markable'):
             value_format, coder_format = _SINGLE_ARGUMENT_TEMPLATES[template]
             inner_type, inner_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
@@ -457,8 +483,8 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, WallTime, MonotonicTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::span of the trivially copyable structs %s, std::array, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
-                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the UUID types %s, the owned types %s, and %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_TRIVIAL_SPAN_ELEMENT_TYPES)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_UUID_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
+                              "double, Seconds, WallTime, MonotonicTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, HashSet of %s, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::span of the trivially copyable structs %s, std::array, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
+                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the UUID types %s, the owned types %s, and %s." % (cpp_type, ', '.join(sorted(_HASH_SET_ELEMENT_TYPES)), ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_TRIVIAL_SPAN_ELEMENT_TYPES)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_UUID_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
 
 
 def swift_coder(cpp_type):
