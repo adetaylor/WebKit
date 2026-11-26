@@ -455,7 +455,7 @@ void MockRealtimeMediaSourceCenter::triggerMockCaptureConfigurationChange(bool f
 
 #if PLATFORM(COCOA)
     if (forMicrophone) {
-        auto devices = audioCaptureDeviceManager().captureDevices();
+        auto devices = singleton().audioCaptureDeviceManager().captureDevices();
         if (devices.size() > 1) {
             MockAudioCaptureUnit::increaseBufferSize();
             CoreAudioCaptureUnit::forEach([&devices](auto& unit) {
@@ -471,7 +471,7 @@ void MockRealtimeMediaSourceCenter::triggerMockCaptureConfigurationChange(bool f
     }
 #elif USE(GSTREAMER)
     if (forMicrophone) {
-        auto devices = audioCaptureDeviceManager().captureDevices();
+        auto devices = singleton().audioCaptureDeviceManager().captureDevices();
         if (devices.size() > 1)
             webkitGstMockDeviceProviderSwitchDefaultDevice(devices[0], devices[1]);
     }

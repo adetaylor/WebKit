@@ -196,7 +196,7 @@ private func copyFromYUVVideoFrameSource(_ display: ANGLEDisplay, _ config: ANGL
             return .pbufferFailed
         }
         defer {
-            _ = ANGLECocoa.destroySurface(display, pbuffer)
+            _ = ANGLE.destroySurface(display, pbuffer)
         }
         if !ANGLECocoa.bindTexImage(display, pbuffer) {
             return .pbufferFailed

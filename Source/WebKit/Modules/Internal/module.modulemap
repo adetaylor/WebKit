@@ -1,4 +1,11 @@
 module WebKit_Internal [system] {
+    // First: makes WebCore's declarations visible to every submodule below off the Apple ports.
+    module WebCoreSwiftModuleImports {
+        requires cplusplus20
+        header "WebCoreSwiftModuleImports.h"
+        export *
+    }
+
     module AppKitSPI {
         requires objc
         header "../../Platform/spi/mac/AppKitSPI.h"

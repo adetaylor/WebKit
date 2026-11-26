@@ -78,18 +78,9 @@ Ref<ControlFactory> RemoteGraphicsContext::controlFactory()
     return *m_controlFactory;
 }
 
-RemoteResourceCache& RemoteGraphicsContext::resourceCache() const
-{
-    return m_renderingBackend->remoteResourceCache();
-}
-
 RefPtr<NativeImage> RemoteGraphicsContext::cachedNativeImage(RenderingResourceIdentifier identifier) const
 {
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     return m_renderingBackend->cachedNativeImage(identifier);
-#else
-    return resourceCache().cachedNativeImage(identifier);
-#endif
 }
 
 RefPtr<ImageBuffer> RemoteGraphicsContext::imageBuffer(RenderingResourceIdentifier identifier) const
@@ -172,7 +163,7 @@ void RemoteGraphicsContext::setFillColor(const Color& color)
 
 void RemoteGraphicsContext::setFillCachedGradient(RemoteGradientIdentifier identifier, const AffineTransform& spaceTransform)
 {
-    RefPtr gradient = resourceCache().cachedGradient(identifier);
+    RefPtr gradient = m_renderingBackend->cachedGradient(identifier);
     MESSAGE_CHECK(gradient);
     context().setFillGradient(gradient.releaseNonNull(), spaceTransform);
 }
@@ -214,7 +205,7 @@ void RemoteGraphicsContext::setStrokeColor(const WebCore::Color& color)
 
 void RemoteGraphicsContext::setStrokeCachedGradient(RemoteGradientIdentifier identifier, const AffineTransform& spaceTransform)
 {
-    RefPtr gradient = resourceCache().cachedGradient(identifier);
+    RefPtr gradient = m_renderingBackend->cachedGradient(identifier);
     MESSAGE_CHECK(gradient);
     context().setStrokeGradient(gradient.releaseNonNull(), spaceTransform);
 }
@@ -367,7 +358,7 @@ void RemoteGraphicsContext::clipPath(const Path& path, WindRule rule)
 
 void RemoteGraphicsContext::clipCachedPath(RemotePathImplIdentifier identifier, WebCore::WindRule rule)
 {
-    RefPtr pathImpl = resourceCache().cachedPathImpl(identifier);
+    RefPtr pathImpl = m_renderingBackend->cachedPathImpl(identifier);
     MESSAGE_CHECK(pathImpl);
 
     Path path(pathImpl.releaseNonNull());
@@ -381,7 +372,7 @@ void RemoteGraphicsContext::clipTransformedPath(const AffineTransform& pathTrans
 
 void RemoteGraphicsContext::clipTransformedCachedPath(const AffineTransform& pathTransform, RemotePathImplIdentifier identifier, WebCore::WindRule rule)
 {
-    RefPtr pathImpl = resourceCache().cachedPathImpl(identifier);
+    RefPtr pathImpl = m_renderingBackend->cachedPathImpl(identifier);
     MESSAGE_CHECK(pathImpl);
 
     Path path(pathImpl.releaseNonNull());
@@ -427,7 +418,7 @@ void RemoteGraphicsContext::drawFilteredImageBuffer(std::optional<RenderingResou
         return;
     }
 
-    RefPtr cachedFilter = resourceCache().cachedFilter(filter->renderingResourceIdentifier());
+    RefPtr cachedFilter = m_renderingBackend->cachedFilter(filter->renderingResourceIdentifier());
     RefPtr cachedSVGFilter = dynamicDowncast<SVGFilterRenderer>(WTF::move(cachedFilter));
     MESSAGE_CHECK(cachedSVGFilter);
 
@@ -447,7 +438,7 @@ void RemoteGraphicsContext::drawFilteredImageBuffer(std::optional<RenderingResou
 
 void RemoteGraphicsContext::drawGlyphs(RenderingResourceIdentifier fontIdentifier, IPC::ArrayReferenceTuple<GlyphBufferGlyph, FloatSize> glyphsAdvances, FloatPoint localAnchor, FontSmoothingMode fontSmoothingMode)
 {
-    RefPtr font = resourceCache().cachedFont(fontIdentifier);
+    RefPtr font = m_renderingBackend->cachedFont(fontIdentifier);
     MESSAGE_CHECK(font);
     const Vector<GlyphBufferGlyph, 128> glyphs { glyphsAdvances.span<0>() };
     const Vector<GlyphBufferAdvance, 128> advances { glyphsAdvances.span<1>() };
@@ -464,7 +455,7 @@ void RemoteGraphicsContext::drawImageBuffer(RenderingResourceIdentifier imageBuf
 
 void RemoteGraphicsContext::drawDisplayList(RemoteDisplayListIdentifier identifier)
 {
-    RefPtr displayList = resourceCache().cachedDisplayList(identifier);
+    RefPtr displayList = m_renderingBackend->cachedDisplayList(identifier);
     MESSAGE_CHECK(displayList);
     context().drawDisplayList(*displayList, controlFactory());
 }
@@ -547,7 +538,7 @@ void RemoteGraphicsContext::drawDotsForDocumentMarker(const FloatRect& rect, con
 
 void RemoteGraphicsContext::drawMeshGradient(RemoteMeshGradientIdentifier identifier, const FloatRect& destination)
 {
-    RefPtr gradient = resourceCache().cachedMeshGradient(identifier);
+    RefPtr gradient = m_renderingBackend->cachedMeshGradient(identifier);
     MESSAGE_CHECK(gradient);
 
 #if USE(METAL)
@@ -645,7 +636,7 @@ void RemoteGraphicsContext::fillPath(const Path& path)
 
 void RemoteGraphicsContext::fillCachedPath(RemotePathImplIdentifier identifier)
 {
-    RefPtr pathImpl = resourceCache().cachedPathImpl(identifier);
+    RefPtr pathImpl = m_renderingBackend->cachedPathImpl(identifier);
     MESSAGE_CHECK(pathImpl);
 
     Path path(pathImpl.releaseNonNull());

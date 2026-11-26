@@ -54,6 +54,9 @@
 // The shims of ANGLE's Metal backend's EGL for the Cocoa platform of the WebGL island: displays, contexts, IOSurface
 // pbuffers. The attributes that make a context a WebGL context are fixed here.
 
+// The module map lists this header on every platform (WebCoreANGLE.Cocoa), and only Cocoa has its frameworks.
+#if defined(__APPLE__)
+
 #include "../WebCoreANGLE.h"
 #include <CoreVideo/CoreVideo.h>
 #include <IOKit/IOReturn.h>
@@ -107,7 +110,6 @@ struct ANGLECocoa final {
     // buffer, resources cleared at creation, and context loss on GPU reset. ownershipIdentity is a task identity token,
     // or 0 for none.
     static ANGLEContext createWebGLContext(ANGLEDisplay display, ANGLEConfig config, bool isWebGL2, uint32_t ownershipIdentity);
-    static bool destroyContext(ANGLEDisplay display, ANGLEContext context) { return EGL_DestroyContext(display.get(), context.get()); }
 
     // A pbuffer for an IOSurface plane, which ANGLE renders to and samples from. textureTarget is GL_TEXTURE_2D or
     // GL_TEXTURE_RECTANGLE_ANGLE; usageHint EGL_IOSURFACE_READ_HINT_ANGLE and/or EGL_IOSURFACE_WRITE_HINT_ANGLE.
@@ -155,7 +157,6 @@ struct ANGLECocoa final {
         };
         return ANGLESurface { EGL_CreatePbufferFromClientBuffer(display.get(), EGL_IOSURFACE_ANGLE, surface, config.get(), attributes) };
     }
-    static bool destroySurface(ANGLEDisplay display, ANGLESurface surface) { return EGL_DestroySurface(display.get(), surface.get()); }
     static bool bindTexImage(ANGLEDisplay display, ANGLESurface surface) { return EGL_BindTexImage(display.get(), surface.get(), EGL_BACK_BUFFER); }
     static bool releaseTexImage(ANGLEDisplay display, ANGLESurface surface) { return EGL_ReleaseTexImage(display.get(), surface.get(), EGL_BACK_BUFFER); }
 
@@ -181,3 +182,5 @@ struct ANGLECocoa final {
     static OSType agx420YpCbCr8BiPlanarVideoRange();
     static OSType agx420YpCbCr8BiPlanarFullRange();
 };
+
+#endif // defined(__APPLE__)

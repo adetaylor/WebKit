@@ -66,6 +66,7 @@ platform/glib/RunLoopObserverGLib.cpp
 
 platform/graphics/DMABufBuffer.cpp
 platform/graphics/PlatformDisplay.cpp @no-unify
+platform/graphics/TrackPrivateClientSwiftAdapters.cpp
 
 platform/graphics/android/BufferFormatAndroid.cpp @no-unify
 

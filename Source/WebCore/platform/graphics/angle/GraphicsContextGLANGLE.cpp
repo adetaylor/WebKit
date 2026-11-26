@@ -155,16 +155,6 @@ static UTF8CString copyIslandLog(GCGLint maxLength, const Get& get)
     return UTF8CString { byteCast<char8_t>(buffer.span().first(std::clamp<size_t>(length, 0, buffer.size()))) };
 }
 
-static ANGLEDisplay wrapDisplay(GCGLDisplay display)
-{
-    return ANGLEHandles::wrap<ANGLEDisplayTag>(display);
-}
-
-static ANGLEContext wrapContext(GCGLContext context)
-{
-    return ANGLEHandles::wrap<ANGLEContextTag>(context);
-}
-
 void GLContextCallbacks::forceContextLost(uint64_t contextID)
 {
     if (auto* context = GraphicsContextGLANGLE::contextForCallback(contextID))
@@ -209,10 +199,10 @@ void GLContextCallbacks::invalidateKnownTextureContent(uint64_t contextID, GLuin
         context->invalidateKnownTextureContent(texture);
 }
 
-void GLContextCallbacks::didLoseDisplay(uint64_t contextID)
+void GLContextCallbacks::didMakeCurrent(uint64_t contextID)
 {
     if (auto* context = GraphicsContextGLANGLE::contextForCallback(contextID))
-        context->platformDidLoseDisplay();
+        context->platformDidMakeCurrent();
 }
 
 void GLContextCallbacks::addDebugMessage(uint64_t contextID, GCGLenum type, GCGLenum messageID, GCGLenum severity, std::span<const char8_t> message)
@@ -252,6 +242,14 @@ std::optional<size_t> GraphicsContextGLANGLE::estimatedMemoryCost()
     return static_cast<size_t>(cost);
 }
 
+void GraphicsContextGLANGLE::platformDidMakeCurrent()
+{
+}
+
+void GraphicsContextGLANGLE::createIslandContext()
+{
+}
+
 bool GraphicsContextGLANGLE::initialize()
 {
     if (contextAttributes().failContextCreationForTesting == GraphicsContextGLAttributes::SimulatedCreationFailure::FailPlatformContextCreation)
@@ -281,9 +279,9 @@ bool GraphicsContextGLANGLE::initialize()
     return true;
 }
 
-void GraphicsContextGLANGLE::createIslandContext()
+bool GraphicsContextGLANGLE::hasIslandContext() const
 {
-    islandCalls().createContext(m_contextID, wrapDisplay(m_displayObj), wrapContext(m_contextObj), m_isForWebGL2, contextAttributes().supportWebGLDraftExtensions);
+    return islandCalls().hasContext();
 }
 
 bool GraphicsContextGLANGLE::platformInitializeExtensions()
@@ -296,14 +294,10 @@ bool GraphicsContextGLANGLE::platformInitialize()
     return true;
 }
 
-void GraphicsContextGLANGLE::platformDidLoseDisplay()
-{
-}
-
 #if PLATFORM(COCOA)
 bool GraphicsContextGLANGLE::makeCurrent(GCGLDisplay display, GCGLContext context)
 {
-    return GLIslandCalls::makeCurrent(wrapDisplay(display), wrapContext(context));
+    return GLIslandCalls::makeCurrent(ANGLEHandles::wrap<ANGLEDisplayTag>(display), ANGLEHandles::wrap<ANGLEContextTag>(context));
 }
 #endif
 
@@ -1023,9 +1017,9 @@ GCGLExternalImage GraphicsContextGLANGLE::createExternalImage(ExternalImageSourc
 #endif
 
 #if ENABLE(WEBXR)
-void GraphicsContextGLANGLE::bindExternalImage(GCGLenum, GCGLExternalImage)
+void GraphicsContextGLANGLE::bindExternalImage(GCGLenum target, GCGLExternalImage image)
 {
-    notImplemented();
+    islandCalls().bindExternalImage(target, image);
 }
 #endif
 

@@ -204,6 +204,7 @@ struct ANGLEContextHandles {
     ANGLEDisplay display;
     ANGLEConfig config;
     ANGLEContext context;
+    ANGLESurface surface;
 };
 
 struct ANGLE final {
@@ -586,10 +587,27 @@ struct ANGLE final {
 
     // EGL.
     static bool makeCurrent(ANGLEDisplay display, ANGLEContext context) { return EGL_MakeCurrent(display.get(), EGL_NO_SURFACE, EGL_NO_SURFACE, context.get()); }
+    // With a surface, which is none for a surfaceless context.
+    static bool makeCurrent(ANGLEDisplay display, ANGLESurface surface, ANGLEContext context) { return EGL_MakeCurrent(display.get(), surface.get(), surface.get(), context.get()); }
     static bool releaseCurrentContext(ANGLEDisplay display) { return EGL_MakeCurrent(display.get(), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT); }
+    static bool destroyContext(ANGLEDisplay display, ANGLEContext context) { return EGL_DestroyContext(display.get(), context.get()); }
+    static bool destroySurface(ANGLEDisplay display, ANGLESurface surface) { return EGL_DestroySurface(display.get(), surface.get()); }
     static ANGLEDisplay currentDisplay() { return ANGLEDisplay { EGL_GetCurrentDisplay() }; }
     static bool terminate(ANGLEDisplay display) { return EGL_Terminate(display.get()); }
     static bool releaseThread() { return EGL_ReleaseThread(); }
+    static std::string queryString(ANGLEDisplay display, EGLint name) { return std::string { EGL_QueryString(display.get(), name) ?: "" }; }
+    // The first config that matches attributes, none if none does.
+    static ANGLEConfig chooseConfig(ANGLEDisplay display, std::span<const EGLint> attributes NOESCAPE)
+    {
+        EGLConfig config = nullptr;
+        EGLint count = 0;
+        EGL_ChooseConfig(display.get(), attributes.data(), &config, 1, &count);
+        return count == 1 ? ANGLEConfig { config } : ANGLEConfig { };
+    }
+    static ANGLESurface createPbufferSurface(ANGLEDisplay display, ANGLEConfig config, std::span<const EGLint> attributes NOESCAPE) { return ANGLESurface { EGL_CreatePbufferSurface(display.get(), config.get(), attributes.data()) }; }
+    static bool bindOpenGLESAPI() { return EGL_BindAPI(EGL_OPENGL_ES_API); }
+    static EGLint error() { return EGL_GetError(); }
+    static ANGLEContext createContext(ANGLEDisplay display, ANGLEConfig config, ANGLEContext sharingContext, std::span<const EGLint> attributes NOESCAPE) { return ANGLEContext { EGL_CreateContext(display.get(), config.get(), sharingContext.get(), attributes.data()) }; }
     // ANGLE's estimate of the context's memory use, low word first.
     static bool queryContextMemoryUsage(ANGLEDisplay display, ANGLEContext context, uint64_t& usage)
     {
@@ -600,6 +618,9 @@ struct ANGLE final {
         return true;
     }
     static bool destroyImage(ANGLEDisplay display, ANGLEImage image) { return EGL_DestroyImageKHR(display.get(), image.get()); }
+#if ENABLE(WEBXR)
+    static int dupNativeFence(ANGLEDisplay display, ANGLEEGLSync sync) { return EGL_DupNativeFenceFDANDROID(display.get(), sync.get()); }
+#endif
     static bool destroySync(ANGLEDisplay display, ANGLEEGLSync sync) { return EGL_DestroySync(display.get(), sync.get()); }
     static void imageTargetRenderbufferStorage(GLenum target, ANGLEImage image) { GL_EGLImageTargetRenderbufferStorageOES(target, image.get()); }
     static void imageTargetTexture2D(GLenum target, ANGLEImage image) { GL_EGLImageTargetTexture2DOES(target, image.get()); }

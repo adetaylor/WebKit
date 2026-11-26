@@ -112,7 +112,7 @@ struct GLContextCallbacks final {
     static bool platformInitialize(uint64_t contextID);
     static bool reshapeDrawingBuffer(uint64_t contextID);
     static void invalidateKnownTextureContent(uint64_t contextID, GLuint texture);
-    static void didLoseDisplay(uint64_t contextID);
+    static void didMakeCurrent(uint64_t contextID);
 
 #if defined(__APPLE__)
     // A frame converted to '420f', for the video uploads, or null if it couldn't be.
@@ -138,8 +138,12 @@ public:
     static uintptr_t createShell();
     SWIFT_UNSAFE static void destroyShell(uintptr_t);
 
-    // Makes the context of a C++ platform, which made the EGL context.
-    void createContext(uint64_t contextID, ANGLEDisplay, ANGLEContext, bool isWebGL2, bool supportsWebGLDraftExtensions) const;
+#if !defined(__APPLE__)
+    // Makes a WebGL context's EGL objects on an EGL port's display (a config, a pbuffer unless the display has
+    // surfaceless contexts, a context sharing sharingContext's objects) and the Swift context, which owns and
+    // destroys them. Returns them, with a null context if they could not be made.
+    ANGLEContextHandles createEGLContext(uint64_t contextID, ANGLEDisplay, ANGLEContext sharingContext, bool isSurfacelessDisplay, bool isWebGL2, bool supportsWebGLDraftExtensions) const;
+#endif
     bool hasContext() const;
 #if defined(__APPLE__)
     // Makes the context on the Cocoa platform, which the shell's Swift made (GLShell.createCocoaPlatform).

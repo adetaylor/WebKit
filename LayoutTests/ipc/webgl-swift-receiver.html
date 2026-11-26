@@ -46,8 +46,10 @@ promise_test(async () => {
     const stream = glConnection.connection;
     // The test takes the messages that the GPU process sends back on the stream, as the IPC testing API requires.
     assert_true(!!stream.waitForMessage(identifier, IPC.messages.RemoteGraphicsContextGLProxy_WasCreated.name, 5), 'WasCreated');
-    const send = (name, args) => stream.sendMessage(identifier, IPC.messages[name].name, args);
-    const sendSync = (name, args) => stream.sendSyncMessage(identifier, IPC.messages[name].name, args);
+    // Where the GPU process keeps some of the context's messages in the C++ RemoteGraphicsContextGLResources receiver (GTK), they have that receiver's name.
+    const messageName = name => (IPC.messages[name] ?? IPC.messages[name.replace('RemoteGraphicsContextGL_', 'RemoteGraphicsContextGLResources_')]).name;
+    const send = (name, args) => stream.sendMessage(identifier, messageName(name), args);
+    const sendSync = (name, args) => stream.sendSyncMessage(identifier, messageName(name), args);
 
     const buffer = 5;
     send('RemoteGraphicsContextGL_CreateBuffer', [{ type: 'uint32_t', value: buffer }]);
@@ -79,6 +81,8 @@ promise_test(async () => {
     // Every value is a name, including the largest ones, and deleting a name that isn't there changes nothing.
     for (const name of [0xFFFFFFFF, 0xFFFFFFFE]) {
         send('RemoteGraphicsContextGL_CreateBuffer', [{ type: 'uint32_t', value: name }]);
+        // A name is a buffer once it is bound, as glIsBuffer defines it.
+        send('RemoteGraphicsContextGL_BindBuffer', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint32_t', value: name }]);
         assert_true(sendSync('RemoteGraphicsContextGL_IsBuffer', [{ type: 'uint32_t', value: name }]).arguments[0].value, `IsBuffer of buffer ${name}`);
         for (let i = 0; i < 200; ++i)
             send('RemoteGraphicsContextGL_DeleteBuffer', [{ type: 'uint32_t', value: name }]);

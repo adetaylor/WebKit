@@ -53,9 +53,9 @@ namespace WebKit {
 
 using namespace WebCore;
 
-Ref<RemoteImageBuffer> RemoteImageBuffer::create(Ref<WebCore::ImageBuffer>&& imageBuffer, WebCore::RenderingResourceIdentifier identifier, RemoteGraphicsContextIdentifier contextIdentifier, RemoteRenderingBackend& renderingBackend)
+Ref<RemoteImageBuffer> RemoteImageBuffer::create(WebCore::ImageBuffer& imageBuffer, WebCore::RenderingResourceIdentifier identifier, RemoteGraphicsContextIdentifier contextIdentifier, RemoteRenderingBackend& renderingBackend)
 {
-    auto instance = adoptRef(*new RemoteImageBuffer(WTF::move(imageBuffer), identifier, contextIdentifier, renderingBackend));
+    Ref instance = adoptRef(*new RemoteImageBuffer(Ref { imageBuffer }, identifier, contextIdentifier, renderingBackend));
     instance->startListeningForIPC();
     return instance;
 }
@@ -135,14 +135,6 @@ void RemoteImageBuffer::stopListeningForIPC()
     m_renderingBackend->streamConnection().stopReceivingMessages(Messages::RemoteImageBuffer::messageReceiverName(), m_identifier.toUInt64());
 }
 
-Ref<WebCore::ImageBuffer> RemoteImageBuffer::sinkIntoImageBuffer(Ref<RemoteImageBuffer>&& remote)
-{
-    Ref localRemote = WTF::move(remote);
-    RELEASE_ASSERT(localRemote->hasOneRef());
-    Ref imageBuffer = localRemote->m_imageBuffer;
-    return imageBuffer;
-}
-
 void RemoteImageBuffer::getPixelBuffer(WebCore::PixelBufferFormat destinationFormat, WebCore::IntPoint srcPoint, WebCore::IntSize srcSize, CompletionHandler<void()>&& completionHandler)
 {
     assertIsCurrent(workQueue());
@@ -188,7 +180,7 @@ void RemoteImageBuffer::copyNativeImage(RenderingResourceIdentifier imageIdentif
     if (!image)
         image = RemoteRenderingBackend::createPlaceholderNativeImage();
     MESSAGE_CHECK(image, "NativeImage could not be created");
-    bool success = m_renderingBackend->remoteResourceCache().cacheNativeImage(imageIdentifier, image.releaseNonNull());
+    bool success = m_renderingBackend->addCachedNativeImage(image.releaseNonNull(), imageIdentifier);
     MESSAGE_CHECK(success, "NativeImage already exists");
 }
 

@@ -31,9 +31,15 @@ import WebKit_Internal
 import os
 #endif
 #if ENABLE_GPU_PROCESS_CORE_SWIFT
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
+#if WTF_PLATFORM_COCOA
 import Foundation
 import QuartzCore
+#endif
 import Synchronization
 #endif
 
@@ -57,12 +63,14 @@ final class GPUProcessState {
     // The media directories of each session, by PAL::SessionID.
     var sessions: [UInt64: (mediaCacheDirectory: WTF.String, mediaKeysStorageDirectory: WTF.String)] = [:]
 #if ENABLE_MEDIA_STREAM
+    #if WTF_PLATFORM_COCOA
     // The page whose getUserMedia prompt shows the capture preview, the layer its camera shows in, while it does, and
     // the camera whose rotation the UI process monitors for it, with its page.
     var capturePreviewPage: WebCore.PageIdentifier?
     var capturePreviewLayer: WebKit.SampleBufferDisplayLayerHost?
     var capturePreviewVideoDeviceID = ""
     var capturePreviewVideoPage: WebCore.PageIdentifier?
+    #endif
     var lastCaptureEnvironment: (process: WebCore.ProcessIdentifier, page: WebCore.PageIdentifier)?
 #endif
 #endif
@@ -110,7 +118,7 @@ extension WebKit.GPUProcess {
     }
 }
 
-// The GPU process's connections to the web processes, as GPUProcess::m_webProcessConnections, by process identifier.
+// The GPU process's connections to the web processes, by process identifier.
 @MainActor
 final class WebProcessConnections {
     private(set) var all: [UInt64: WebKit.GPUConnectionToWebProcess] = [:]
@@ -507,9 +515,11 @@ extension WebKit.GPUProcess {
         }
 
         WebCore.releaseGraphicsMemory(critical, synchronous)
+        #if HAVE_IOSURFACE
         if critical == .Yes {
             WebCore.IOSurface.releaseCGIOSurfaceContextResources()
         }
+        #endif
     }
 
     private static var underMemoryPressure: Bool {
@@ -538,6 +548,23 @@ extension WebKit.GPUProcess {
         }
     }
 
+    // Asks the UI process to terminate a web process that sent a message it should not have.
+    @cxx
+    @implementation
+    func terminateWebProcess(_ identifier: WebCore.ProcessIdentifier, _ invalidMessageName: IPC.MessageName) {
+        guard let process = IPCTypes.ProcessIdentifier(rawValue: identifier.toUInt64()) else {
+            preconditionFailure("A process identifier is never 0")
+        }
+        Self.sendToUIProcess {
+            WebKit.GPUProcess.GPUProcessProxyMessages.terminateWebProcess(
+                on: $0,
+                to: 0,
+                webProcessIdentifier: process,
+                invalidMessageName: invalidMessageName
+            )
+        }
+    }
+
     // Unsafe: C++ lends the parameters for the call, which only reads values from them.
     @cxx
     @implementation
@@ -558,6 +585,7 @@ extension WebKit.GPUProcess {
         if !parameters.overrideLanguages.isEmpty() {
             WTF.overrideUserPreferredLanguages(parameters.overrideLanguages)
         }
+        #if WTF_PLATFORM_COCOA
         if parameters.enableMetalDebugDeviceForTesting {
             WebKit.LogChannel.Process().releaseLog.log("GPUProcess::platformInitializeGPUProcess: enabling Metal debug device")
             setEnvironmentVariable("MTL_DEBUG_LAYER", "1")
@@ -579,6 +607,7 @@ extension WebKit.GPUProcess {
             WebCore.setAV1HardwareDecoderAvailable(available)
         }
         #endif
+        #endif // WTF_PLATFORM_COCOA
     }
 
     @cxx
@@ -603,20 +632,51 @@ extension WebKit.GPUProcess {
         let parameters = parameters.take()
         #if ENABLE_IPC_TESTING_API
         let ignoreInvalidMessageForTesting = parameters.ignoreInvalidMessageForTesting
-        #else
-        let ignoreInvalidMessageForTesting = false
         #endif
         let connection = WebKit.GPUConnectionToWebProcess.create(self, identifier, sessionID, consuming: handle, consuming: parameters).ptr()
-        if addWebProcessConnection(connection, ignoreInvalidMessageForTesting) {
-            connection.swiftDidAddToGPUProcess()
+        #if ENABLE_IPC_TESTING_API
+        if ignoreInvalidMessageForTesting {
+            connection.connection().setIgnoreInvalidMessageForTesting()
+        }
+        #endif
+        let isNewConnection = webProcessConnections[identifier.toUInt64()] == nil
+        assert(isNewConnection)
+        guard isNewConnection else {
+            return
+        }
+        connection.swiftDidAddToGPUProcess()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func webProcessConnection(_ identifier: WebCore.ProcessIdentifier) -> WebKit.RefPtrGPUConnectionToWebProcess {
+        WebKit.RefPtrGPUConnectionToWebProcess(webProcessConnections[identifier.toUInt64()])
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func forEachWebProcessConnection(_ visitor: WebKit.GPUConnectionToWebProcessVisitor) {
+        for connection in webProcessConnections.all.values {
+            // Never null: the C++ declaration takes the visitor by reference (GPUProcess.h).
+            visitor.pointee(connection)
         }
     }
 
     @cxx
     @implementation
     @MainActor
-    func didRemoveWebProcessConnection(_ connection: WebKit.GPUConnectionToWebProcess) {
+    func hasWebProcessConnections() -> Bool {
+        !webProcessConnections.all.isEmpty
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func removeGPUConnectionToWebProcess(_ connection: WebKit.GPUConnectionToWebProcess) {
         let process = connection.webProcessIdentifier()
+        assert(webProcessConnections[process.toUInt64()]?.state === connection.state)
         WebKit.LogChannel.Process().releaseLog.log("GPUProcess::removeGPUConnectionToWebProcess: processIdentifier=\(process.toUInt64())")
         transferredImageBuffers.removeAll(ownedBy: process.toUInt64())
         Self.swiftAbandonSnapshotFramesOwnedBy(process)
@@ -642,11 +702,13 @@ extension WebKit.GPUProcess {
     @MainActor
     func updateGPUProcessPreferences(_ preferences: WebKit.GPUProcessPreferences) {
         let state = state
+        #if WTF_PLATFORM_COCOA
         let timeout = Optional(fromCxx: preferences.mediaResourceLoadTimeoutForTesting)
         if timeout != state.preferences.mediaResourceLoadTimeoutForTesting {
             state.preferences.mediaResourceLoadTimeoutForTesting = timeout
             WebCore.DeprecatedGlobalSettings.setMediaResourceLoadTimeoutForTesting(timeout ?? 0)
         }
+        #endif
         #if ENABLE_VP9
         if updatePreference(&state.preferences.vp9DecoderEnabled, Optional(fromCxx: preferences.vp9DecoderEnabled)) {
             let enabled = state.preferences.vp9DecoderEnabled ?? false
@@ -779,6 +841,29 @@ extension WebKit.GPUProcess {
     @cxx
     @implementation
     @MainActor
+    func sinkCompletedSnapshotToBitmap(
+        _ identifier: WebKit.RemoteSnapshotIdentifier,
+        _ rootFrameIdentifier: WebCore.FrameIdentifier,
+        _ completionHandler: WebKit.GPUProcessBitmapReply
+    ) {
+        let sink = WebKit.RemoteSnapshotSink.createReplyingWithBitmap(identifier, rootFrameIdentifier, completionHandler)
+        sink.ptr().swiftTakeSnapshotWhenComplete()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func waitForSnapshot(_ identifier: WebKit.RemoteSnapshotIdentifier, _ completionHandler: WebKit.GPUProcessVoidReply) {
+        let sink = WebKit.RemoteSnapshotSink.createReplying(identifier, completionHandler)
+        // Sent after the sink, keeping its order, so a snapshot that is not here has already been drawn.
+        if !sink.ptr().swiftWaitForSnapshot() {
+            sink.ptr().completeWithoutSnapshot()
+        }
+    }
+
+    @cxx
+    @implementation
+    @MainActor
     func releaseSnapshot(_ identifier: WebKit.RemoteSnapshotIdentifier) {
         Self.swiftReleaseSnapshot(WebKit.snapshotKey(identifier))
     }
@@ -805,17 +890,24 @@ extension WebKit.GPUProcess {
     @implementation
     @MainActor
     func webProcessConnectionCountForTesting(_ completionHandler: WebKit.GPUProcessCountReply) {
-        completionHandler.pointee(WebKit.GPUConnectionToWebProcess.objectCountForTesting())
+        // Never null: the C++ declaration's parameter is WTF_NONNULL (GPUProcess.h).
+        completionHandler.pointee(.init(WebKit.GPUConnectionToWebProcess.objectCountForTesting()))
     }
 
     @cxx
     @implementation
     @MainActor
     func printProcessDrawingCountsForTesting(_ completionHandler: WebKit.GPUProcessDrawingCountsReply) {
+        // Never null: the C++ declaration's parameter is WTF_NONNULL (GPUProcess.h).
+        #if WTF_PLATFORM_COCOA
         completionHandler.pointee(
             WebKit.RemoteSnapshotPDFDrawingTask.drawnInPrintProcessCountForTesting(),
             WebKit.RemoteSnapshotPDFDrawingTask.drawnAfterPrintProcessFailedCountForTesting()
         )
+        #else
+        // Only Cocoa draws snapshots in a print process.
+        completionHandler.pointee(0, 0)
+        #endif
     }
 
     #if HAVE_AUDIT_TOKEN
@@ -831,6 +923,7 @@ extension WebKit.GPUProcess {
     }
     #endif
 
+    #if WTF_PLATFORM_COCOA
     @cxx
     @implementation
     @MainActor
@@ -841,6 +934,7 @@ extension WebKit.GPUProcess {
         CATransaction.commit()
         completionHandler.pointee()
     }
+    #endif
 
     @cxx
     @implementation
@@ -996,6 +1090,34 @@ extension WebKit.GPUProcess {
     @cxx
     @implementation
     @MainActor
+    func clearMockMediaDevices() {
+        WebCore.MockRealtimeMediaSourceCenter.setDevices(consuming: .init())
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func triggerMockCaptureConfigurationChange(_ forCamera: Bool, _ forMicrophone: Bool, _ forDisplay: Bool) {
+        WebCore.MockRealtimeMediaSourceCenter.triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay)
+    }
+
+    // The microphone mute status and the muted speech activity listener are CoreAudio's (GPUProcessCocoa.mm); the other
+    // ports have neither.
+    #if !WTF_PLATFORM_COCOA
+    @cxx
+    @implementation
+    func enableMicrophoneMuteStatusAPI() {
+    }
+
+    @cxx
+    @implementation
+    func setShouldListenToVoiceActivity(_ shouldListen: Bool) {
+    }
+    #endif
+
+    @cxx
+    @implementation
+    @MainActor
     func updateCaptureOrigin(_ origin: WebCore.SecurityOriginData, _ processIdentifier: WebCore.ProcessIdentifier) {
         webProcessConnections[processIdentifier.toUInt64()]?.updateCaptureOrigin(origin)
     }
@@ -1007,6 +1129,8 @@ extension WebKit.GPUProcess {
         state.lastCaptureEnvironment = (processIdentifier, pageIdentifier)
     }
 
+    // The capture preview (CapturePreviewManager.swift, GPUProcess.messages.in) is Cocoa's.
+    #if WTF_PLATFORM_COCOA
     // FIXME: The manager is per process while requests are per page, so for now fail a second page's prompt while another
     // is up until we figure out a better solution.
     @cxx
@@ -1165,6 +1289,7 @@ extension WebKit.GPUProcess {
         }
         sendToUIProcess { WebKit.GPUProcess.GPUProcessProxyMessages.capturePreviewAudioLevelChanged(on: $0, to: 0, pageIdentifier: page, level: level) }
     }
+    #endif
 }
 #endif // ENABLE_GPU_PROCESS_CORE_SWIFT && ENABLE_MEDIA_STREAM
 

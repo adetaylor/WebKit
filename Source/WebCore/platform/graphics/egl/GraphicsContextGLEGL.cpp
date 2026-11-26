@@ -35,6 +35,7 @@
 #include "Logging.h"
 #include "PixelBuffer.h"
 #include "PlatformDisplay.h"
+#include "WebCoreWebGL.h"
 #include <wtf/StdLibExtras.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -66,72 +67,6 @@ namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextGLEGL);
 
-GraphicsContextGLANGLE::~GraphicsContextGLANGLE()
-{
-    if (!makeContextCurrent())
-        return;
-
-    GL_Disable(DEBUG_OUTPUT);
-
-    if (m_texture)
-        GL_DeleteTextures(1, &m_texture);
-
-    GL_DeleteFramebuffers(1, &m_fbo);
-
-    if (m_contextObj) {
-        for (auto* image : m_eglImages.values()) {
-            bool result = EGL_DestroyImageKHR(m_displayObj, image);
-            ASSERT_UNUSED(result, !!result);
-        }
-        for (auto* sync : m_eglSyncs.values()) {
-            bool result = EGL_DestroySync(m_displayObj, sync);
-            ASSERT_UNUSED(result, !!result);
-        }
-#if PLATFORM(WIN)
-        EGL_MakeCurrent(m_displayObj, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-#endif
-        EGL_DestroyContext(m_displayObj, m_contextObj);
-    }
-
-#if !PLATFORM(WIN)
-    if (m_angleSharingContextObj)
-        EGL_DestroyContext(m_displayObj, m_angleSharingContextObj);
-
-    // Ideally this should go before the m_contextObj destruction, but there are platforms where it breaks
-    // the destruction m_contextObj. Putting it here works for all the platforms that I've tested.
-    EGL_MakeCurrent(m_displayObj, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-#endif
-
-    if (m_surfaceObj)
-        EGL_DestroySurface(m_displayObj, m_surfaceObj);
-}
-
-bool GraphicsContextGLANGLE::makeContextCurrent()
-{
-    auto* texmapContext = static_cast<GraphicsContextGLEGL*>(this);
-    if (texmapContext->isCurrent())
-        return true;
-
-    if (EGL_MakeCurrent(m_displayObj, m_surfaceObj, m_surfaceObj, m_contextObj)) {
-        texmapContext->didMakeContextCurrent();
-        return true;
-    }
-
-    return false;
-}
-
-void GraphicsContextGLANGLE::checkGPUStatus()
-{
-    if (m_failNextStatusCheck) {
-        m_failNextStatusCheck = false;
-        forceContextLost();
-    }
-}
-
-void GraphicsContextGLANGLE::platformReleaseThreadResources()
-{
-}
-
 #if !USE(COORDINATED_GRAPHICS)
 RefPtr<PixelBuffer> GraphicsContextGLEGL::readCompositedResults()
 {
@@ -141,9 +76,9 @@ RefPtr<PixelBuffer> GraphicsContextGLEGL::readCompositedResults()
         return nullptr;
     if (getInternalFramebufferSize().isEmpty())
         return nullptr;
-    // swapCompositorTexture() leaves m_fbo attached to the texture that will be rendered into
+    // swapCompositorTexture() leaves the drawing buffer framebuffer attached to the texture that will be rendered into
     // next, so the presented frame lives in m_compositorTexture and needs a framebuffer of its own.
-    ScopedScratchReadFramebufferBinding fboBinding(m_isForWebGL2, m_state.boundReadFBO, m_compositorTexture);
+    ScopedScratchReadFramebufferBinding fboBinding(m_isForWebGL2, boundReadFramebuffer(), m_compositorTexture);
     return readPixelsForPaintResults();
 }
 #endif
@@ -242,101 +177,19 @@ bool GraphicsContextGLEGL::platformInitializeContext()
     if (m_displayObj == EGL_NO_DISPLAY)
         return false;
 
-    const char* displayExtensions = EGL_QueryString(m_displayObj, EGL_EXTENSIONS);
-    LOG(WebGL, "Extensions: %s", displayExtensions);
-
-    bool isSurfacelessContextSupported = GLContext::isExtensionSupported(displayExtensions, "EGL_KHR_surfaceless_context");
-
-    EGLint configAttributes[] = {
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-#if USE(COORDINATED_GRAPHICS)
-        EGL_SURFACE_TYPE, !isSurfacelessContextSupported || sharedDisplay.type() == PlatformDisplay::Type::Surfaceless ? EGL_PBUFFER_BIT : EGL_WINDOW_BIT,
-#endif
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_ALPHA_SIZE, 8,
-        EGL_DEPTH_SIZE, 0,
-        EGL_STENCIL_SIZE, 0,
-        EGL_NONE
-    };
-    EGLint numberConfigsReturned = 0;
-    EGL_ChooseConfig(m_displayObj, configAttributes, &m_configObj, 1, &numberConfigsReturned);
-    if (numberConfigsReturned != 1) {
-        LOG(WebGL, "EGLConfig Initialization failed.");
+    // WebCoreWebGL makes the EGL objects, and owns them from here.
+    bool isSurfacelessDisplay = sharedDisplay.type() == PlatformDisplay::Type::Surfaceless;
+    auto handles = islandCalls().createEGLContext(contextID(), ANGLEHandles::wrap<ANGLEDisplayTag>(m_displayObj), ANGLEHandles::wrap<ANGLEContextTag>(sharedDisplay.angleSharingGLContext()), isSurfacelessDisplay, m_isForWebGL2, contextAttributes().supportWebGLDraftExtensions);
+    if (handles.context.isNull())
         return false;
-    }
-    LOG(WebGL, "Got EGLConfig");
-
-    if (!isSurfacelessContextSupported) {
-        static const int pbufferAttributes[] = { EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE };
-        m_surfaceObj = EGL_CreatePbufferSurface(m_displayObj, m_configObj, pbufferAttributes);
-        if (m_surfaceObj == EGL_NO_SURFACE) {
-            LOG(WebGL, "Surfaceless context is not supported and we failed to create a pbuffer surface");
-            return false;
-        }
-    }
-
-    EGL_BindAPI(EGL_OPENGL_ES_API);
-    if (EGL_GetError() != EGL_SUCCESS) {
-        LOG(WebGL, "Unable to bind to OPENGL_ES_API");
-        return false;
-    }
-
-    Vector<EGLint> eglContextAttributes;
-    if (m_isForWebGL2) {
-        eglContextAttributes.append(EGL_CONTEXT_CLIENT_VERSION);
-        eglContextAttributes.append(3);
-    } else {
-        eglContextAttributes.append(EGL_CONTEXT_CLIENT_VERSION);
-        eglContextAttributes.append(2);
-        // ANGLE will upgrade the context to ES3 automatically unless this is specified.
-        eglContextAttributes.append(EGL_CONTEXT_OPENGL_BACKWARDS_COMPATIBLE_ANGLE);
-        eglContextAttributes.append(EGL_FALSE);
-    }
-    eglContextAttributes.append(EGL_CONTEXT_WEBGL_COMPATIBILITY_ANGLE);
-    eglContextAttributes.append(EGL_TRUE);
-    // WebGL requires that all resources are cleared at creation.
-    eglContextAttributes.append(EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE);
-    eglContextAttributes.append(EGL_TRUE);
-    // WebGL doesn't allow client arrays.
-    eglContextAttributes.append(EGL_CONTEXT_CLIENT_ARRAYS_ENABLED_ANGLE);
-    eglContextAttributes.append(EGL_FALSE);
-    // WebGL doesn't allow implicit creation of objects on bind.
-    eglContextAttributes.append(EGL_CONTEXT_BIND_GENERATES_RESOURCE_CHROMIUM);
-    eglContextAttributes.append(EGL_FALSE);
-#if USE(COORDINATED_GRAPHICS)
-    eglContextAttributes.append(EGL_CONTEXT_VIRTUALIZATION_GROUP_ANGLE);
-    eglContextAttributes.append(0);
-#endif
-
-    if (WTF::contains(unsafeSpan(displayExtensions), "EGL_ANGLE_power_preference"_span)) {
-        eglContextAttributes.append(EGL_POWER_PREFERENCE_ANGLE);
-        // EGL_LOW_POWER_ANGLE is the default. Change to
-        // EGL_HIGH_POWER_ANGLE if desired.
-        eglContextAttributes.append(EGL_LOW_POWER_ANGLE);
-    }
-    eglContextAttributes.append(EGL_NONE);
-
-#if PLATFORM(WIN)
-    m_contextObj = EGL_CreateContext(m_displayObj, m_configObj, sharedDisplay.angleSharingGLContext(), eglContextAttributes.span().data());
-#else
-    m_angleSharingContextObj = sharedDisplay.angleSharingGLContext();
-    if (m_angleSharingContextObj == EGL_NO_CONTEXT) {
-        LOG(WebGL, "ANGLE sharing EGLContext Initialization failed.");
-        return false;
-    }
-
-    m_contextObj = EGL_CreateContext(m_displayObj, m_configObj, m_angleSharingContextObj, eglContextAttributes.span().data());
-#endif
-    if (m_contextObj == EGL_NO_CONTEXT) {
-        LOG(WebGL, "EGLContext Initialization failed.");
-        return false;
-    }
-    if (!makeContextCurrent()) {
+    m_configObj = ANGLEHandles::unwrap(handles.config);
+    m_surfaceObj = ANGLEHandles::unwrap(handles.surface);
+    m_contextObj = ANGLEHandles::unwrap(handles.context);
+    if (!makeCurrentImpl()) {
         LOG(WebGL, "ANGLE makeContextCurrent failed.");
         return false;
     }
+    didMakeContextCurrent();
     LOG(WebGL, "Got EGLContext");
     return true;
 }
@@ -361,8 +214,8 @@ bool GraphicsContextGLEGL::platformInitialize()
 
 void GraphicsContextGLEGL::attachDrawingBufferTexture()
 {
-    ScopedRestoreReadFramebufferBinding fboBinding(m_isForWebGL2, m_state.boundReadFBO, m_fbo);
-    GL_FramebufferTexture2D(fboBinding.framebufferTarget(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
+    ScopedRestoreReadFramebufferBinding fboBinding(m_isForWebGL2, boundReadFramebuffer(), drawingBufferFramebuffer());
+    GL_FramebufferTexture2D(fboBinding.framebufferTarget(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, drawingBufferTexture(), 0);
 
     GL_Flush();
 }
@@ -381,7 +234,7 @@ bool GraphicsContextGLEGL::reshapeDrawingBuffer()
 
     GL_BindTexture(GL_TEXTURE_2D, m_compositorTexture);
     GL_TexImage2D(GL_TEXTURE_2D, 0, internalColorFormat, width, height, 0, colorFormat, GL_UNSIGNED_BYTE, 0);
-    GL_BindTexture(GL_TEXTURE_2D, m_texture);
+    GL_BindTexture(GL_TEXTURE_2D, drawingBufferTexture());
     GL_TexImage2D(GL_TEXTURE_2D, 0, internalColorFormat, width, height, 0, colorFormat, GL_UNSIGNED_BYTE, 0);
 
     m_isCompositorTextureInitialized = false;
@@ -395,7 +248,9 @@ void GraphicsContextGLEGL::prepareForDisplay()
         return;
 
     prepareTexture();
-    std::swap(m_texture, m_compositorTexture);
+    GCGLuint drawingTexture = drawingBufferTexture();
+    setDrawingBufferTexture(m_compositorTexture);
+    m_compositorTexture = drawingTexture;
     m_isCompositorTextureInitialized = true;
     attachDrawingBufferTexture();
 }
@@ -413,6 +268,8 @@ bool GraphicsContextGLEGL::makeCurrentImpl()
 
 bool GraphicsContextGLEGL::unmakeCurrentImpl()
 {
+    // WebCoreWebGL remembers which context it made current, and this one stops being it.
+    platformReleaseThreadResources();
     return !!EGL_MakeCurrent(m_displayObj, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
@@ -439,9 +296,7 @@ GCGLExternalSync GraphicsContextGLEGL::createExternalSync(ExternalSyncSource&&)
     }
 
     GL_Flush();
-    auto newName = ++m_nextExternalSyncName;
-    m_eglSyncs.add(newName, eglSync);
-    return newName;
+    return addExternalSync(eglSync);
 }
 
 #if USE(OPENXR)
@@ -450,13 +305,7 @@ UnixFileDescriptor GraphicsContextGLEGL::exportExternalSync(GCGLExternalSync syn
     if (!sync)
         return { };
 
-    auto eglSync = m_eglSyncs.get(sync);
-    if (!eglSync) {
-        addError(GCGLErrorCode::InvalidOperation);
-        return { };
-    }
-
-    return UnixFileDescriptor { EGL_DupNativeFenceFDANDROID(m_displayObj, eglSync), UnixFileDescriptor::Adopt };
+    return UnixFileDescriptor { exportExternalSyncFileDescriptor(sync), UnixFileDescriptor::Adopt };
 }
 #endif
 

@@ -51,11 +51,10 @@ class RemoteRenderingBackend;
 
 class RemoteImageBuffer : public IPC::StreamMessageReceiver {
 public:
-    static Ref<RemoteImageBuffer> create(Ref<WebCore::ImageBuffer>&&, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
+    static Ref<RemoteImageBuffer> create(WebCore::ImageBuffer&, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
     ~RemoteImageBuffer();
     void stopListeningForIPC();
     Ref<WebCore::ImageBuffer> imageBuffer() const { return m_imageBuffer; }
-    static Ref<WebCore::ImageBuffer> sinkIntoImageBuffer(Ref<RemoteImageBuffer>&&);
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.

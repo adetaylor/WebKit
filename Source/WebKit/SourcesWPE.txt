@@ -26,6 +26,7 @@ GPUProcess/glib/GPUProcessMainGLib.cpp
 
 GPUProcess/graphics/RemoteGraphicsContextGLGBM.cpp @no-unify
 
+GPUProcess/media/RemoteMediaSwiftSupport.cpp
 GPUProcess/media/gstreamer/RemoteMediaPlayerProxyGStreamer.cpp
 
 NetworkProcess/Classifier/WebResourceLoadStatisticsStore.cpp

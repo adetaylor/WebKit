@@ -53,6 +53,10 @@ if (NOT APPLE)
         ${WEBKIT_SWIFT_MEMORY_SAFETY_FLAGS}
     )
 endif ()
+# USE(COORDINATED_GRAPHICS), which the EGL context's configuration and attributes test.
+if (USE_COORDINATED_GRAPHICS)
+    webkit_target_add_swift_options(WebCoreWebGL "-D USE_COORDINATED_GRAPHICS")
+endif ()
 WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebCoreWebGL)
 if (NOT APPLE)
     WEBKIT_SWIFT_LTO_OUTSIDE_DEBUG(WebCoreWebGL)

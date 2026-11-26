@@ -11,9 +11,9 @@ module WebCoreANGLE {
         export *
     }
 
-    // ANGLE's EGL for the Cocoa platform.
+    // ANGLE's EGL for the Cocoa platform, empty on the others. Not made unavailable there with `requires`: Swift's
+    // importer can load every submodule of an imported module while it looks a name up, and fails on an unavailable one.
     explicit module Cocoa {
-        requires objc
         header "cocoa/WebCoreANGLECocoa.h"
         export *
     }

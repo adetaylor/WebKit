@@ -43,8 +43,8 @@ namespace WebKit {
 class DisplayListData;
 
 // The display lists of a snapshot's frames, on the ports that record them as WebCore display lists: C++ records and draws
-// them, and the snapshot (RemoteSnapshot.swift) says when its frames are resolved. A frame that the snapshot abandoned
-// draws nothing, even if its display list comes in later.
+// them, and the snapshot (RemoteSnapshot.swift), which holds them, says when its frames are resolved. A frame that the snapshot
+// abandoned draws nothing, even if its display list comes in later. On any thread: m_lock guards the frames.
 class RemoteSnapshotDisplayLists final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<RemoteSnapshotDisplayLists> {
 public:
     static Ref<RemoteSnapshotDisplayLists> create() { return adoptRef(*new RemoteSnapshotDisplayLists); }
@@ -103,8 +103,8 @@ public:
     static Ref<RemoteSnapshotRecorder> create(RemoteSnapshotRecorderIdentifier, const RemoteSnapshotIdentifier&, RemoteRenderingBackend&);
     ~RemoteSnapshotRecorder();
     void stopListeningForIPC();
-    // Makes what it recorded the snapshot's frame, whose display list is released on the dispatcher.
-    void sinkIntoSnapshotFrame(WebCore::FrameIdentifier, SerialFunctionDispatcher&);
+    // Makes what it recorded the snapshot's frame, whose display list is released on the backend's work queue.
+    void sinkIntoSnapshotFrame(WebCore::FrameIdentifier);
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.

@@ -30,7 +30,11 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcessCreationParameters.h"
+#include "Logging.h"
+#include <WebCore/NowPlayingManager.h>
 #include <glib.h>
+#include <wtf/MemoryPressureHandler.h>
+#include <wtf/NeverDestroyed.h>
 #if ENABLE(WEBGL)
 #include "RemoteGraphicsContextGLResources.h"
 #include "StreamConnectionWorkQueue.h"
@@ -46,6 +50,55 @@
 #include <wtf/text/UTF8CStringView.h>
 
 namespace WebKit {
+
+GPUProcess::GPUProcess()
+{
+    m_swiftState = createSwiftState();
+}
+
+GPUProcess::~GPUProcess()
+{
+    destroySwiftState(std::exchange(m_swiftState, 0));
+}
+
+GPUProcess& GPUProcess::singleton()
+{
+    static NeverDestroyed<Ref<GPUProcess>> gpuProcess = adoptRef(*new GPUProcess);
+    return gpuProcess.get().get();
+}
+
+WebCore::NowPlayingManager& GPUProcess::nowPlayingManager()
+{
+    if (!m_nowPlayingManager)
+        lazyInitialize(m_nowPlayingManager, makeUnique<WebCore::NowPlayingManager>());
+    return *m_nowPlayingManager;
+}
+
+void GPUProcess::updateSandboxAccess(const Vector<SandboxExtension::Handle>& extensions)
+{
+    RELEASE_LOG(WebRTC, "GPUProcess::updateSandboxAccess: Adding %zu extensions", extensions.size());
+    SandboxExtension::consumePermanently(extensions);
+}
+
+// The C++ part of start-up: what moves the parameters, reaches AuxiliaryProcess or installs the memory pressure handler.
+void GPUProcess::initializeGPUProcess(GPUProcessCreationParameters&& parameters, CompletionHandler<void()>&& completionHandler)
+{
+    applyProcessCreationParameters(WTF::move(parameters.auxiliaryProcessParameters));
+    SecurityFlags::Storage::update(WTF::move(parameters.securityFlags));
+    auto& memoryPressureHandler = MemoryPressureHandler::singleton();
+    memoryPressureHandler.setLowMemoryHandler([weakThis = WeakPtr { *this }](Critical critical, Synchronous synchronous) {
+        if (RefPtr process = weakThis)
+            process->lowMemoryHandler(critical, synchronous);
+    });
+    memoryPressureHandler.install();
+#if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
+    if (auto& session = parameters.nowPlayingFallbackSession)
+        swiftInitializeNowPlayingFallbackSession(session->object().toUInt64(), session->processIdentifier().toUInt64());
+#endif
+    swiftInitializeGPUProcess(parameters);
+    platformInitializeGPUProcess(parameters);
+    completionHandler();
+}
 
 void GPUProcess::platformInitializeGPUProcess(GPUProcessCreationParameters& parameters)
 {
@@ -72,8 +125,9 @@ void GPUProcess::stopRunLoop()
 {
     // Connections to web processes outlive the UI process connection. Close them so that their WebGL contexts
     // are released on the WebGL work queue, then stop the queue before the display is destroyed.
-    for (Ref connection : copyToVector(m_webProcessConnections.values()))
-        connection->close();
+    forEachWebProcessConnection(GPUConnectionToWebProcessVisitor::create([](GPUConnectionToWebProcess& connection) {
+        connection.close();
+    }));
 #if ENABLE(WEBGL)
     remoteGraphicsContextGLStreamWorkQueueSingleton().stopAndWaitForCompletion([] {
         WebCore::GraphicsContextGLANGLE::releaseThreadResources(WebCore::GraphicsContextGLANGLE::ReleaseThreadResourceBehavior::TerminateAndReleaseThreadResources);

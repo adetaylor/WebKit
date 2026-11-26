@@ -21,11 +21,49 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-#if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+#if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_RENDERING_BACKEND_SWIFT
 
+#if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
 @_spi(WebKitGPU) internal import WebCore
+#endif
 import WebCore_Private
 import WebKit_Internal
+
+#if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+typealias RemoteResourceCacheFont = RemoteCGRendererFont
+typealias RemoteResourceCacheFilter = RemoteCGRendererCachedFilter
+#else
+// The C++ drawing reads the cached fonts and filters themselves (RemoteGraphicsContext).
+typealias RemoteResourceCacheFont = WebKit.SharedFont
+typealias RemoteResourceCacheFilter = WebCore.Filter
+#endif
+
+// Reads the value stored under a defaulted subscript, adding it if missing.
+func storedValue<Value>(_ value: inout Value) -> Value {
+    value
+}
+
+// An identifier that the web process names a display list or a recorder by, as the key of a dictionary that messages look up,
+// which hashes it as a C++ HashMap hashes an integer rather than with Hasher.
+struct RemoteIdentifierKey: Hashable {
+    let value: UInt64
+
+    func hash(into hasher: inout Swift.Hasher) {
+        hasher.combine(value)
+    }
+
+    // swift-format-ignore: NoLeadingUnderscores
+    func _rawHashValue(seed: Int) -> Int {
+        var bits = value
+        bits ^= bits >> 33
+        bits &*= 0xff51_afd7_ed55_8ccd
+        bits ^= UInt64(UInt(bitPattern: seed))
+        bits ^= bits >> 33
+        bits &*= 0xc4ce_b9fe_1a85_ec53
+        bits ^= bits >> 33
+        return Int(truncatingIfNeeded: bits)
+    }
+}
 
 // The resources that a rendering backend's web process caches for its draws, by identifier, on the backend's work queue:
 // what RemoteCGRenderer looks up for a draw that names one (RemoteCGRendererResources), and what a recorder keeps of them.
@@ -34,10 +72,13 @@ final class RemoteResourceCache {
     private var paths: [RemoteIdentifierKey: WebCore.PathImpl] = [:]
     private var gradients: [RemoteIdentifierKey: WebCore.Gradient] = [:]
     private var meshGradients: [RemoteIdentifierKey: WebCore.MeshGradient] = [:]
-    private var fonts: [RemoteIdentifierKey: RemoteCGRendererFont] = [:]
+    private var fonts: [RemoteIdentifierKey: RemoteResourceCacheFont] = [:]
     private var fontCustomPlatformDatas: [RemoteIdentifierKey: WebCore.FontCustomPlatformData] = [:]
     // The draws keep their own state of a cached filter, which is all they need of it.
-    private var filters: [RemoteIdentifierKey: RemoteCGRendererCachedFilter] = [:]
+    private var filters: [RemoteIdentifierKey: RemoteResourceCacheFilter] = [:]
+    #if !ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+    private var displayLists: [RemoteIdentifierKey: WebCore.DisplayList.DisplayList] = [:]
+    #endif
 
     func path(key: UInt64) -> WebCore.PathImpl? {
         paths[RemoteIdentifierKey(value: key)]
@@ -51,11 +92,11 @@ final class RemoteResourceCache {
         meshGradients[RemoteIdentifierKey(value: key)]
     }
 
-    func font(key: UInt64) -> RemoteCGRendererFont? {
+    func font(key: UInt64) -> RemoteResourceCacheFont? {
         fonts[RemoteIdentifierKey(value: key)]
     }
 
-    func filter(key: UInt64) -> RemoteCGRendererCachedFilter? {
+    func filter(key: UInt64) -> RemoteResourceCacheFilter? {
         filters[RemoteIdentifierKey(value: key)]
     }
 
@@ -83,7 +124,7 @@ final class RemoteResourceCache {
         RemoteResourceCache.remove(key, from: &meshGradients)
     }
 
-    fileprivate func cacheFont(_ font: RemoteCGRendererFont, key: UInt64) -> Bool {
+    fileprivate func cacheFont(_ font: RemoteResourceCacheFont, key: UInt64) -> Bool {
         RemoteResourceCache.add(font, key, to: &fonts)
     }
 
@@ -103,9 +144,27 @@ final class RemoteResourceCache {
         RemoteResourceCache.remove(key, from: &fontCustomPlatformDatas)
     }
 
+    #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
     fileprivate func cacheFilter(key: UInt64, isSVGFilter: Bool) -> Bool {
-        RemoteResourceCache.add(RemoteCGRendererCachedFilter(identifier: key, isSVGFilter: isSVGFilter), key, to: &filters)
+        RemoteResourceCache.add(RemoteResourceCacheFilter(identifier: key, isSVGFilter: isSVGFilter), key, to: &filters)
     }
+    #else
+    fileprivate func cacheFilter(_ filter: WebCore.Filter, key: UInt64) -> Bool {
+        RemoteResourceCache.add(filter, key, to: &filters)
+    }
+
+    func displayList(key: UInt64) -> WebCore.DisplayList.DisplayList? {
+        displayLists[RemoteIdentifierKey(value: key)]
+    }
+
+    fileprivate func cacheDisplayList(_ displayList: WebCore.DisplayList.DisplayList, key: UInt64) -> Bool {
+        RemoteResourceCache.add(displayList, key, to: &displayLists)
+    }
+
+    fileprivate func releaseDisplayList(key: UInt64) -> Bool {
+        RemoteResourceCache.remove(key, from: &displayLists)
+    }
+    #endif
 
     fileprivate func releaseFilter(key: UInt64) -> Bool {
         RemoteResourceCache.remove(key, from: &filters)
@@ -117,15 +176,19 @@ final class RemoteResourceCache {
         var removedPaths: [RemoteIdentifierKey: WebCore.PathImpl] = [:]
         var removedGradients: [RemoteIdentifierKey: WebCore.Gradient] = [:]
         var removedMeshGradients: [RemoteIdentifierKey: WebCore.MeshGradient] = [:]
-        var removedFonts: [RemoteIdentifierKey: RemoteCGRendererFont] = [:]
+        var removedFonts: [RemoteIdentifierKey: RemoteResourceCacheFont] = [:]
         var removedFontCustomPlatformDatas: [RemoteIdentifierKey: WebCore.FontCustomPlatformData] = [:]
-        var removedFilters: [RemoteIdentifierKey: RemoteCGRendererCachedFilter] = [:]
+        var removedFilters: [RemoteIdentifierKey: RemoteResourceCacheFilter] = [:]
         swap(&paths, &removedPaths)
         swap(&gradients, &removedGradients)
         swap(&meshGradients, &removedMeshGradients)
         swap(&fonts, &removedFonts)
         swap(&fontCustomPlatformDatas, &removedFontCustomPlatformDatas)
         swap(&filters, &removedFilters)
+        #if !ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+        var removedDisplayLists: [RemoteIdentifierKey: WebCore.DisplayList.DisplayList] = [:]
+        swap(&displayLists, &removedDisplayLists)
+        #endif
     }
 
     // Looks the key up once: the default is made, and added, only for a key that isn't cached.
@@ -172,7 +235,7 @@ extension RemoteRenderingBackendResources {
         cache.releaseMeshGradient(key: key)
     }
 
-    func cacheFont(_ font: RemoteCGRendererFont, key: UInt64) -> Bool {
+    func cacheFont(_ font: RemoteResourceCacheFont, key: UInt64) -> Bool {
         cache.cacheFont(font, key: key)
     }
 
@@ -193,14 +256,28 @@ extension RemoteRenderingBackendResources {
     }
 
     func cacheFilter(_ filter: WebCore.Filter, key: UInt64) -> Bool {
+        #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
         cache.cacheFilter(key: key, isSVGFilter: filter.isSVGFilterRenderer())
+        #else
+        cache.cacheFilter(filter, key: key)
+        #endif
     }
+
+    #if !ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+    func cacheDisplayList(_ displayList: WebCore.DisplayList.DisplayList, key: UInt64) -> Bool {
+        cache.cacheDisplayList(displayList, key: key)
+    }
+
+    func releaseDisplayList(key: UInt64) -> Bool {
+        cache.releaseDisplayList(key: key)
+    }
+    #endif
 
     func releaseFilter(key: UInt64) -> Bool {
         cache.releaseFilter(key: key)
     }
 
-    func filter(key: UInt64) -> RemoteCGRendererCachedFilter? {
+    func filter(key: UInt64) -> RemoteResourceCacheFilter? {
         cache.filter(key: key)
     }
 
@@ -216,4 +293,4 @@ extension RemoteRenderingBackendResources {
     }
 }
 
-#endif // ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+#endif // ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_RENDERING_BACKEND_SWIFT

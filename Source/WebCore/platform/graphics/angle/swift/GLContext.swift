@@ -55,6 +55,7 @@ public final class GLContext {
     // check. The context is confined to one thread, so relaxed ordering is all they need.
     private let errorsStorage = Atomic<UInt8>(0)
     private let contextLostStorage = Atomic<Bool>(false)
+    private let failNextStatusCheckStorage = Atomic<Bool>(false)
     private let boundReadFBOStorage = Atomic<GLuint>(0)
     private let boundDrawFBOStorage = Atomic<GLuint>(0)
     private let maxInternalFramebufferWidth = Atomic<Int32>(0)
@@ -68,6 +69,12 @@ public final class GLContext {
     var contextLost: Bool {
         get { contextLostStorage.load(ordering: .relaxed) }
         set { contextLostStorage.store(newValue, ordering: .relaxed) }
+    }
+
+    // Set by simulateEventForTesting() on the platforms that cannot lose the ANGLE context on demand.
+    var failNextStatusCheck: Bool {
+        get { failNextStatusCheckStorage.load(ordering: .relaxed) }
+        set { failNextStatusCheckStorage.store(newValue, ordering: .relaxed) }
     }
 
     var boundReadFBO: GLuint {
@@ -90,10 +97,25 @@ public final class GLContext {
     private(set) var texture: GLuint = 0
     private(set) var fbo: GLuint = 0
 
-    // A context whose platform is C++, which made its EGL context.
-    public init(contextID: UInt64, display: ANGLEDisplay, context: ANGLEContext, isWebGL2: Bool, supportsWebGLDraftExtensions: Bool) {
+    /// A context on an EGL platform, which made its EGL context and takes the surface and sharing context it was made
+    /// with.
+    public init(
+        contextID: UInt64,
+        display: ANGLEDisplay,
+        context: ANGLEContext,
+        surface: ANGLESurface,
+        sharingContext: ANGLEContext,
+        isWebGL2: Bool,
+        supportsWebGLDraftExtensions: Bool
+    ) {
         self.contextID = contextID
-        self.platform = CxxGLContextPlatform(contextID: contextID, display: display, eglContext: context)
+        self.platform = EGLGLContextPlatform(
+            contextID: contextID,
+            display: display,
+            eglContext: context,
+            surface: surface,
+            sharingContext: sharingContext
+        )
 #if WTF_PLATFORM_COCOA
         self.cocoaPlatform = nil
 #endif
@@ -124,7 +146,7 @@ public final class GLContext {
         if Self.currentContextID.load(ordering: .relaxed) == contextID {
             return true
         }
-        guard ANGLE.makeCurrent(display, eglContext) else {
+        guard platform.makeCurrent() else {
             return false
         }
         Self.currentContextID.store(contextID, ordering: .relaxed)
@@ -349,8 +371,15 @@ public final class GLContext {
 #endif
     }
 
-    // Did the most recent drawing operation leave the GPU in an acceptable state?
+    // Did the most recent drawing operation leave the GPU in an acceptable state? Only Cocoa asks ANGLE for the reset
+    // status after each draw.
     func checkGPUStatus() {
+        if failNextStatusCheck {
+            failNextStatusCheck = false
+            forceContextLost()
+            return
+        }
+        #if WTF_PLATFORM_COCOA
         if contextLost {
             return
         }
@@ -360,6 +389,7 @@ public final class GLContext {
         platform.didLoseDisplay()
         forceContextLost()
         _ = Self.releaseCurrentContext(display)
+        #endif
     }
 
     public func checkGPUStatusForPlatform() {
@@ -390,6 +420,16 @@ public final class GLContext {
 
     public func drawingBufferTexture() -> GLuint {
         texture
+    }
+
+    /// For a platform whose drawing buffer is a swap chain: the texture that is drawn into next, which the platform owns.
+    public func setDrawingBufferTexture(_ newTexture: GLuint) {
+        texture = newTexture
+    }
+
+    /// The framebuffer the drawing buffer's texture is attached to.
+    public func drawingBufferFramebuffer() -> GLuint {
+        fbo
     }
 
     public func boundReadFramebuffer() -> GLuint {
@@ -2127,6 +2167,17 @@ public final class GLContext {
         return nextExternalSyncName
     }
 
+    #if ENABLE_WEBXR
+    /// A duplicate of the native fence of an external sync, as a file descriptor, or -1 for none.
+    public func exportExternalSyncFileDescriptor(_ sync: UInt32) -> Int32 {
+        guard let eglSync = externalSyncs[sync] else {
+            addError(.invalidOperation)
+            return -1
+        }
+        return ANGLE.dupNativeFence(display, eglSync)
+    }
+    #endif
+
     public func deleteExternalImage(_ image: UInt32) {
         if image == 0 {
             return
@@ -2202,7 +2253,7 @@ public final class GLContext {
                 GL_LoseContextCHROMIUM(GLenum(GL_GUILTY_CONTEXT_RESET), GLenum(GL_INNOCENT_CONTEXT_RESET))
             }
 #else
-            state.failNextStatusCheck = true
+            failNextStatusCheck = true
 #endif
         case GLContextSimulatedEvent.displayBufferAllocationFailure:
             state.failNextDrawingBufferAllocation = true

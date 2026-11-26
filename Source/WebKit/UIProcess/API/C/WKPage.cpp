@@ -3491,7 +3491,7 @@ void WKPageTriggerMockCaptureConfigurationChange(WKPageRef pageRef, bool forCame
 #if USE(GSTREAMER)
     toImpl(pageRef)->triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
 #else
-    MockRealtimeMediaSourceCenter::singleton().triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
+    MockRealtimeMediaSourceCenter::triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
 #endif // USE(GSTREAMER)
 
 #if ENABLE(GPU_PROCESS)

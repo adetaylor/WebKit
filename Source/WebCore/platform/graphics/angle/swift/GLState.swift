@@ -126,7 +126,6 @@ struct GLState {
     var currentWidth: Int32 = 0
     var currentHeight: Int32 = 0
 
-    var failNextStatusCheck = false
     var failNextDrawingBufferAllocation = false
     var failNextRenderbufferAllocation = false
 

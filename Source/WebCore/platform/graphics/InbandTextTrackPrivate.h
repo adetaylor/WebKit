@@ -28,10 +28,8 @@
 #if ENABLE(VIDEO)
 
 #include <WebCore/InbandTextTrackPrivateClient.h>
-#if PLATFORM(COCOA)
 #include <WebCore/ISOVTTCue.h>
 #include <WebCore/SharedBuffer.h>
-#endif
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -123,7 +121,6 @@ private:
     Mode m_mode { Mode::Disabled };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
-#if PLATFORM(COCOA)
 // A track client for Swift (TrackPrivateClientSwiftAdapters.swift). The adapter is its track's client from create() to its
 // destruction, with the callbacks on the main thread, and forwards them to the Swift delegate that create() is given:
 // an Unmanaged retained box that the adapter releases when destroyed, which holds the delegate weakly.
@@ -180,7 +177,6 @@ private:
     const uintptr_t m_delegateBox;
     size_t m_clientIndex { 0 };
 };
-#endif
 
 } // namespace WebCore
 

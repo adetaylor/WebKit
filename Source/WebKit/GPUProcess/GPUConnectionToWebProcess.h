@@ -363,8 +363,8 @@ private:
 #endif
 #endif
     SWIFT_MAIN_ACTOR void swiftCloseStreamReceivers();
-#if ENABLE(GPU_PROCESS_CORE_SWIFT)
     RefPtr<IPC::StreamServerConnection> tryCreateStreamConnection(IPC::StreamServerConnection::Handle&&);
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
     // Implemented in Swift: whether to make the receiver, after the checks of the message, which mark it invalid if they
     // fail.
 #if ENABLE(WEBGL)
@@ -422,8 +422,8 @@ private:
     void createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
     SWIFT_MAIN_ACTOR void releaseGPU(WebGPUIdentifier);
 #else
-    // No WebGPU on this port: the messages exist on every port, and these ignore them.
-    void createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&) { }
+    // No WebGPU on this port: the messages exist on every port, and CreateGPU only validates its arguments.
+    void createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
     void releaseGPU(WebGPUIdentifier) { }
 #endif
 
@@ -460,7 +460,7 @@ private:
     void ensureMediaSessionHelper();
 #endif
 
-    // Implemented in Swift with GPU_PROCESS_MEDIA_SWIFT.
+    // Implemented in Swift with GPU_PROCESS_CORE_SWIFT.
     SWIFT_MAIN_ACTOR void createAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
     SWIFT_MAIN_ACTOR void releaseAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
     SWIFT_MAIN_ACTOR void releaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier);

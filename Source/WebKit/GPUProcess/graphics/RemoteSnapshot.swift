@@ -58,7 +58,7 @@ private struct RemoteSnapshotFrame {
     var recording: RemoteSnapshotFrameRecording?
     var isRecorded: Bool { recording != nil }
     #else
-    // The display list is the C++'s (GPUProcess::snapshotDisplayLists()).
+    // The display list is in the snapshot's display lists (RemoteSnapshotDisplayLists.swift).
     var isRecorded = false
     #endif
     var isAbandoned = false
@@ -98,15 +98,16 @@ final class RemoteSnapshot: Sendable {
     let key: RemoteSnapshotRegistryKey
     // Nil for a recorder whose snapshot no longer exists, which records into nothing.
     let rootFrame: UInt64?
-    // On the ports that record frames as WebCore display lists, the token of the C++ display lists that its recorders record
-    // into (GPUProcess::createSnapshotDisplayLists()), and 0 otherwise.
-    let displayListsToken: UInt64
+    #if !ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+    // On the ports that record frames as WebCore display lists, what its recorders record into, made with it, before any
+    // recorder can find it.
+    let displayLists = RemoteSnapshotDisplayListsReference()
+    #endif
     private let state: Mutex<RemoteSnapshotState>
 
-    init(key: RemoteSnapshotRegistryKey, rootFrame: UInt64?, displayListsToken: UInt64 = 0) {
+    init(key: RemoteSnapshotRegistryKey, rootFrame: UInt64?) {
         self.key = key
         self.rootFrame = rootFrame
-        self.displayListsToken = displayListsToken
         var state = RemoteSnapshotState()
         if let rootFrame {
             state.frames[rootFrame] = RemoteSnapshotFrame()
@@ -154,7 +155,7 @@ final class RemoteSnapshot: Sendable {
         }
     }
     #else
-    // A frame whose display list the C++ has (GPUProcess::snapshotDisplayLists()).
+    // A frame whose display list is in the snapshot's display lists.
     func frameWasRecorded(_ frame: UInt64) {
         state.withLock { state in
             guard let index = state.frames.index(forKey: frame) else {
@@ -190,7 +191,7 @@ final class RemoteSnapshot: Sendable {
 
     private func abandonDisplayList(_ frame: UInt64) {
         #if !ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
-        WebKit.GPUProcess.abandonSnapshotDisplayList(key.cxxKey, frame)
+        displayLists.abandonFrame(frame)
         #endif
     }
 
@@ -280,8 +281,10 @@ final class RemoteSnapshot: Sendable {
             if success, let sinkState = waiter.sinkState {
                 sinkState.frames = completedFrames(state)
             }
+            waiter.sink.complete(success, WebCore.FloatSize(state.width, state.height))
+            #else
+            displayLists.complete(waiter.sink, success, WebCore.FloatSize(state.width, state.height))
             #endif
-            waiter.sink.complete(success, WebCore.FloatSize(state.width, state.height), displayListsToken)
         }
     }
 
@@ -336,13 +339,7 @@ final class RemoteSnapshotRegistry: Sendable {
             if let snapshot = snapshots[key] {
                 return (snapshot, false)
             }
-            #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
             let snapshot = RemoteSnapshot(key: key, rootFrame: rootFrame)
-            #else
-            // Before any recorder can find the snapshot.
-            let token = WebKit.GPUProcess.createSnapshotDisplayLists(key.cxxKey)
-            let snapshot = RemoteSnapshot(key: key, rootFrame: rootFrame, displayListsToken: token)
-            #endif
             snapshots[key] = snapshot
             return (snapshot, true)
         }
@@ -376,11 +373,7 @@ final class RemoteSnapshotRegistry: Sendable {
     func releaseSnapshot(_ key: RemoteSnapshotRegistryKey) {
         // Currently it's not possible to know if a snapshot exists, hence no assertion.
         let snapshot = snapshots.withLock { snapshots in
-            let snapshot = snapshots.removeValue(forKey: key)
-            if snapshot != nil {
-                forgetDisplayLists(key)
-            }
-            return snapshot
+            snapshots.removeValue(forKey: key)
         }
         // Anything still waiting for it would otherwise wait for frames that will never be asked for.
         snapshot?.fail()
@@ -394,7 +387,6 @@ final class RemoteSnapshotRegistry: Sendable {
                 return false
             }
             snapshots[snapshot.key] = nil
-            forgetDisplayLists(snapshot.key)
             return true
         }
         if isTaken {
@@ -415,19 +407,12 @@ final class RemoteSnapshotRegistry: Sendable {
             let removed = snapshots.filter { $0.key.process == process }
             for key in removed.keys {
                 snapshots[key] = nil
-                forgetDisplayLists(key)
             }
             return Array(removed.values)
         }
         for snapshot in removed {
             snapshot.fail()
         }
-    }
-
-    private func forgetDisplayLists(_ key: RemoteSnapshotRegistryKey) {
-        #if !ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
-        WebKit.GPUProcess.forgetSnapshotDisplayLists(key.cxxKey)
-        #endif
     }
 }
 
@@ -496,27 +481,33 @@ extension WebKit.GPUProcess {
     #if !ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
     @cxx
     @implementation
-    static func swiftAddSnapshotFrameReference(
-        _ snapshot: WebKit.RemoteSnapshotKey,
-        _ frameIdentifier: WebCore.FrameIdentifier,
-        _ displayListsToken: UInt64
-    ) {
-        // A recorder of a snapshot that didn't exist when it was made records into nothing.
-        recordersSnapshot(snapshot, displayListsToken)?.addFrameReference(frameIdentifier.toUInt64())
+    static func snapshotDisplayLists(_ identifier: WebKit.RemoteSnapshotIdentifier) -> WebKit.RefRemoteSnapshotDisplayLists {
+        remoteSnapshots.snapshotForRecorder(RemoteSnapshotRegistryKey(WebKit.snapshotKey(identifier))).displayLists.cxxReference
     }
 
     @cxx
     @implementation
-    static func swiftSnapshotFrameWasRecorded(
-        _ snapshot: WebKit.RemoteSnapshotKey,
+    static func addSnapshotFrameReference(
+        _ identifier: WebKit.RemoteSnapshotIdentifier,
         _ frameIdentifier: WebCore.FrameIdentifier,
         _ displayListsToken: UInt64
     ) {
-        recordersSnapshot(snapshot, displayListsToken)?.frameWasRecorded(frameIdentifier.toUInt64())
+        // A recorder of a snapshot that didn't exist when it was made records into nothing.
+        recordersSnapshot(WebKit.snapshotKey(identifier), displayListsToken)?.addFrameReference(frameIdentifier.toUInt64())
+    }
+
+    @cxx
+    @implementation
+    static func snapshotFrameWasRecorded(
+        _ identifier: WebKit.RemoteSnapshotIdentifier,
+        _ frameIdentifier: WebCore.FrameIdentifier,
+        _ displayListsToken: UInt64
+    ) {
+        recordersSnapshot(WebKit.snapshotKey(identifier), displayListsToken)?.frameWasRecorded(frameIdentifier.toUInt64())
     }
 
     private static func recordersSnapshot(_ snapshot: WebKit.RemoteSnapshotKey, _ displayListsToken: UInt64) -> RemoteSnapshot? {
-        guard let snapshot = remoteSnapshots.snapshot(RemoteSnapshotRegistryKey(snapshot)), snapshot.displayListsToken == displayListsToken
+        guard let snapshot = remoteSnapshots.snapshot(RemoteSnapshotRegistryKey(snapshot)), snapshot.displayLists.token == displayListsToken
         else {
             return nil
         }

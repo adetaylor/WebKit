@@ -32,7 +32,10 @@
 #include <WebCore/FloatSize.h>
 #include <WebCore/FrameIdentifier.h>
 #include <WebCore/ShareableBitmap.h>
+#include <atomic>
+#include <wtf/CompletionHandler.h>
 #include <wtf/Function.h>
+#include <wtf/RefCountable.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -60,6 +63,7 @@ struct RemoteSnapshotPrintData;
 #else
 class DisplayListData;
 class RemoteSnapshotDisplayLists;
+using RefRemoteSnapshotDisplayLists = Ref<RemoteSnapshotDisplayLists>;
 #endif
 
 // A snapshot's identifier, as the Swift registry of snapshots (RemoteSnapshot.swift) knows it.
@@ -83,6 +87,10 @@ class SWIFT_PRIVATE_FILEID("WebKit/RemoteSnapshot.swift") RemoteSnapshotSink fin
 public:
     using Completion = Function<void(RemoteSnapshotSink* WTF_NULLABLE)>;
     static Ref<RemoteSnapshotSink> create(const RemoteSnapshotIdentifier&, std::optional<WebCore::FrameIdentifier> rootFrameIdentifier, Completion&&) __attribute__((availability(swift, unavailable)));
+    // For Swift, whose replies can't be a completion: a sink that replies with the bitmap of its snapshot, or with none, and a
+    // wait that replies once the snapshot is drawn.
+    static Ref<RemoteSnapshotSink> createReplyingWithBitmap(const RemoteSnapshotIdentifier&, WebCore::FrameIdentifier rootFrameIdentifier, WTF::RefCountable<CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>>&);
+    static Ref<RemoteSnapshotSink> createReplying(const RemoteSnapshotIdentifier&, WTF::RefCountable<CompletionHandler<void()>>&);
     ~RemoteSnapshotSink();
 
     // Implemented in Swift. A sink waits for the snapshot, which it creates if it doesn't exist yet, and takes it from the
@@ -94,11 +102,16 @@ public:
     RemoteSnapshotKey snapshotKey() const { return m_snapshotKey; }
     bool hasRootFrame() const { return !!m_rootFrameIdentifier; }
     uint64_t rootFrameKey() const { return m_rootFrameIdentifier ? m_rootFrameIdentifier->toUInt64() : 0; }
-    // Called once, by Swift, which has given the sink its frames if it succeeded: the size is the snapshot's, and, on the
-    // ports that record frames as WebCore display lists, the token is its display lists' (GPUProcess::snapshotDisplayLists()).
-    void complete(bool success, WebCore::FloatSize, uint64_t displayListsToken);
+    // Called once, by Swift; a second completion of either kind crashes. Swift has given the sink its frames if it
+    // succeeded; the size is the snapshot's. Off the CG renderer, the last argument is the display lists the frames were
+    // recorded into.
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    void complete(bool success, WebCore::FloatSize);
+#else
+    void complete(bool success, WebCore::FloatSize, RemoteSnapshotDisplayLists&);
+#endif
     // For a wait for a snapshot that doesn't exist: runs the completion now.
-    void completeWithoutSnapshot() __attribute__((availability(swift, unavailable)));
+    void completeWithoutSnapshot();
     // Unsafe to set: the state must be a retained one that nothing else releases.
     uintptr_t swiftState() const { return m_swiftState; }
     SWIFT_UNSAFE void setSwiftState(uintptr_t);
@@ -127,8 +140,9 @@ public:
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
-    void ref() const { ThreadSafeRefCounted<RemoteSnapshotSink>::ref(); }
-    void deref() const { ThreadSafeRefCounted<RemoteSnapshotSink>::deref(); }
+    // SWIFT_UNSAFE: Swift counts its references itself, and a call by name would unbalance them.
+    SWIFT_UNSAFE void ref() const { ThreadSafeRefCounted<RemoteSnapshotSink>::ref(); }
+    SWIFT_UNSAFE void deref() const { ThreadSafeRefCounted<RemoteSnapshotSink>::deref(); }
 #endif
 
 private:
@@ -145,8 +159,11 @@ private:
     const RemoteSnapshotKey m_snapshotKey;
     const std::optional<WebCore::FrameIdentifier> m_rootFrameIdentifier;
     Completion m_completion __attribute__((availability(swift, unavailable)));
-    bool m_succeeded { false };
-    WebCore::FloatSize m_size;
+    // Set by the first completion, from any thread: a second one would change the sink's state while the first completion
+    // draws from it.
+    std::atomic<bool> m_didComplete __attribute__((availability(swift, unavailable))) { false };
+    bool m_succeeded __attribute__((availability(swift, unavailable))) { false };
+    WebCore::FloatSize m_size __attribute__((availability(swift, unavailable)));
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     RefPtr<RemoteSnapshotDisplayLists> m_displayLists __attribute__((availability(swift, unavailable)));
 #endif

@@ -83,6 +83,7 @@ protected:
 
 private:
     bool platformInitializeContext() final;
+    void platformDidMakeCurrent() final { didMakeContextCurrent(); }
 #if !USE(COORDINATED_GRAPHICS)
     bool platformInitialize() override;
 #endif

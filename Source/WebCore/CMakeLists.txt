@@ -2571,11 +2571,6 @@ if (ENABLE_WEBGL)
         platform/graphics/angle/ANGLEUtilities.cpp
         platform/graphics/angle/GraphicsContextGLANGLE.cpp
     )
-    # GraphicsContextGLANGLE.cpp is a shell over the WebGL island's Swift (platform/graphics/angle/swift), which only the
-    # Apple ports build: its other platforms (EGL, GBM, WinCairo) need those ports' Swift toolchains.
-    if (NOT APPLE)
-        message(FATAL_ERROR "ENABLE_WEBGL needs the WebGL island, WebCore's WebCoreWebGL Swift module, which only the Apple ports build so far")
-    endif ()
 
     list(APPEND WebCore_PRIVATE_LIBRARIES ANGLE::GLES)
 elseif (USE_ANGLE_EGL)
@@ -4523,12 +4518,23 @@ else ()
         # types and conformances.
         add_subdirectory(platform/graphics/angle/swift)
         target_link_libraries(WebCore PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,WebCoreWebGL>")
+        # GraphicsContextGLANGLE's members that only call WebCoreWebGL.
+        target_sources(WebCore PRIVATE ${WEBCORE_DIR}/platform/graphics/angle/GraphicsContextGLANGLE.swift)
         # The images that link WebCore's objects link the archive whole, above: an ELF object's auto-link of it
         # (WEBKIT_LINK_SWIFT_RUNTIME) would put it on the link line a second time, ahead of the whole one.
         webkit_target_add_swift_options(WebCore
             "-I${WebCoreWebGL_SWIFT_MODULE_DIR}"
             "-Xcc -I${WebCoreWebGL_INTEROP_MODULE_DIR}"
             "-Xfrontend -disable-autolink-library -Xfrontend WebCoreWebGL")
+        # The C++ that calls WebCoreWebGL's Swift, through the headers beside its module maps.
+        list(REMOVE_ITEM WebCore_SOURCES platform/graphics/angle/GraphicsContextGLANGLE.cpp platform/graphics/egl/GraphicsContextGLEGL.cpp)
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+            platform/graphics/angle/GLLentMemory.cpp
+            platform/graphics/angle/GraphicsContextGLANGLE.cpp
+
+            platform/graphics/egl/GraphicsContextGLEGL.cpp
+        )
+        list(APPEND _webcore_swift_core_submodules platform/graphics/angle/GraphicsContextGLANGLE.h)
     endif ()
 
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParserFastPath.cpp)
@@ -4888,6 +4894,29 @@ else ()
         platform/network/ParsedContentRange.h
         rendering/CSSFilterRendererView.h
         svg/graphics/filters/SVGFilterRendererView.h)
+    if (ENABLE_VIDEO)
+        # The media player's and the tracks' Swift clients (MediaPlayer.h, *TrackPrivate.h), which the GPU process's media
+        # Swift (GPU_PROCESS_MEDIA_SWIFT) implements, and the headers they import one by one. WebCore's Swift sees only the
+        # feature defines it is given (as ENABLE_MEDIA_STREAM above); the adapters' other conditions (the CDMs, data cues,
+        # wireless playback) are off on GTK and WPE, in their C++ too.
+        webkit_target_add_swift_options(WebCore "-D ENABLE_VIDEO")
+        target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/platform/SwiftDelegateBox.swift
+            ${WEBCORE_DIR}/platform/graphics/SwiftMediaPlayerClientAdapter.swift
+            ${WEBCORE_DIR}/platform/graphics/TrackPrivateClientSwiftAdapters.swift
+        )
+        list(APPEND _webcore_swift_core_submodules
+            platform/SharedBuffer.h
+
+            platform/graphics/AudioTrackPrivate.h
+            platform/graphics/InbandTextTrackPrivate.h
+            platform/graphics/MediaPlayer.h
+            platform/graphics/MediaTimeUpdateData.h
+            platform/graphics/VideoTrackPrivate.h
+            # SharedBuffer's JSC types: a reference type (SWIFT_BASE_CLASS_ANNOTATIONS) needs a reachable definition.
+            ${JavaScriptCore_PRIVATE_HEADERS_DIR}/ArrayBuffer.h
+            ${JavaScriptCore_PRIVATE_HEADERS_DIR}/BufferMemoryHandle.h)
+    endif ()
     # The security policy checks, which the C++ that includes WebCore-Swift.h calls on every port; the headers they import
     # one by one; and the security policy types the CSP and HTTP header Swift reads, and the response CacheValidation.swift
     # reads, whose header is the network backend's.
@@ -5126,7 +5155,33 @@ else ()
         "        requires cplusplus\n"
         "        export *\n"
         "    }\n")
+    # WebKit's Swift imports this module too (one WebCore_Private, as the Apple ports' framework has: WebKit's Swift
+    # loads WebCore's Swift module, which needs this one): the WebCore headers WebKit's Swift names through
+    # `import WebCore_Private` (WebBackForwardList.swift, the generated serializers' C++ enums, SwiftCoding.swift), one
+    # non-explicit submodule.
+    string(APPEND _webcore_swift_modules "    module WebKitSwiftImports {\n")
+    foreach (_h IN ITEMS page/DiagnosticLoggingKeys.h page/DiagnosticLoggingClient.h editing/TextGranularity.h
+            platform/StyleAppearance.h platform/graphics/GraphicsTypes.h
+            platform/graphics/filters/parameters/FEColorMatrixParameters.h
+            platform/graphics/filters/parameters/FEComponentTransferParameters.h
+            platform/graphics/filters/parameters/FECompositeParameters.h
+            platform/graphics/filters/parameters/FEConvolveMatrixParameters.h
+            platform/graphics/filters/parameters/FEDisplacementMapParameters.h
+            platform/graphics/filters/parameters/FEMorphologyParameters.h
+            platform/graphics/filters/parameters/FETurbulenceParameters.h platform/graphics/ImageBufferFormat.h
+            platform/graphics/ImageBufferResourceLimits.h platform/mediastream/MediaConstraintsEvaluation.h)
+        string(APPEND _webcore_swift_modules "        header \"${WEBCORE_DIR}/${_h}\"\n")
+    endforeach ()
+    string(APPEND _webcore_swift_modules
+        "        requires cplusplus\n"
+        "        export *\n"
+        "    }\n")
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
+    # Every submodule, imported by WebCorePrivateSubmoduleImports.h below.
+    string(REGEX MATCHALL "\n    (explicit )?module [A-Za-z0-9_]+ {" _webcore_swift_submodule_decls "\n${_webcore_swift_modules}")
+    set(_webcore_swift_module_imports "    module PlatformExportMacros {")
+    list(APPEND _webcore_swift_module_imports ${_webcore_swift_submodule_decls})
+    list(TRANSFORM _webcore_swift_module_imports REPLACE "^.*module ([A-Za-z0-9_]+) {$" "#pragma clang module import WebCore_Private.\\1\n")
 
     if (_webcore_swift_core_submodules)
         string(APPEND _webcore_swift_modules "    module Core {\n")
@@ -5139,6 +5194,7 @@ else ()
             string(MAKE_C_IDENTIFIER "${_name}" _name)
             # A header named Type+Category.h is the submodule Type_Category, as in the framework's umbrella map.
             string(REPLACE "+" "_" _name "${_name}")
+            list(APPEND _webcore_swift_module_imports "#pragma clang module import WebCore_Private.Core.${_name}\n")
             string(APPEND _webcore_swift_modules
                 "        explicit module ${_name} {\n"
                 "            header \"${_h}\"\n")
@@ -5165,6 +5221,14 @@ else ()
         "${_webcore_swift_modules}"
         "}\n")
     configure_file("${_webcore_swift_module_dir}/module.modulemap.in" "${_webcore_swift_module_dir}/module.modulemap" COPYONLY)
+    # WebKit_Internal parses WebCore's headers as text, and WebKit's Swift loads this module's PCM with it (WebCore's
+    # Swift module needs it), where the headers a submodule includes without naming them belong to that submodule:
+    # WebKit_Internal's own #include of one is skipped, and its declarations are visible only once the submodule is
+    # imported. WebKit_Internal imports every submodule first (WebKit's Modules/Internal/WebCoreSwiftModuleImports.h), as the
+    # Apple ports' umbrella module makes every WebCore header a module.
+    string(JOIN "" _webcore_swift_module_imports ${_webcore_swift_module_imports})
+    file(WRITE "${_webcore_swift_module_dir}/WebCorePrivateSubmoduleImports.h.in" "${_webcore_swift_module_imports}")
+    configure_file("${_webcore_swift_module_dir}/WebCorePrivateSubmoduleImports.h.in" "${_webcore_swift_module_dir}/WebCorePrivateSubmoduleImports.h" COPYONLY)
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${_webcore_swift_module_dir}"

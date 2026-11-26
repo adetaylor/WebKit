@@ -140,11 +140,13 @@ extension WebKit.RemoteMediaPlayerProxy {
         completionHandler.pointee(.init(player().isCrossOrigin(originData.securityOrigin().get())))
     }
 
+    #if WTF_PLATFORM_COCOA
     @cxx
     @implementation
     func colorSpace(_ completionHandler: WebKit.RemoteMediaPlayerProxy.ColorSpaceCompletionHandler) {
         completionHandler.pointee(player().colorSpace())
     }
+    #endif
 
     func prepareToPlay(connection _: IPC.Connection) {
         alwaysLog("prepareToPlay")
@@ -223,14 +225,14 @@ extension WebKit.RemoteMediaPlayerProxy {
 
     func setVolume(connection _: IPC.Connection, volume: Double) {
         player().setVolume(volume)
-        #if ENABLE_WEB_AUDIO
+        #if ENABLE_WEB_AUDIO && WTF_PLATFORM_COCOA
         m_remoteAudioSourceProvider.get()?.setVolume(volume)
         #endif
     }
 
     func setPreservesPitch(connection _: IPC.Connection, preservesPitch: Bool) {
         player().setPreservesPitch(preservesPitch)
-        #if ENABLE_WEB_AUDIO
+        #if ENABLE_WEB_AUDIO && WTF_PLATFORM_COCOA
         m_remoteAudioSourceProvider.get()?.setPreservesPitch(preservesPitch)
         #endif
     }
@@ -550,16 +552,22 @@ extension WebKit.RemoteMediaPlayerProxy {
 
     // MARK: Video playback quality metrics
 
+    private var monotonicNow: Double {
+        WTF.MonotonicTime.now().secondsSinceEpoch().value()
+    }
+
     func setVideoPlaybackMetricsUpdateInterval(connection _: IPC.Connection, interval: Double) {
         alwaysLog("setVideoPlaybackMetricsUpdateInterval", "\(interval)")
 
         updateCachedVideoMetrics()
         m_videoPlaybackMetricsUpdateInterval = interval
-        m_nextPlaybackQualityMetricsUpdateTime = ProcessInfo.processInfo.systemUptime + interval - metricsAdvanceUpdate
+        m_nextPlaybackQualityMetricsUpdateTime = monotonicNow + interval - metricsAdvanceUpdate
     }
 
     func maybeUpdateCachedVideoMetrics() {
-        if m_cachedState.paused || m_videoPlaybackMetricsUpdateInterval == 0 || ProcessInfo.processInfo.systemUptime < m_nextPlaybackQualityMetricsUpdateTime || m_hasPlaybackMetricsUpdatePending {
+        if m_cachedState.paused || m_videoPlaybackMetricsUpdateInterval == 0
+            || monotonicNow < m_nextPlaybackQualityMetricsUpdateTime || m_hasPlaybackMetricsUpdatePending
+        {
             return
         }
 
@@ -568,7 +576,7 @@ extension WebKit.RemoteMediaPlayerProxy {
 
     func updateCachedVideoMetrics() {
         alwaysLog("updateCachedVideoMetrics")
-        m_nextPlaybackQualityMetricsUpdateTime = ProcessInfo.processInfo.systemUptime + m_videoPlaybackMetricsUpdateInterval
+        m_nextPlaybackQualityMetricsUpdateTime = monotonicNow + m_videoPlaybackMetricsUpdateInterval
         if m_hasPlaybackMetricsUpdatePending {
             return
         }
@@ -667,7 +675,7 @@ extension WebKit.RemoteMediaPlayerProxy {
         let player = player()
         let effectiveRate = player.effectiveRate()
 
-        #if ENABLE_WEB_AUDIO
+        #if ENABLE_WEB_AUDIO && WTF_PLATFORM_COCOA
         m_remoteAudioSourceProvider.get()?.setPlaybackRate(effectiveRate)
         #endif
 
@@ -1003,9 +1011,11 @@ extension WebKit.RemoteMediaPlayerProxy {
         let weakThis = weakPtrForSwift()
         return await withCheckedContinuation { (reply: CheckedContinuation<IPCTypes.MediaTime?, Never>) in
             state.waitForTaskAtTime(reply)
-            _ = WebKit.performMediaPlayerTaskAtTime(player, consuming: WebKit.MediaPlayerTimeTask { (time: WTF.MediaTime) in
+            // -> Void: the optional chain's Void? does not convert to the C++ Function's void result.
+            let task = WebKit.MediaPlayerTimeTask { (time: WTF.MediaTime) -> Void in
                 weakThis.get()?.swiftState.replyToTaskAtTime(IPCTypes.MediaTime(time))
-            }, taskTime)
+            }
+            _ = WebKit.performMediaPlayerTaskAtTime(player, consuming: task, taskTime)
         }
     }
 
@@ -1137,9 +1147,11 @@ final class RemoteMediaPlayerClient: MediaPlayerClientDelegate {
         proxy.get()?.mediaPlayerSeekableTimeRangesChanged()
     }
 
+    #if WTF_PLATFORM_COCOA
     func mediaPlayerVideoLayerSize() -> WebCore.FloatSize {
         proxy.get()?.mediaPlayerVideoLayerSize() ?? WebCore.FloatSize()
     }
+    #endif
 
     func mediaPlayerReferrer() -> WTF.String {
         proxy.get()?.referrer ?? WTF.String()

@@ -28,7 +28,7 @@
 #include "InbandTextTrackPrivate.h"
 #include "VideoTrackPrivate.h"
 
-#if ENABLE(VIDEO) && PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
+#if ENABLE(VIDEO) && ENABLE(WEBCORE_SWIFT)
 
 #include <wtf/MainThread.h>
 
@@ -134,4 +134,4 @@ void SwiftInbandTextTrackPrivateClientAdapter::parseWebVTTCueData(ISOWebVTTCue&&
 
 } // namespace WebCore
 
-#endif // ENABLE(VIDEO) && PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
+#endif // ENABLE(VIDEO) && ENABLE(WEBCORE_SWIFT)

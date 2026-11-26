@@ -21,8 +21,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-#if os(Windows)
-// FIXME: (rdar://185504483) conflict with Windows Swift Foundation's ICU
+#if os(Windows) || os(Linux)
+// FIXME: (rdar://185504483) conflict with Swift Foundation's ICU, whose UCharDirection clashes with the system ICU's that WTF imports
 import FoundationEssentials
 
 typealias URL = FoundationEssentials.URL

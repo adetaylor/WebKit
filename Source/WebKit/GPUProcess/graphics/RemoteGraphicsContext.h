@@ -37,6 +37,9 @@
 #include "StreamMessageReceiver.h"
 #include "StreamServerConnection.h"
 #include <WebCore/ControlFactory.h>
+#include <WebCore/FilterResults.h>
+#include <WebCore/GraphicsStyle.h>
+#include <WebCore/GraphicsTypes.h>
 #include <WebCore/ProcessIdentifier.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/WeakPtr.h>
@@ -44,7 +47,6 @@
 namespace WebKit {
 
 class RemoteRenderingBackend;
-class RemoteResourceCache;
 class SharedVideoFrameReader;
 struct SharedPreferencesForWebProcess;
 
@@ -175,7 +177,6 @@ protected:
 
     void drawFilteredImageBufferInternal(std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, WebCore::Filter&, WebCore::FilterResults&);
 
-    NODELETE RemoteResourceCache& resourceCache() const;
     RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const;
     WebCore::GraphicsContext& context() LIFETIME_BOUND { return m_context; }
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;

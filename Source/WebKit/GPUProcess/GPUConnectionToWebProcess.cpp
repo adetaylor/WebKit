@@ -504,8 +504,7 @@ Function<void(IPC::MessageName)> GPUConnectionToWebProcess::terminateWebProcessO
     };
 }
 
-#if ENABLE(GPU_PROCESS_CORE_SWIFT)
-// The stream connections of the receivers that Swift makes, for Swift, which can't take their handles.
+// The stream connections of the receivers that Swift makes, which can't take their handles, and of CreateGPU's check.
 RefPtr<IPC::StreamServerConnection> GPUConnectionToWebProcess::tryCreateStreamConnection(IPC::StreamServerConnection::Handle&& connectionHandle)
 {
     IPC::StreamServerConnectionParameters params;
@@ -514,7 +513,6 @@ RefPtr<IPC::StreamServerConnection> GPUConnectionToWebProcess::tryCreateStreamCo
 #endif
     return IPC::StreamServerConnection::tryCreate(WTF::move(connectionHandle), params);
 }
-#endif
 
 #if ENABLE(WEBGL)
 void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier, WebCore::GraphicsContextGLAttributes attributes, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
@@ -582,6 +580,16 @@ void GPUConnectionToWebProcess::createGPUModel(RemoteRenderingBackend& rendering
 }
 #endif
 
+#else
+void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
+{
+    if (!swiftHasRenderingBackend(renderingBackendIdentifier.toUInt64()))
+        return;
+    RefPtr streamConnection = tryCreateStreamConnection(WTF::move(connectionHandle));
+    MESSAGE_CHECK(streamConnection);
+    // Nothing keeps the connection, which must be invalidated before it is destroyed.
+    streamConnection->invalidate();
+}
 #endif
 
 void GPUConnectionToWebProcess::setNowPlayingInfoForPage(NowPlayingInfo&& nowPlayingInfo, std::optional<WebCore::PageIdentifier> pageIdentifier)
@@ -706,7 +714,7 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
         protect(remoteMediaPlayerManagerProxy())->didReceivePlayerMessage(connection, decoder);
         return true;
 #endif
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     case IPC::ReceiverName::RemoteAudioVideoRendererProxyManager:
         protect(remoteAudioVideoRendererProxyManager())->didReceiveMessage(connection, decoder);
         return true;
@@ -738,7 +746,7 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
         protect(remoteMediaPlayerManagerProxy())->didReceiveSyncPlayerMessage(connection, decoder, replyEncoder);
         return true;
 #endif
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     case IPC::ReceiverName::RemoteAudioVideoRendererProxyManager:
         protect(remoteAudioVideoRendererProxyManager())->didReceiveSyncMessage(connection, decoder, replyEncoder);
         return true;

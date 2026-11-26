@@ -31,6 +31,7 @@ import WebCore_Private.Core.GraphicsContextGLANGLE
 // or convert what it returns to WebCore types, are in GraphicsContextGLANGLE.cpp.
 extension WebCore.GraphicsContextGLANGLE {
     // Only after initialize() made the context.
+    @inline(always)
     private var island: GLContext {
         unsafe GLShell.fromReference(islandShell()).context!
     }
@@ -51,6 +52,27 @@ extension WebCore.GraphicsContextGLANGLE {
     @implementation
     func drawingBufferTexture() -> GCGLuint {
         island.drawingBufferTexture()
+    }
+
+    @cxx
+    @implementation
+    func setDrawingBufferTexture(_ texture: GCGLuint) {
+        island.setDrawingBufferTexture(texture)
+    }
+
+    #if ENABLE_WEBXR
+    // The file descriptor of a duplicate of the sync's native fence, or -1.
+    @cxx
+    @implementation
+    func exportExternalSyncFileDescriptor(_ sync: GCGLExternalSync) -> Int32 {
+        island.exportExternalSyncFileDescriptor(sync)
+    }
+    #endif
+
+    @cxx
+    @implementation
+    func drawingBufferFramebuffer() -> GCGLuint {
+        island.drawingBufferFramebuffer()
     }
 
     @cxx

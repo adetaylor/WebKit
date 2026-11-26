@@ -31,7 +31,12 @@ internal import CoreVideo
 // What a C++ shell, GraphicsContextGLANGLE, keeps of the island: its context, and, for a Cocoa shell, the platform the
 // context is made on. The shell owns one through the opaque reference GLIslandCalls.createShell() gives it.
 public final class GLShell {
-    public internal(set) var context: GLContext?
+    // Internal, so that an optimized build can drop the run-time exclusivity checks of its reads; use `context`.
+    var islandContext: GLContext?
+    /// The island's context, once it has made one.
+    public var context: GLContext? {
+        islandContext
+    }
 #if WTF_PLATFORM_COCOA
     var cocoaPlatform: CocoaGLPlatform?
 #endif
@@ -74,7 +79,10 @@ extension WebCore.GLIslandCalls {
     }
 
     private var context: GLContext {
-        islandShell.context!
+        guard let context = islandShell.islandContext else {
+            preconditionFailure("The shell has no context yet")
+        }
+        return context
     }
 
 #if WTF_PLATFORM_COCOA
@@ -96,23 +104,68 @@ extension WebCore.GLIslandCalls {
         unsafe Unmanaged<GLShell>.fromOpaque(UnsafeRawPointer(bitPattern: reference)!).release()
     }
 
+    #if !WTF_PLATFORM_COCOA
+    /// Makes the EGL context, its surface and config on `display`, and the shell's GLContext over them; returns their
+    /// handles, all null if one could not be made.
     @cxx
     @implementation
-    public func createContext(_ contextID: UInt64, _ display: ANGLEDisplay, _ eglContext: ANGLEContext, _ isWebGL2: Bool, _ supportsWebGLDraftExtensions: Bool) {
-        islandShell.context = GLContext(contextID: contextID, display: display, context: eglContext, isWebGL2: isWebGL2, supportsWebGLDraftExtensions: supportsWebGLDraftExtensions)
+    public func createEGLContext(
+        _ contextID: UInt64,
+        _ display: ANGLEDisplay,
+        _ sharingContext: ANGLEContext,
+        _ isSurfacelessDisplay: Bool,
+        _ isWebGL2: Bool,
+        _ supportsWebGLDraftExtensions: Bool
+    ) -> ANGLEContextHandles {
+        var handles = ANGLEContextHandles()
+        guard
+            let objects = EGLGLContextPlatform.createObjects(
+                display: display,
+                sharingContext: sharingContext,
+                isSurfacelessDisplay: isSurfacelessDisplay,
+                isWebGL2: isWebGL2
+            )
+        else {
+            return handles
+        }
+        #if os(Windows)
+        // Windows' sharing context is the display's, which outlives the context.
+        let ownedSharingContext = ANGLEContext()
+        #else
+        let ownedSharingContext = sharingContext
+        #endif
+        islandShell.islandContext = GLContext(
+            contextID: contextID,
+            display: display,
+            context: objects.context,
+            surface: objects.surface,
+            sharingContext: ownedSharingContext,
+            isWebGL2: isWebGL2,
+            supportsWebGLDraftExtensions: supportsWebGLDraftExtensions
+        )
+        handles.display = display
+        handles.config = objects.config
+        handles.context = objects.context
+        handles.surface = objects.surface
+        return handles
     }
+    #endif
 
     @cxx
     @implementation
     public func hasContext() -> Bool {
-        islandShell.context != nil
+        islandShell.islandContext != nil
     }
 
 #if WTF_PLATFORM_COCOA
     @cxx
     @implementation
     public func createCocoaContext(_ contextID: UInt64, _ supportsWebGLDraftExtensions: Bool) {
-        islandShell.context = GLContext(contextID: contextID, cocoaPlatform: cocoaPlatform, supportsWebGLDraftExtensions: supportsWebGLDraftExtensions)
+        islandShell.islandContext = GLContext(
+            contextID: contextID,
+            cocoaPlatform: cocoaPlatform,
+            supportsWebGLDraftExtensions: supportsWebGLDraftExtensions
+        )
     }
 
     @cxx
