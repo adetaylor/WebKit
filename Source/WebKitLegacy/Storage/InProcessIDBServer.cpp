@@ -26,13 +26,13 @@
 #include "InProcessIDBServer.h"
 
 #include <WebCore/ClientOrigin.h>
-#include <WebCore/IDBConnectionToClient.h>
 #include <WebCore/IDBConnectionToServer.h>
 #include <WebCore/IDBCursorInfo.h>
 #include <WebCore/IDBGetRecordData.h>
 #include <WebCore/IDBIterateCursorData.h>
 #include <WebCore/IDBKeyRangeData.h>
 #include <WebCore/IDBOpenDBRequest.h>
+#include <WebCore/IDBOpenRequestData.h>
 #include <WebCore/IDBRequestData.h>
 #include <WebCore/IDBResultData.h>
 #include <WebCore/IDBTransactionInfo.h>
@@ -59,10 +59,9 @@ Ref<InProcessIDBServer> InProcessIDBServer::create(PAL::SessionID sessionID, con
 InProcessIDBServer::~InProcessIDBServer()
 {
     BinarySemaphore semaphore;
-    dispatchTask([queue = m_queue, server = WTF::move(m_server), connectionToClient = WTF::move(m_connectionToClient), &semaphore] mutable {
+    dispatchTask([queue = m_queue, server = WTF::move(m_server), &semaphore] mutable {
         assertIsCurrent(queue.get());
         server = nullptr;
-        connectionToClient = nullptr;
         semaphore.signal();
     });
     semaphore.wait();
@@ -75,13 +74,10 @@ InProcessIDBServer::InProcessIDBServer(PAL::SessionID sessionID, const String& d
     lazyInitialize(m_connectionToServer, IDBClient::IDBConnectionToServer::create(*this, sessionID));
     dispatchTask([this, protectedThis = Ref { *this }, directory = databaseDirectoryPath.isolatedCopy()] () mutable {
         assertIsCurrent(m_queue.get());
-        Ref connectionToClient = IDBServer::IDBConnectionToClient::create(*this);
-        m_connectionToClient = connectionToClient.copyRef();
-
         m_server = makeUnique<IDBServer::IDBServer>(directory, [](const ClientOrigin&, uint64_t) {
             return true;
         });
-        protect(m_server)->registerConnection(connectionToClient);
+        protect(m_server)->registerConnection(*this);
     });
 }
 
@@ -95,11 +91,6 @@ std::optional<IDBConnectionIdentifier> InProcessIDBServer::identifier() const
 IDBClient::IDBConnectionToServer& InProcessIDBServer::connectionToServer() const
 {
     return *m_connectionToServer;
-}
-
-IDBServer::IDBConnectionToClient& InProcessIDBServer::connectionToClient() const
-{
-    return *m_connectionToClient;
 }
 
 void InProcessIDBServer::deleteDatabase(const WebCore::IDBOpenRequestData& requestData)
@@ -388,9 +379,9 @@ void InProcessIDBServer::establishTransaction(IDBDatabaseConnectionIdentifier da
     });
 }
 
-void InProcessIDBServer::fireVersionChangeEvent(IDBServer::UniqueIDBDatabaseConnection& connection, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion)
+void InProcessIDBServer::fireVersionChangeEvent(IDBDatabaseConnectionIdentifier databaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion)
 {
-    dispatchTaskReply([this, protectedThis = Ref { *this }, databaseConnectionIdentifier = connection.identifier(), requestIdentifier = requestIdentifier.isolatedCopy(), requestedVersion] {
+    dispatchTaskReply([this, protectedThis = Ref { *this }, databaseConnectionIdentifier, requestIdentifier = requestIdentifier.isolatedCopy(), requestedVersion] {
         m_connectionToServer->fireVersionChangeEvent(databaseConnectionIdentifier, requestIdentifier, requestedVersion);
     });
 }
@@ -409,9 +400,9 @@ void InProcessIDBServer::didStartTransaction(const WebCore::IDBResourceIdentifie
     });
 }
 
-void InProcessIDBServer::didCloseFromServer(IDBServer::UniqueIDBDatabaseConnection& connection, const IDBError& error)
+void InProcessIDBServer::didCloseFromServer(IDBDatabaseConnectionIdentifier databaseConnectionIdentifier, const IDBError& error)
 {
-    dispatchTaskReply([this, protectedThis = Ref { *this }, databaseConnectionIdentifier = connection.identifier(), error = error.isolatedCopy()] {
+    dispatchTaskReply([this, protectedThis = Ref { *this }, databaseConnectionIdentifier, error = error.isolatedCopy()] {
         m_connectionToServer->didCloseFromServer(databaseConnectionIdentifier, error);
     });
 }

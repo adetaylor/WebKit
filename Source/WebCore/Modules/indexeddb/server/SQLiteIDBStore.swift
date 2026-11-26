@@ -259,7 +259,7 @@ final class SQLiteIDBStore {
     private let databaseName: WTF.String
     private let databaseDirectory: WTF.String
     /// The store on ":memory:", with no directory, file or blob files.
-    private let isInMemory: Bool
+    let isInMemory: Bool
     /// The statement cache, 64 slots: each slot is filled on first use and dropped with the database.
     ///
     /// Owners only; a statement is reached through get() for one use.
@@ -275,6 +275,8 @@ final class SQLiteIDBStore {
     /// forEachObjectStoreRecord's walk: its cursor and transaction while SwiftSQLiteIDBBackingStore applies each record.
     private var forEachCursor: SQLiteIDBStoreCursor? = nil
     private var forEachTransaction: SQLiteIDBStoreTransaction? = nil
+    /// What its transactions hold instead of a weak reference to the store.
+    private lazy var reference = SQLiteIDBStoreReference(self)
     /// The results of the backing store's calls, taken right after each call.
     private var pendingGetResult: WebCore.IDBGetResult? = nil
     private var pendingGetAllResult = WebCore.IDBGetAllResult()
@@ -291,6 +293,7 @@ final class SQLiteIDBStore {
     }
 
     deinit {
+        reference.storeWillDeinitialize()
         closeSQLiteDB()
     }
 
@@ -1208,14 +1211,20 @@ final class SQLiteIDBStore {
 
     // MARK: Transactions
 
+    /// Takes the transaction info's fields, not the info (its `consuming` form crashes this toolchain's move-only
+    /// checker, and only these fields are read).
     @_expose(Cxx)
-    func beginTransaction(_ info: consuming WebCore.IDBTransactionInfo) -> WebCore.IDBError {
-        if transaction(WebCore.idbTransactionInfoIdentifier(info)) != nil {
+    func beginTransaction(
+        _ identifier: consuming WebCore.IDBResourceIdentifier,
+        _ mode: WebCore.IDBTransactionMode,
+        _ durability: WebCore.IDBTransactionDurability,
+        _ newVersion: UInt64
+    ) -> WebCore.IDBError {
+        if transaction(identifier) != nil {
             return sqliteIDBUnknownError("Attempt to establish transaction identifier that already exists")
         }
-        let mode = info.mode()
-        let transaction = SQLiteIDBStoreTransaction(WebCore.idbTransactionInfoIdentifier(info), mode, info.durability(), databaseDirectory)
-        transaction.store = self
+        let transaction = SQLiteIDBStoreTransaction(identifier, mode, durability, databaseDirectory)
+        transaction.storeReference = reference
         transactions.append(transaction)
         guard let database = sqliteDB?.get() else {
             WTFCrash()
@@ -1225,7 +1234,6 @@ final class SQLiteIDBStore {
             requireDatabaseInfo()
             originalDatabaseInfoBeforeVersionChange = databaseInfo
             hasOriginalDatabaseInfoBeforeVersionChange = true
-            let newVersion = info.newVersion()
             let stored = Self.withStatement(database, "UPDATE IDBDatabaseInfo SET value = ? where key = 'DatabaseVersion';") { statement in
                 guard let statement else {
                     return false
@@ -2919,6 +2927,23 @@ final class SQLiteIDBStore {
     @_expose(Cxx)
     func objectStoreInfo(_ objectStoreIdentifier: consuming WebCore.IDBObjectStoreIdentifier) -> WebCore.IDBObjectStoreInfo {
         WebCore.idbDatabaseInfoObjectStore(&databaseInfo, objectStoreIdentifier)
+    }
+
+    /// The object store's info, or nil without one: the check and the copy in one access to the schema, as the C++'s
+    /// infoForObjectStore is one call (hasObjectStore then objectStoreInfo is two exclusivity checks per request).
+    func objectStoreInfoIfPresent(_ objectStoreIdentifier: WebCore.IDBObjectStoreIdentifier) -> WebCore.IDBObjectStoreInfo? {
+        requireDatabaseInfo()
+        return Self.objectStoreInfo(in: &databaseInfo, objectStoreIdentifier)
+    }
+
+    private static func objectStoreInfo(
+        in info: inout WebCore.IDBDatabaseInfo,
+        _ objectStoreIdentifier: WebCore.IDBObjectStoreIdentifier
+    ) -> WebCore.IDBObjectStoreInfo? {
+        guard WebCore.idbDatabaseInfoHasObjectStore(&info, objectStoreIdentifier) else {
+            return nil
+        }
+        return WebCore.idbDatabaseInfoObjectStore(&info, objectStoreIdentifier)
     }
 
     // MARK: Cursors

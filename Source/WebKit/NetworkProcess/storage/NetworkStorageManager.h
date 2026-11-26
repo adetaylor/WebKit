@@ -65,10 +65,6 @@ class SharedFileHandle;
 }
 
 namespace WebCore {
-namespace IDBServer {
-class UniqueIDBDatabaseTransaction;
-}
-
 namespace DOMCacheEngine {
 struct Record;
 }
@@ -106,6 +102,7 @@ class FileSystemStorageHandle;
 class FileSystemStorageHandleRegistry;
 class FileSystemStorageManager;
 class IDBStorageRegistry;
+class IDBTransactionRoute;
 class NetworkProcess;
 class ServiceWorkerStorageManager;
 class StorageAreaBase;
@@ -294,7 +291,7 @@ private:
     const SuspendableWorkQueue& workQueue() const WTF_RETURNS_CAPABILITY(m_queue.get()) { return m_queue; }
     SuspendableWorkQueue& workQueue() WTF_RETURNS_CAPABILITY(m_queue.get()) { return m_queue; }
     OriginQuotaManager::Parameters originQuotaManagerParameters(const WebCore::ClientOrigin&);
-    NODELETE RefPtr<WebCore::IDBServer::UniqueIDBDatabaseTransaction> idbTransaction(const WebCore::IDBRequestData&, IPC::Connection&);
+    std::optional<IDBTransactionRoute> idbTransaction(const WebCore::IDBRequestData&, IPC::Connection&);
     void setStorageSiteValidationEnabledInternal(bool);
     void updateAllowedSitesForConnectionInternal(IPC::Connection::UniqueID, std::optional<HashSet<WebCore::RegistrableDomain>>&&);
     bool isSiteAllowedForConnection(IPC::Connection::UniqueID, const WebCore::RegistrableDomain&) const;

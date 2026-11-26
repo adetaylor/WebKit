@@ -48,6 +48,8 @@
 // If Swift function parameters or return types depend on C++ types, the
 // relevant headers must be included here. rdar://165068038
 #include "APIArray.h"
+#include "IDBQuotaCheckHolder.h"
+#include "IDBStorageEndpointHolder.h"
 #include "IPCSwiftStreamTesterMessages.h"
 #include "IPCSwiftWorkQueueTesterMessages.h"
 #include "IPCTesterReceiverMessages.h"
@@ -58,6 +60,14 @@
 #include "WebBackForwardListMessages.h"
 #include "WebBackForwardListSwiftUtilities.h"
 #include "WebPageProxy.h"
+#include <WebCore/IDBCursorInfo.h>
+#include <WebCore/IDBGetAllRecordsData.h>
+#include <WebCore/IDBGetRecordData.h>
+#include <WebCore/IDBIterateCursorData.h>
+#include <WebCore/IDBOpenRequestData.h>
+#include <WebCore/IDBRequestData.h>
+#include <WebCore/IndexedDB.h>
+#include <WebCore/SwiftIDBTypes.h>
 
 #if ENABLE(GPU_PROCESS)
 #include "GPUConnectionToWebProcess.h"

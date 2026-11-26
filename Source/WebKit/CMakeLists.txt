@@ -999,6 +999,8 @@ endif ()
 
 set(WebKit_SWIFT_INTEROP_SOURCES
     NetworkProcess/storage/CacheStorageDiskStore.cpp
+    NetworkProcess/storage/NetworkStorageManager.cpp
+    NetworkProcess/storage/OriginStorageManager.cpp
     Shared/IPCStreamTester.cpp
     Shared/IPCTester.cpp
     UIProcess/ProvisionalPageProxy.cpp
@@ -1688,6 +1690,8 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/NetworkProcess/storage/NetworkStorageManager.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/OriginQuotaManager.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/StateTable.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/SwiftIDBStorageManager.swift
+    ${WEBKIT_DIR}/NetworkProcess/storage/SwiftIDBStorageRegistry.swift
     ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementDatabase.swift

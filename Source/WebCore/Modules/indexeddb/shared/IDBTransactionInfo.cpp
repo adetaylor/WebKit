@@ -50,9 +50,9 @@ IDBTransactionInfo IDBTransactionInfo::clientTransaction(const IDBClient::IDBCon
     return result;
 }
 
-IDBTransactionInfo IDBTransactionInfo::versionChange(const IDBServer::IDBConnectionToClient& connection, const IDBDatabaseInfo& originalDatabaseInfo, uint64_t newVersion)
+IDBTransactionInfo IDBTransactionInfo::versionChange(IDBConnectionIdentifier connectionIdentifier, const IDBDatabaseInfo& originalDatabaseInfo, uint64_t newVersion)
 {
-    IDBTransactionInfo result((IDBResourceIdentifier(connection)));
+    IDBTransactionInfo result((IDBResourceIdentifier(connectionIdentifier)));
     result.m_mode = IDBTransactionMode::Versionchange;
     result.m_newVersion = newVersion;
     result.m_originalDatabaseInfo = makeUnique<IDBDatabaseInfo>(originalDatabaseInfo);

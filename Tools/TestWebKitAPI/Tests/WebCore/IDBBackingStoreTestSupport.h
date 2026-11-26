@@ -78,10 +78,10 @@ public:
     void didDeleteRecord(const WebCore::IDBResultData&) final { }
     void didOpenCursor(const WebCore::IDBResultData&) final { }
     void didIterateCursor(const WebCore::IDBResultData&) final { }
-    void fireVersionChangeEvent(WebCore::IDBServer::UniqueIDBDatabaseConnection&, const WebCore::IDBResourceIdentifier&, uint64_t) final { }
+    void fireVersionChangeEvent(WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBResourceIdentifier&, uint64_t) final { }
     void generateIndexKeyForRecord(const WebCore::IDBResourceIdentifier&, const WebCore::IDBIndexInfo&, const std::optional<WebCore::IDBKeyPath>&, const WebCore::IDBKeyData&, const WebCore::IDBValue&, std::optional<int64_t>) final { }
     void didStartTransaction(const WebCore::IDBResourceIdentifier&, const WebCore::IDBError&) final { }
-    void didCloseFromServer(WebCore::IDBServer::UniqueIDBDatabaseConnection&, const WebCore::IDBError&) final { }
+    void didCloseFromServer(WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBError&) final { }
     void notifyOpenDBRequestBlocked(const WebCore::IDBResourceIdentifier&, uint64_t, uint64_t) final { }
     void didGetAllDatabaseNamesAndVersions(const WebCore::IDBResourceIdentifier&, Vector<WebCore::IDBDatabaseNameAndVersion>&&) final { }
 

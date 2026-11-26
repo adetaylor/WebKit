@@ -465,23 +465,33 @@ struct MemoryIndexValueStore {
     /// had it, in the order of `entries`.
     mutating func removeEntriesWithValueKey(_ valueKey: MemoryIDBKey, mayLeaveUnsorted: Bool) -> ContiguousArray<MemoryIDBKey> {
         var changed = ContiguousArray<MemoryIDBKey>()
-        var index = 0
-        while index < entries.count {
-            guard let position = entries[index].find(valueKey) else {
-                index += 1
-                continue
-            }
+        var start = 0
+        while let (index, position) = firstEntry(containing: valueKey, from: start) {
             changed.append(entries[index].key)
             generation &+= 1
             if entries[index].count == 1 {
                 // The entry that takes its place, if any, is looked at next.
                 removeEntry(index, mayLeaveUnsorted: mayLeaveUnsorted)
+                start = index
                 continue
             }
             entries[index].remove(at: position)
-            index += 1
+            start = index + 1
         }
         return changed
+    }
+
+    /// The first entry from `start` on holding the primary key, and its position there.
+    ///
+    /// Not mutating, so the scan
+    /// reads the entries' keys in place instead of copying each one (a retain and a release per entry).
+    private func firstEntry(containing valueKey: MemoryIDBKey, from start: Int) -> (index: Int, position: Int)? {
+        for index in start..<entries.count {
+            if let position = entries[index].find(valueKey) {
+                return (index, position)
+            }
+        }
+        return nil
     }
 
     // MARK: Positions

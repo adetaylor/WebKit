@@ -43,7 +43,6 @@
 #include "IDBBackingStoreTestSupport.h"
 #include <WebCore/IDBBackingStore.h>
 #include <WebCore/IDBBackingStoreFactories.h>
-#include <WebCore/IDBConnectionToClient.h>
 #include <WebCore/IDBConnectionToClientDelegate.h>
 #include <WebCore/IDBCursorInfo.h>
 #include <WebCore/IDBDatabaseIdentifier.h>
@@ -165,7 +164,7 @@ static IDBKeyData makeMixedKey(Random& random, unsigned depth = 0)
     }
 }
 
-// The server-side environment a store needs: an IDBConnectionToClient to mint resource identifiers from, and
+// The server-side environment a store needs: a connection identifier to mint resource identifiers from, and
 // a transaction, cursor and schema helper that follows what UniqueIDBDatabase and IDBCursor do.
 
 enum class StoreKind { SQLiteFile, SQLiteMemory, Memory };
@@ -173,8 +172,7 @@ enum class StoreKind { SQLiteFile, SQLiteMemory, Memory };
 class Session {
 public:
     Session(StoreKind kind, const String& directory = { })
-        : m_connection(IDBConnectionToClient::create(*m_delegate))
-        , m_identifier("IDBBackingStoreBench"_s, SecurityOriginData { "https"_s, "bench.example"_s, std::nullopt }, SecurityOriginData { "https"_s, "bench.example"_s, std::nullopt })
+        : m_identifier("IDBBackingStoreBench"_s, SecurityOriginData { "https"_s, "bench.example"_s, std::nullopt }, SecurityOriginData { "https"_s, "bench.example"_s, std::nullopt })
     {
         switch (kind) {
         case StoreKind::SQLiteFile:
@@ -192,7 +190,6 @@ public:
     ~Session()
     {
         close();
-        m_connection->clearDelegate();
     }
 
     void close()
@@ -210,7 +207,7 @@ public:
 
     IDBBackingStore& store() { return *m_store; }
 
-    IDBResourceIdentifier newIdentifier() { return IDBResourceIdentifier { m_connection.get() }; }
+    IDBResourceIdentifier newIdentifier() { return IDBResourceIdentifier { *m_delegate->identifier() }; }
 
     IDBResourceIdentifier begin(Digest& digest, IDBTransactionMode mode, Vector<String>&& objectStores = { })
     {
@@ -352,7 +349,6 @@ public:
 private:
     // On the heap: a CheckedPtr-capable object destroyed on the stack asserts in Debug (m_didBeginDeletion).
     std::unique_ptr<NullDelegate> m_delegate { makeUnique<NullDelegate>() };
-    Ref<IDBConnectionToClient> m_connection;
     IDBDatabaseIdentifier m_identifier;
     std::unique_ptr<IDBBackingStore> m_store;
 };

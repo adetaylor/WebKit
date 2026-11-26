@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,38 +25,29 @@
 
 #pragma once
 
-#include <WebCore/IDBDatabaseIdentifier.h>
-#include <wtf/WeakPtr.h>
+#include <memory>
+#include <wtf/CompletionHandler.h>
+#include <wtf/Function.h>
 
-namespace WebCore {
-namespace IDBServer {
-class UniqueIDBDatabaseManager;
-}
-}
+namespace WebKit {
 
-namespace WebCore {
-
-struct ClientOrigin;
-
-namespace IDBServer {
-
-class IDBBackingStore;
-class UniqueIDBDatabaseConnection;
-class UniqueIDBDatabaseTransaction;
-
-class UniqueIDBDatabaseManager : public CanMakeWeakPtr<UniqueIDBDatabaseManager>, public CanMakeThreadSafeCheckedPtr<UniqueIDBDatabaseManager> {
-    WTF_MAKE_TZONE_ALLOCATED_INLINE(UniqueIDBDatabaseManager);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(UniqueIDBDatabaseManager);
+// The quota check an OriginStorageManager gives its IDBStorageManager, as a copyable value for Swift.
+class IDBQuotaCheckHolder {
 public:
-    virtual ~UniqueIDBDatabaseManager() { }
-    virtual void registerConnection(UniqueIDBDatabaseConnection&) = 0;
-    virtual void unregisterConnection(UniqueIDBDatabaseConnection&) = 0;
-    virtual void registerTransaction(UniqueIDBDatabaseTransaction&) = 0;
-    virtual void unregisterTransaction(UniqueIDBDatabaseTransaction&) = 0;
-    virtual std::unique_ptr<IDBBackingStore> createBackingStore(const IDBDatabaseIdentifier&) = 0;
-    virtual void requestSpace(const ClientOrigin&, uint64_t size, CompletionHandler<void(bool)>&&) = 0;
+    using QuotaCheckFunction = Function<void(uint64_t spaceRequested, CompletionHandler<void(bool)>&&)>;
+
+    explicit IDBQuotaCheckHolder(QuotaCheckFunction&& function)
+        : m_function(std::make_shared<QuotaCheckFunction>(WTF::move(function)))
+    {
+    }
+
+    void request(uint64_t spaceRequested, CompletionHandler<void(bool)>&& completionHandler) const
+    {
+        (*m_function)(spaceRequested, WTF::move(completionHandler));
+    }
+
+private:
+    std::shared_ptr<QuotaCheckFunction> m_function;
 };
 
-} // namespace IDBServer
-
-} // namespace WebCore
+} // namespace WebKit

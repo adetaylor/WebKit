@@ -2328,6 +2328,19 @@
 		3890A73A6F24420484C2AB12 /* MemoryIDBTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23CD7979809849B294235766 /* MemoryIDBTransaction.swift */; };
 		7280E351A0DC459DB09B54A7 /* MemoryIndexValueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BDBD8472BB48AE96F466EC /* MemoryIndexValueStore.swift */; };
 		D0FF33084718472E8CF955A9 /* SwiftIDBStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B85F866F5224B0FAA57CB1F /* SwiftIDBStore.swift */; };
+		DC9536AEFC03CECEF8775226 /* IDBConnectionToClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 272947BEE0F2FF50A578FB93 /* IDBConnectionToClient.swift */; };
+		A387D30349ECE707D5B86A5E /* IDBServerBackingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AB83D9CD45E64362C08D0D4 /* IDBServerBackingStore.swift */; };
+		67D0E0C8F85344489AD6AECA /* IDBServerContainers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0898045A032A40EE9665C619 /* IDBServerContainers.swift */; };
+		1AACB3EDDF5A12D432F519C8 /* IDBServerCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E407CDCA946307D75D9924E0 /* IDBServerCore.swift */; };
+		96F5C369E3FF67D34F508151 /* IDBServerRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45F2591138BDBF890993AFAB /* IDBServerRouter.swift */; };
+		3841EBB386BCC5E73B9C4AAE /* IDBServerShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = F184A24AF41C57671C0ED28E /* IDBServerShared.swift */; };
+		0A5CDE299169DCE76EEA93C6 /* ServerOpenDBRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9414A17429F632B451C94FAC /* ServerOpenDBRequest.swift */; };
+		7D14D19A35FC908055AEB1C1 /* SwiftIDBServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3E058ABD3985B9951A9DD3 /* SwiftIDBServer.swift */; };
+		74625CCBD455F799253662C3 /* UniqueIDBDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB6E63BECEDB7AF08CEF2AA /* UniqueIDBDatabase.swift */; };
+		E37FAFEE0370726DF441333E /* UniqueIDBDatabase+Operations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A52F22DDF3E311EA5365887 /* UniqueIDBDatabase+Operations.swift */; };
+		FB4E7B3FAE5B4465A0170BF7 /* UniqueIDBDatabase+SizeEstimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CED063C05D499797BBB87F /* UniqueIDBDatabase+SizeEstimation.swift */; };
+		8A97737ED05F0CFA1E7512BE /* UniqueIDBDatabaseConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA98FF2225BECD72CBE448B /* UniqueIDBDatabaseConnection.swift */; };
+		6ED6B4E239B9AB79820C6716 /* UniqueIDBDatabaseTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD4FD90A2924EDA6AC95A4B /* UniqueIDBDatabaseTransaction.swift */; };
 		83BCC7E5BA4E4584AA2E5907 /* SQLiteIDBStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9934F1A1F7444BD0B0D521B9 /* SQLiteIDBStore.swift */; };
 		39FF5317DF6C4613A1891E99 /* SQLiteIDBStoreCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2086D61E19F14DA89B1300B8 /* SQLiteIDBStoreCursor.swift */; };
 		5BF356BC90AD4AC3AA34C942 /* SQLiteIDBStoreTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = B178987B344F46D8B2780970 /* SQLiteIDBStoreTransaction.swift */; };
@@ -2406,7 +2419,6 @@
 		516D3DD72E1629C300E4CC09 /* FocusEventData.h in Headers */ = {isa = PBXBuildFile; fileRef = 516D3DD62E1629C300E4CC09 /* FocusEventData.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		516D7D701BB5F0BD00AF7C77 /* IDBConnectionToServerDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 5185FCBD1BB5CB770012898F /* IDBConnectionToServerDelegate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		516D7D721BB5F0BD00AF7C77 /* IDBConnectionToClientDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 516D7D6E1BB5F06500AF7C77 /* IDBConnectionToClientDelegate.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		516F7F6D1C31E39A00F111DC /* ServerOpenDBRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 516F7F6C1C31C79D00F111DC /* ServerOpenDBRequest.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		517111B82AD393910047117B /* RTCIceRole.h in Headers */ = {isa = PBXBuildFile; fileRef = 517111B52AD393700047117B /* RTCIceRole.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		517111B92AD393C40047117B /* RTCIceServerTransportProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 517111B32AD393410047117B /* RTCIceServerTransportProtocol.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		517138F01BED1D1A000D5F01 /* IndexKey.h in Headers */ = {isa = PBXBuildFile; fileRef = 517138EE1BED1D17000D5F01 /* IndexKey.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -2451,17 +2463,13 @@
 		5185FCB01BB4C4E80012898F /* IDBVersionChangeEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 51645B531B9F889B00F789CE /* IDBVersionChangeEvent.h */; };
 		5185FCB21BB4C4E80012898F /* IndexedDB.h in Headers */ = {isa = PBXBuildFile; fileRef = 51D719AE181106E00016DC51 /* IndexedDB.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5185FCB41BB4C4E80012898F /* WindowOrWorkerGlobalScopeIndexedDatabase.h in Headers */ = {isa = PBXBuildFile; fileRef = 51D719B2181106E00016DC51 /* WindowOrWorkerGlobalScopeIndexedDatabase.h */; };
-		5185FCB91BB4CBF80012898F /* IDBConnectionToClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 510A58FE1BB07AA500C19282 /* IDBConnectionToClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5185FCBB1BB4CBF80012898F /* IDBServer.h in Headers */ = {isa = PBXBuildFile; fileRef = 510A58F01BAB720F00C19282 /* IDBServer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5187E8452B79F9690053BFF5 /* MediaSourceHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 5187E8422B79F8100053BFF5 /* MediaSourceHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		518864E11BBAF57400E540C9 /* UniqueIDBDatabase.h in Headers */ = {isa = PBXBuildFile; fileRef = 518864DF1BBAF30F00E540C9 /* UniqueIDBDatabase.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		51895F8A2D123D0900E8D471 /* DocumentClasses.h in Headers */ = {isa = PBXBuildFile; fileRef = 51895F892D123D0900E8D471 /* DocumentClasses.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5189F01E10B37BD900F3C739 /* JSPopStateEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 5189F01C10B37BD900F3C739 /* JSPopStateEvent.h */; };
 		518F4FF6194CA4E60081BAAE /* GamepadButton.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 518F4FED194CA4E60081BAAE /* GamepadButton.cpp */; };
 		518F5002194CAC3A0081BAAE /* JSGamepad.h in Headers */ = {isa = PBXBuildFile; fileRef = 518F4FFE194CAC3A0081BAAE /* JSGamepad.h */; };
 		518F5004194CAC3A0081BAAE /* JSGamepadButton.h in Headers */ = {isa = PBXBuildFile; fileRef = 518F5000194CAC3A0081BAAE /* JSGamepadButton.h */; };
-		5198F7A51BBDB79300E2CC5F /* UniqueIDBDatabaseConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = 5198F7A31BBDAA2900E2CC5F /* UniqueIDBDatabaseConnection.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5198F7A91BBDD38500E2CC5F /* UniqueIDBDatabaseTransaction.h in Headers */ = {isa = PBXBuildFile; fileRef = 5198F7A71BBDD38100E2CC5F /* UniqueIDBDatabaseTransaction.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5198F7AD1BBDD3EB00E2CC5F /* IDBTransactionInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 5198F7AB1BBDD3E300E2CC5F /* IDBTransactionInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5198F7C11BC4856700E2CC5F /* IDBConnectionToServer.h in Headers */ = {isa = PBXBuildFile; fileRef = 510A58FD1BB07A9600C19282 /* IDBConnectionToServer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		519DBC6F1DC011A700329BF5 /* IDBGetAllRecordsData.h in Headers */ = {isa = PBXBuildFile; fileRef = 519DBC6C1DC00FA000329BF5 /* IDBGetAllRecordsData.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -4172,7 +4180,6 @@
 		93B2D8160F9920D2006AE6B2 /* SuddenTermination.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B2D8150F9920D2006AE6B2 /* SuddenTermination.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		93B38EC325821DB400198E63 /* WebSpeechRecognizerTask.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B38EBA2582193B00198E63 /* WebSpeechRecognizerTask.h */; };
 		93B38EC425821DB700198E63 /* WebSpeechRecognizerTaskMock.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B38EBB2582193D00198E63 /* WebSpeechRecognizerTaskMock.h */; };
-		93B631E227ABA1E600443A44 /* UniqueIDBDatabaseManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B631E027ABA1E200443A44 /* UniqueIDBDatabaseManager.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		93B6A0E60B0BCA5C00F5027A /* ContextMenu.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B6A0E50B0BCA5C00F5027A /* ContextMenu.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		93B70D6409EB0C7C009D8468 /* JSDOMBinding.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B70D4809EB0C7C009D8468 /* JSDOMBinding.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		93B70D6A09EB0C7C009D8468 /* JSEventListener.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B70D4E09EB0C7C009D8468 /* JSEventListener.h */; };
@@ -12984,7 +12991,6 @@
 		510A58F51BACC4A500C19282 /* IDBRequestData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IDBRequestData.cpp; sourceTree = "<group>"; };
 		510A58F61BACC4A500C19282 /* IDBRequestData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBRequestData.h; sourceTree = "<group>"; };
 		510A58FD1BB07A9600C19282 /* IDBConnectionToServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBConnectionToServer.h; sourceTree = "<group>"; };
-		510A58FE1BB07AA500C19282 /* IDBConnectionToClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBConnectionToClient.h; sourceTree = "<group>"; };
 		510A91D524CE8EDE00BFD89C /* HIDGamepadElement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HIDGamepadElement.cpp; sourceTree = "<group>"; };
 		510A91D624CE8EDE00BFD89C /* HIDGamepadElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HIDGamepadElement.h; sourceTree = "<group>"; };
 		510A91DB24CF441800BFD89C /* SharedGamepadValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SharedGamepadValue.h; sourceTree = "<group>"; };
@@ -13047,6 +13053,19 @@
 		23CD7979809849B294235766 /* MemoryIDBTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryIDBTransaction.swift; sourceTree = "<group>"; };
 		A8BDBD8472BB48AE96F466EC /* MemoryIndexValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryIndexValueStore.swift; sourceTree = "<group>"; };
 		9B85F866F5224B0FAA57CB1F /* SwiftIDBStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftIDBStore.swift; sourceTree = "<group>"; };
+		272947BEE0F2FF50A578FB93 /* IDBConnectionToClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDBConnectionToClient.swift; sourceTree = "<group>"; };
+		8AB83D9CD45E64362C08D0D4 /* IDBServerBackingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDBServerBackingStore.swift; sourceTree = "<group>"; };
+		0898045A032A40EE9665C619 /* IDBServerContainers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDBServerContainers.swift; sourceTree = "<group>"; };
+		E407CDCA946307D75D9924E0 /* IDBServerCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDBServerCore.swift; sourceTree = "<group>"; };
+		45F2591138BDBF890993AFAB /* IDBServerRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDBServerRouter.swift; sourceTree = "<group>"; };
+		F184A24AF41C57671C0ED28E /* IDBServerShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDBServerShared.swift; sourceTree = "<group>"; };
+		9414A17429F632B451C94FAC /* ServerOpenDBRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerOpenDBRequest.swift; sourceTree = "<group>"; };
+		9B3E058ABD3985B9951A9DD3 /* SwiftIDBServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftIDBServer.swift; sourceTree = "<group>"; };
+		8EB6E63BECEDB7AF08CEF2AA /* UniqueIDBDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniqueIDBDatabase.swift; sourceTree = "<group>"; };
+		2A52F22DDF3E311EA5365887 /* UniqueIDBDatabase+Operations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UniqueIDBDatabase+Operations.swift"; sourceTree = "<group>"; };
+		A8CED063C05D499797BBB87F /* UniqueIDBDatabase+SizeEstimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UniqueIDBDatabase+SizeEstimation.swift"; sourceTree = "<group>"; };
+		1FA98FF2225BECD72CBE448B /* UniqueIDBDatabaseConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniqueIDBDatabaseConnection.swift; sourceTree = "<group>"; };
+		8FD4FD90A2924EDA6AC95A4B /* UniqueIDBDatabaseTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniqueIDBDatabaseTransaction.swift; sourceTree = "<group>"; };
 		9934F1A1F7444BD0B0D521B9 /* SQLiteIDBStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteIDBStore.swift; sourceTree = "<group>"; };
 		2086D61E19F14DA89B1300B8 /* SQLiteIDBStoreCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteIDBStoreCursor.swift; sourceTree = "<group>"; };
 		B178987B344F46D8B2780970 /* SQLiteIDBStoreTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteIDBStoreTransaction.swift; sourceTree = "<group>"; };
@@ -13224,10 +13243,7 @@
 		516C62241950E2B900337E75 /* JSGamepadEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSGamepadEvent.h; sourceTree = "<group>"; };
 		516C792C2A1705B70002B73E /* BufferedChangeEvent.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = BufferedChangeEvent.idl; sourceTree = "<group>"; };
 		516D3DD62E1629C300E4CC09 /* FocusEventData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FocusEventData.h; sourceTree = "<group>"; };
-		516D7D6D1BB5F06500AF7C77 /* IDBConnectionToClient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IDBConnectionToClient.cpp; sourceTree = "<group>"; };
 		516D7D6E1BB5F06500AF7C77 /* IDBConnectionToClientDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBConnectionToClientDelegate.h; sourceTree = "<group>"; };
-		516F7F6B1C31C79D00F111DC /* ServerOpenDBRequest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ServerOpenDBRequest.cpp; sourceTree = "<group>"; };
-		516F7F6C1C31C79D00F111DC /* ServerOpenDBRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ServerOpenDBRequest.h; sourceTree = "<group>"; };
 		517111B32AD393410047117B /* RTCIceServerTransportProtocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCIceServerTransportProtocol.h; sourceTree = "<group>"; };
 		517111B42AD393410047117B /* RTCIceServerTransportProtocol.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = RTCIceServerTransportProtocol.idl; sourceTree = "<group>"; };
 		517111B52AD393700047117B /* RTCIceRole.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCIceRole.h; sourceTree = "<group>"; };
@@ -13289,8 +13305,6 @@
 		5187E8422B79F8100053BFF5 /* MediaSourceHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaSourceHandle.h; sourceTree = "<group>"; };
 		5187E8432B79F8100053BFF5 /* MediaSourceHandle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MediaSourceHandle.cpp; sourceTree = "<group>"; };
 		5187E8442B79F8100053BFF5 /* MediaSourceHandle.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = MediaSourceHandle.idl; sourceTree = "<group>"; };
-		518864DE1BBAF30F00E540C9 /* UniqueIDBDatabase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UniqueIDBDatabase.cpp; sourceTree = "<group>"; };
-		518864DF1BBAF30F00E540C9 /* UniqueIDBDatabase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueIDBDatabase.h; sourceTree = "<group>"; };
 		5188A7DDD00B206B110ED7A1 /* UnifiedSource75-header-RenderStyleGetters.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "UnifiedSource75-header-RenderStyleGetters.cpp"; sourceTree = "<group>"; };
 		51895F892D123D0900E8D471 /* DocumentClasses.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DocumentClasses.h; sourceTree = "<group>"; };
 		5189F01B10B37BD900F3C739 /* JSPopStateEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSPopStateEvent.cpp; sourceTree = "<group>"; };
@@ -13306,10 +13320,6 @@
 		5192DDB72AB5189300E88DE7 /* NotificationPayloadCocoa.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NotificationPayloadCocoa.mm; sourceTree = "<group>"; };
 		5192DDB82AB51A9300E88DE7 /* NotificationOptionsPayloadCocoa.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = NotificationOptionsPayloadCocoa.mm; sourceTree = "<group>"; };
 		5194C26827FFD7C200AEF3CF /* NotificationDataCocoa.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = NotificationDataCocoa.mm; sourceTree = "<group>"; };
-		5198F7A21BBDAA2900E2CC5F /* UniqueIDBDatabaseConnection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UniqueIDBDatabaseConnection.cpp; sourceTree = "<group>"; };
-		5198F7A31BBDAA2900E2CC5F /* UniqueIDBDatabaseConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueIDBDatabaseConnection.h; sourceTree = "<group>"; };
-		5198F7A61BBDD38100E2CC5F /* UniqueIDBDatabaseTransaction.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UniqueIDBDatabaseTransaction.cpp; sourceTree = "<group>"; };
-		5198F7A71BBDD38100E2CC5F /* UniqueIDBDatabaseTransaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueIDBDatabaseTransaction.h; sourceTree = "<group>"; };
 		5198F7AA1BBDD3E300E2CC5F /* IDBTransactionInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IDBTransactionInfo.cpp; sourceTree = "<group>"; };
 		5198F7AB1BBDD3E300E2CC5F /* IDBTransactionInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBTransactionInfo.h; sourceTree = "<group>"; };
 		5199AB3E29CD7D950076BDDE /* MediaSourcePrivate.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MediaSourcePrivate.cpp; sourceTree = "<group>"; };
@@ -16940,7 +16950,6 @@
 		93B38EBA2582193B00198E63 /* WebSpeechRecognizerTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSpeechRecognizerTask.h; sourceTree = "<group>"; };
 		93B38EBB2582193D00198E63 /* WebSpeechRecognizerTaskMock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSpeechRecognizerTaskMock.h; sourceTree = "<group>"; };
 		93B38EBC2582193E00198E63 /* WebSpeechRecognizerTask.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = WebSpeechRecognizerTask.mm; sourceTree = "<group>"; };
-		93B631E027ABA1E200443A44 /* UniqueIDBDatabaseManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueIDBDatabaseManager.h; sourceTree = "<group>"; };
 		93B6A0E50B0BCA5C00F5027A /* ContextMenu.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = ContextMenu.h; sourceTree = "<group>"; };
 		93B70D4809EB0C7C009D8468 /* JSDOMBinding.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = JSDOMBinding.h; sourceTree = "<group>"; };
 		93B70D4D09EB0C7C009D8468 /* JSEventListener.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = JSEventListener.cpp; sourceTree = "<group>"; };
@@ -29812,8 +29821,6 @@
 			isa = PBXGroup;
 			children = (
 				51BA4AC71BBC5AD600DF3D6D /* IDBBackingStore.h */,
-				516D7D6D1BB5F06500AF7C77 /* IDBConnectionToClient.cpp */,
-				510A58FE1BB07AA500C19282 /* IDBConnectionToClient.h */,
 				516D7D6E1BB5F06500AF7C77 /* IDBConnectionToClientDelegate.h */,
 				511EC1251C50AA570032F983 /* IDBSerialization.cpp */,
 				511EC1261C50AA570032F983 /* IDBSerialization.h */,
@@ -29828,6 +29835,19 @@
 				23CD7979809849B294235766 /* MemoryIDBTransaction.swift */,
 				A8BDBD8472BB48AE96F466EC /* MemoryIndexValueStore.swift */,
 				9B85F866F5224B0FAA57CB1F /* SwiftIDBStore.swift */,
+				272947BEE0F2FF50A578FB93 /* IDBConnectionToClient.swift */,
+				8AB83D9CD45E64362C08D0D4 /* IDBServerBackingStore.swift */,
+				0898045A032A40EE9665C619 /* IDBServerContainers.swift */,
+				E407CDCA946307D75D9924E0 /* IDBServerCore.swift */,
+				45F2591138BDBF890993AFAB /* IDBServerRouter.swift */,
+				F184A24AF41C57671C0ED28E /* IDBServerShared.swift */,
+				9414A17429F632B451C94FAC /* ServerOpenDBRequest.swift */,
+				9B3E058ABD3985B9951A9DD3 /* SwiftIDBServer.swift */,
+				8EB6E63BECEDB7AF08CEF2AA /* UniqueIDBDatabase.swift */,
+				2A52F22DDF3E311EA5365887 /* UniqueIDBDatabase+Operations.swift */,
+				A8CED063C05D499797BBB87F /* UniqueIDBDatabase+SizeEstimation.swift */,
+				1FA98FF2225BECD72CBE448B /* UniqueIDBDatabaseConnection.swift */,
+				8FD4FD90A2924EDA6AC95A4B /* UniqueIDBDatabaseTransaction.swift */,
 				9934F1A1F7444BD0B0D521B9 /* SQLiteIDBStore.swift */,
 				2086D61E19F14DA89B1300B8 /* SQLiteIDBStoreCursor.swift */,
 				B178987B344F46D8B2780970 /* SQLiteIDBStoreTransaction.swift */,
@@ -29837,17 +29857,8 @@
 				7C3A058CACD846EFBC2B88B3 /* SwiftIDBTypes.h */,
 				510A58EF1BAB720F00C19282 /* IDBServer.cpp */,
 				510A58F01BAB720F00C19282 /* IDBServer.h */,
-				516F7F6B1C31C79D00F111DC /* ServerOpenDBRequest.cpp */,
-				516F7F6C1C31C79D00F111DC /* ServerOpenDBRequest.h */,
 				6F986CFB21784647B56CF6E5 /* IDBBackingStoreFactories.cpp */,
 				95855D278C434315A7587CA7 /* IDBBackingStoreFactories.h */,
-				518864DE1BBAF30F00E540C9 /* UniqueIDBDatabase.cpp */,
-				518864DF1BBAF30F00E540C9 /* UniqueIDBDatabase.h */,
-				5198F7A21BBDAA2900E2CC5F /* UniqueIDBDatabaseConnection.cpp */,
-				5198F7A31BBDAA2900E2CC5F /* UniqueIDBDatabaseConnection.h */,
-				93B631E027ABA1E200443A44 /* UniqueIDBDatabaseManager.h */,
-				5198F7A61BBDD38100E2CC5F /* UniqueIDBDatabaseTransaction.cpp */,
-				5198F7A71BBDD38100E2CC5F /* UniqueIDBDatabaseTransaction.h */,
 			);
 			path = server;
 			sourceTree = "<group>";
@@ -47487,7 +47498,6 @@
 				51BA4ACC1BBC5BDD00DF3D6D /* IDBBackingStore.h in Headers */,
 				C585A66311D4FAC5004C3E4B /* IDBBindingUtilities.h in Headers */,
 				517B25AA1CC82B2A0061C011 /* IDBConnectionProxy.h in Headers */,
-				5185FCB91BB4CBF80012898F /* IDBConnectionToClient.h in Headers */,
 				516D7D721BB5F0BD00AF7C77 /* IDBConnectionToClientDelegate.h in Headers */,
 				5198F7C11BC4856700E2CC5F /* IDBConnectionToServer.h in Headers */,
 				516D7D701BB5F0BD00AF7C77 /* IDBConnectionToServerDelegate.h in Headers */,
@@ -50232,7 +50242,6 @@
 				076D1C1F23F6EB5B00D95B06 /* SerializedPlatformDataCueValue.h in Headers */,
 				A75E497610752ACB00C9B896 /* SerializedScriptValue.h in Headers */,
 				A75E497810752ACB00C9B896 /* SerializedScriptValueInternals.h in Headers */,
-				516F7F6D1C31E39A00F111DC /* ServerOpenDBRequest.h in Headers */,
 				08385B3635124BCBAD8F6795 /* ServerTiming.h in Headers */,
 				D6B086FD06D0431295A082C1 /* ServerTimingParser.h in Headers */,
 				2D93AEE319DF5641002A86C3 /* ServicesOverlayController.h in Headers */,
@@ -51295,10 +51304,6 @@
 				9B2D8A7914997CCF00ECEF3E /* UndoStep.h in Headers */,
 				A863E2011343412000274926 /* UnicodeBidi.h in Headers */,
 				F4023C4B2D3C4E670008A06D /* UnicodeHelpers.h in Headers */,
-				518864E11BBAF57400E540C9 /* UniqueIDBDatabase.h in Headers */,
-				5198F7A51BBDB79300E2CC5F /* UniqueIDBDatabaseConnection.h in Headers */,
-				93B631E227ABA1E600443A44 /* UniqueIDBDatabaseManager.h in Headers */,
-				5198F7A91BBDD38500E2CC5F /* UniqueIDBDatabaseTransaction.h in Headers */,
 				E4AFCFA50DAF29A300F5F55C /* UnitBezier.h in Headers */,
 				C18CC0A42580EFB1003D75FB /* UniversalAccessZoom.h in Headers */,
 				AEBAFFAD2D65D459008311A5 /* UnknownCredentialOptions.h in Headers */,
@@ -52818,6 +52823,19 @@
 				3890A73A6F24420484C2AB12 /* MemoryIDBTransaction.swift in Sources */,
 				7280E351A0DC459DB09B54A7 /* MemoryIndexValueStore.swift in Sources */,
 				D0FF33084718472E8CF955A9 /* SwiftIDBStore.swift in Sources */,
+				DC9536AEFC03CECEF8775226 /* IDBConnectionToClient.swift in Sources */,
+				A387D30349ECE707D5B86A5E /* IDBServerBackingStore.swift in Sources */,
+				67D0E0C8F85344489AD6AECA /* IDBServerContainers.swift in Sources */,
+				1AACB3EDDF5A12D432F519C8 /* IDBServerCore.swift in Sources */,
+				96F5C369E3FF67D34F508151 /* IDBServerRouter.swift in Sources */,
+				3841EBB386BCC5E73B9C4AAE /* IDBServerShared.swift in Sources */,
+				0A5CDE299169DCE76EEA93C6 /* ServerOpenDBRequest.swift in Sources */,
+				7D14D19A35FC908055AEB1C1 /* SwiftIDBServer.swift in Sources */,
+				74625CCBD455F799253662C3 /* UniqueIDBDatabase.swift in Sources */,
+				E37FAFEE0370726DF441333E /* UniqueIDBDatabase+Operations.swift in Sources */,
+				FB4E7B3FAE5B4465A0170BF7 /* UniqueIDBDatabase+SizeEstimation.swift in Sources */,
+				8A97737ED05F0CFA1E7512BE /* UniqueIDBDatabaseConnection.swift in Sources */,
+				6ED6B4E239B9AB79820C6716 /* UniqueIDBDatabaseTransaction.swift in Sources */,
 				83BCC7E5BA4E4584AA2E5907 /* SQLiteIDBStore.swift in Sources */,
 				39FF5317DF6C4613A1891E99 /* SQLiteIDBStoreCursor.swift in Sources */,
 				5BF356BC90AD4AC3AA34C942 /* SQLiteIDBStoreTransaction.swift in Sources */,

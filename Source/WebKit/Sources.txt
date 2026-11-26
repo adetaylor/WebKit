@@ -130,8 +130,6 @@ NetworkProcess/storage/FileSystemStorageManager.cpp
 NetworkProcess/storage/FileSystemStorageHandle.cpp
 NetworkProcess/storage/FileSystemStorageHandleRegistry.cpp
 NetworkProcess/storage/IDBStorageConnectionToClient.cpp
-NetworkProcess/storage/IDBStorageManager.cpp
-NetworkProcess/storage/IDBStorageRegistry.cpp
 NetworkProcess/storage/LocalStorageManager.cpp
 NetworkProcess/storage/MemoryStorageArea.cpp
 NetworkProcess/storage/NetworkStorageManager.cpp @cost:7

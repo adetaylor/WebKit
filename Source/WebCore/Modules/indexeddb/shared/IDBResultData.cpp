@@ -26,9 +26,6 @@
 #include "config.h"
 #include "IDBResultData.h"
 
-#include "UniqueIDBDatabase.h"
-#include "UniqueIDBDatabaseConnection.h"
-#include "UniqueIDBDatabaseTransaction.h"
 #include <wtf/CrossThreadCopier.h>
 
 namespace WebCore {
@@ -107,23 +104,23 @@ IDBResultData IDBResultData::error(const IDBResourceIdentifier& requestIdentifie
     return result;
 }
 
-IDBResultData IDBResultData::openDatabaseSuccess(const IDBResourceIdentifier& requestIdentifier, IDBServer::UniqueIDBDatabaseConnection& connection)
+IDBResultData IDBResultData::openDatabaseSuccess(const IDBResourceIdentifier& requestIdentifier, IDBDatabaseConnectionIdentifier databaseConnectionIdentifier, const IDBDatabaseInfo& databaseInfo)
 {
     IDBResultData result { requestIdentifier };
     result.m_type = IDBResultType::OpenDatabaseSuccess;
-    result.m_databaseConnectionIdentifier = connection.identifier();
-    result.m_databaseInfo = makeUnique<IDBDatabaseInfo>(connection.database()->info());
+    result.m_databaseConnectionIdentifier = databaseConnectionIdentifier;
+    result.m_databaseInfo = makeUnique<IDBDatabaseInfo>(databaseInfo);
     return result;
 }
 
 
-IDBResultData IDBResultData::openDatabaseUpgradeNeeded(const IDBResourceIdentifier& requestIdentifier, IDBServer::UniqueIDBDatabaseTransaction& transaction, IDBServer::UniqueIDBDatabaseConnection& connection)
+IDBResultData IDBResultData::openDatabaseUpgradeNeeded(const IDBResourceIdentifier& requestIdentifier, IDBDatabaseConnectionIdentifier databaseConnectionIdentifier, const IDBDatabaseInfo& databaseInfo, const IDBTransactionInfo& transactionInfo)
 {
     IDBResultData result { requestIdentifier };
     result.m_type = IDBResultType::OpenDatabaseUpgradeNeeded;
-    result.m_databaseConnectionIdentifier = connection.identifier();
-    result.m_databaseInfo = makeUnique<IDBDatabaseInfo>(connection.database()->info());
-    result.m_transactionInfo = makeUnique<IDBTransactionInfo>(transaction.info());
+    result.m_databaseConnectionIdentifier = databaseConnectionIdentifier;
+    result.m_databaseInfo = makeUnique<IDBDatabaseInfo>(databaseInfo);
+    result.m_transactionInfo = makeUnique<IDBTransactionInfo>(transactionInfo);
     return result;
 }
 

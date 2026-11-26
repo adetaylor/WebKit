@@ -124,15 +124,19 @@ final class SwiftIDBStore {
         state.transactionIndex(identifier) != nil
     }
 
+    /// Takes the transaction info's fields, not the info (its `consuming` form crashes this toolchain's move-only
+    /// checker, and only these fields are read).
     @_expose(Cxx)
-    func beginTransaction(_ info: consuming WebCore.IDBTransactionInfo) -> WebCore.MemoryIDBStoreError {
-        let mode = info.mode()
+    func beginTransaction(
+        _ identifier: consuming WebCore.IDBResourceIdentifier,
+        _ mode: WebCore.IDBTransactionMode,
+        _ objectStores: consuming WebCore.IDBTransactionObjectStoreNames
+    ) -> WebCore.MemoryIDBStoreError {
         var names: [WTF.String] = []
-        let infoObjectStores = WebCore.idbTransactionInfoObjectStores(info)
-        for i in 0..<WebCore.idbStringVectorSize(infoObjectStores) {
-            names.append(WebCore.idbStringVectorAt(infoObjectStores, i))
+        for i in 0..<WebCore.idbStringVectorSize(objectStores) {
+            names.append(WebCore.idbStringVectorAt(objectStores, i))
         }
-        return state.beginTransaction(WebCore.idbTransactionInfoIdentifier(info), mode == .Versionchange, mode != .Readonly, names)
+        return state.beginTransaction(identifier, mode == .Versionchange, mode != .Readonly, names)
     }
 
     @_expose(Cxx)

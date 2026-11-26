@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include <WebCore/IDBConnectionToClient.h>
+#include <WebCore/IDBConnectionToClientDelegate.h>
 #include <WebCore/IDBConnectionToServer.h>
 #include <WebCore/IDBIndexIdentifier.h>
 #include <WebCore/IDBIndexInfo.h>
@@ -65,7 +65,6 @@ public:
     virtual ~InProcessIDBServer();
 
     NODELETE WebCore::IDBClient::IDBConnectionToServer& connectionToServer() const;
-    NODELETE WebCore::IDBServer::IDBConnectionToClient& connectionToClient() const;
 
     void ref() const final { ThreadSafeRefCounted::ref(); }
     void deref() const final { ThreadSafeRefCounted::deref(); }
@@ -99,7 +98,7 @@ public:
     void openDBRequestCancelled(const WebCore::IDBOpenRequestData&) final;
     void getAllDatabaseNamesAndVersions(const WebCore::IDBResourceIdentifier&, const WebCore::ClientOrigin&) final;
 
-    // IDBConnectionToClient
+    // IDBConnectionToClientDelegate
     std::optional<WebCore::IDBConnectionIdentifier> identifier() const final;
     void didDeleteDatabase(const WebCore::IDBResultData&) final;
     void didOpenDatabase(const WebCore::IDBResultData&) final;
@@ -119,10 +118,10 @@ public:
     void didDeleteRecord(const WebCore::IDBResultData&) final;
     void didOpenCursor(const WebCore::IDBResultData&) final;
     void didIterateCursor(const WebCore::IDBResultData&) final;
-    void fireVersionChangeEvent(WebCore::IDBServer::UniqueIDBDatabaseConnection&, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion) final;
+    void fireVersionChangeEvent(WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion) final;
     void generateIndexKeyForRecord(const WebCore::IDBResourceIdentifier& requestIdentifier, const WebCore::IDBIndexInfo&, const std::optional<WebCore::IDBKeyPath>&, const WebCore::IDBKeyData&, const WebCore::IDBValue&, std::optional<int64_t> recordID) final;
     void didStartTransaction(const WebCore::IDBResourceIdentifier& transactionIdentifier, const WebCore::IDBError&) final;
-    void didCloseFromServer(WebCore::IDBServer::UniqueIDBDatabaseConnection&, const WebCore::IDBError&) final;
+    void didCloseFromServer(WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBError&) final;
     void notifyOpenDBRequestBlocked(const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t oldVersion, uint64_t newVersion) final;
     void didGetAllDatabaseNamesAndVersions(const WebCore::IDBResourceIdentifier&, Vector<WebCore::IDBDatabaseNameAndVersion>&&) final;
 
@@ -136,6 +135,5 @@ private:
 
     std::unique_ptr<WebCore::IDBServer::IDBServer> m_server WTF_GUARDED_BY_CAPABILITY(m_queue.get());
     const RefPtr<WebCore::IDBClient::IDBConnectionToServer> m_connectionToServer;
-    RefPtr<WebCore::IDBServer::IDBConnectionToClient> m_connectionToClient;
     const Ref<WTF::WorkQueue> m_queue;
 };

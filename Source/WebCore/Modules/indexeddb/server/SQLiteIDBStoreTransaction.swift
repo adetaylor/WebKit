@@ -46,6 +46,30 @@ internal import WebCore_Private.Core.SQLiteStatement
 internal import WebCore_Private.Core.SQLiteTransaction
 internal import WebCore_Private.Core.SwiftIDBTypes
 
+/// What a transaction holds to reach its store, instead of a weak reference.
+///
+/// It names the store unowned and gives nil once the store's deinitializer has begun, as a weak reference does. A weak
+/// reference would give the store a side table, after which every retain and release of it takes the runtime's slow
+/// path.
+final class SQLiteIDBStoreReference {
+    private unowned let target: SQLiteIDBStore
+    private var storeIsLive = true
+
+    init(_ store: SQLiteIDBStore) {
+        target = store
+    }
+
+    /// The store, or nil once it has begun to deinitialize.
+    var store: SQLiteIDBStore? {
+        storeIsLive ? target : nil
+    }
+
+    /// Called by the store's deinitializer first.
+    func storeWillDeinitialize() {
+        storeIsLive = false
+    }
+}
+
 /// A transaction of the SQLite store: its SQLite transaction, its cursors, and the blob files it
 /// stores and deletes on commit.
 final class SQLiteIDBStoreTransaction {
@@ -60,8 +84,8 @@ final class SQLiteIDBStoreTransaction {
     /// Each stored blob's temporary file and the name it is stored under, moved into place on commit.
     private var blobTemporaryAndStoredFilenames: [(WTF.String, WTF.String)] = []
     private let databaseDirectory: WTF.String
-    /// The store, to unregister the cursors this transaction closes.
-    weak var store: SQLiteIDBStore?
+    /// The store, to unregister the cursors this transaction closes; nil once the store has begun to deinitialize.
+    var storeReference: SQLiteIDBStoreReference?
     /// The cursors the page opened, by identifier, and the store's own cursors while it walks a range.
     private var cursors: ContiguousArray<SQLiteIDBStoreCursor> = []
     private var backingStoreCursors: ContiguousArray<SQLiteIDBStoreCursor> = []
@@ -217,6 +241,10 @@ final class SQLiteIDBStoreTransaction {
     }
 
     func notifyCursorsOfChanges(_ objectStoreID: UInt64) {
+        // Most writes run with no cursor open: two count reads, without retaining either list for a loop.
+        if cursors.isEmpty && backingStoreCursors.isEmpty {
+            return
+        }
         for cursor in cursors where cursor.objectStoreID == objectStoreID {
             cursor.objectStoreRecordsChanged()
         }
@@ -227,7 +255,7 @@ final class SQLiteIDBStoreTransaction {
 
     func clearCursors() {
         for cursor in cursors {
-            store?.unregisterCursor(cursor)
+            storeReference?.store?.unregisterCursor(cursor)
             cursor.dropStatements()
         }
         cursors.removeAll()

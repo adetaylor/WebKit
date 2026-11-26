@@ -2069,8 +2069,11 @@
 		93B0A67526D5ADCF00AA21E4 /* WebPermissionController.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B0A67426D5A72E00AA21E4 /* WebPermissionController.h */; };
 		93B42F2F29834B2600DF1D45 /* FileSystemSyncAccessHandleInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B42F2E29834A4200DF1D45 /* FileSystemSyncAccessHandleInfo.h */; };
 		93B631E527ABA62800443A44 /* IDBStorageConnectionToClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B631E427ABA62700443A44 /* IDBStorageConnectionToClient.h */; };
-		93B631E827ABA65D00443A44 /* IDBStorageManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B631E627ABA65C00443A44 /* IDBStorageManager.h */; };
-		93B631ED27ABA6B400443A44 /* IDBStorageRegistry.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B631EB27ABA6B300443A44 /* IDBStorageRegistry.h */; };
+		71179F35EC78F0FFFCFEC179 /* IDBQuotaCheckHolder.h in Headers */ = {isa = PBXBuildFile; fileRef = C80EF67D6B04B6DF102795FF /* IDBQuotaCheckHolder.h */; };
+		59A55B7C1F4C3B525E68DDA8 /* IDBStorageEndpointHolder.h in Headers */ = {isa = PBXBuildFile; fileRef = 61E2A109A90DE663B31323F6 /* IDBStorageEndpointHolder.h */; };
+		4272650F6A9F5D5CD6DB92A9 /* IDBStorageRegistryLookups.h in Headers */ = {isa = PBXBuildFile; fileRef = F0FC05870CD23D760825965C /* IDBStorageRegistryLookups.h */; };
+		DFBB9718F1707A5125F69646 /* SwiftIDBStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAAA90AAE1E0D09280017EA /* SwiftIDBStorageManager.swift */; };
+		F23109F080925A007C87FA54 /* SwiftIDBStorageRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0519D0CCF5D7D8BA98E462B /* SwiftIDBStorageRegistry.swift */; };
 		93B631F327ABAD8000443A44 /* QuotaIncreaseRequestIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B631F227ABAD7F00443A44 /* QuotaIncreaseRequestIdentifier.h */; };
 		93D1EEF529669D74009B31D6 /* UnifiedOriginStorageLevel.h in Headers */ = {isa = PBXBuildFile; fileRef = 93D1EEF429669D73009B31D6 /* UnifiedOriginStorageLevel.h */; };
 		93D6B772254BB5190058DD3A /* SpeechRecognitionServer.h in Headers */ = {isa = PBXBuildFile; fileRef = 93D6B76C254B89580058DD3A /* SpeechRecognitionServer.h */; };
@@ -7895,10 +7898,11 @@
 		93B42F2E29834A4200DF1D45 /* FileSystemSyncAccessHandleInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FileSystemSyncAccessHandleInfo.h; sourceTree = "<group>"; };
 		93B631E327ABA5F700443A44 /* IDBStorageConnectionToClient.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IDBStorageConnectionToClient.cpp; sourceTree = "<group>"; };
 		93B631E427ABA62700443A44 /* IDBStorageConnectionToClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBStorageConnectionToClient.h; sourceTree = "<group>"; };
-		93B631E627ABA65C00443A44 /* IDBStorageManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBStorageManager.h; sourceTree = "<group>"; };
-		93B631E727ABA65C00443A44 /* IDBStorageManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IDBStorageManager.cpp; sourceTree = "<group>"; };
-		93B631EA27ABA6B200443A44 /* IDBStorageRegistry.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IDBStorageRegistry.cpp; sourceTree = "<group>"; };
-		93B631EB27ABA6B300443A44 /* IDBStorageRegistry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBStorageRegistry.h; sourceTree = "<group>"; };
+		C80EF67D6B04B6DF102795FF /* IDBQuotaCheckHolder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBQuotaCheckHolder.h; sourceTree = "<group>"; };
+		61E2A109A90DE663B31323F6 /* IDBStorageEndpointHolder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBStorageEndpointHolder.h; sourceTree = "<group>"; };
+		F0FC05870CD23D760825965C /* IDBStorageRegistryLookups.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBStorageRegistryLookups.h; sourceTree = "<group>"; };
+		EEAAA90AAE1E0D09280017EA /* SwiftIDBStorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftIDBStorageManager.swift; sourceTree = "<group>"; };
+		C0519D0CCF5D7D8BA98E462B /* SwiftIDBStorageRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftIDBStorageRegistry.swift; sourceTree = "<group>"; };
 		93B631F227ABAD7F00443A44 /* QuotaIncreaseRequestIdentifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QuotaIncreaseRequestIdentifier.h; sourceTree = "<group>"; };
 		93BA04DA2151ADF3007F455F /* WebSWServerConnection.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = WebSWServerConnection.messages.in; sourceTree = "<group>"; };
 		93BA04DB2151ADF3007F455F /* WebSWServerToContextConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSWServerToContextConnection.h; sourceTree = "<group>"; };
@@ -16076,10 +16080,11 @@
 				7902A73BAA4F464884C9DAC8 /* FileSystemStorageManager.swift */,
 				93B631E327ABA5F700443A44 /* IDBStorageConnectionToClient.cpp */,
 				93B631E427ABA62700443A44 /* IDBStorageConnectionToClient.h */,
-				93B631E727ABA65C00443A44 /* IDBStorageManager.cpp */,
-				93B631E627ABA65C00443A44 /* IDBStorageManager.h */,
-				93B631EA27ABA6B200443A44 /* IDBStorageRegistry.cpp */,
-				93B631EB27ABA6B300443A44 /* IDBStorageRegistry.h */,
+				C80EF67D6B04B6DF102795FF /* IDBQuotaCheckHolder.h */,
+				61E2A109A90DE663B31323F6 /* IDBStorageEndpointHolder.h */,
+				F0FC05870CD23D760825965C /* IDBStorageRegistryLookups.h */,
+				EEAAA90AAE1E0D09280017EA /* SwiftIDBStorageManager.swift */,
+				C0519D0CCF5D7D8BA98E462B /* SwiftIDBStorageRegistry.swift */,
 				93E799C92760497A0074008A /* LocalStorageManager.cpp */,
 				93E799CB2760497A0074008A /* LocalStorageManager.h */,
 				93E799D8276121080074008A /* MemoryStorageArea.cpp */,
@@ -19149,8 +19154,9 @@
 				5772F206217DBD6A0056BF2C /* HidService.h in Headers */,
 				51C0C9741DDD76000032CAD3 /* IconLoadingDelegate.h in Headers */,
 				93B631E527ABA62800443A44 /* IDBStorageConnectionToClient.h in Headers */,
-				93B631E827ABA65D00443A44 /* IDBStorageManager.h in Headers */,
-				93B631ED27ABA6B400443A44 /* IDBStorageRegistry.h in Headers */,
+				71179F35EC78F0FFFCFEC179 /* IDBQuotaCheckHolder.h in Headers */,
+				59A55B7C1F4C3B525E68DDA8 /* IDBStorageEndpointHolder.h in Headers */,
+				4272650F6A9F5D5CD6DB92A9 /* IDBStorageRegistryLookups.h in Headers */,
 				51E351CB180F2CCC00E53BE9 /* IDBUtilities.h in Headers */,
 				F4351B9E25EEC84C00D63892 /* ImageAnalysisUtilities.h in Headers */,
 				A78A5FE42B0EB39E005036D3 /* ImageBufferSetIdentifier.h in Headers */,
@@ -23082,6 +23088,8 @@
 				EB57C99445F845F5B0BE21C5 /* RemoteXRView.swift in Sources */,
 				D0BCC1BF4CC341B99CD2C0EA /* RemoteXRViewMessageReceiver.swift in Sources */,
 				4F723CF78DC040AE98532353 /* ResourceLoadStatisticsStore.swift in Sources */,
+				DFBB9718F1707A5125F69646 /* SwiftIDBStorageManager.swift in Sources */,
+				F23109F080925A007C87FA54 /* SwiftIDBStorageRegistry.swift in Sources */,
 				0738ABBD304BD9CA00987FFB /* RunJavaScriptParameters.swift in Sources */,
 				0782B70C304680930011880F /* RunJavaScriptResult.swift in Sources */,
 				2CC0CD3B792D4B5D283ECB1D /* ScopedRenderingResourcesRequest.swift in Sources */,

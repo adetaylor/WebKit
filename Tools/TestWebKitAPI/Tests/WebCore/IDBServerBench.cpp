@@ -47,7 +47,6 @@
 
 #include "IDBBackingStoreTestSupport.h"
 #include <WebCore/ClientOrigin.h>
-#include <WebCore/IDBConnectionToClient.h>
 #include <WebCore/IDBConnectionToClientDelegate.h>
 #include <WebCore/IDBCursorInfo.h>
 #include <WebCore/IDBDatabaseConnectionIdentifier.h>
@@ -78,7 +77,6 @@
 #include <WebCore/IndexedDB.h>
 #include <WebCore/SecurityOriginData.h>
 #include <WebCore/ThreadSafeDataBuffer.h>
-#include <WebCore/UniqueIDBDatabaseConnection.h>
 #include <algorithm>
 #include <atomic>
 #include <bit>
@@ -298,13 +296,9 @@ public:
 
     Client(World& world)
         : m_world(world)
-        , m_connection(IDBConnectionToClient::create(*this))
     {
     }
 
-    ~Client() { m_connection->clearDelegate(); }
-
-    IDBConnectionToClient& connection() { return m_connection.get(); }
     unsigned callbackCount() const { return m_callbackCount; }
 
     // What the server sent, for the script to answer.
@@ -509,7 +503,7 @@ public:
         return visited;
     }
 
-    void setSuspended(bool suspended) { m_connection->setClientSuspended(suspended); }
+    void setSuspended(bool suspended) { m_world.server().setClientSuspended(*m_identifier, suspended); }
 
     // IDBConnectionToClientDelegate.
 
@@ -564,9 +558,8 @@ public:
     void didOpenCursor(const IDBResultData& result) final { noteData(Event::OpenCursor, result); }
     void didIterateCursor(const IDBResultData& result) final { noteData(Event::IterateCursor, result); }
 
-    void fireVersionChangeEvent(UniqueIDBDatabaseConnection& databaseConnection, const IDBResourceIdentifier& request, uint64_t version) final
+    void fireVersionChangeEvent(IDBDatabaseConnectionIdentifier connection, const IDBResourceIdentifier& request, uint64_t version) final
     {
-        auto connection = databaseConnection.identifier();
         ++m_callbackCount;
         auto& digest = m_world.digest();
         digest.addInteger(static_cast<uint64_t>(Event::VersionChange));
@@ -588,9 +581,8 @@ public:
         m_indexKeyRequests.append({ request, index, key, recordID });
     }
 
-    void didCloseFromServer(UniqueIDBDatabaseConnection& databaseConnection, const IDBError& error) final
+    void didCloseFromServer(IDBDatabaseConnectionIdentifier connection, const IDBError& error) final
     {
-        auto connection = databaseConnection.identifier();
         ++m_callbackCount;
         auto& digest = m_world.digest();
         digest.addInteger(static_cast<uint64_t>(Event::CloseFromServer));
@@ -626,7 +618,7 @@ public:
         }
     }
 
-    IDBResourceIdentifier newResource() { return IDBResourceIdentifier { m_connection.get() }; }
+    IDBResourceIdentifier newResource() { return IDBResourceIdentifier { *m_identifier }; }
 
 private:
     IDBOpenRequestData openData(const IDBDatabaseIdentifier& database, uint64_t version, const IDBResourceIdentifier& request, IndexedDB::RequestType type)
@@ -749,7 +741,6 @@ private:
 
     World& m_world;
     std::optional<IDBConnectionIdentifier> m_identifier { nextIdentifier() };
-    Ref<IDBConnectionToClient> m_connection;
     unsigned m_callbackCount { 0 };
     unsigned m_dataResults { 0 };
     unsigned m_deleted { 0 };
@@ -780,7 +771,7 @@ World::~World()
 {
     for (auto& client : m_clients) {
         if (client->m_registered)
-            m_server->unregisterConnection(client->connection());
+            m_server->unregisterConnection(*client->identifier());
     }
     m_server = nullptr;
 }
@@ -791,7 +782,7 @@ Client& World::addClient(bool registered)
     auto& client = *m_clients.last();
     client.m_registered = registered;
     if (registered)
-        m_server->registerConnection(client.connection());
+        m_server->registerConnection(client);
     return client;
 }
 
@@ -800,7 +791,7 @@ void World::removeClient(Client& client)
 {
     RELEASE_ASSERT(client.m_registered);
     client.m_registered = false;
-    m_server->unregisterConnection(client.connection());
+    m_server->unregisterConnection(*client.identifier());
 }
 
 // Scripts.
