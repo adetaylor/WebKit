@@ -64,6 +64,9 @@ struct Parser<Unit: LexerCharacter>: ~Copyable, ~Escapable {
     var scopes = UniqueArray<Scope>()
     /// `scopes.count - 1`, kept by pushScope and popScope so that a scope access does not recompute it (-1 while empty).
     var topScope = -1
+    /// `scopes[topScope].strictMode`, which every `next()` reads: kept by pushScope, popScope and setStrictMode (the
+    /// only places the current scope or its strict mode change), so that a token costs no indexed read of the stack.
+    var topStrictMode = false
     /// The generation of the last Scope pushed: each Scope gets the next, so a ScopeRef to a popped one never matches.
     var scopeGeneration: UInt32 = 0
     /// The start positions of the `new` tokens of the member expressions being parsed, innermost last.
@@ -129,6 +132,8 @@ struct Parser<Unit: LexerCharacter>: ~Copyable, ~Escapable {
                 scope.expectedSuperBinding = .Needed
             }
         }
+        // The modes' features (a module's, an eval's in strict code) are the root's strict mode.
+        topStrictMode = scopes[root.index].strictMode
 
         next([], &facade)
     }

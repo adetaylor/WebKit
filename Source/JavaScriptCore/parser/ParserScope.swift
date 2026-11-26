@@ -408,12 +408,12 @@ struct Scope: ~Copyable {
     mutating func setInnerArrowFunctionUsesNewTarget() { innerArrowFunctionFeatures.insert(.newTarget) }
     mutating func setInnerArrowFunctionUsesArguments() { innerArrowFunctionFeatures.insert(.arguments) }
 
-    mutating func setInnerArrowFunctionUsesEvalAndUseArgumentsIfNeeded(_ facade: inout JSC.JSParseFacade) {
+    mutating func setInnerArrowFunctionUsesEvalAndUseArgumentsIfNeeded(usesArguments: Bool) {
         assert(isArrowFunction)
         if usesEval {
             setInnerArrowFunctionUsesEval()
         }
-        if usedVariablesContains(facade.wellKnownIdentifier(.arguments), &facade) {
+        if usesArguments {
             setInnerArrowFunctionUsesArguments()
         }
     }
@@ -747,10 +747,6 @@ struct Scope: ~Copyable {
     }
 
     // MARK: Sloppy mode function hoisting
-
-    func hasSloppyModeFunctionHoistingCandidates(_ facade: inout JSC.JSParseFacade) -> Bool {
-        facade.hasSloppyModeFunctionHoistingCandidates(storage)
-    }
 
     func finalizeSloppyModeFunctionHoisting(_ facade: inout JSC.JSParseFacade) {
         assert(allowsVarDeclarations)

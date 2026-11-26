@@ -26,6 +26,9 @@ internal import JSCSwiftBoundary
 /// facade's StringBuilder receives it once, when the parse fails.
 enum ErrorMessagePart {
     case text(Swift.String)
+    /// A literal message's text, as the pointer and length it is: the String is made when the message is printed, and not
+    /// each time a save point's backtracking records one.
+    case literal(StaticString)
     case identifier(JSC.JSParseIdentifier)
     case number(Int64)
     /// The characters of the provider from `start` to `end`.
@@ -76,7 +79,7 @@ struct ErrorMessage: ExpressibleByStringLiteral {
     /// Appends this message's parts to `parts`, making no array for a literal.
     func append(to parts: inout [ErrorMessagePart]) {
         switch storage {
-        case .literal(let text): parts.append(.text(text.description))
+        case .literal(let text): parts.append(.literal(text))
         case .parts(let own): parts.append(contentsOf: own)
         }
     }
@@ -91,7 +94,7 @@ struct ErrorMessage: ExpressibleByStringLiteral {
 
     var parts: [ErrorMessagePart] {
         switch storage {
-        case .literal(let text): return [.text(text.description)]
+        case .literal(let text): return [.literal(text)]
         case .parts(let parts): return parts
         }
     }
@@ -237,6 +240,8 @@ extension Parser {
             switch part {
             case .text(let text):
                 appendErrorText(text, &facade)
+            case .literal(let text):
+                appendErrorText(text.description, &facade)
             case .identifier(let identifier):
                 facade.appendErrorIdentifier(identifier)
             case .number(let number):

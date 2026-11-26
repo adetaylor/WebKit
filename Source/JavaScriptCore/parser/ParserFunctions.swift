@@ -611,6 +611,9 @@ extension Parser {
         functionInfo.parameterCount = cachedInfo.parameterCount
 
         withScope(functionScope) { $0.restoreFromSourceProviderCache(cachedInfo) }
+        // The function scope is the current one and its features were replaced.
+        assert(functionScope.index == topScope)
+        topStrictMode = scopes[topScope].strictMode
         popScope(functionScope, shouldTrackClosedVariables: B.needsFreeVariableInfo, takeContainers: false, &facade)
 
         // The cached function's last token.
@@ -911,7 +914,9 @@ extension Parser {
             )
 
             // When a generator has a "use strict" directive, a generator function wrapping it should be strict mode.
+            // The function scope is below the generator body's, which is the current one: topStrictMode is not its.
             if scopes[generatorBodyScope.index].strictMode {
+                assert(functionScope.index != topScope)
                 withScope(functionScope) { $0.setStrictMode() }
             }
 
