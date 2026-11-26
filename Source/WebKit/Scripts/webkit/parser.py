@@ -60,6 +60,7 @@ def parse(file):
     swift_target = None
     swift_types = False
     swift_implementation = False
+    describe_arguments_on_every_port = False
     swift_receiver_owner = False
     swift_receiver_owner_provider = None
     recordable = False
@@ -145,6 +146,9 @@ def parse(file):
                 continue
             elif attribute == model.SWIFT_RECEIVER_OWNER_ATTRIBUTE:
                 swift_receiver_owner = True
+                continue
+            elif attribute == model.DESCRIBE_ARGUMENTS_ON_EVERY_PORT_ATTRIBUTE:
+                describe_arguments_on_every_port = True
                 continue
             elif attribute == model.RECORDABLE_ATTRIBUTE:
                 recordable = True
@@ -272,6 +276,8 @@ def parse(file):
 
     if swift_implementation:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_IMPLEMENTATION_ATTRIBUTE]
+    if describe_arguments_on_every_port:
+        receiver_attributes = (receiver_attributes or []) + [model.DESCRIBE_ARGUMENTS_ON_EVERY_PORT_ATTRIBUTE]
     if swift_receiver_owner:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_RECEIVER_OWNER_ATTRIBUTE]
     if cxx_senders:

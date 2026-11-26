@@ -2,6 +2,7 @@
 TESTS = \
     TestWithCVPixelBuffer \
     TestWithDeferSendingOption \
+    TestWithDescribeArgumentsOnEveryPort \
     TestWithDispatchedFromAndTo \
     TestWithEnabledBy \
     TestWithEnabledByAndConjunction \

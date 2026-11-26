@@ -53,6 +53,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithDeferSendingOption_OneIndex>(globalObject, decoder);
     case MessageName::TestWithDeferSendingOption_MultipleIndices:
         return jsValueForDecodedMessage<MessageName::TestWithDeferSendingOption_MultipleIndices>(globalObject, decoder);
+#if PLATFORM(COCOA)
+    case MessageName::TestWithDescribeArgumentsOnEveryPort_TestMessage:
+        return jsValueForDecodedMessage<MessageName::TestWithDescribeArgumentsOnEveryPort_TestMessage>(globalObject, decoder);
+#endif
     case MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled:
         return jsValueForDecodedMessage<MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled>(globalObject, decoder);
     case MessageName::TestWithDispatchedFromAndTo_UntrustedOrigin:
@@ -716,6 +720,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
     case MessageName::TestWithCVPixelBuffer_ReceiveCVPixelBuffer:
         return jsValueForDecodedMessageReply<MessageName::TestWithCVPixelBuffer_ReceiveCVPixelBuffer>(globalObject, decoder);
 #endif
+#if PLATFORM(COCOA)
+#endif
     case MessageName::TestWithImageData_ReceiveImageData:
         return jsValueForDecodedMessageReply<MessageName::TestWithImageData_ReceiveImageData>(globalObject, decoder);
 #if (ENABLE(WEBKIT2) && (NESTED_MASTER_CONDITION || MASTER_OR && MASTER_AND))
@@ -1146,6 +1152,11 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "foo"_s, "int"_s },
             { "bar"_s, "int"_s },
             { "baz"_s, "int"_s },
+        };
+    case MessageName::TestWithDescribeArgumentsOnEveryPort_TestMessage:
+        return Vector<ArgumentDescription> {
+            { "name"_s, "String"_s },
+            { "count"_s, "uint32_t"_s },
         };
     case MessageName::TestWithDispatchedFromAndTo_AlwaysEnabled:
         return Vector<ArgumentDescription> {

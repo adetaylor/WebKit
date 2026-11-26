@@ -31,7 +31,8 @@
     DispatchedTo=GPU,
     SwiftImplementation,
     SwiftTypes,
-    SwiftSends=AudioVideoRendererRemoteMessageReceiver
+    SwiftSends=AudioVideoRendererRemoteMessageReceiver,
+    DescribeArgumentsOnEveryPort
 ]
 messages -> RemoteAudioVideoRendererProxyManager {
     CreateManager(WebKit::RemoteAudioVideoRendererIdentifier identifier, WebCore::MediaPlayerClientIdentifier mediaElementIdentifier, WebCore::MediaPlayerIdentifier playerIdentifier) -> (std::optional<WebCore::SharedTimebaseHandle> handle) CxxTypes
@@ -96,8 +97,10 @@ messages -> RemoteAudioVideoRendererProxyManager {
 
     RequestHostingContext(WebKit::RemoteAudioVideoRendererIdentifier identifier) -> (struct WebCore::HostingContext layerHostingContext) CxxTypes
 
+#if PLATFORM(COCOA)
     SetVideoLayerSize(WebKit::RemoteAudioVideoRendererIdentifier identifier, WebCore::FloatSize size) CxxTypes
     SetVideoLayerSizeFenced(WebKit::RemoteAudioVideoRendererIdentifier identifier, WebCore::FloatSize size, struct MachSendRightAnnotated sendRightAnnotated) CxxTypes
+#endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     [EnabledBy=LegacyEncryptedMediaAPIEnabled] SetLegacyCDMSession(WebKit::RemoteAudioVideoRendererIdentifier identifier, std::optional<WebKit::RemoteLegacyCDMSessionIdentifier> instanceId) CxxTypes

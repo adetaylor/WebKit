@@ -44,53 +44,54 @@ enum class ProcessName : uint8_t {
 enum class ReceiverName : uint8_t {
     TestWithCVPixelBuffer = 1
     , TestWithDeferSendingOption = 2
-    , TestWithDispatchedFromAndTo = 3
-    , TestWithEnabledBy = 4
-    , TestWithEnabledByAndConjunction = 5
-    , TestWithEnabledByOrConjunction = 6
-    , TestWithIfMessage = 7
-    , TestWithImageData = 8
-    , TestWithLegacyReceiver = 9
-    , TestWithMultiLineExtendedAttributes = 10
-    , TestWithMultipleDispatchedFrom = 11
-    , TestWithSemaphore = 12
-    , TestWithSpanOfConst = 13
-    , TestWithStream = 14
-    , TestWithStreamBatched = 15
-    , TestWithStreamBuffer = 16
-    , TestWithStreamServerConnectionHandle = 17
-    , TestWithStreamSwift = 18
-    , TestWithStreamSwiftEnabledBy = 19
-    , TestWithStreamSwiftImplementation = 20
-    , TestWithStreamSwiftLentState = 21
-    , TestWithStreamSwiftRecordable = 22
-    , TestWithStreamSwiftReplyValues = 23
-    , TestWithStreamSwiftState = 24
-    , TestWithStreamSwiftTypes = 25
-    , TestWithSuperclass = 26
-    , TestWithSuperclassAndWantsAsyncDispatch = 27
-    , TestWithSuperclassAndWantsDispatch = 28
-    , TestWithSwift = 29
-    , TestWithSwiftConditionally = 30
-    , TestWithSwiftConditionallyAndEnabledBy = 31
-    , TestWithSwiftImplementation = 32
-    , TestWithSwiftImplementationAndSuperclass = 33
-    , TestWithSwiftImplementationAndWantsDispatch = 34
-    , TestWithSwiftTarget = 35
-    , TestWithSwiftTypes = 36
-    , TestWithSwiftTypesOptIn = 37
-    , TestWithSwiftUntrusted = 38
-    , TestWithSwiftWorkQueue = 39
-    , TestWithValidator = 40
-    , TestWithWantsAsyncDispatch = 41
-    , TestWithWantsDispatch = 42
-    , TestWithWantsDispatchNoSyncMessages = 43
-    , TestWithWorkQueueSwiftImplementation = 44
-    , TestWithWorkQueueSwiftState = 45
-    , TestWithoutAttributes = 46
-    , TestWithoutUsingIPCConnection = 47
-    , IPC = 48
-    , Invalid = 49
+    , TestWithDescribeArgumentsOnEveryPort = 3
+    , TestWithDispatchedFromAndTo = 4
+    , TestWithEnabledBy = 5
+    , TestWithEnabledByAndConjunction = 6
+    , TestWithEnabledByOrConjunction = 7
+    , TestWithIfMessage = 8
+    , TestWithImageData = 9
+    , TestWithLegacyReceiver = 10
+    , TestWithMultiLineExtendedAttributes = 11
+    , TestWithMultipleDispatchedFrom = 12
+    , TestWithSemaphore = 13
+    , TestWithSpanOfConst = 14
+    , TestWithStream = 15
+    , TestWithStreamBatched = 16
+    , TestWithStreamBuffer = 17
+    , TestWithStreamServerConnectionHandle = 18
+    , TestWithStreamSwift = 19
+    , TestWithStreamSwiftEnabledBy = 20
+    , TestWithStreamSwiftImplementation = 21
+    , TestWithStreamSwiftLentState = 22
+    , TestWithStreamSwiftRecordable = 23
+    , TestWithStreamSwiftReplyValues = 24
+    , TestWithStreamSwiftState = 25
+    , TestWithStreamSwiftTypes = 26
+    , TestWithSuperclass = 27
+    , TestWithSuperclassAndWantsAsyncDispatch = 28
+    , TestWithSuperclassAndWantsDispatch = 29
+    , TestWithSwift = 30
+    , TestWithSwiftConditionally = 31
+    , TestWithSwiftConditionallyAndEnabledBy = 32
+    , TestWithSwiftImplementation = 33
+    , TestWithSwiftImplementationAndSuperclass = 34
+    , TestWithSwiftImplementationAndWantsDispatch = 35
+    , TestWithSwiftTarget = 36
+    , TestWithSwiftTypes = 37
+    , TestWithSwiftTypesOptIn = 38
+    , TestWithSwiftUntrusted = 39
+    , TestWithSwiftWorkQueue = 40
+    , TestWithValidator = 41
+    , TestWithWantsAsyncDispatch = 42
+    , TestWithWantsDispatch = 43
+    , TestWithWantsDispatchNoSyncMessages = 44
+    , TestWithWorkQueueSwiftImplementation = 45
+    , TestWithWorkQueueSwiftState = 46
+    , TestWithoutAttributes = 47
+    , TestWithoutUsingIPCConnection = 48
+    , IPC = 49
+    , Invalid = 50
 };
 
 enum class MessageName : uint16_t {
@@ -102,6 +103,7 @@ enum class MessageName : uint16_t {
     TestWithDeferSendingOption_NoIndices,
     TestWithDeferSendingOption_NoOptions,
     TestWithDeferSendingOption_OneIndex,
+    TestWithDescribeArgumentsOnEveryPort_TestMessage,
     TestWithDispatchedFromAndTo_AlwaysEnabled,
     TestWithDispatchedFromAndTo_UntrustedOrigin,
     TestWithEnabledByAndConjunction_AlwaysEnabled,
