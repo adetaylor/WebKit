@@ -3530,6 +3530,7 @@ set(_webcore_swift_interop_sources_not_apple
     html/parser/HTMLSrcsetParser.cpp
     loader/HTTPHeaderField.cpp
     loader/LinkHeader.cpp
+    loader/PrivateClickMeasurement.cpp
     loader/ServerTimingParser.cpp
     page/csp/ContentSecurityPolicy.cpp
     platform/DateComponents.cpp
@@ -4892,6 +4893,21 @@ else ()
         ${WEBCORE_DIR}/page/SecurityPolicy.swift
         ${WEBCORE_DIR}/platform/network/ResourceResponseBase.swift
         ${WEBCORE_DIR}/platform/network/TimingAllowOrigin.swift
+    )
+    # Private Click Measurement's parsing and validity checks, which PrivateClickMeasurement.cpp (in
+    # _webcore_swift_interop_sources_not_apple) calls on every port; its Cocoa half (PrivateClickMeasurementCocoa.swift)
+    # stays Apple's. The headers it imports one by one.
+    target_sources(WebCore PRIVATE ${WEBCORE_DIR}/loader/PrivateClickMeasurement.swift)
+    list(APPEND _webcore_swift_core_submodules
+        loader/AttributionSecondsUntilSendData.h
+        loader/AttributionTimeToSendData.h
+        loader/AttributionTriggerData.h
+        loader/EphemeralNonce.h
+        loader/PCMTokens.h
+        loader/PrivateClickMeasurement.h
+        loader/PrivateClickMeasurementSwift.h
+
+        platform/RegistrableDomain.h
     )
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_SECURITY_POLICIES_SWIFT_INTEROP_SOURCES})
     list(APPEND _webcore_swift_core_submodules loader/SecurityPoliciesSwiftTypes.h platform/network/ResourceResponseBase.h
