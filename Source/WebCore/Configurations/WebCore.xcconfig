@@ -296,8 +296,9 @@ MODULE_VERIFIER_KIND = builtin;
 // the link.
 WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS = -Xfrontend -disable-autolink-framework -Xfrontend AVFAudio -Xfrontend -disable-autolink-library -Xfrontend swiftAVFAudio -Xfrontend -disable-autolink-framework -Xfrontend AVFoundation -Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation -Xfrontend -disable-autolink-framework -Xfrontend AudioToolbox -Xfrontend -disable-autolink-library -Xfrontend swiftAudioToolbox -Xfrontend -disable-autolink-framework -Xfrontend AudioToolboxCore -Xfrontend -disable-autolink-library -Xfrontend swiftAudioToolboxCore -Xfrontend -disable-autolink-framework -Xfrontend CoreML -Xfrontend -disable-autolink-library -Xfrontend swiftCoreML -Xfrontend -disable-autolink-framework -Xfrontend CoreMedia -Xfrontend -disable-autolink-library -Xfrontend swiftCoreMedia -Xfrontend -disable-autolink-framework -Xfrontend MediaToolbox -Xfrontend -disable-autolink-library -Xfrontend swiftMediaToolbox -Xfrontend -disable-autolink-framework -Xfrontend ScreenCaptureKit -Xfrontend -disable-autolink-library -Xfrontend swiftScreenCaptureKit -Xfrontend -disable-autolink-framework -Xfrontend Vision -Xfrontend -disable-autolink-library -Xfrontend swiftVision -Xfrontend -disable-autolink-framework -Xfrontend VideoToolbox -Xfrontend -disable-autolink-library -Xfrontend swiftVideoToolbox -Xfrontend -disable-autolink-library -Xfrontend swiftCompression -Xfrontend -disable-autolink-library -Xfrontend compression -I $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/PALSoftLinkTypes;
 // Newer Swift compilers reference a Core Foundation type's GetTypeID function from its type metadata, so WebCore's Swift
-// refers to CoreMedia's CMSampleBufferGetTypeID and CMFormatDescriptionGetTypeID directly, not through its soft links.
-WK_SWIFT_CF_TYPE_ID_LDFLAGS = -weak_framework CoreMedia;
+// refers to CoreMedia's CMSampleBufferGetTypeID and CMFormatDescriptionGetTypeID, and VideoToolbox's
+// VTDecompressionSessionGetTypeID, directly, not through their soft links.
+WK_SWIFT_CF_TYPE_ID_LDFLAGS = -weak_framework CoreMedia -weak_framework VideoToolbox;
 // Swift's importer reads C++ headers' bounds attributes, as in the CMake build (WebKitSwiftFlags.cmake).
 WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS = -Xcc -fexperimental-bounds-safety-attributes -Xcc -fexperimental-late-parse-attributes;
 
