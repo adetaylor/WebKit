@@ -1103,6 +1103,7 @@ if (APPLE)
         UIProcess/API/Cocoa/_WKWebAuthenticationPanel.mm
 
         UIProcess/WebAuthentication/WebAuthenticatorCoordinatorProxy.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebAuthentication/WebAuthenticatorCoordinatorProxyMessageReceiver.cpp
 
         UIProcess/WebAuthentication/Cocoa/LocalAuthenticator.mm
         UIProcess/WebAuthentication/Cocoa/LocalConnection.mm
