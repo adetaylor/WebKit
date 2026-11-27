@@ -145,7 +145,7 @@ private:
 
     void didAddPendingScrollUpdate() override;
 
-#if __BLOCKS__
+#ifdef __BLOCKS__
     // For Swift, whose @Sendable blocks cannot capture the coordinator: runs block on the main run loop with the
     // coordinator this tree has when this is called, as the C++ blocks capture it, or does nothing if it has none.
     void dispatchToScrollingCoordinator(void (^ __attribute__((swift_attr("@Sendable"))) block)(AsyncScrollingCoordinator*)) __attribute__((nonnull(2)));
