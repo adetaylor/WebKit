@@ -5239,6 +5239,16 @@ if (DEFINED WebCore_SWIFT_INTEROP_SOURCES)
         add_dependencies(WebCore_SwiftInterop WebCoreWebGL_SwiftInterop)
     endif ()
 
+    if (NOT APPLE AND NOT WIN32)
+        # ThreadedScrollingTree::dispatchToScrollingCoordinator takes a block, which Swift calls on every port, so this file is
+        # built with blocks and WebCore links the blocks runtime.
+        string(JSON _blocks_runtime_dir GET "${WEBKIT_SWIFT_TARGET_INFO}" "paths" "runtimeLibraryPaths" 0)
+        string(JSON _blocks_resource_dir GET "${WEBKIT_SWIFT_TARGET_INFO}" "paths" "runtimeResourcePath")
+        set_source_files_properties(${WEBCORE_DIR}/page/scrolling/ThreadedScrollingTree.cpp PROPERTIES COMPILE_OPTIONS "-fblocks;-isystem${_blocks_resource_dir}/Block")
+        find_library(BLOCKS_RUNTIME_LIBRARY BlocksRuntime HINTS "${_blocks_runtime_dir}" NO_DEFAULT_PATH REQUIRED)
+        target_link_libraries(WebCore PRIVATE "${BLOCKS_RUNTIME_LIBRARY}")
+    endif ()
+
     set(_interop_objs "$<FILTER:$<TARGET_OBJECTS:WebCore_SwiftInterop>,EXCLUDE,\\.(g|p)ch$>")
     set(_interop_rsp "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/WebCore_SwiftInterop.dir/$<CONFIG>/objects.rsp")
     file(GENERATE OUTPUT "${_interop_rsp}" CONTENT "$<JOIN:${_interop_objs},\n>")
