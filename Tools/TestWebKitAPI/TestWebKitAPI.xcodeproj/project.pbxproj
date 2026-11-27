@@ -883,6 +883,7 @@
 				WebCore/cocoa/DatabaseTrackerTest.mm,
 				WebCore/cocoa/DecodedMediaSamplesBlockTests.mm,
 				WebCore/cocoa/FormatDescriptionUtilitiesTests.mm,
+				WebCore/cocoa/GPUMediaSampleBench.mm,
 				WebCore/cocoa/GraphicsContextCGTests.mm,
 				WebCore/cocoa/H264UtilitiesCocoaTests.mm,
 				WebCore/cocoa/HEVCUtilitiesCocoaTests.mm,
