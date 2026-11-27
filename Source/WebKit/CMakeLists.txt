@@ -1160,6 +1160,17 @@ webkit_target_add_swift_options(WebKit
 webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
 # Lets WebKit's Swift implement members of C++ classes with @cxx @implementation.
 webkit_target_add_swift_options(WebKit "-enable-experimental-feature CxxImplementation")
+if (NOT APPLE)
+    # Apple's WebKit Swift gets these (CommonBase.xcconfig), and WebKit's Swift uses @_lifetime and the Span overloads
+    # SafeInteropWrappers makes for C++ std::span accessors. Without -strict-memory-safety: the GPU process's Swift passes C++
+    # types (ShareableBitmapHandle, String's optional conversions) it would warn on, and -Werror StrictMemorySafety makes
+    # warnings errors.
+    set(_webkit_swift_memory_safety_features ${WEBKIT_SWIFT_MEMORY_SAFETY_FLAGS})
+    list(FILTER _webkit_swift_memory_safety_features EXCLUDE REGEX "^-strict-memory-safety$")
+    webkit_target_add_swift_options(WebKit
+        ${WEBKIT_SWIFT_EXPERIMENTAL_FEATURE_FLAGS}
+        ${_webkit_swift_memory_safety_features})
+endif ()
 webkit_target_add_swift_options(WebKit "-Werror SendableClosureCaptures")
 
 if (WebKit_PUBLIC_FRAMEWORK_HEADERS)
