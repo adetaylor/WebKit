@@ -1563,7 +1563,6 @@
 		52D5A1B01C57495A00DE34A3 /* VideoPresentationManagerProxy.h in Headers */ = {isa = PBXBuildFile; fileRef = 52D5A1AA1C57494E00DE34A3 /* VideoPresentationManagerProxy.h */; };
 		52E605802B17ECDA0069D2C2 /* AuthenticationServicesForwardDeclarations.h in Headers */ = {isa = PBXBuildFile; fileRef = 52E6057F2B17ECCE0069D2C2 /* AuthenticationServicesForwardDeclarations.h */; };
 		52EDB40328C2B8DD002DCF33 /* AuthenticatorManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 57DCED852147363A0016B847 /* AuthenticatorManager.cpp */; settings = {COMPILER_FLAGS = "-DRELEASE_WITHOUT_OPTIMIZATIONS -O0"; }; };
-		52EDB40428C2B8FD002DCF33 /* WebAuthenticatorCoordinatorProxy.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0DCBF4D926E2ED3200EA0E07 /* WebAuthenticatorCoordinatorProxy.mm */; settings = {COMPILER_FLAGS = "-DRELEASE_WITHOUT_OPTIMIZATIONS -O0"; }; };
 		52F4B46D27E125A800FFD129 /* VirtualCredential.h in Headers */ = {isa = PBXBuildFile; fileRef = 52F4B46B27E125A800FFD129 /* VirtualCredential.h */; };
 		532159551DBAE7290054AA3C /* NetworkSessionCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 532159501DBAE6D70054AA3C /* NetworkSessionCocoa.h */; };
 		532159561DBAE72D0054AA3C /* NetworkDataTaskCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 5321594F1DBAE6D70054AA3C /* NetworkDataTaskCocoa.h */; };
@@ -1603,32 +1602,21 @@
 		578DC2982155A0020074E815 /* LocalAuthenticationSoftLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 578DC2972155A0010074E815 /* LocalAuthenticationSoftLink.h */; };
 		5790A6532565DED30077C5A7 /* _WKWebAuthenticationPanelForTesting.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A6512565DE6A0077C5A7 /* _WKWebAuthenticationPanelForTesting.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5790A656256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A654256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A657256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A655256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.mm */; };
 		5790A65A25679B260077C5A7 /* _WKPublicKeyCredentialRelyingPartyEntity.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A65825679B260077C5A7 /* _WKPublicKeyCredentialRelyingPartyEntity.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A65B25679B260077C5A7 /* _WKPublicKeyCredentialRelyingPartyEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A65925679B260077C5A7 /* _WKPublicKeyCredentialRelyingPartyEntity.mm */; };
 		5790A65E25679C110077C5A7 /* _WKPublicKeyCredentialUserEntity.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A65C25679C110077C5A7 /* _WKPublicKeyCredentialUserEntity.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A65F25679C110077C5A7 /* _WKPublicKeyCredentialUserEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A65D25679C110077C5A7 /* _WKPublicKeyCredentialUserEntity.mm */; };
 		5790A66225679C860077C5A7 /* _WKPublicKeyCredentialParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A66025679C860077C5A7 /* _WKPublicKeyCredentialParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A66325679C860077C5A7 /* _WKPublicKeyCredentialParameters.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A66125679C860077C5A7 /* _WKPublicKeyCredentialParameters.mm */; };
 		5790A66625679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A66425679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A66725679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A66525679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.mm */; };
 		5790A66925679E000077C5A7 /* _WKUserVerificationRequirement.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A66825679E000077C5A7 /* _WKUserVerificationRequirement.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5790A66C25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A66A25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A66D25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A66B25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.mm */; };
 		5790A67025679F1A0077C5A7 /* _WKAuthenticationExtensionsClientInputs.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A66E25679F1A0077C5A7 /* _WKAuthenticationExtensionsClientInputs.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5790A67125679F1A0077C5A7 /* _WKAuthenticationExtensionsClientInputs.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A66F25679F1A0077C5A7 /* _WKAuthenticationExtensionsClientInputs.mm */; };
 		5790A67425679F740077C5A7 /* _WKPublicKeyCredentialCreationOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A67225679F740077C5A7 /* _WKPublicKeyCredentialCreationOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A67525679F740077C5A7 /* _WKPublicKeyCredentialCreationOptions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A67325679F740077C5A7 /* _WKPublicKeyCredentialCreationOptions.mm */; };
 		5790A6782567A0CD0077C5A7 /* _WKPublicKeyCredentialRequestOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A6762567A0CD0077C5A7 /* _WKPublicKeyCredentialRequestOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A6792567A0CD0077C5A7 /* _WKPublicKeyCredentialRequestOptions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A6772567A0CD0077C5A7 /* _WKPublicKeyCredentialRequestOptions.mm */; };
 		5790A67C2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A67A2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5790A67D2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A67B2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.mm */; };
 		5790A6802567A1AC0077C5A7 /* _WKAuthenticatorResponse.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A67E2567A1AC0077C5A7 /* _WKAuthenticatorResponse.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A6812567A1AC0077C5A7 /* _WKAuthenticatorResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A67F2567A1AC0077C5A7 /* _WKAuthenticatorResponse.mm */; };
 		5790A6842567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A6822567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A6852567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A6832567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.mm */; };
 		5790A6882567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A6862567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		5790A6892567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A6872567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.mm */; };
 		5790A68B2567A4CC0077C5A7 /* _WKAuthenticatorResponseInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A68A2567A4CC0077C5A7 /* _WKAuthenticatorResponseInternal.h */; };
 		5790A68D2567B4490077C5A7 /* _WKAuthenticatorAttestationResponseInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A68C2567B4490077C5A7 /* _WKAuthenticatorAttestationResponseInternal.h */; };
 		5790A68F2567B4CF0077C5A7 /* _WKAuthenticatorAssertionResponseInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 5790A68E2567B4CF0077C5A7 /* _WKAuthenticatorAssertionResponseInternal.h */; };
@@ -1642,7 +1630,12 @@
 		57B826412304EB3E00B72EB0 /* NearFieldSPI.h in Headers */ = {isa = PBXBuildFile; fileRef = 57B826402304EB3E00B72EB0 /* NearFieldSPI.h */; };
 		57B826442304F14000B72EB0 /* NearFieldSoftLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 57B826422304F14000B72EB0 /* NearFieldSoftLink.h */; };
 		57B826452304F14000B72EB0 /* NearFieldSoftLink.mm in Sources */ = {isa = PBXBuildFile; fileRef = 57B826432304F14000B72EB0 /* NearFieldSoftLink.mm */; };
+		6D5E1F02A70E40EA91DACD92 /* WebAuthnSoftLinkForSwift.mm in Sources */ = {isa = PBXBuildFile; fileRef = B0C88AAC14264F1593DD65E3 /* WebAuthnSoftLinkForSwift.mm */; };
 		57B8264823050C5100B72EB0 /* FidoService.h in Headers */ = {isa = PBXBuildFile; fileRef = 57B8264623050C5100B72EB0 /* FidoService.h */; };
+		06FFE6FCC36941BABB4A68ED /* MockHidConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9CDB4E3A2E4407A8E85A033 /* MockHidConnection.swift */; };
+		EB9DDE4784A544969450EA5C /* MockCcidService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51EACAEE734F416D8244DAD4 /* MockCcidService.swift */; };
+		5B95B94333D64E88A6F4597D /* MockLocalConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48F8650F706B4D79AE045BAB /* MockLocalConnection.swift */; };
+		73716720D32B4D2EA9977A89 /* MockNfcService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA750B936D8F4260A632B1EE /* MockNfcService.swift */; };
 		57B8264C230603C100B72EB0 /* MockNfcService.h in Headers */ = {isa = PBXBuildFile; fileRef = 57B8264A230603C100B72EB0 /* MockNfcService.h */; };
 		57BBEA6D22BC0BFE00273995 /* SOAuthorizationLoadPolicy.h in Headers */ = {isa = PBXBuildFile; fileRef = 57BBEA6C22BC0BFE00273995 /* SOAuthorizationLoadPolicy.h */; };
 		57C6244B234679A400383FE7 /* WebAuthenticationFlags.h in Headers */ = {isa = PBXBuildFile; fileRef = 57C6244A234679A400383FE7 /* WebAuthenticationFlags.h */; };
@@ -1733,6 +1726,7 @@
 		5C66A4B52320962400EA4D44 /* WKHTTPCookieStoreRef.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C66A4B42320961400EA4D44 /* WKHTTPCookieStoreRef.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C6E7D882323620500C2159D /* WKWebsiteDataStoreConfigurationRef.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6E7D86232361E700C2159D /* WKWebsiteDataStoreConfigurationRef.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C76C0072ED9F46F00615579 /* WebBackForwardListMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C76C0062ED9F46F00615579 /* WebBackForwardListMessageReceiver.swift */; };
+		5247CB3FFEE84EDEA27FF2E3 /* WebAuthenticatorCoordinatorProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2141C133F1044A6B5732E9E /* WebAuthenticatorCoordinatorProxyMessageReceiver.swift */; };
 		5C795D70229F373F003FF1C4 /* WKContextMenuElementInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE0C369229F2D4A003695F0 /* WKContextMenuElementInfo.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		5C795D71229F3757003FF1C4 /* WKContextMenuElementInfoPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE0C36A229F2D4A003695F0 /* WKContextMenuElementInfoPrivate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C7FB47021E97DC5009E3241 /* WebCookieJar.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C7FB46F21E97C0C009E3241 /* WebCookieJar.h */; };
@@ -1777,6 +1771,30 @@
 		5CD286571E7235C90094FDC8 /* WKContentRuleListStoreInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CD2864F1E722F440094FDC8 /* WKContentRuleListStoreInternal.h */; };
 		5CD286581E7235D10094FDC8 /* WKContentRuleListStorePrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CD286501E722F440094FDC8 /* WKContentRuleListStorePrivate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CDEE4932DACEF3400D2400E /* WebBackForwardList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CDEE4922DACEF3400D2400E /* WebBackForwardList.swift */; };
+		5790A65F25679C110077C5A7 /* _WKPublicKeyCredentialUserEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A65D25679C110077C5A7 /* _WKPublicKeyCredentialUserEntity.mm */; };
+		5790A6792567A0CD0077C5A7 /* _WKPublicKeyCredentialRequestOptions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A6772567A0CD0077C5A7 /* _WKPublicKeyCredentialRequestOptions.mm */; };
+		5790A65B25679B260077C5A7 /* _WKPublicKeyCredentialRelyingPartyEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A65925679B260077C5A7 /* _WKPublicKeyCredentialRelyingPartyEntity.mm */; };
+		5790A66325679C860077C5A7 /* _WKPublicKeyCredentialParameters.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A66125679C860077C5A7 /* _WKPublicKeyCredentialParameters.mm */; };
+		5790A657256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A655256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.mm */; };
+		5790A66D25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A66B25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.mm */; };
+		5790A67525679F740077C5A7 /* _WKPublicKeyCredentialCreationOptions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5790A67325679F740077C5A7 /* _WKPublicKeyCredentialCreationOptions.mm */; };
+		4820F36DE9A34CC38A375F1B /* _WKAuthenticatorSelectionCriteria.swift in Sources */ = {isa = PBXBuildFile; fileRef = 510D9B0462E04C249FCA1922 /* _WKAuthenticatorSelectionCriteria.swift */; };
+		DD8DFC16F6984D61B2E0DA34 /* _WKAuthenticatorResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFE53AB0065B40EE997482B0 /* _WKAuthenticatorResponse.swift */; };
+		EE89E9AEBA56435BB28AC6C2 /* _WKAuthenticatorAttestationResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02F4FC55B02B47419F7DAA74 /* _WKAuthenticatorAttestationResponse.swift */; };
+		4CFD4FC19B274F0B8BC17FA9 /* _WKAuthenticatorAssertionResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AAA947B8B05443CBAF79FD8 /* _WKAuthenticatorAssertionResponse.swift */; };
+		5B030F7AB3B4401BAAD00D4F /* _WKWebAuthenticationPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84F4961336764091A6B59225 /* _WKWebAuthenticationPanel.swift */; };
+		9C013335202648A5AA0F54A1 /* CcidConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D62801AB7F46C88A50766A /* CcidConnection.swift */; };
+		7BD02639758645048A244615 /* LocalConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ABDF0C233C6491FB2FADDAB /* LocalConnection.swift */; };
+		6F1F1346CBFA492F943BB64C /* LocalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E49661BDFD274C3CAF020489 /* LocalService.swift */; };
+		54163C77398B4D5F9BF2D8EA /* NfcService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 824B56C4A9D84626A953BD9E /* NfcService.swift */; };
+		24B50133D8AC4C51A2E64506 /* NfcConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1827265FBBA48EF82214297 /* NfcConnection.swift */; };
+		4A3FD286528D440ABDE09D58 /* WebAuthenticationPanelClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8979F69082F3484D9CF826BD /* WebAuthenticationPanelClient.swift */; };
+		1C8B6FF3F665497CA3F7C5E3 /* RelatedOriginsValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897A9F2902534D4D97F3769A /* RelatedOriginsValidator.swift */; };
+		FC8F50DB5E58448EABDD6F8D /* AuthenticatorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ABD374AE8CC4E1089395C15 /* AuthenticatorManager.swift */; };
+		07CCFE4F9CC04898980A708C /* WebAuthnRequestsConformances.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856311D789B04CD1B6F3B7E7 /* WebAuthnRequestsConformances.swift */; };
+		DE2043C28A5048A8ABF32BDD /* WebAuthenticatorCoordinatorProxy+Legacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F38EAED42B04A649F988121 /* WebAuthenticatorCoordinatorProxy+Legacy.swift */; };
+		1896DFEFA50B454AB87929EE /* WebAuthenticatorCoordinatorProxy+AS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AA23786E3C04BCF8217422E /* WebAuthenticatorCoordinatorProxy+AS.swift */; };
+		8A40E46A5E174D7697EF4099 /* WebAuthenticatorCoordinatorProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D5A388E73584B4B8E232594 /* WebAuthenticatorCoordinatorProxy.swift */; };
 		AA1E0C5A2F00000000000002 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1E0C5A2F00000000000001 /* Logging.swift */; };
 		5CE3491228E2396900196304 /* WKFrameMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE3491028E238E400196304 /* WKFrameMac.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CE4B60029CE548D0038F565 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8DC2EF5B0486A6940098B216 /* WebKit.framework */; };
@@ -2553,6 +2571,7 @@
 		C7A41E912E8F1A0100D3B841 /* Untrusted.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A41E902E8F1A0100D3B841 /* Untrusted.h */; };
 		C7A41E932E8F1A0100D3B841 /* untrusted_origins.py in Copy Message Generation Scripts */ = {isa = PBXBuildFile; fileRef = C7A41E922E8F1A0100D3B841 /* untrusted_origins.py */; };
 		C7A41E952E8F1A0100D3B841 /* ValidationProcedures.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A41E942E8F1A0100D3B841 /* ValidationProcedures.h */; };
+		C7A41E972E8F1A0100D3B841 /* ValidationProceduresSwiftUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = C7A41E962E8F1A0100D3B841 /* ValidationProceduresSwiftUtilities.h */; };
 		CA05397923EE324400A553DC /* ContentAsStringIncludesChildFrames.h in Headers */ = {isa = PBXBuildFile; fileRef = CA05397823EE324400A553DC /* ContentAsStringIncludesChildFrames.h */; };
 		CD003A5319D49B5D005ABCE0 /* WebMediaKeyStorageManager.h in Headers */ = {isa = PBXBuildFile; fileRef = CD003A5119D49B5D005ABCE0 /* WebMediaKeyStorageManager.h */; };
 		CD0C6831201FD10100A59409 /* WKFullScreenViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = CD0C682F201FD10100A59409 /* WKFullScreenViewController.h */; };
@@ -2945,7 +2964,6 @@
 		F4FE87B82E2F25030065A3F5 /* _WKTextExtraction.h in Headers */ = {isa = PBXBuildFile; fileRef = F4FE87B42E2F25030065A3F5 /* _WKTextExtraction.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E3301EE8BFCE435D21C69C6F /* _WKViewportFitEdges.swift in Sources */ = {isa = PBXBuildFile; fileRef = C964F5FE36A6586549C122E4 /* _WKViewportFitEdges.swift */; };
 		F4FE87B92E2F25030065A3F5 /* _WKTextExtraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FE87B52E2F25030065A3F5 /* _WKTextExtraction.swift */; };
-		F5AE074483234F46B7D93F3F /* RemotePageWebAuthenticatorCoordinatorProxy.h in Headers */ = {isa = PBXBuildFile; fileRef = 729F145827DA4BFB83A7C750 /* RemotePageWebAuthenticatorCoordinatorProxy.h */; };
 		F6113E25126CE1820057D0A7 /* APIUserContentURLPattern.h in Headers */ = {isa = PBXBuildFile; fileRef = F6113E24126CE1820057D0A7 /* APIUserContentURLPattern.h */; };
 		F6113E29126CE19B0057D0A7 /* WKUserContentURLPattern.h in Headers */ = {isa = PBXBuildFile; fileRef = F6113E27126CE19B0057D0A7 /* WKUserContentURLPattern.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		F634445612A885C8000612D8 /* APISecurityOrigin.h in Headers */ = {isa = PBXBuildFile; fileRef = F634445512A885C8000612D8 /* APISecurityOrigin.h */; };
@@ -4038,7 +4056,6 @@
 		0D9649132E748673000F9CDA /* ModelDowncastConvertToBackingContext.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ModelDowncastConvertToBackingContext.cpp; sourceTree = "<group>"; };
 		0D9D28E72C81473B002CB4C7 /* WKDigitalCredentialsPicker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKDigitalCredentialsPicker.h; sourceTree = "<group>"; };
 		0D9D28E82C814F79002CB4C7 /* WKDigitalCredentialsPicker.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WKDigitalCredentialsPicker.mm; sourceTree = "<group>"; };
-		0DCBF4D926E2ED3200EA0E07 /* WebAuthenticatorCoordinatorProxy.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAuthenticatorCoordinatorProxy.mm; sourceTree = "<group>"; };
 		0DDAE889308BE69500F8B787 /* PageScaleFactor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PageScaleFactor.h; sourceTree = "<group>"; };
 		0DF018792FA847BD0077DA6B /* studio_lighting_objectmode_v3_diffmap.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; path = studio_lighting_objectmode_v3_diffmap.ktx; sourceTree = "<group>"; };
 		0DF0187A2FA847BD0077DA6B /* studio_lighting_objectmode_v3_specmap.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; path = studio_lighting_objectmode_v3_specmap.ktx; sourceTree = "<group>"; };
@@ -6706,6 +6723,7 @@
 		52688AB327D7CE40003577A2 /* _WKResidentKeyRequirement.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKResidentKeyRequirement.h; sourceTree = "<group>"; };
 		526C5718284AD09500E08955 /* CcidConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CcidConnection.h; sourceTree = "<group>"; };
 		526C5719284AD09500E08955 /* CcidConnection.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = CcidConnection.mm; sourceTree = "<group>"; };
+		C4D62801AB7F46C88A50766A /* CcidConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CcidConnection.swift; sourceTree = "<group>"; };
 		526C571C284AD0C000E08955 /* CcidService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CcidService.h; sourceTree = "<group>"; };
 		526C571D284AD0C000E08955 /* CcidService.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = CcidService.mm; sourceTree = "<group>"; };
 		526C5720284ADCBC00E08955 /* CtapCcidDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CtapCcidDriver.h; sourceTree = "<group>"; };
@@ -6810,10 +6828,15 @@
 		570B73CF230236DD00FAEC53 /* CtapDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CtapDriver.h; sourceTree = "<group>"; };
 		570DAAAC23026F5C00E8FC04 /* NfcService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NfcService.h; sourceTree = "<group>"; };
 		570DAAAD23026F5C00E8FC04 /* NfcService.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NfcService.mm; sourceTree = "<group>"; };
+		824B56C4A9D84626A953BD9E /* NfcService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NfcService.swift; sourceTree = "<group>"; };
 		570DAAB0230273D200E8FC04 /* NearField.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NearField.framework; path = System/Library/PrivateFrameworks/NearField.framework; sourceTree = SDKROOT; };
 		570DAAC02303730300E8FC04 /* NfcConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NfcConnection.h; sourceTree = "<group>"; };
 		570DAAC12303730300E8FC04 /* NfcConnection.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NfcConnection.mm; sourceTree = "<group>"; };
+		D1827265FBBA48EF82214297 /* NfcConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NfcConnection.swift; sourceTree = "<group>"; };
+		133B4CB7209CEAC25C96B84F /* MainRunLoopDestroyedHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MainRunLoopDestroyedHandler.h; sourceTree = "<group>"; };
 		570DAAC423037F7E00E8FC04 /* WKNFReaderSessionDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKNFReaderSessionDelegate.h; sourceTree = "<group>"; };
+		F1B7DC2BEB3F6F48097DEA8F /* WKSmartCardObservers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKSmartCardObservers.h; sourceTree = "<group>"; };
+		F345359A05E0F9B97D299997 /* WKMockWebAuthenticationObjects.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKMockWebAuthenticationObjects.h; sourceTree = "<group>"; };
 		570DAAC523037F7E00E8FC04 /* WKNFReaderSessionDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WKNFReaderSessionDelegate.mm; sourceTree = "<group>"; };
 		570DAAC8230385FD00E8FC04 /* CtapNfcDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CtapNfcDriver.h; sourceTree = "<group>"; };
 		570DAAC9230385FD00E8FC04 /* CtapNfcDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CtapNfcDriver.cpp; sourceTree = "<group>"; };
@@ -6822,12 +6845,17 @@
 		5742A2F72535613F00B7BA14 /* .xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = .xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 		574728CF23456E98001700AF /* _WKWebAuthenticationPanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKWebAuthenticationPanel.h; sourceTree = "<group>"; };
 		574728D023456E98001700AF /* _WKWebAuthenticationPanel.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKWebAuthenticationPanel.mm; sourceTree = "<group>"; };
+		84F4961336764091A6B59225 /* _WKWebAuthenticationPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = _WKWebAuthenticationPanel.swift; sourceTree = "<group>"; };
 		574728D3234570AE001700AF /* _WKWebAuthenticationPanelInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKWebAuthenticationPanelInternal.h; sourceTree = "<group>"; };
 		5750F32A2032D4E500389347 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
 		5756DD74218D104900D4EE6A /* MockHidService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MockHidService.h; sourceTree = "<group>"; };
 		5756DD75218D104900D4EE6A /* MockHidService.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MockHidService.cpp; sourceTree = "<group>"; };
 		5756DD76218D14A200D4EE6A /* MockHidConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MockHidConnection.h; sourceTree = "<group>"; };
 		5756DD77218D14A200D4EE6A /* MockHidConnection.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MockHidConnection.cpp; sourceTree = "<group>"; };
+		D9CDB4E3A2E4407A8E85A033 /* MockHidConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockHidConnection.swift; sourceTree = "<group>"; };
+		51EACAEE734F416D8244DAD4 /* MockCcidService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockCcidService.swift; sourceTree = "<group>"; };
+		48F8650F706B4D79AE045BAB /* MockLocalConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockLocalConnection.swift; sourceTree = "<group>"; };
+		CA750B936D8F4260A632B1EE /* MockNfcService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockNfcService.swift; sourceTree = "<group>"; };
 		57597EB721811D9A0037F924 /* CtapHidDriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CtapHidDriver.h; sourceTree = "<group>"; };
 		57597EBB2181848F0037F924 /* CtapAuthenticator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CtapAuthenticator.h; sourceTree = "<group>"; };
 		57597EBC2181848F0037F924 /* CtapAuthenticator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CtapAuthenticator.cpp; sourceTree = "<group>"; };
@@ -6835,7 +6863,12 @@
 		5760828B2029854200116678 /* WebAuthenticatorCoordinator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticatorCoordinator.h; sourceTree = "<group>"; };
 		5760828C2029854200116678 /* WebAuthenticatorCoordinator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebAuthenticatorCoordinator.cpp; sourceTree = "<group>"; };
 		57608295202BD8BA00116678 /* WebAuthenticatorCoordinatorProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticatorCoordinatorProxy.h; sourceTree = "<group>"; };
+		318E11F9ABB4496897155888 /* WebAuthenticatorCoordinatorProxySwiftUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticatorCoordinatorProxySwiftUtilities.h; sourceTree = "<group>"; };
 		57608296202BD8BA00116678 /* WebAuthenticatorCoordinatorProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebAuthenticatorCoordinatorProxy.cpp; sourceTree = "<group>"; };
+		856311D789B04CD1B6F3B7E7 /* WebAuthnRequestsConformances.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthnRequestsConformances.swift; sourceTree = "<group>"; };
+		9F38EAED42B04A649F988121 /* WebAuthenticatorCoordinatorProxy+Legacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WebAuthenticatorCoordinatorProxy+Legacy.swift"; sourceTree = "<group>"; };
+		4AA23786E3C04BCF8217422E /* WebAuthenticatorCoordinatorProxy+AS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WebAuthenticatorCoordinatorProxy+AS.swift"; sourceTree = "<group>"; };
+		1D5A388E73584B4B8E232594 /* WebAuthenticatorCoordinatorProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthenticatorCoordinatorProxy.swift; sourceTree = "<group>"; };
 		57608299202BDAE200116678 /* WebAuthenticatorCoordinatorProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = WebAuthenticatorCoordinatorProxy.messages.in; sourceTree = "<group>"; };
 		5772F204217DBD6A0056BF2C /* HidService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HidService.h; sourceTree = "<group>"; };
 		5772F205217DBD6A0056BF2C /* HidService.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = HidService.mm; sourceTree = "<group>"; };
@@ -6846,6 +6879,7 @@
 		577FF7812346E81C004EDFB9 /* APIWebAuthenticationPanelClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = APIWebAuthenticationPanelClient.h; sourceTree = "<group>"; };
 		577FF7832346ECAA004EDFB9 /* WebAuthenticationPanelClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticationPanelClient.h; sourceTree = "<group>"; };
 		577FF7842346ECAA004EDFB9 /* WebAuthenticationPanelClient.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAuthenticationPanelClient.mm; sourceTree = "<group>"; };
+		8979F69082F3484D9CF826BD /* WebAuthenticationPanelClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthenticationPanelClient.swift; sourceTree = "<group>"; };
 		578DC2972155A0010074E815 /* LocalAuthenticationSoftLink.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalAuthenticationSoftLink.h; sourceTree = "<group>"; };
 		5790A6512565DE6A0077C5A7 /* _WKWebAuthenticationPanelForTesting.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKWebAuthenticationPanelForTesting.h; sourceTree = "<group>"; };
 		5790A654256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKPublicKeyCredentialEntity.h; sourceTree = "<group>"; };
@@ -6857,7 +6891,7 @@
 		5790A66025679C860077C5A7 /* _WKPublicKeyCredentialParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKPublicKeyCredentialParameters.h; sourceTree = "<group>"; };
 		5790A66125679C860077C5A7 /* _WKPublicKeyCredentialParameters.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKPublicKeyCredentialParameters.mm; sourceTree = "<group>"; };
 		5790A66425679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKAuthenticatorSelectionCriteria.h; sourceTree = "<group>"; };
-		5790A66525679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKAuthenticatorSelectionCriteria.mm; sourceTree = "<group>"; };
+		510D9B0462E04C249FCA1922 /* _WKAuthenticatorSelectionCriteria.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = _WKAuthenticatorSelectionCriteria.swift; sourceTree = "<group>"; };
 		5790A66825679E000077C5A7 /* _WKUserVerificationRequirement.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKUserVerificationRequirement.h; sourceTree = "<group>"; };
 		5790A66A25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKPublicKeyCredentialDescriptor.h; sourceTree = "<group>"; };
 		5790A66B25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKPublicKeyCredentialDescriptor.mm; sourceTree = "<group>"; };
@@ -6870,11 +6904,11 @@
 		5790A67A2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKAuthenticationExtensionsClientOutputs.h; sourceTree = "<group>"; };
 		5790A67B2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKAuthenticationExtensionsClientOutputs.mm; sourceTree = "<group>"; };
 		5790A67E2567A1AC0077C5A7 /* _WKAuthenticatorResponse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKAuthenticatorResponse.h; sourceTree = "<group>"; };
-		5790A67F2567A1AC0077C5A7 /* _WKAuthenticatorResponse.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKAuthenticatorResponse.mm; sourceTree = "<group>"; };
+		BFE53AB0065B40EE997482B0 /* _WKAuthenticatorResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = _WKAuthenticatorResponse.swift; sourceTree = "<group>"; };
 		5790A6822567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKAuthenticatorAttestationResponse.h; sourceTree = "<group>"; };
-		5790A6832567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKAuthenticatorAttestationResponse.mm; sourceTree = "<group>"; };
+		02F4FC55B02B47419F7DAA74 /* _WKAuthenticatorAttestationResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = _WKAuthenticatorAttestationResponse.swift; sourceTree = "<group>"; };
 		5790A6862567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKAuthenticatorAssertionResponse.h; sourceTree = "<group>"; };
-		5790A6872567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKAuthenticatorAssertionResponse.mm; sourceTree = "<group>"; };
+		6AAA947B8B05443CBAF79FD8 /* _WKAuthenticatorAssertionResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = _WKAuthenticatorAssertionResponse.swift; sourceTree = "<group>"; };
 		5790A68A2567A4CC0077C5A7 /* _WKAuthenticatorResponseInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKAuthenticatorResponseInternal.h; sourceTree = "<group>"; };
 		5790A68C2567B4490077C5A7 /* _WKAuthenticatorAttestationResponseInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKAuthenticatorAttestationResponseInternal.h; sourceTree = "<group>"; };
 		5790A68E2567B4CF0077C5A7 /* _WKAuthenticatorAssertionResponseInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKAuthenticatorAssertionResponseInternal.h; sourceTree = "<group>"; };
@@ -6898,22 +6932,26 @@
 		57B8E3D52355864A00D5C5D1 /* FidoAuthenticator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FidoAuthenticator.h; sourceTree = "<group>"; };
 		57B8E3D62355864A00D5C5D1 /* FidoAuthenticator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FidoAuthenticator.cpp; sourceTree = "<group>"; };
 		57BBEA6C22BC0BFE00273995 /* SOAuthorizationLoadPolicy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SOAuthorizationLoadPolicy.h; sourceTree = "<group>"; };
-		57C3E8AC242490D5001E2209 /* WebAuthenticationRequestData.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebAuthenticationRequestData.cpp; sourceTree = "<group>"; };
 		57C6244A234679A400383FE7 /* WebAuthenticationFlags.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticationFlags.h; sourceTree = "<group>"; };
 		57DCED6C2142EAF90016B847 /* WebAuthenticatorCoordinatorProxyMessageReceiver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebAuthenticatorCoordinatorProxyMessageReceiver.cpp; sourceTree = "<group>"; };
 		57DCED6D2142EAFA0016B847 /* WebAuthenticatorCoordinatorProxyMessages.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebAuthenticatorCoordinatorProxyMessages.h; sourceTree = "<group>"; };
 		57DCED842147363A0016B847 /* AuthenticatorManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AuthenticatorManager.h; sourceTree = "<group>"; };
 		57DCED852147363A0016B847 /* AuthenticatorManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AuthenticatorManager.cpp; sourceTree = "<group>"; };
+		5ABD374AE8CC4E1089395C15 /* AuthenticatorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatorManager.swift; sourceTree = "<group>"; };
 		57DCED8A214853130016B847 /* AuthenticatorTransportService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AuthenticatorTransportService.h; sourceTree = "<group>"; };
 		57DCED8B21485BD70016B847 /* Authenticator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Authenticator.h; sourceTree = "<group>"; };
 		57DCED9921489F4D0016B847 /* AuthenticatorTransportService.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AuthenticatorTransportService.cpp; sourceTree = "<group>"; };
 		57DCED9A2148B0830016B847 /* LocalService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalService.h; sourceTree = "<group>"; };
 		57DCEDA02148FA0F0016B847 /* LocalService.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LocalService.mm; sourceTree = "<group>"; };
+		1ABDF0C233C6491FB2FADDAB /* LocalConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalConnection.swift; sourceTree = "<group>"; };
+		E49661BDFD274C3CAF020489 /* LocalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalService.swift; sourceTree = "<group>"; };
 		57DCEDA12149C1E20016B847 /* LocalAuthenticator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalAuthenticator.h; sourceTree = "<group>"; };
 		57DCEDA32149DFF50016B847 /* LocalAuthenticator.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LocalAuthenticator.mm; sourceTree = "<group>"; };
 		1EC49B43B1534FF4844C0537 /* WebAuthnKeychainShims.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthnKeychainShims.h; sourceTree = "<group>"; };
 		D52709638E77434BAFC1A8D1 /* WebAuthenticationPanelCredentials.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticationPanelCredentials.h; sourceTree = "<group>"; };
 		B30949EF75FB415EA09EFD70 /* WebAuthnKeychainShims.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAuthnKeychainShims.mm; sourceTree = "<group>"; };
+		F63643BE22734C83B413BBD9 /* WebAuthnSoftLinkForSwift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthnSoftLinkForSwift.h; sourceTree = "<group>"; };
+		B0C88AAC14264F1593DD65E3 /* WebAuthnSoftLinkForSwift.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAuthnSoftLinkForSwift.mm; sourceTree = "<group>"; };
 		57DCEDA42149E64A0016B847 /* Authenticator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Authenticator.cpp; sourceTree = "<group>"; };
 		57DCEDA62149F9DA0016B847 /* WebAuthenticationRequestData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAuthenticationRequestData.h; sourceTree = "<group>"; };
 		57DCEDA7214A568B0016B847 /* LocalConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LocalConnection.h; sourceTree = "<group>"; };
@@ -7102,6 +7140,7 @@
 		5C74300E21500492004BFA17 /* WKWebProcess.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WKWebProcess.h; sourceTree = "<group>"; };
 		5C74300F21500492004BFA17 /* WKWebProcess.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WKWebProcess.cpp; sourceTree = "<group>"; };
 		5C76C0062ED9F46F00615579 /* WebBackForwardListMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebBackForwardListMessageReceiver.swift; sourceTree = "<group>"; };
+		A2141C133F1044A6B5732E9E /* WebAuthenticatorCoordinatorProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthenticatorCoordinatorProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		5C7706731D111D8B0012700F /* WebSocketProvider.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WebSocketProvider.cpp; path = Network/WebSocketProvider.cpp; sourceTree = "<group>"; };
 		5C7C88DC1D0F41A0009D2F6D /* WebSocketProvider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WebSocketProvider.h; path = Network/WebSocketProvider.h; sourceTree = "<group>"; };
 		5C7FB46E21E97C0B009E3241 /* WebCookieJar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebCookieJar.cpp; sourceTree = "<group>"; };
@@ -7371,8 +7410,6 @@
 		727A7F492408AEE6004D2931 /* RemoteImageBufferProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteImageBufferProxy.h; sourceTree = "<group>"; };
 		728E86EF1795188C0087879E /* WebColorPickerMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebColorPickerMac.h; sourceTree = "<group>"; };
 		728E86F01795188C0087879E /* WebColorPickerMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = WebColorPickerMac.mm; sourceTree = "<group>"; };
-		729F145827DA4BFB83A7C750 /* RemotePageWebAuthenticatorCoordinatorProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemotePageWebAuthenticatorCoordinatorProxy.h; sourceTree = "<group>"; };
-		729F145827DA4BFB83A7C751 /* RemotePageWebAuthenticatorCoordinatorProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemotePageWebAuthenticatorCoordinatorProxy.cpp; sourceTree = "<group>"; };
 		72A3F35930560F7400E1413C /* SharedFont.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SharedFont.cpp; sourceTree = "<group>"; };
 		72A3F35A30560F7400E1413C /* SharedFont.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SharedFont.h; sourceTree = "<group>"; };
 		72A87BBB287678A700289098 /* RemoteRenderingBackend.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteRenderingBackend.cpp; sourceTree = "<group>"; };
@@ -8154,6 +8191,7 @@
 		A118A9F01908B8EA00F7C92B /* _WKNSFileManagerExtras.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKNSFileManagerExtras.mm; sourceTree = "<group>"; };
 		A118A9F11908B8EA00F7C92B /* _WKNSFileManagerExtras.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKNSFileManagerExtras.h; sourceTree = "<group>"; };
 		A11E0C012F0A0001000A0001 /* RelatedOriginsValidator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RelatedOriginsValidator.cpp; sourceTree = "<group>"; };
+		897A9F2902534D4D97F3769A /* RelatedOriginsValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelatedOriginsValidator.swift; sourceTree = "<group>"; };
 		A11E0C022F0A0002000A0002 /* RelatedOriginsValidator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RelatedOriginsValidator.h; sourceTree = "<group>"; };
 		A11E0E012F0C0001000C0001 /* WellKnownResourceFetcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WellKnownResourceFetcher.h; sourceTree = "<group>"; };
 		A11E0E022F0C0002000C0002 /* WellKnownResourceFetcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WellKnownResourceFetcher.cpp; sourceTree = "<group>"; };
@@ -8799,6 +8837,7 @@
 		C7A41E902E8F1A0100D3B841 /* Untrusted.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Untrusted.h; sourceTree = "<group>"; };
 		C7A41E922E8F1A0100D3B841 /* untrusted_origins.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = untrusted_origins.py; path = webkit/untrusted_origins.py; sourceTree = "<group>"; };
 		C7A41E942E8F1A0100D3B841 /* ValidationProcedures.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ValidationProcedures.h; sourceTree = "<group>"; };
+		C7A41E962E8F1A0100D3B841 /* ValidationProceduresSwiftUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ValidationProceduresSwiftUtilities.h; sourceTree = "<group>"; };
 		C7B3F06E178BBE8B83E67A24 /* RemotePlaceholderRenderingContextSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemotePlaceholderRenderingContextSource.h; sourceTree = "<group>"; };
 		C8E3B43BCEE7D74B03CB891B /* SwiftCoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwiftCoding.h; sourceTree = "<group>"; };
 		CA05397823EE324400A553DC /* ContentAsStringIncludesChildFrames.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContentAsStringIncludesChildFrames.h; sourceTree = "<group>"; };
@@ -13341,17 +13380,17 @@
 				5790A67B2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.mm */,
 				5790A6902567B5E00077C5A7 /* _WKAuthenticationExtensionsClientOutputsInternal.h */,
 				5790A6862567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.h */,
-				5790A6872567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.mm */,
+				6AAA947B8B05443CBAF79FD8 /* _WKAuthenticatorAssertionResponse.swift */,
 				5790A68E2567B4CF0077C5A7 /* _WKAuthenticatorAssertionResponseInternal.h */,
 				57FE686C2604827800BF45E4 /* _WKAuthenticatorAttachment.h */,
 				5790A6822567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.h */,
-				5790A6832567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.mm */,
+				02F4FC55B02B47419F7DAA74 /* _WKAuthenticatorAttestationResponse.swift */,
 				5790A68C2567B4490077C5A7 /* _WKAuthenticatorAttestationResponseInternal.h */,
 				5790A67E2567A1AC0077C5A7 /* _WKAuthenticatorResponse.h */,
-				5790A67F2567A1AC0077C5A7 /* _WKAuthenticatorResponse.mm */,
+				BFE53AB0065B40EE997482B0 /* _WKAuthenticatorResponse.swift */,
 				5790A68A2567A4CC0077C5A7 /* _WKAuthenticatorResponseInternal.h */,
 				5790A66425679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.h */,
-				5790A66525679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.mm */,
+				510D9B0462E04C249FCA1922 /* _WKAuthenticatorSelectionCriteria.swift */,
 				99E714C11C1249E600665B3A /* _WKAutomationDelegate.h */,
 				990D28A71C6404B000986977 /* _WKAutomationSession.h */,
 				990D28AD1C65190400986977 /* _WKAutomationSession.mm */,
@@ -13554,6 +13593,7 @@
 				579F1BF823C80EC600C7D4B4 /* _WKWebAuthenticationAssertionResponseInternal.h */,
 				574728CF23456E98001700AF /* _WKWebAuthenticationPanel.h */,
 				574728D023456E98001700AF /* _WKWebAuthenticationPanel.mm */,
+				84F4961336764091A6B59225 /* _WKWebAuthenticationPanel.swift */,
 				5790A6512565DE6A0077C5A7 /* _WKWebAuthenticationPanelForTesting.h */,
 				574728D3234570AE001700AF /* _WKWebAuthenticationPanelInternal.h */,
 				9732EB702B0C3AD41300B915 /* _WKWebExtensionBookmarkConfiguration.h */,
@@ -14408,6 +14448,7 @@
 				1C0A19511C8FFDFB00FE0EBB /* WebAutomationSessionProxyMessageReceiver.cpp */,
 				1C0A19521C8FFDFB00FE0EBB /* WebAutomationSessionProxyMessages.h */,
 				5C76C0062ED9F46F00615579 /* WebBackForwardListMessageReceiver.swift */,
+				A2141C133F1044A6B5732E9E /* WebAuthenticatorCoordinatorProxyMessageReceiver.swift */,
 				330934431315B9220097A7BC /* WebCookieManagerMessageReceiver.cpp */,
 				330934441315B9220097A7BC /* WebCookieManagerMessages.h */,
 				E3866B062399979C00F88FE9 /* WebDeviceOrientationUpdateProviderMessageReceiver.cpp */,
@@ -15370,16 +15411,22 @@
 				57DCEDA42149E64A0016B847 /* Authenticator.cpp */,
 				57DCED8B21485BD70016B847 /* Authenticator.h */,
 				57DCED852147363A0016B847 /* AuthenticatorManager.cpp */,
+				5ABD374AE8CC4E1089395C15 /* AuthenticatorManager.swift */,
 				57DCED842147363A0016B847 /* AuthenticatorManager.h */,
 				57DCED9921489F4D0016B847 /* AuthenticatorTransportService.cpp */,
 				57DCED8A214853130016B847 /* AuthenticatorTransportService.h */,
 				A11E0C012F0A0001000A0001 /* RelatedOriginsValidator.cpp */,
+				897A9F2902534D4D97F3769A /* RelatedOriginsValidator.swift */,
 				A11E0C022F0A0002000A0002 /* RelatedOriginsValidator.h */,
 				57C6244A234679A400383FE7 /* WebAuthenticationFlags.h */,
-				57C3E8AC242490D5001E2209 /* WebAuthenticationRequestData.cpp */,
 				57DCEDA62149F9DA0016B847 /* WebAuthenticationRequestData.h */,
 				57608296202BD8BA00116678 /* WebAuthenticatorCoordinatorProxy.cpp */,
+				856311D789B04CD1B6F3B7E7 /* WebAuthnRequestsConformances.swift */,
+				9F38EAED42B04A649F988121 /* WebAuthenticatorCoordinatorProxy+Legacy.swift */,
+				4AA23786E3C04BCF8217422E /* WebAuthenticatorCoordinatorProxy+AS.swift */,
+				1D5A388E73584B4B8E232594 /* WebAuthenticatorCoordinatorProxy.swift */,
 				57608295202BD8BA00116678 /* WebAuthenticatorCoordinatorProxy.h */,
+				318E11F9ABB4496897155888 /* WebAuthenticatorCoordinatorProxySwiftUtilities.h */,
 				57608299202BDAE200116678 /* WebAuthenticatorCoordinatorProxy.messages.in */,
 			);
 			path = WebAuthentication;
@@ -15407,6 +15454,7 @@
 				57773990258037430059348B /* AuthenticatorPresenterCoordinator.mm */,
 				526C5718284AD09500E08955 /* CcidConnection.h */,
 				526C5719284AD09500E08955 /* CcidConnection.mm */,
+				C4D62801AB7F46C88A50766A /* CcidConnection.swift */,
 				526C571C284AD0C000E08955 /* CcidService.h */,
 				526C571D284AD0C000E08955 /* CcidService.mm */,
 				57AC8F4E217FEED90055438C /* HidConnection.h */,
@@ -15421,25 +15469,33 @@
 				14CF854BDA69485581D56A96 /* LocalAuthenticatorKeychain.swift */,
 				57DCEDA7214A568B0016B847 /* LocalConnection.h */,
 				57DCEDA8214A568B0016B847 /* LocalConnection.mm */,
+				1ABDF0C233C6491FB2FADDAB /* LocalConnection.swift */,
 				57DCED9A2148B0830016B847 /* LocalService.h */,
 				57DCEDA02148FA0F0016B847 /* LocalService.mm */,
+				E49661BDFD274C3CAF020489 /* LocalService.swift */,
+				133B4CB7209CEAC25C96B84F /* MainRunLoopDestroyedHandler.h */,
 				57B826422304F14000B72EB0 /* NearFieldSoftLink.h */,
 				57B826432304F14000B72EB0 /* NearFieldSoftLink.mm */,
 				570DAAC02303730300E8FC04 /* NfcConnection.h */,
 				570DAAC12303730300E8FC04 /* NfcConnection.mm */,
+				D1827265FBBA48EF82214297 /* NfcConnection.swift */,
 				570DAAAC23026F5C00E8FC04 /* NfcService.h */,
 				570DAAAD23026F5C00E8FC04 /* NfcService.mm */,
+				824B56C4A9D84626A953BD9E /* NfcService.swift */,
 				577FF7832346ECAA004EDFB9 /* WebAuthenticationPanelClient.h */,
 				577FF7842346ECAA004EDFB9 /* WebAuthenticationPanelClient.mm */,
+				8979F69082F3484D9CF826BD /* WebAuthenticationPanelClient.swift */,
 				D52709638E77434BAFC1A8D1 /* WebAuthenticationPanelCredentials.h */,
 				DF7D3D5BDED2541A3587B148 /* WebAuthenticationPanelCredentials.swift */,
-				0DCBF4D926E2ED3200EA0E07 /* WebAuthenticatorCoordinatorProxy.mm */,
 				1EC49B43B1534FF4844C0537 /* WebAuthnKeychainShims.h */,
 				B30949EF75FB415EA09EFD70 /* WebAuthnKeychainShims.mm */,
+				F63643BE22734C83B413BBD9 /* WebAuthnSoftLinkForSwift.h */,
+				B0C88AAC14264F1593DD65E3 /* WebAuthnSoftLinkForSwift.mm */,
 				577739932580388F0059348B /* WKASCAuthorizationPresenterDelegate.h */,
 				577739942580388F0059348B /* WKASCAuthorizationPresenterDelegate.mm */,
 				570DAAC423037F7E00E8FC04 /* WKNFReaderSessionDelegate.h */,
 				570DAAC523037F7E00E8FC04 /* WKNFReaderSessionDelegate.mm */,
+				F1B7DC2BEB3F6F48097DEA8F /* WKSmartCardObservers.h */,
 			);
 			path = Cocoa;
 			sourceTree = "<group>";
@@ -15451,16 +15507,21 @@
 				57DCEDC9214F4E420016B847 /* MockAuthenticatorManager.h */,
 				52C05BA72874996C00D80C59 /* MockCcidService.h */,
 				52C05BA82874996C00D80C59 /* MockCcidService.mm */,
+				51EACAEE734F416D8244DAD4 /* MockCcidService.swift */,
 				5756DD77218D14A200D4EE6A /* MockHidConnection.cpp */,
 				5756DD76218D14A200D4EE6A /* MockHidConnection.h */,
+				D9CDB4E3A2E4407A8E85A033 /* MockHidConnection.swift */,
 				5756DD75218D104900D4EE6A /* MockHidService.cpp */,
 				5756DD74218D104900D4EE6A /* MockHidService.h */,
 				57DCEDC5214F18300016B847 /* MockLocalConnection.h */,
 				57DCEDC6214F18300016B847 /* MockLocalConnection.mm */,
+				48F8650F706B4D79AE045BAB /* MockLocalConnection.swift */,
 				57DCEDC1214F114C0016B847 /* MockLocalService.h */,
 				57DCEDC2214F114C0016B847 /* MockLocalService.mm */,
 				57B8264A230603C100B72EB0 /* MockNfcService.h */,
 				57B8264B230603C100B72EB0 /* MockNfcService.mm */,
+				CA750B936D8F4260A632B1EE /* MockNfcService.swift */,
+				F345359A05E0F9B97D299997 /* WKMockWebAuthenticationObjects.h */,
 			);
 			path = Mock;
 			sourceTree = "<group>";
@@ -16920,8 +16981,6 @@
 				FA1A7DE52E012DB3005E394B /* RemotePageVideoPresentationManagerProxy.cpp */,
 				FA1A7DE42E012DB3005E394B /* RemotePageVideoPresentationManagerProxy.h */,
 				5CEB40A22A534EE100563C91 /* RemotePageVisitedLinkStoreRegistration.h */,
-				729F145827DA4BFB83A7C751 /* RemotePageWebAuthenticatorCoordinatorProxy.cpp */,
-				729F145827DA4BFB83A7C750 /* RemotePageWebAuthenticatorCoordinatorProxy.h */,
 				7BDE98AD2F0F33B20091DCA3 /* RemotePageWebDeviceOrientationUpdateProviderProxy.cpp */,
 				7BDE98AC2F0F33140091DCA3 /* RemotePageWebDeviceOrientationUpdateProviderProxy.h */,
 				BC111B08112F5E3C00337BAB /* ResponsivenessTimer.cpp */,
@@ -16967,6 +17026,7 @@
 				074E75FC1DF2002400D318EC /* UserMediaProcessManager.cpp */,
 				074E75FB1DF1FD1300D318EC /* UserMediaProcessManager.h */,
 				C7A41E942E8F1A0100D3B841 /* ValidationProcedures.h */,
+				C7A41E962E8F1A0100D3B841 /* ValidationProceduresSwiftUtilities.h */,
 				2DAF4FFA1B636181006013D6 /* ViewGestureController.cpp */,
 				2D125C5C1857EA05003BA3CB /* ViewGestureController.h */,
 				2D1B5D5A18586599006C6596 /* ViewGestureController.messages.in */,
@@ -19529,7 +19589,6 @@
 				1AC1338018590AE400F3EC05 /* RemoteObjectRegistry.h in Headers */,
 				1AC1338618590C4600F3EC05 /* RemoteObjectRegistryMessages.h in Headers */,
 				2BBCCE242EB2B3F500FE7E5A /* RemotePageScreenOrientationManagerProxy.h in Headers */,
-				F5AE074483234F46B7D93F3F /* RemotePageWebAuthenticatorCoordinatorProxy.h in Headers */,
 				71C9ECA12CF9FB7100B8AF06 /* RemoteProgressBasedTimeline.h in Headers */,
 				71722EB22EA919E9004218E6 /* RemoteProgressBasedTimelineRegistry.h in Headers */,
 				46088A00261FA8BC00E2500D /* RemoteRenderingBackend.h in Headers */,
@@ -19682,6 +19741,7 @@
 				466BB8682B9C1F2E0010907E /* UserScriptIdentifier.h in Headers */,
 				466BB86A2B9C215B0010907E /* UserStyleSheetIdentifier.h in Headers */,
 				C7A41E952E8F1A0100D3B841 /* ValidationProcedures.h in Headers */,
+				C7A41E972E8F1A0100D3B841 /* ValidationProceduresSwiftUtilities.h in Headers */,
 				A1B849372F3D9F02004256A1 /* VideoPresentationInterfaceAVKit.h in Headers */,
 				1F6B9F042B7AA5E00051676F /* VideoPresentationInterfaceLMK.h in Headers */,
 				52D5A1B01C57495A00DE34A3 /* VideoPresentationManagerProxy.h in Headers */,
@@ -22826,23 +22886,12 @@
 				5B11A0CBD2E3F40516273849 /* WebSWServerToContextConnectionMessageReceiver.swift in Sources */,
 				5790A67125679F1A0077C5A7 /* _WKAuthenticationExtensionsClientInputs.mm in Sources */,
 				5790A67D2567A13E0077C5A7 /* _WKAuthenticationExtensionsClientOutputs.mm in Sources */,
-				5790A6892567A28A0077C5A7 /* _WKAuthenticatorAssertionResponse.mm in Sources */,
-				5790A6852567A21E0077C5A7 /* _WKAuthenticatorAttestationResponse.mm in Sources */,
-				5790A6812567A1AC0077C5A7 /* _WKAuthenticatorResponse.mm in Sources */,
-				5790A66725679CEA0077C5A7 /* _WKAuthenticatorSelectionCriteria.mm in Sources */,
 				97AD28742ECE625300039097 /* _WKCaptionStyleMenuControllerAVKit.mm in Sources */,
 				9732D19C2ECFD0B600AC856D /* _WKCaptionStyleMenuControllerAVKitMac.mm in Sources */,
 				CDFF2D092EAB3CAA00899478 /* _WKCaptionStyleMenuControllerIOS.mm in Sources */,
 				CD89ACBC2EA696A300C76423 /* _WKCaptionStyleMenuControllerMac.mm in Sources */,
 				5CBD595C2280EDF4002B22AA /* _WKCustomHeaderFields.mm in Sources */,
 				511FD1132C51AF4300BD8163 /* _WKMockUserNotificationCenter.mm in Sources */,
-				5790A67525679F740077C5A7 /* _WKPublicKeyCredentialCreationOptions.mm in Sources */,
-				5790A66D25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.mm in Sources */,
-				5790A657256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.mm in Sources */,
-				5790A66325679C860077C5A7 /* _WKPublicKeyCredentialParameters.mm in Sources */,
-				5790A65B25679B260077C5A7 /* _WKPublicKeyCredentialRelyingPartyEntity.mm in Sources */,
-				5790A6792567A0CD0077C5A7 /* _WKPublicKeyCredentialRequestOptions.mm in Sources */,
-				5790A65F25679C110077C5A7 /* _WKPublicKeyCredentialUserEntity.mm in Sources */,
 				07F6B5592D719323009F206D /* _WKRectEdge+Extras.swift in Sources */,
 				49FBEFFD239B011D00BD032F /* _WKResourceLoadStatisticsFirstParty.mm in Sources */,
 				49FBEFFF239B012F00BD032F /* _WKResourceLoadStatisticsThirdParty.mm in Sources */,
@@ -22962,11 +23011,16 @@
 				E326F4DC2CA6C44F00182187 /* LogStream.mm in Sources */,
 				9B4790912531563200EC11AB /* MessageArgumentDescriptions.cpp in Sources */,
 				AD00CE0C2E1A000000000004 /* MessageCheck.swift in Sources */,
+				EB9DDE4784A544969450EA5C /* MockCcidService.swift in Sources */,
+				06FFE6FCC36941BABB4A68ED /* MockHidConnection.swift in Sources */,
+				5B95B94333D64E88A6F4597D /* MockLocalConnection.swift in Sources */,
+				73716720D32B4D2EA9977A89 /* MockNfcService.swift in Sources */,
 				3625771CD7ED2C7CCF7238E1 /* MockPhoneNumberPossessionManager.swift in Sources */,
 				EBA8D3B627A5E33F00CB7900 /* MockPushServiceConnection.mm in Sources */,
 				07D1FE3E79C141B7B597EEBA /* MomentumEventDispatcher.swift in Sources */,
 				9A10C3E5A1F04B2E8D6C7B01 /* ScrollingAccelerationCurve.swift in Sources */,
 				57B826452304F14000B72EB0 /* NearFieldSoftLink.mm in Sources */,
+				6D5E1F02A70E40EA91DACD92 /* WebAuthnSoftLinkForSwift.mm in Sources */,
 				C1C1B30F2540F50D00D9100B /* NetworkConnectionToWebProcessMac.mm in Sources */,
 				41E242E026E0C908009A8C64 /* NetworkRTCUtilitiesCocoa.mm in Sources */,
 				FA5AAE9C2E6A217A00FE693D /* NetworkSoftLink.mm in Sources */,
@@ -23428,13 +23482,37 @@
 				52CDC5C92731DA0D00A3E3EB /* VirtualLocalConnection.mm in Sources */,
 				52CDC5C52731DA0D00A3E3EB /* VirtualService.mm in Sources */,
 				C0A6DCEEB850DF834E637DF4 /* WebAuthenticationPanelCredentials.swift in Sources */,
-				52EDB40428C2B8FD002DCF33 /* WebAuthenticatorCoordinatorProxy.mm in Sources */,
 				866623F929C2248E0029405A /* WebAutocorrectionData.mm in Sources */,
 				575B1BBA23CE9C130020639A /* WebAutomationSession.cpp in Sources */,
 				1C0A19571C90068F00FE0EBB /* WebAutomationSessionMessageReceiver.cpp in Sources */,
 				575B1BB823CE9BFC0020639A /* WebAutomationSessionProxy.cpp in Sources */,
 				5CDEE4932DACEF3400D2400E /* WebBackForwardList.swift in Sources */,
+				5790A65F25679C110077C5A7 /* _WKPublicKeyCredentialUserEntity.mm in Sources */,
+				5790A6792567A0CD0077C5A7 /* _WKPublicKeyCredentialRequestOptions.mm in Sources */,
+				5790A65B25679B260077C5A7 /* _WKPublicKeyCredentialRelyingPartyEntity.mm in Sources */,
+				5790A66325679C860077C5A7 /* _WKPublicKeyCredentialParameters.mm in Sources */,
+				5790A657256799DA0077C5A7 /* _WKPublicKeyCredentialEntity.mm in Sources */,
+				5790A66D25679EB70077C5A7 /* _WKPublicKeyCredentialDescriptor.mm in Sources */,
+				5790A67525679F740077C5A7 /* _WKPublicKeyCredentialCreationOptions.mm in Sources */,
+				4820F36DE9A34CC38A375F1B /* _WKAuthenticatorSelectionCriteria.swift in Sources */,
+				DD8DFC16F6984D61B2E0DA34 /* _WKAuthenticatorResponse.swift in Sources */,
+				EE89E9AEBA56435BB28AC6C2 /* _WKAuthenticatorAttestationResponse.swift in Sources */,
+				4CFD4FC19B274F0B8BC17FA9 /* _WKAuthenticatorAssertionResponse.swift in Sources */,
+				5B030F7AB3B4401BAAD00D4F /* _WKWebAuthenticationPanel.swift in Sources */,
+				9C013335202648A5AA0F54A1 /* CcidConnection.swift in Sources */,
+				7BD02639758645048A244615 /* LocalConnection.swift in Sources */,
+				6F1F1346CBFA492F943BB64C /* LocalService.swift in Sources */,
+				54163C77398B4D5F9BF2D8EA /* NfcService.swift in Sources */,
+				24B50133D8AC4C51A2E64506 /* NfcConnection.swift in Sources */,
+				4A3FD286528D440ABDE09D58 /* WebAuthenticationPanelClient.swift in Sources */,
+				1C8B6FF3F665497CA3F7C5E3 /* RelatedOriginsValidator.swift in Sources */,
+				FC8F50DB5E58448EABDD6F8D /* AuthenticatorManager.swift in Sources */,
+				07CCFE4F9CC04898980A708C /* WebAuthnRequestsConformances.swift in Sources */,
+				DE2043C28A5048A8ABF32BDD /* WebAuthenticatorCoordinatorProxy+Legacy.swift in Sources */,
+				1896DFEFA50B454AB87929EE /* WebAuthenticatorCoordinatorProxy+AS.swift in Sources */,
+				8A40E46A5E174D7697EF4099 /* WebAuthenticatorCoordinatorProxy.swift in Sources */,
 				5C76C0072ED9F46F00615579 /* WebBackForwardListMessageReceiver.swift in Sources */,
+				5247CB3FFEE84EDEA27FF2E3 /* WebAuthenticatorCoordinatorProxyMessageReceiver.swift in Sources */,
 				EB44A69B2C8A4F6E006595BF /* WebClipCache.mm in Sources */,
 				E39628DE23960CC600658ECD /* WebDeviceOrientationUpdateProvider.cpp in Sources */,
 				E3866AE52397400400F88FE9 /* WebDeviceOrientationUpdateProviderProxy.mm in Sources */,

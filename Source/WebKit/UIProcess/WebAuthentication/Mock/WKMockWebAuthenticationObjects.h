@@ -27,33 +27,35 @@
 
 #if ENABLE(WEB_AUTHN)
 
-#include "MessageReceiver.h"
-#include <WebCore/PageIdentifier.h>
+#import <CryptoTokenKit/TKSmartCard.h>
+
+#if HAVE(NEAR_FIELD)
+#import "NearFieldSPI.h"
+#endif
+
+// The tests' stand-ins for NearField tags and CryptoTokenKit smart cards. They are declared here rather than in the
+// files that create them so that Swift can implement them; each selector takes only what Swift can implement.
 
 namespace WebKit {
-
-class WebAuthenticatorCoordinatorProxy;
-class WebProcessProxy;
-
-class RemotePageWebAuthenticatorCoordinatorProxy : public IPC::MessageReceiver, public RefCounted<RemotePageWebAuthenticatorCoordinatorProxy> {
-public:
-    static Ref<RemotePageWebAuthenticatorCoordinatorProxy> create(WebCore::PageIdentifier, WebAuthenticatorCoordinatorProxy*, WebProcessProxy&);
-
-    ~RemotePageWebAuthenticatorCoordinatorProxy();
-
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
-
-private:
-    RemotePageWebAuthenticatorCoordinatorProxy(WebCore::PageIdentifier, WebAuthenticatorCoordinatorProxy*, WebProcessProxy&);
-
-    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
-
-    const WebCore::PageIdentifier m_identifier;
-    const WeakPtr<WebAuthenticatorCoordinatorProxy> m_coordinator;
-    const Ref<WebProcessProxy> m_process;
-};
-
+class MockCcidService;
 }
 
+NS_HEADER_AUDIT_BEGIN(nullability, sendability)
+
+#if HAVE(NEAR_FIELD)
+@interface WKMockNFTag : NSObject <NFTag>
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithNFTag:(id<NFTag>)tag NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithType:(NFTagType)type;
+- (instancetype)initWithType:(NFTagType)type tagID:(NSData *)tagID NS_DESIGNATED_INITIALIZER;
+@end
 #endif
+
+// Answers every request with the service's next scripted reply.
+@interface _WKMockTKSmartCard : TKSmartCard
+- (instancetype)initWithService:(WebKit::MockCcidService&)service;
+@end
+
+NS_HEADER_AUDIT_END(nullability, sendability)
+
+#endif // ENABLE(WEB_AUTHN)

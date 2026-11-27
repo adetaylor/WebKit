@@ -212,7 +212,7 @@ extension _WKWebAuthenticationPanel {
         }
 
         // SecKeyCopyExternalRepresentation needs a key.
-        guard let privateKey = checkedObjectCast(privateKeyRef, to: SecKey.self) else {
+        guard let privateKey = checkedCFCast(privateKeyRef, to: SecKey.self) else {
             preconditionFailure("No private key for the credential")
         }
         guard let privateKeyRepresentation = SecKeyCopyExternalRepresentation(privateKey, nil) as Data? else {

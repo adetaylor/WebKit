@@ -129,6 +129,13 @@ std::optional<AuthenticatorGetInfoResponse> makeGetInfoResponse(GetInfoResponseF
     return response;
 }
 
+Vector<uint8_t> encodeAsCBOR(GetInfoResponseFields&& fields)
+{
+    auto response = makeGetInfoResponse(WTF::move(fields));
+    RELEASE_ASSERT(response);
+    return encodeAsCBOR(WTF::move(*response));
+}
+
 GetInfoResponseFields getInfoResponseFields(const AuthenticatorGetInfoResponse& response)
 {
     auto& options = response.options();

@@ -69,7 +69,7 @@ WebPhoneNumberPossessionCoordinatorProxy::WebPhoneNumberPossessionCoordinatorPro
     , m_process(webPageProxy.legacyMainFrameProcess())
     , m_webPageID(webPageProxy.webPageIDInMainFrameProcess())
 {
-    // FIXME: Also receive messages from cross-origin iframes in other processes, as RemotePageWebAuthenticatorCoordinatorProxy does.
+    // FIXME: Also receive messages from cross-origin iframes in other processes, as RemotePageProxy does for WebAuthn's.
     m_process->addMessageReceiver(Messages::WebPhoneNumberPossessionCoordinatorProxy::messageReceiverName(), m_webPageID, *this);
 }
 

@@ -395,4 +395,194 @@ extension WebCore {
     }
 }
 
+// The client data JSON of https://www.w3.org/TR/webauthn-2/#clientdatajson-verification, as `JSON::Object::toJSONString`
+// writes it: the members in insertion order, no space, strings escaped as `appendQuotedJSONString` does and then as UTF-8.
+
+/// `value` as a quoted JSON string in UTF-8: `"`, `\` and the control characters escaped (the short forms for
+/// backspace, tab, line feed, form feed and carriage return, `\u00xx` for the rest), an unpaired surrogate as
+/// `\uxxxx`, and every other character as UTF-8.
+private func appendQuotedJSONString(_ value: borrowing WTF.String, to output: inout [UInt8]) {
+    let units = utf16Units(of: value)
+    output.reserveCapacity(output.count &+ units.count &+ 2)
+    output.append(UInt8(ascii: "\""))
+    var index = 0
+    while index < units.count {
+        let unit = units[index]
+        index += 1
+        switch unit {
+        case 0x22:
+            appendShortEscape("\"", to: &output)
+        case 0x5C:
+            appendShortEscape("\\", to: &output)
+        case 0x08:
+            appendShortEscape("b", to: &output)
+        case 0x09:
+            appendShortEscape("t", to: &output)
+        case 0x0A:
+            appendShortEscape("n", to: &output)
+        case 0x0C:
+            appendShortEscape("f", to: &output)
+        case 0x0D:
+            appendShortEscape("r", to: &output)
+        case 0x00...0x1F:
+            appendEscapedUnit(unit, to: &output)
+        case 0x20...0x7F:
+            output.append(UInt8(truncatingIfNeeded: unit))
+        case 0xD800...0xDFFF:
+            if unit < 0xDC00, index < units.count, units[index] & 0xFC00 == 0xDC00 {
+                let scalar = 0x10000 &+ ((UInt32(unit) &- 0xD800) << 10) &+ (UInt32(units[index]) &- 0xDC00)
+                index += 1
+                emitUTF8(scalar: scalar) { output.append($0) }
+            } else {
+                appendEscapedUnit(unit, to: &output)
+            }
+        default:
+            emitUTF8(scalar: UInt32(unit)) { output.append($0) }
+        }
+    }
+    output.append(UInt8(ascii: "\""))
+}
+
+/// `\` and `character`, the short form of an escape.
+@inline(always)
+private func appendShortEscape(_ character: Unicode.Scalar, to output: inout [UInt8]) {
+    output.append(UInt8(ascii: "\\"))
+    output.append(UInt8(ascii: character))
+}
+
+/// `\uxxxx` for `unit`, with lowercase hexadecimal digits.
+private func appendEscapedUnit(_ unit: UInt16, to output: inout [UInt8]) {
+    output.append(UInt8(ascii: "\\"))
+    output.append(UInt8(ascii: "u"))
+    for shift in stride(from: 12, through: 0, by: -4) {
+        let nibble = UInt8(truncatingIfNeeded: unit >> UInt16(shift) & 0xF)
+        output.append(nibble < 10 ? UInt8(ascii: "0") &+ nibble : UInt8(ascii: "a") &+ (nibble &- 10))
+    }
+}
+
+/// The body of `buildClientDataJson`, which forwards here.
+///
+/// `challenge` is the challenge in base64url, `origin` the origin's serialization, and `topOrigin` the top origin's, or a
+/// null string when the request has none.
+@_expose(Cxx)
+func webAuthnClientDataJSON(
+    _ type: WebCore.ClientDataType,
+    _ challenge: consuming WTF.String,
+    _ origin: consuming WTF.String,
+    _ scope: WebAuthn.Scope,
+    _ topOrigin: consuming WTF.String
+) -> cbor.Bytes {
+    var json: [UInt8] = []
+    switch type {
+    case .Create:
+        json.append(contentsOf: "{\"type\":\"webauthn.create\",\"challenge\":".utf8)
+    case .Get:
+        json.append(contentsOf: "{\"type\":\"webauthn.get\",\"challenge\":".utf8)
+    @unknown default:
+        json.append(contentsOf: "{\"type\":\"webauthn.get\",\"challenge\":".utf8)
+    }
+    appendQuotedJSONString(challenge, to: &json)
+    json.append(contentsOf: ",\"origin\":".utf8)
+    appendQuotedJSONString(origin, to: &json)
+    if scope != .SameOrigin {
+        json.append(contentsOf: ",\"crossOrigin\":true".utf8)
+    }
+    if !topOrigin.isNull() {
+        json.append(contentsOf: ",\"topOrigin\":".utf8)
+        appendQuotedJSONString(topOrigin, to: &json)
+    }
+    json.append(UInt8(ascii: "}"))
+    return makeByteVector(json)
+}
+
+/// The body of `buildClientDataJsonHash`, which forwards here: the SHA-256 of the client data JSON.
+///
+/// `clientData` is the span of the caller's `ArrayBuffer`: it stays allocated, at its length, for the call, nothing here
+/// or in the C++ it calls writes it, and its bytes have no invalid bit patterns.
+/// FIXME: Take a `Span<UInt8>` parameter once a `std::span` can cross safely (rdar://186723514).
+@_expose(Cxx)
+func webAuthnClientDataHash(_ clientData: cbor.ByteSpan) -> cbor.Bytes {
+    let data = unsafe Span<UInt8>(_unsafeCxxSpan: clientData)
+    var sink = fido.WebAuthnByteSink()
+    sink.reserve(data.count)
+    sink.append(data)
+    return fido.pin.pinSHA256(sink.take())
+}
+
+// MARK: The transports and the cross-device fallback URL
+
+/// WebAuthenticationConstants.h's `authenticatorTransport*` (ASCIILiteral, which does not import).
+///
+/// Each literal is pinned by a static_assert in WebAuthenticationUtils.cpp.
+private enum AuthenticatorTransportName {
+    static let usb = "usb"
+    static let nfc = "nfc"
+    static let ble = "ble"
+    static let `internal` = "internal"
+    static let cable = "cable"
+    static let hybrid = "hybrid"
+    static let smartCard = "smart-card"
+}
+
+/// The body of `toString(AuthenticatorTransport)`, which forwards here: the transport's name, or a null string for a
+/// value that is none of the transports.
+@_expose(Cxx)
+func webAuthnTransportString(_ transport: WebCore.AuthenticatorTransport) -> WTF.String {
+    let name: Swift.String
+    switch transport {
+    case .Usb: name = AuthenticatorTransportName.usb
+    case .Nfc: name = AuthenticatorTransportName.nfc
+    case .Ble: name = AuthenticatorTransportName.ble
+    case .Internal: name = AuthenticatorTransportName.internal
+    case .Cable: name = AuthenticatorTransportName.cable
+    case .Hybrid: name = AuthenticatorTransportName.hybrid
+    case .SmartCard: name = AuthenticatorTransportName.smartCard
+    default:
+        assertionFailure()
+        return WTF.String()
+    }
+    return makeWTFString(name)
+}
+
+/// The body of `convertStringToAuthenticatorTransport`, which forwards here: the transport named exactly `name`, or
+/// none.
+@_expose(Cxx)
+func webAuthnTransport(_ name: consuming WTF.String) -> WebCore.OptionalAuthenticatorTransport {
+    if webAuthnEqualsASCII(name, AuthenticatorTransportName.usb) {
+        return .init(.Usb)
+    }
+    if webAuthnEqualsASCII(name, AuthenticatorTransportName.nfc) {
+        return .init(.Nfc)
+    }
+    if webAuthnEqualsASCII(name, AuthenticatorTransportName.ble) {
+        return .init(.Ble)
+    }
+    if webAuthnEqualsASCII(name, AuthenticatorTransportName.internal) {
+        return .init(.Internal)
+    }
+    if webAuthnEqualsASCII(name, AuthenticatorTransportName.cable) {
+        return .init(.Cable)
+    }
+    if webAuthnEqualsASCII(name, AuthenticatorTransportName.hybrid) {
+        return .init(.Hybrid)
+    }
+    if webAuthnEqualsASCII(name, AuthenticatorTransportName.smartCard) {
+        return .init(.SmartCard)
+    }
+    return .init()
+}
+
+/// The body of `validateCrossDeviceFallbackURL`, which forwards here: why `url` can't be used as the
+/// crossDeviceFallbackUrl extension input, or none if it can.
+@_expose(Cxx)
+func webAuthnCrossDeviceFallbackURLError(_ url: consuming WTF.URL) -> WebCore.OptionalWebAuthnString {
+    if !url.isValid() || !fido.webAuthnURLIsHTTPS(url) {
+        return .init(makeWTFString("The cross-device fallback URL is not a valid https URL."))
+    }
+    if fido.webAuthnURLHostIsEmptyOrIPAddress(url) {
+        return .init(makeWTFString("The effective domain of the cross-device fallback URL is not a valid domain."))
+    }
+    return .init()
+}
+
 #endif // !WTF_PLATFORM_WATCHOS && !WTF_PLATFORM_MACCATALYST

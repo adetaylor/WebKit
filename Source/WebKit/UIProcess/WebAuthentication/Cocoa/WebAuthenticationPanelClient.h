@@ -30,16 +30,20 @@
 #import "WKFoundation.h"
 
 #import "APIWebAuthenticationPanelClient.h"
+#import <WebKit/_WKWebAuthenticationPanel.h>
+#import <wtf/CompletionHandler.h>
 #import <wtf/RetainPtr.h>
+#import <wtf/SwiftBridging.h>
 #import <wtf/WeakObjCPtr.h>
 #import <wtf/WeakPtr.h>
+#import <wtf/text/WTFString.h>
 
 @class _WKWebAuthenticationPanel;
 @protocol _WKWebAuthenticationPanelDelegate;
 
 namespace WebKit {
 
-class WebAuthenticationPanelClient final : public API::WebAuthenticationPanelClient, public CanMakeWeakPtr<WebAuthenticationPanelClient> {
+class SWIFT_PRIVATE_FILEID("WebKit/WebAuthenticationPanelClient.swift") WebAuthenticationPanelClient final : public API::WebAuthenticationPanelClient, public CanMakeWeakPtr<WebAuthenticationPanelClient> {
 public:
     static Ref<WebAuthenticationPanelClient> create(_WKWebAuthenticationPanel *, id<_WKWebAuthenticationPanelDelegate>);
 
@@ -48,7 +52,8 @@ public:
 private:
     WebAuthenticationPanelClient(_WKWebAuthenticationPanel *, id <_WKWebAuthenticationPanelDelegate>);
 
-    // API::WebAuthenticationPanelClient
+    // API::WebAuthenticationPanelClient. updatePanel and dismissPanel are implemented in
+    // WebAuthenticationPanelClient.swift.
     void updatePanel(WebAuthenticationStatus) const final;
     void dismissPanel(WebAuthenticationResult) const final;
     void requestPin(uint64_t, CompletionHandler<void(const WTF::String&)>&&) const final;
@@ -57,10 +62,15 @@ private:
     void decidePolicyForLocalAuthenticator(CompletionHandler<void(LocalAuthenticatorPolicy)>&&) const final;
     void requestLAContextForUserVerification(CompletionHandler<void(LAContext *)>&&) const final;
 
+    // For WebAuthenticationPanelClient.swift: the delegate is sent the panel as its weak reference gives it, nil once
+    // the panel is being deallocated, which Swift cannot pass for the delegate methods' nonnull parameter.
+    void sendUpdateToDelegate(_WKWebAuthenticationPanelUpdate update) const { [m_delegate.get() panel:m_panel.get().get() updateWebAuthenticationPanel:update]; }
+    void sendDismissToDelegate(_WKWebAuthenticationResult result) const { [m_delegate.get() panel:m_panel.get().get() dismissWebAuthenticationPanelWithResult:result]; }
+
     WeakObjCPtr<_WKWebAuthenticationPanel> m_panel;
     WeakObjCPtr<id<_WKWebAuthenticationPanelDelegate>> m_delegate;
 
-    struct {
+    struct DelegateMethods {
         bool panelUpdateWebAuthenticationPanel : 1;
         bool panelDismissWebAuthenticationPanelWithResult : 1;
         bool panelRequestPinWithRemainingRetriesCompletionHandler : 1;

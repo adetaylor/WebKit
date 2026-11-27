@@ -26,7 +26,6 @@
 #pragma once
 
 #import "_WKAuthenticatorAssertionResponse.h"
-#import <wtf/RetainPtr.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -34,9 +33,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface _WKAuthenticatorAssertionResponse ()
 
-- (instancetype)initWithClientDataJSON:(NSData *)clientDataJSON rawId:(NSData *)rawId extensions:(RetainPtr<_WKAuthenticationExtensionsClientOutputs>&&)extensions authenticatorData:(NSData *)authenticatorData signature:(NSData *)signature userHandle:(NSData * _Nullable)userHandle attachment:(_WKAuthenticatorAttachment)attachment;
+- (instancetype)initWithClientDataJSON:(NSData * _Nullable)clientDataJSON rawId:(NSData *)rawId extensions:(_WKAuthenticationExtensionsClientOutputs * _Nullable)extensions authenticatorData:(NSData *)authenticatorData signature:(NSData *)signature userHandle:(NSData * _Nullable)userHandle attachment:(_WKAuthenticatorAttachment)attachment;
 
-- (instancetype)initWithClientDataJSON:(NSData *)clientDataJSON rawId:(NSData *)rawId extensionOutputsCBOR:(NSData *)extensionOutputsCBOR authenticatorData:(NSData *)authenticatorData signature:(NSData *)signature userHandle:(NSData * _Nullable)userHandle attachment:(_WKAuthenticatorAttachment)attachment;
+- (instancetype)initWithClientDataJSON:(NSData * _Nullable)clientDataJSON rawId:(NSData *)rawId extensionOutputsCBOR:(NSData *)extensionOutputsCBOR authenticatorData:(NSData *)authenticatorData signature:(NSData *)signature userHandle:(NSData * _Nullable)userHandle attachment:(_WKAuthenticatorAttachment)attachment;
 
 @end
 

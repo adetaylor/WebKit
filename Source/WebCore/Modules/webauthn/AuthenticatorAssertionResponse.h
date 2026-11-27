@@ -30,19 +30,21 @@
 #include <WebCore/AuthenticationResponseJSON.h>
 #include <WebCore/AuthenticatorResponse.h>
 #include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/spi/cocoa/SecuritySPI.h>
 
 OBJC_CLASS LAContext;
 
 namespace WebCore {
 
-class AuthenticatorAssertionResponse : public AuthenticatorResponse {
+class SWIFT_PRIVATE_FILEID("WebCore/AuthenticatorResponse.swift") AuthenticatorAssertionResponse : public AuthenticatorResponse {
 public:
     static Ref<AuthenticatorAssertionResponse> create(Ref<ArrayBuffer>&& rawId, Ref<ArrayBuffer>&& authenticatorData, Ref<ArrayBuffer>&& signature, RefPtr<ArrayBuffer>&& userHandle, std::optional<AuthenticationExtensionsClientOutputs>&&, AuthenticatorAttachment);
     WEBCORE_EXPORT static Ref<AuthenticatorAssertionResponse> create(const Vector<uint8_t>& rawId, const Vector<uint8_t>& authenticatorData, const Vector<uint8_t>& signature,  const Vector<uint8_t>& userHandle, AuthenticatorAttachment);
     static Ref<AuthenticatorAssertionResponse> create(const Vector<uint8_t>& rawId, const Vector<uint8_t>& authenticatorData, const Vector<uint8_t>& signature, const Vector<uint8_t>& userHandle, std::optional<AuthenticationExtensionsClientOutputs>&&, AuthenticatorAttachment);
     NODELETE WEBCORE_EXPORT static Ref<AuthenticatorAssertionResponse> create(Ref<ArrayBuffer>&& rawId, RefPtr<ArrayBuffer>&& userHandle, String&& name, SecAccessControlRef, AuthenticatorAttachment);
-    virtual ~AuthenticatorAssertionResponse() = default;
+    // Out of line so the vtable is emitted in C++: a key function implemented in Swift leaves the destructor undefined (rdar://192229165).
+    virtual ~AuthenticatorAssertionResponse();
 
     ArrayBuffer* authenticatorData() const { return m_authenticatorData.get(); }
     ArrayBuffer* signature() const { return m_signature.get(); }

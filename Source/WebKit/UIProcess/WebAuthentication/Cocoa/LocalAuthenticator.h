@@ -29,14 +29,12 @@
 
 #include "Authenticator.h"
 #include "LocalConnection.h"
+#include <optional>
+#include <wtf/RetainPtr.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/UniqueRef.h>
 
 OBJC_CLASS LAContext;
-
-namespace JSC {
-class ArrayBuffer;
-}
 
 namespace WebCore {
 class AuthenticatorAttestationResponse;
@@ -45,13 +43,14 @@ class AuthenticatorAssertionResponse;
 
 namespace WebKit {
 
-BOOL shouldUseAlternateKeychainAttribute();
-// For LocalAuthenticator.swift and WebAuthenticationPanelCredentials.swift, which do not reach AuthenticationServicesCore
-// through its soft link.
-bool shouldUpdateQuery();
-CFDataRef copyEnterpriseAttestationIdentityPersistentReference(const String& rpId) CF_RETURNS_RETAINED;
 // For LocalAuthenticator.swift, which cannot hold an LAContext: adds the response's to the Keychain query.
 void addAuthenticationContext(const WebCore::AuthenticatorAssertionResponse&, CFMutableDictionaryRef query);
+
+// The connection's private key, retained: Swift cannot read a RetainPtr of a CF type safely.
+SecKeyRef copyWebAuthnCredentialPrivateKey(const LocalConnection&, LAContext *, SecAccessControlRef, const String& secAttrLabel, NSData *secAttrApplicationTag) CF_RETURNS_RETAINED;
+
+// The names LocalAuthenticator.swift needs for template instantiations it cannot spell.
+using LocalUserVerificationHandler = CompletionHandler<void(LocalConnection::UserVerification)>;
 
 class SWIFT_PRIVATE_FILEID("WebKit/LocalAuthenticator.swift") LocalAuthenticator final : public Authenticator {
 public:
@@ -82,10 +81,6 @@ private:
     void makeCredential() final;
     void requestLAContextForUserVerification();
     void continueMakeCredentialAfterReceivingLAContext(LAContext *);
-    void continueMakeCredentialAfterUserVerification(SecAccessControlRef, LocalConnection::UserVerification, LAContext *);
-    // The halves of makeCredential that Swift implements around the C++ steps that hold the LAContext.
-    Vector<uint8_t> userEntityTag() const;
-    void continueMakeCredentialAfterCreatingPrivateKey(CFDataRef publicKey, LocalConnection::UserVerification);
 
     void getAssertion() final;
     // Indices into m_existingCredentials, which Swift reads through existingCredential().
@@ -93,7 +88,6 @@ private:
     void selectAssertionResponseFromObserver(const CredentialIndices&);
     void continueGetAssertionAfterResponseSelected(Ref<WebCore::AuthenticatorAssertionResponse>&&);
     void continueGetAssertionAfterUserVerification(WebCore::AuthenticatorAssertionResponse&, LocalConnection::UserVerification);
-    RefPtr<JSC::ArrayBuffer> alternateBlobIfNecessary() const;
 
     // By value: an @cxx member cannot take an rvalue reference.
     void receiveException(WebCore::ExceptionData, WebAuthenticationStatus = WebAuthenticationStatus::LAError) const;
@@ -103,12 +97,17 @@ private:
     void appendExistingCredential(WebCore::AuthenticatorAssertionResponse& credential) { m_existingCredentials.append(credential); }
     size_t existingCredentialCount() const { return m_existingCredentials.size(); }
     Ref<WebCore::AuthenticatorAssertionResponse> existingCredential(size_t index) const { return m_existingCredentials[index]; }
+    // For LocalAuthenticator.swift: a strong reference for the duration of a Swift call.
+    static RefPtr<LocalAuthenticator> protectedAuthenticator(const WeakPtr<LocalAuthenticator>& authenticator) { return authenticator.get(); }
 
     State m_state { State::Init };
     const Ref<LocalConnection> m_connection;
     Vector<Ref<WebCore::AuthenticatorAssertionResponse>> m_existingCredentials;
     Vector<uint8_t> m_provisionalCredentialId;
 };
+
+// The name LocalAuthenticator.swift spells for the instantiation.
+using WeakPtrLocalAuthenticator = WeakPtr<LocalAuthenticator>;
 
 } // namespace WebKit
 

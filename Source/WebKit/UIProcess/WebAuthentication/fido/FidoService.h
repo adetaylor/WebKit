@@ -39,19 +39,27 @@ namespace WebKit {
 class SWIFT_PRIVATE_FILEID("WebKit/FidoService.swift") FidoService : public AuthenticatorTransportService, public RefCounted<FidoService> {
     WTF_MAKE_TZONE_ALLOCATED(FidoService);
 public:
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
+    SWIFT_UNSAFE void ref() const final { RefCounted::ref(); }
+    SWIFT_UNSAFE void deref() const final { RefCounted::deref(); }
 
 protected:
     explicit FidoService(AuthenticatorTransportServiceObserver&);
-    void getInfo(Ref<CtapDriver>&&);
+    void getInfo(Ref<CtapDriver>);
 
 private:
     void continueAfterGetInfo(CtapDriver&, Vector<uint8_t> info);
 
     // For FidoService.swift.
     RefPtr<CtapDriver> takeDriver(CtapDriver& driver) { return m_drivers.take(&driver); }
+    void addDriver(Ref<CtapDriver> driver)
+    {
+        auto addResult = m_drivers.add(WTF::move(driver));
+        ASSERT_UNUSED(addResult, addResult.isNewEntry);
+    }
     bool hasObserver() const { return !!observer(); }
+    // Strong references: a Swift call on a WeakPtr's get() would not keep the object alive across the call.
+    static RefPtr<FidoService> protectedService(const WeakPtr<FidoService>& service) { return service.get(); }
+    static RefPtr<CtapDriver> protectedDriver(const WeakPtr<CtapDriver>& driver) { return driver.get(); }
     void notifyAuthenticatorAdded(Authenticator&);
     // The CTAP2 authenticator for a getInfo response, after setting the driver's maximum message size; null when the
     // response is no CTAP2 device's. readCTAPGetInfoResponse gives a move-only optional, which Swift does not take.
@@ -60,6 +68,10 @@ private:
     // Keeping drivers alive when they are getting info from devices.
     HashSet<Ref<CtapDriver>> m_drivers;
 };
+
+// The names FidoService.swift spells for the instantiations.
+using WeakPtrFidoService = WeakPtr<FidoService>;
+using WeakPtrCtapDriver = WeakPtr<CtapDriver>;
 
 } // namespace WebKit
 

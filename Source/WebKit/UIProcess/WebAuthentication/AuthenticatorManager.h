@@ -37,6 +37,7 @@
 #include <wtf/HashSet.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/RunLoop.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
 
@@ -48,7 +49,11 @@ class WebAuthenticationPanel;
 
 namespace WebKit {
 
-class AuthenticatorManager : public RefCounted<AuthenticatorManager>, public AuthenticatorTransportServiceObserver, public AuthenticatorObserver {
+// For AuthenticatorManager.swift, which cannot spell these specializations.
+using WebAuthnOptionalFrameIdentifier = std::optional<WebCore::FrameIdentifier>;
+using RefAuthenticator = Ref<Authenticator>;
+
+class SWIFT_PRIVATE_FILEID("WebKit/AuthenticatorManager.swift") AuthenticatorManager : public RefCounted<AuthenticatorManager>, public AuthenticatorTransportServiceObserver, public AuthenticatorObserver {
     WTF_MAKE_TZONE_ALLOCATED(AuthenticatorManager);
     WTF_MAKE_NONCOPYABLE(AuthenticatorManager);
 public:
@@ -64,7 +69,7 @@ public:
     virtual ~AuthenticatorManager();
 
     void handleRequest(WebAuthenticationRequestData&&, Callback&&);
-    void cancelRequest(const WebCore::PageIdentifier&, const std::optional<WebCore::FrameIdentifier>&); // Called from WebPageProxy/WebProcessProxy.
+    void cancelRequest(WebCore::PageIdentifier, WebAuthnOptionalFrameIdentifier); // Called from WebPageProxy/WebProcessProxy.
     void cancelRequest(const API::WebAuthenticationPanel&); // Called from panel clients.
     void cancel(); // Called from the presenter.
 
@@ -100,13 +105,13 @@ private:
     };
 
     // AuthenticatorTransportServiceObserver
-    void authenticatorAdded(Ref<Authenticator>&&) final;
+    void authenticatorAdded(Ref<Authenticator>) final;
     void serviceStatusUpdated(WebAuthenticationStatus) final;
     bool isAuthenticatorManager() const final { return true; }
 
     // AuthenticatorObserver
     void respondReceived(Respond&&) final;
-    void downgrade(Authenticator& id, Ref<Authenticator>&& downgradedAuthenticator) final;
+    void downgrade(Authenticator& id, Ref<Authenticator> downgradedAuthenticator) final;
     void authenticatorStatusUpdated(WebAuthenticationStatus) final;
     void requestPin(uint64_t retries, CompletionHandler<void(const WTF::String&)>&&) final;
     void requestNewPin(uint64_t minLength, CompletionHandler<void(const WTF::String&)>&&) final;
@@ -117,7 +122,7 @@ private:
     virtual Ref<AuthenticatorTransportService> createService(WebCore::AuthenticatorTransport, AuthenticatorTransportServiceObserver&) const;
     // Overriden to return every exception for tests to confirm.
     virtual void respondReceivedInternal(Respond&&, bool shouldComplete);
-    virtual void filterTransports(TransportSet&) const;
+    virtual TransportSet filterTransports(TransportSet) const;
     virtual void runPresenterInternal(const TransportSet&);
 
     void initTimeOutTimer();
@@ -127,6 +132,21 @@ private:
     void dispatchPanelClientCall(Function<void(const API::WebAuthenticationPanel&)>&&) const;
 
     TransportSet getTransports(const Variant<WebCore::PublicKeyCredentialCreationOptions, WebCore::PublicKeyCredentialRequestOptions>&) const;
+
+    // For AuthenticatorManager.swift: the pending request holds the move-only callback, so Swift reaches it through
+    // these. Each one but hasPendingCompletionHandler() needs a pending request.
+    bool hasPendingCompletionHandler() const { return m_pendingRequest && m_pendingRequest->completionHandler; }
+    WebAuthenticationRequestData pendingRequestData() const { return m_pendingRequest->data; }
+    void clearPendingCachedPin() { m_pendingRequest->data.cachedPin = String(); }
+    void failPendingRequest(WebCore::ExceptionCode code, String message) { invokePendingCompletionHandler(WebCore::ExceptionData { code, WTF::move(message) }); }
+    // Swift does not convert a reference to this class to its observer bases.
+    void observeAndAddAuthenticator(Ref<Authenticator>);
+
+    // Shared by serviceStatusUpdated and authenticatorStatusUpdated: dispatchPanelClientCall takes a WTF::Function, which Swift does not make.
+    void updatePresenterOrPanel(WebAuthenticationStatus) const;
+    // RunLoop::Timer imports as an unsafe type.
+    void startRequestTimeOutTimer(Seconds delay) { m_requestTimeOutTimer.startOneShot(delay); }
+    void stopRequestTimeOutTimer() { m_requestTimeOutTimer.stop(); }
 
     // Request: We only allow one request per time. A new request will cancel any pending ones.
     struct Request {

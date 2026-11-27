@@ -25,59 +25,13 @@
 
 #include "config.h"
 #include "MockCcidService.h"
+#include "WKMockWebAuthenticationObjects.h"
 
 #if ENABLE(WEB_AUTHN)
 
 #import <CryptoTokenKit/TKSmartCard.h>
-#include <WebCore/FidoConstants.h>
-#include <wtf/Borrow.h>
-#include <wtf/RunLoop.h>
-#include <wtf/StdLibExtras.h>
-#include <wtf/cocoa/VectorCocoa.h>
-
-@interface _WKMockTKSmartCard : TKSmartCard
-- (instancetype)initWithService:(WeakPtr<WebKit::MockCcidService>&&)service;
-@end
-
-@implementation _WKMockTKSmartCard {
-    WeakPtr<WebKit::MockCcidService> m_service;
-}
-
-- (instancetype)initWithService:(WeakPtr<WebKit::MockCcidService>&&)service
-{
-    if (!(self = [super init]))
-        return nil;
-
-    m_service = WTF::move(service);
-
-    return self;
-}
-
-- (void)beginSessionWithReply:(void(^)(BOOL success, NSError * error))reply
-{
-    reply(TRUE, nil);
-}
-
-- (void)endSession
-{
-}
-
-- (void)transmitRequest:(NSData *)request reply:(void(^)(NSData * response, NSError * error))reply
-{
-    reply(Ref { *m_service }->nextReply(request).get(), nil);
-}
-
-@end
 
 namespace WebKit {
-using namespace fido;
-
-static RetainPtr<NSData> dataFromBase64(const String& base64String)
-{
-    if (base64String.isEmpty())
-        return nil;
-    return adoptNS([[NSData alloc] initWithBase64EncodedString:base64String.createNSString().get() options:NSDataBase64DecodingIgnoreUnknownCharacters]);
-}
 
 Ref<MockCcidService> MockCcidService::create(AuthenticatorTransportServiceObserver& observer, const WebCore::MockWebAuthenticationConfiguration& configuration)
 {
@@ -93,29 +47,11 @@ MockCcidService::MockCcidService(AuthenticatorTransportServiceObserver& observer
 void MockCcidService::platformStartDiscovery()
 {
     if (!!m_configuration.ccid) {
-        auto card = adoptNS([[_WKMockTKSmartCard alloc] initWithService:this]);
+        RetainPtr card = adoptNS([[_WKMockTKSmartCard alloc] initWithService:*this]);
         onValidCard(WTF::move(card), nullptr);
         return;
     }
     LOG_ERROR("No ccid authenticators is available.");
-}
-
-RetainPtr<NSData> MockCcidService::nextReply(NSData *request)
-{
-    // Command-aware replies let a test model a legacy U2F-only key: the applet selection command can be
-    // answered with a non-match, forcing the connection to fall back to the U2F_VERSION command.
-    const Vector requestVector = makeVector(request);
-    if (!m_configuration.ccid->appletSelectionResponseBase64.isEmpty() && equalSpans(requestVector.span(), std::span { kCtapNfcAppletSelectionCommand }))
-        return dataFromBase64(m_configuration.ccid->appletSelectionResponseBase64);
-    if (!m_configuration.ccid->u2fVersionResponseBase64.isEmpty() && equalSpans(requestVector.span(), std::span { kCtapNfcU2fVersionCommand }))
-        return dataFromBase64(m_configuration.ccid->u2fVersionResponseBase64);
-
-    if (m_configuration.ccid->payloadBase64.isEmpty())
-        return nil;
-
-    auto result = dataFromBase64(borrow(m_configuration.ccid->payloadBase64)[0]);
-    m_configuration.ccid->payloadBase64.removeAt(0);
-    return result;
 }
 
 } // namespace WebKit

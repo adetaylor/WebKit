@@ -27,9 +27,11 @@
 
 #if ENABLE(WEB_AUTHN) && HAVE(NEAR_FIELD)
 
+#include <wtf/CompletionHandler.h>
 #include <wtf/RefCountedAndCanMakeWeakPtr.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/RunLoop.h>
+#include <wtf/SwiftBridging.h>
 
 OBJC_CLASS NFReaderSession;
 OBJC_CLASS NSArray;
@@ -39,14 +41,15 @@ namespace WebKit {
 
 class NfcService;
 
-class NfcConnection : public RefCountedAndCanMakeWeakPtr<NfcConnection> {
+class SWIFT_PRIVATE_FILEID("WebKit/NfcConnection.swift") NfcConnection : public RefCountedAndCanMakeWeakPtr<NfcConnection> {
 public:
     static Ref<NfcConnection> create(RetainPtr<NFReaderSession>&&, NfcService&);
     ~NfcConnection();
 
     Vector<uint8_t> transact(Vector<uint8_t>&& data) const;
     void stop() const;
-    void stopWithCompletionHandler(Function<void()>&&);
+    // Calls the handler on the main run loop once the session has ended.
+    void stopWithCompletionHandler(CompletionHandler<void()>&&);
 
     // For WKNFReaderSessionDelegate
     void didDetectTags(NSArray *);
@@ -54,8 +57,12 @@ public:
 private:
     NfcConnection(RetainPtr<NFReaderSession>&&, NfcService&);
 
+    // For NfcConnection.swift: selects the FIDO applet on the current tag; false when none responds.
+    bool trySelectFidoApplet() const;
     void restartPolling();
     void startPolling();
+    // RunLoop::Timer imports as an unsafe type.
+    void startRetryTimer(Seconds delay) { m_retryTimer.startOneShot(delay); }
 
     const RetainPtr<NFReaderSession> m_session;
     const RetainPtr<WKNFReaderSessionDelegate> m_delegate;

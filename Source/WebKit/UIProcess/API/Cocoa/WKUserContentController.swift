@@ -40,10 +40,7 @@ extension WKUserContentController {
     ///     The buffer will only be visible to JavaScript executing in that content world.
     ///
     public func addBuffer(_ buffer: RawSpan, name: Swift.String, to contentWorld: WKContentWorld) {
-        // Safety: This is safe because it's just the pre-API version of the safe `Span(viewing:)` API in Swift 6.4.
-        // FIXME: (rdar://181879532) Adopt `Span(viewing:)` initializer instead of `Span(_bytes:)` in `WKUserContentController/addBuffer` implementation.
-#if compiler(>=6.6)
-        let typedSpan = unsafe Span<UInt8>(_unsafeBytes: buffer)
+        let typedSpan = Span<UInt8>(viewing: buffer)
 
         // This use of unsafe is necessary to wrap the RawSpan for immediate processing by WebKit,
         // acknowledging that the safety of the RawSpan passed in by the client cannot be guaranteed.
@@ -51,14 +48,6 @@ extension WKUserContentController {
         // into a safely managed object.
         // rdar://181746505
         unsafe _addDataSpan(.init(typedSpan), name: name, contentWorld: contentWorld)
-#else
-        // Swift 6.5's Span has no init(_unsafeBytes:) from a RawSpan, and deprecates init(_bytes:) in later builds.
-        buffer.withUnsafeBytes { bytes in
-            let typedSpan = unsafe Span<UInt8>(_unsafeBytes: bytes)
-            // rdar://181746505: WebKit copies the bytes at once into a safely managed object.
-            unsafe _addDataSpan(.init(typedSpan), name: name, contentWorld: contentWorld)
-        }
-#endif
     }
 
     /// Removes a previously added data buffer from the given `WKContentWorld`.

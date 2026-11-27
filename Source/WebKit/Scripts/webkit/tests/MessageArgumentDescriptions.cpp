@@ -481,10 +481,14 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwift_TestThrowingMessageWithoutReply>(globalObject, decoder);
     case MessageName::TestWithSwift_TestMessageWithEmptyReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwift_TestMessageWithEmptyReply>(globalObject, decoder);
+    case MessageName::TestWithSwift_TestMessageWithCompletionHandler:
+        return jsValueForDecodedMessage<MessageName::TestWithSwift_TestMessageWithCompletionHandler>(globalObject, decoder);
     case MessageName::TestWithSwift_TestAsyncMessageReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwift_TestAsyncMessageReply>(globalObject, decoder);
     case MessageName::TestWithSwift_TestMessageWithEmptyReplyReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwift_TestMessageWithEmptyReplyReply>(globalObject, decoder);
+    case MessageName::TestWithSwift_TestMessageWithCompletionHandlerReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwift_TestMessageWithCompletionHandlerReply>(globalObject, decoder);
     case MessageName::TestWithSwiftConditionally_TestAsyncMessage:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftConditionally_TestAsyncMessage>(globalObject, decoder);
     case MessageName::TestWithSwiftConditionally_TestSyncMessage:
@@ -609,6 +613,24 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypesOptIn_CxxTypedMessageReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypesOptIn_SwiftTypedMessageReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypesOptIn_SwiftTypedMessageReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOrigin:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOrigin>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOptionalOrigin:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOptionalOrigin>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithoutReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithoutReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOptionalOriginReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOptionalOriginReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithRepliesReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithRepliesReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReplyReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReplyReply>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendString:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendString>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendStringSync:
@@ -824,6 +846,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwift_TestThrowingMessageWithReply>(globalObject, decoder);
     case MessageName::TestWithSwift_TestMessageWithEmptyReply:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwift_TestMessageWithEmptyReply>(globalObject, decoder);
+    case MessageName::TestWithSwift_TestMessageWithCompletionHandler:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwift_TestMessageWithCompletionHandler>(globalObject, decoder);
     case MessageName::TestWithSwiftConditionally_TestAsyncMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftConditionally_TestAsyncMessage>(globalObject, decoder);
     case MessageName::TestWithSwiftConditionally_TestSyncMessage:
@@ -886,6 +910,14 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypesOptIn_SwiftTypedSynchronousMessage>(globalObject, decoder);
     case MessageName::TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOrigin:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftUntrusted_UntrustedOrigin>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOptionalOrigin:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftUntrusted_UntrustedOptionalOrigin>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies>(globalObject, decoder);
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendStringSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendStringSync>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendStringAsync:
@@ -1910,12 +1942,20 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "param"_s, "uint32_t"_s },
         };
+    case MessageName::TestWithSwift_TestMessageWithCompletionHandler:
+        return Vector<ArgumentDescription> {
+            { "param"_s, "uint32_t"_s },
+        };
     case MessageName::TestWithSwift_TestAsyncMessageReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
         };
     case MessageName::TestWithSwift_TestMessageWithEmptyReplyReply:
         return Vector<ArgumentDescription> { };
+    case MessageName::TestWithSwift_TestMessageWithCompletionHandlerReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint8_t"_s },
+        };
     case MessageName::TestWithSwiftConditionally_TestAsyncMessage:
         return Vector<ArgumentDescription> {
             { "param"_s, "uint32_t"_s },
@@ -2165,6 +2205,44 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithSwiftTypesOptIn_SwiftTypedMessageReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOrigin:
+        return Vector<ArgumentDescription> {
+            { "origin"_s, "IPC::Untrusted<WebCore::SecurityOriginData>"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOptionalOrigin:
+        return Vector<ArgumentDescription> {
+            { "frameID"_s, "WebCore::FrameIdentifier"_s },
+            { "parentOrigin"_s, "IPC::Untrusted<std::optional<WebCore::SecurityOriginData>>"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithoutReply:
+        return Vector<ArgumentDescription> {
+            { "origin"_s, "IPC::Untrusted<WebCore::SecurityOriginData>"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies:
+        return Vector<ArgumentDescription> {
+            { "origin"_s, "IPC::Untrusted<WebCore::SecurityOriginData>"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply:
+        return Vector<ArgumentDescription> {
+            { "origin"_s, "IPC::Untrusted<WebCore::SecurityOriginData>"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginReply:
+        return Vector<ArgumentDescription> {
+            { "result"_s, "bool"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOptionalOriginReply:
+        return Vector<ArgumentDescription> {
+            { "exception"_s, "WebCore::ExceptionData"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithRepliesReply:
+        return Vector<ArgumentDescription> {
+            { "frameID"_s, "WebCore::FrameIdentifier"_s },
+            { "exception"_s, "WebCore::ExceptionData"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReplyReply:
+        return Vector<ArgumentDescription> {
+            { "pair"_s, "std::pair<uint32_t, String>"_s },
         };
     case MessageName::TestWithSwiftWorkQueue_SendString:
         return Vector<ArgumentDescription> {
@@ -2555,6 +2633,10 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
         };
     case MessageName::TestWithSwift_TestMessageWithEmptyReply:
         return Vector<ArgumentDescription> { };
+    case MessageName::TestWithSwift_TestMessageWithCompletionHandler:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint8_t"_s },
+        };
     case MessageName::TestWithSwiftConditionally_TestAsyncMessage:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
@@ -2677,6 +2759,23 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOrigin:
+        return Vector<ArgumentDescription> {
+            { "result"_s, "bool"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOptionalOrigin:
+        return Vector<ArgumentDescription> {
+            { "exception"_s, "WebCore::ExceptionData"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithReplies:
+        return Vector<ArgumentDescription> {
+            { "frameID"_s, "WebCore::FrameIdentifier"_s },
+            { "exception"_s, "WebCore::ExceptionData"_s },
+        };
+    case MessageName::TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply:
+        return Vector<ArgumentDescription> {
+            { "pair"_s, "std::pair<uint32_t, String>"_s },
         };
     case MessageName::TestWithSwiftWorkQueue_SendStringSync:
         return Vector<ArgumentDescription> {

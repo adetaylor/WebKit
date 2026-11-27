@@ -100,7 +100,7 @@ public:
 
     Out operator()(In... in) const
     {
-        ASSERT(m_callableWrapper);
+        RELEASE_ASSERT(m_callableWrapper);
         // FIXME: Remove this suppression once rdar://190195858 is fixed.
         SUPPRESS_FORWARD_DECL_ARG return m_callableWrapper->call(std::forward<In>(in)...);
     }

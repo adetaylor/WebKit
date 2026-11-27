@@ -83,9 +83,9 @@ void Authenticator::requestPinFromObserver(bool isNew, uint64_t retriesOrMinLeng
         observer->requestPin(retriesOrMinLength, WTF::move(forward));
 }
 
-void Authenticator::respondWithError(WebCore::ExceptionCode code, const WTF::String& message) const
+void Authenticator::respondWithError(WebCore::ExceptionCode code, WTF::String message) const
 {
-    receiveRespond(WebCore::ExceptionData { code, message });
+    receiveRespond(WebCore::ExceptionData { code, WTF::move(message) });
 }
 
 void Authenticator::respondWithResponse(WebCore::AuthenticatorResponse& response) const

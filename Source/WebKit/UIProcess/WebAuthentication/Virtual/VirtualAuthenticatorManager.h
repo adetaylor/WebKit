@@ -57,7 +57,7 @@ private:
 
     Ref<AuthenticatorTransportService> createService(WebCore::AuthenticatorTransport, AuthenticatorTransportServiceObserver&) const final;
     void runPanel() override;
-    void filterTransports(TransportSet&) const override { };
+    TransportSet filterTransports(TransportSet transports) const override { return transports; }
 
     HashMap<String, UniqueRef<VirtualAuthenticatorConfiguration>> m_virtualAuthenticators;
     HashMap<String, Vector<VirtualCredential>> m_credentialsByAuthenticator;

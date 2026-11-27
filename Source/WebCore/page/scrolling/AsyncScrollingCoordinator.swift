@@ -287,7 +287,8 @@ extension WebCore.AsyncScrollingCoordinator {
 
     @cxx
     @implementation
-    public override func updateIsMonitoringWheelEventsForFrameView(_ frameView: borrowing WebCore.LocalFrameView) {
+    public override func updateIsMonitoringWheelEventsForFrameView(_ borrowedFrameView: borrowing WebCore.LocalFrameView) {
+        let frameView = copy borrowedFrameView
         guard let page = frameView.frame().page() else {
             return
         }

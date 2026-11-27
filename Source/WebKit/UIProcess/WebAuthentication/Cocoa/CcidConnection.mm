@@ -29,8 +29,9 @@
 #if ENABLE(WEB_AUTHN)
 #import "CcidService.h"
 #import "Logging.h"
+#import "MainRunLoopDestroyedHandler.h"
+#import "WKSmartCardObservers.h"
 #import <CryptoTokenKit/TKSmartCard.h>
-#import <WebCore/FidoConstants.h>
 #import <wtf/BlockPtr.h>
 #import <wtf/Borrow.h>
 #import <wtf/Function.h>
@@ -44,21 +45,17 @@
 - (BOOL)simulateCardReinsertionWithError:(NSError **)error;
 @end
 
-@interface WKSmartCardObserver : NSObject
-- (instancetype)initWithCard:(TKSmartCard *)card invalidationHandler:(Function<void()>&&)handler;
-@end
-
 @implementation WKSmartCardObserver {
     RetainPtr<TKSmartCard> _card;
-    Function<void()> _invalidationHandler;
+    BlockPtr<void()> _invalidationHandler;
 }
 
-- (instancetype)initWithCard:(TKSmartCard *)card invalidationHandler:(Function<void()>&&)handler
+- (instancetype)initWithCard:(TKSmartCard *)card invalidationHandler:(void (^)(void))handler
 {
     if (!(self = [super init]))
         return nil;
     _card = card;
-    _invalidationHandler = WTF::move(handler);
+    _invalidationHandler = makeBlockPtr(handler);
     [protect(_card) addObserver:self forKeyPath:@"valid" options:NSKeyValueObservingOptionNew context:nil];
     return self;
 }
@@ -87,11 +84,15 @@
 @end
 
 namespace WebKit {
-using namespace fido;
 
 Ref<CcidConnection> CcidConnection::create(RetainPtr<TKSmartCard>&& smartCard, RetainPtr<TKSmartCardSlot>&& slot, CcidService& service)
 {
     return adoptRef(*new CcidConnection(WTF::move(smartCard), WTF::move(slot), service));
+}
+
+RefPtr<CcidService> CcidConnection::service() const
+{
+    return m_service.get();
 }
 
 CcidConnection::CcidConnection(RetainPtr<TKSmartCard>&& smartCard, RetainPtr<TKSmartCardSlot>&& slot, CcidService& service)
@@ -103,7 +104,7 @@ CcidConnection::CcidConnection(RetainPtr<TKSmartCard>&& smartCard, RetainPtr<TKS
 
     lazyInitialize(m_observer, adoptNS([[WKSmartCardObserver alloc]
         initWithCard:m_smartCard.get()
-        invalidationHandler:[weakThis = ThreadSafeWeakPtr { *this }] {
+        invalidationHandler:makeBlockPtr([weakThis = ThreadSafeWeakPtr { *this }] {
             if (RefPtr protectedThis = weakThis.get()) {
                 RELEASE_LOG(WebAuthn, "%p - CcidConnection::invalidationHandler fired, m_hasSession=%d, m_sessionPending=%d", protectedThis.get(), protectedThis->m_hasSession, protectedThis->m_sessionPending);
                 protectedThis->m_sessionPending = false;
@@ -113,7 +114,7 @@ CcidConnection::CcidConnection(RetainPtr<TKSmartCard>&& smartCard, RetainPtr<TKS
                     protectedThis->m_hasSession = false;
                 }
             }
-        }]));
+        }).get()]));
 
     startPolling();
 }
@@ -122,56 +123,6 @@ CcidConnection::~CcidConnection()
 {
     CCID_RELEASE_LOG("destroyed, m_hasSession=%d", m_hasSession);
     stop();
-}
-
-const uint8_t kGetUidCommand[] = {
-    0xFF, 0xCA, 0x00, 0x00, 0x00
-};
-
-void CcidConnection::detectContactless()
-{
-    transact(Vector(std::span { kGetUidCommand }), [weakThis = ThreadSafeWeakPtr { *this }] (Vector<uint8_t>&& response) mutable {
-        ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return;
-        // Only contactless smart cards have uid, check for longer length than apdu status
-        if (response.size() > 2)
-            protectedThis->m_contactless = true;
-        protectedThis->trySelectFidoApplet();
-    });
-}
-
-void CcidConnection::trySelectFidoApplet()
-{
-    transact(Vector(std::span { kCtapNfcAppletSelectionCommand }), [weakThis = ThreadSafeWeakPtr { *this }] (Vector<uint8_t>&& response) mutable {
-        ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return;
-        Borrow borrowedResponse = response;
-        if (equalSpans(borrowedResponse->span(), std::span { kCtapNfcAppletSelectionU2f })
-            || equalSpans(borrowedResponse->span(), std::span { kCtapNfcAppletSelectionCtap })) {
-            if (RefPtr service = protectedThis->m_service.get())
-                service->didConnectTag();
-            return;
-        }
-        // Some legacy U2F keys don't understand the FIDO applet selection command and are configured to
-        // only have the FIDO applet. When applet selection fails, use the U2F_VERSION command to check
-        // whether the connected tag can speak U2F, indicating one of these legacy keys.
-        protectedThis->transact(Vector(std::span { kCtapNfcU2fVersionCommand }), [weakThis = WTF::move(weakThis)] (Vector<uint8_t>&& response) mutable {
-            ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-            RefPtr protectedThis = weakThis.get();
-            if (!protectedThis)
-                return;
-            if (equalSpans(borrow(response)->span(), std::span { kCtapNfcAppletSelectionU2f })) {
-                if (RefPtr service = protectedThis->m_service.get())
-                    service->didConnectTag();
-                return;
-            }
-            protectedThis->stop();
-        });
-    });
 }
 
 void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& callback)
@@ -184,10 +135,10 @@ void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& cal
     }
     if (m_hasSession) {
         CCID_RELEASE_LOG("reusing session, calling transmitRequest");
-        [m_smartCard transmitRequest:toNSData(borrow(data)->span()).get() reply:makeBlockPtr([protectedThis = Ref { *this }, callback = WTF::move(callback)](NSData * _Nullable nsResponse, NSError * _Nullable error) mutable {
+        [m_smartCard transmitRequest:toNSData(borrow(data)->span()).get() reply:makeBlockPtr([protectedThis = Ref { *this }, callback = MainRunLoopDestroyedHandler { WTF::move(callback) }](NSData * _Nullable nsResponse, NSError * _Nullable error) mutable {
             RELEASE_LOG(WebAuthn, "%p - CcidConnection::transmitRequest reply, error=%p", protectedThis.ptr(), error);
             bool hasError = !!error;
-            callOnMainRunLoop([protectedThis = WTF::move(protectedThis), response = makeVector(nsResponse), callback = WTF::move(callback), hasError] () mutable {
+            callOnMainRunLoop([protectedThis = WTF::move(protectedThis), response = makeVector(nsResponse), callback = callback.take(), hasError] mutable {
                 if (hasError) {
                     [protectedThis->m_smartCard endSession];
                     protectedThis->m_hasSession = false;
@@ -198,10 +149,10 @@ void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& cal
     } else {
         CCID_RELEASE_LOG("no session, calling beginSessionWithReply");
         m_sessionPending = true;
-        [m_smartCard beginSessionWithReply:makeBlockPtr([protectedThis = Ref { *this }, data = WTF::move(data), callback = WTF::move(callback)] (BOOL success, NSError *error) mutable {
+        [m_smartCard beginSessionWithReply:makeBlockPtr([protectedThis = Ref { *this }, data = WTF::move(data), callback = MainRunLoopDestroyedHandler { WTF::move(callback) }](BOOL success, NSError *error) mutable {
             RELEASE_LOG(WebAuthn, "%p - CcidConnection::beginSessionWithReply reply, success=%d, error=%p", protectedThis.ptr(), success, error);
             if (!success) {
-                callOnMainRunLoop([protectedThis = WTF::move(protectedThis), callback = WTF::move(callback)] () mutable {
+                callOnMainRunLoop([protectedThis = WTF::move(protectedThis), callback = callback.take()] mutable {
                     protectedThis->m_sessionPending = false;
                     callback({ });
                     // Drain pending requests with empty callbacks on failure
@@ -212,14 +163,14 @@ void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& cal
                 });
                 return;
             }
-            callOnMainRunLoop([protectedThis = WTF::move(protectedThis), data = WTF::move(data), callback = WTF::move(callback)] () mutable {
+            callOnMainRunLoop([protectedThis = WTF::move(protectedThis), data = WTF::move(data), callback = callback.take()] mutable {
                 protectedThis->m_sessionPending = false;
                 protectedThis->m_hasSession = true;
                 RELEASE_LOG(WebAuthn, "%p - CcidConnection::session started", protectedThis.ptr());
-                [protectedThis->m_smartCard transmitRequest:toNSData(borrow(data)->span()).get() reply:makeBlockPtr([protectedThis = WTF::move(protectedThis), callback = WTF::move(callback)](NSData * _Nullable nsResponse, NSError * _Nullable error) mutable {
+                [protectedThis->m_smartCard transmitRequest:toNSData(borrow(data)->span()).get() reply:makeBlockPtr([protectedThis = WTF::move(protectedThis), callback = MainRunLoopDestroyedHandler { WTF::move(callback) }](NSData * _Nullable nsResponse, NSError * _Nullable error) mutable {
                     RELEASE_LOG(WebAuthn, "%p - CcidConnection::transmitRequest reply, error=%p", protectedThis.ptr(), error);
                     bool hasError = !!error;
-                    callOnMainRunLoop([protectedThis = WTF::move(protectedThis), response = makeVector(nsResponse), callback = WTF::move(callback), hasError] () mutable {
+                    callOnMainRunLoop([protectedThis = WTF::move(protectedThis), response = makeVector(nsResponse), callback = callback.take(), hasError] mutable {
                         if (hasError) {
                             [protectedThis->m_smartCard endSession];
                             protectedThis->m_hasSession = false;
@@ -232,7 +183,6 @@ void CcidConnection::transact(Vector<uint8_t>&& data, DataReceivedCallback&& cal
         }).get()];
     }
 }
-
 
 void CcidConnection::processPendingRequests()
 {
@@ -253,11 +203,6 @@ void CcidConnection::stop()
         [m_smartCard endSession];
         m_hasSession = false;
     }
-}
-
-void CcidConnection::startPolling()
-{
-    detectContactless();
 }
 
 } // namespace WebKit

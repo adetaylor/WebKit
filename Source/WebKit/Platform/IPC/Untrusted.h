@@ -30,6 +30,7 @@
 #include <optional>
 #include <wtf/HashSet.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/SwiftBridging.h>
 
 namespace IPC {
 
@@ -126,10 +127,12 @@ public:
     {
     }
 
+    // Swift opens an Untrusted through ValidationProceduresSwiftUtilities.h, whose functions do the message check
+    // that the EXTRACT_WITH_MESSAGE_CHECK macros do after validate().
     template<typename Validator> requires ValidationProcedure<Validator, T>
-    Validated<T> validate(const Validator& validator) && { return validator.validateUntrusted(WTF::move(m_value)); }
+    SWIFT_UNAVAILABLE_IN_SWIFT Validated<T> validate(const Validator& validator) && { return validator.validateUntrusted(WTF::move(m_value)); }
 
-    T unsafeExtractWithoutValidation(UnvalidatedReason) && { return WTF::move(m_value); }
+    SWIFT_UNSAFE T unsafeExtractWithoutValidation(UnvalidatedReason) && { return WTF::move(m_value); }
 
 private:
     friend struct ArgumentCoder<Untrusted<T>>;

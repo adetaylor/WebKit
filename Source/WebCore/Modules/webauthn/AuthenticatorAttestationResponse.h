@@ -30,16 +30,18 @@
 #include <WebCore/AuthenticatorResponse.h>
 #include <WebCore/AuthenticatorTransport.h>
 #include <WebCore/RegistrationResponseJSON.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WebCore {
 
-class AuthenticatorAttestationResponse : public AuthenticatorResponse {
+class SWIFT_PRIVATE_FILEID("WebCore/AuthenticatorResponse.swift") AuthenticatorAttestationResponse : public AuthenticatorResponse {
 public:
     NODELETE static Ref<AuthenticatorAttestationResponse> create(Ref<ArrayBuffer>&& rawId, Ref<ArrayBuffer>&& attestationObject, AuthenticatorAttachment, Vector<AuthenticatorTransport>&&);
     WEBCORE_EXPORT static Ref<AuthenticatorAttestationResponse> create(const Vector<uint8_t>& rawId, const Vector<uint8_t>& attestationObject, AuthenticatorAttachment, Vector<AuthenticatorTransport>&&);
     WEBCORE_EXPORT static Ref<AuthenticatorAttestationResponse> create(const Vector<uint8_t>& rawId, const Vector<uint8_t>& attestationObject, std::optional<AuthenticationExtensionsClientOutputs>&&, AuthenticatorAttachment, Vector<AuthenticatorTransport>&&);
 
-    virtual ~AuthenticatorAttestationResponse() = default;
+    // Out of line so the vtable is emitted in C++: a key function implemented in Swift leaves the destructor undefined (rdar://192229165).
+    virtual ~AuthenticatorAttestationResponse();
 
     ArrayBuffer& attestationObject() const { return m_attestationObject; }
     const Vector<AuthenticatorTransport>& getTransports() const LIFETIME_BOUND { return m_transports; }

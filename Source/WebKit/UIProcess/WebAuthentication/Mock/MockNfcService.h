@@ -30,15 +30,12 @@
 #include "NfcService.h"
 #include <WebCore/MockWebAuthenticationConfiguration.h>
 
-OBJC_CLASS NSData;
-
 namespace WebKit {
 
-class MockNfcService final : public NfcService {
+class SWIFT_PRIVATE_FILEID("WebKit/MockNfcService.swift") MockNfcService final : public NfcService {
 public:
     static Ref<MockNfcService> create(AuthenticatorTransportServiceObserver&, const WebCore::MockWebAuthenticationConfiguration&);
 
-    NSData* transceive();
     NODELETE void receiveStopPolling();
     void receiveStartPolling();
 

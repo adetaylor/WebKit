@@ -27,8 +27,10 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#include <wtf/CompletionHandler.h>
 #include <wtf/Deque.h>
 #include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/WeakPtr.h>
 
@@ -38,10 +40,17 @@ OBJC_CLASS WKSmartCardObserver;
 
 namespace WebKit {
 
+class CcidConnection;
 class CcidService;
-using DataReceivedCallback = Function<void(Vector<uint8_t>&&)>;
+using ThreadSafeWeakPtrCcidConnection = ThreadSafeWeakPtr<CcidConnection>;
 
-class CcidConnection : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<CcidConnection> {
+// Called once on the main run loop with the response, or with an empty one when the session fails. The response is
+// by value so that Swift can make one (it copies the argument; the C++ lambdas taking Vector<uint8_t>&& still bind).
+using DataReceivedCallback = CompletionHandler<void(Vector<uint8_t>)>;
+
+// Destroyed on the main run loop: a smart card reply block, released on the framework's queue, can hold the last
+// reference, and the destructor clears the queued callbacks, which belong to the main run loop.
+class SWIFT_PRIVATE_FILEID("WebKit/CcidConnection.swift") CcidConnection : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<CcidConnection, WTF::DestructionThread::MainRunLoop> {
 public:
     static Ref<CcidConnection> create(RetainPtr<TKSmartCard>&&, RetainPtr<TKSmartCardSlot>&&, CcidService&);
     ~CcidConnection();
@@ -57,6 +66,11 @@ private:
     void detectContactless();
     void trySelectFidoApplet();
     void processPendingRequests();
+
+    // For CcidConnection.swift: ThreadSafeWeakPtr's constructors are templates, which Swift cannot call.
+    ThreadSafeWeakPtrCcidConnection threadSafeWeakThis() { return ThreadSafeWeakPtrCcidConnection { *this }; }
+    // For CcidConnection.swift: a strong reference for the duration of a Swift call.
+    RefPtr<CcidService> service() const;
 
     const RetainPtr<TKSmartCard> m_smartCard;
     const RetainPtr<TKSmartCardSlot> m_slot;

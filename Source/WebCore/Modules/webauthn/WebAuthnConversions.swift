@@ -80,7 +80,7 @@ public func makeByteArray(_ span: Span<UInt8>) -> [UInt8] {
 }
 
 /// The bytes of `vector` as an array.
-func makeByteArray(_ vector: borrowing cbor.Bytes) -> [UInt8] {
+public func makeByteArray(_ vector: borrowing cbor.Bytes) -> [UInt8] {
     makeByteArray(vector.span())
 }
 
@@ -155,32 +155,43 @@ func emitUTF8(of string: borrowing WTF.String, _ emit: (UInt8) -> Void) {
                 scalar = 0xFFFD
             }
         }
-        if scalar < 0x80 {
-            emit(UInt8(scalar))
-        } else if scalar < 0x800 {
-            emit(UInt8(0xC0 | scalar >> 6))
-            emit(UInt8(0x80 | scalar & 0x3F))
-        } else if scalar < 0x10000 {
-            emit(UInt8(0xE0 | scalar >> 12))
-            emit(UInt8(0x80 | scalar >> 6 & 0x3F))
-            emit(UInt8(0x80 | scalar & 0x3F))
-        } else {
-            emit(UInt8(0xF0 | scalar >> 18))
-            emit(UInt8(0x80 | scalar >> 12 & 0x3F))
-            emit(UInt8(0x80 | scalar >> 6 & 0x3F))
-            emit(UInt8(0x80 | scalar & 0x3F))
-        }
+        emitUTF8(scalar: scalar, emit)
+    }
+}
+
+/// Calls `emit` with each byte of the UTF-8 encoding of `scalar`, a Unicode scalar value.
+@inline(always)
+func emitUTF8(scalar: UInt32, _ emit: (UInt8) -> Void) {
+    if scalar < 0x80 {
+        emit(UInt8(scalar))
+    } else if scalar < 0x800 {
+        emit(UInt8(0xC0 | scalar >> 6))
+        emit(UInt8(0x80 | scalar & 0x3F))
+    } else if scalar < 0x10000 {
+        emit(UInt8(0xE0 | scalar >> 12))
+        emit(UInt8(0x80 | scalar >> 6 & 0x3F))
+        emit(UInt8(0x80 | scalar & 0x3F))
+    } else {
+        emit(UInt8(0xF0 | scalar >> 18))
+        emit(UInt8(0x80 | scalar >> 12 & 0x3F))
+        emit(UInt8(0x80 | scalar >> 6 & 0x3F))
+        emit(UInt8(0x80 | scalar & 0x3F))
     }
 }
 
 /// The UTF-16 code units of `string`, unpaired surrogates kept.
 func utf16Units(of string: borrowing WTF.String) -> [UInt16] {
     var units: [UInt16] = []
-    let length = Int(string.length())
-    if length == 0 {
-        return units
+    units.reserveCapacity(Int(string.length()))
+    appendUTF16Units(of: string, to: &units)
+    return units
+}
+
+/// Appends the UTF-16 code units of `string` to `units`, unpaired surrogates kept.
+func appendUTF16Units(of string: borrowing WTF.String, to units: inout [UInt16]) {
+    if string.length() == 0 {
+        return
     }
-    units.reserveCapacity(length)
     if string.is8Bit() {
         let characters: Span<WTF.Latin1Character> = string.span8()
         for index in characters.indices {
@@ -192,7 +203,78 @@ func utf16Units(of string: borrowing WTF.String) -> [UInt16] {
             units.append(characters[index])
         }
     }
-    return units
+}
+
+/// Whether `string` has exactly the code units of the ASCII `literal`, compared in place with no copy of either.
+func webAuthnEqualsASCII(_ string: borrowing WTF.String, _ literal: Swift.String) -> Bool {
+    let expected: Span<UInt8> = literal.utf8.span
+    let length = Int(string.length())
+    guard length == expected.count else {
+        return false
+    }
+    if length == 0 {
+        return true
+    }
+    if string.is8Bit() {
+        let characters: Span<WTF.Latin1Character> = string.span8()
+        for index in expected.indices where characters[index].value != expected[index] {
+            return false
+        }
+    } else {
+        let characters: Span<UInt16> = string.checkedSpan16()
+        for index in expected.indices where characters[index] != UInt16(expected[index]) {
+            return false
+        }
+    }
+    return true
+}
+
+/// `equalLettersIgnoringASCIICase`: whether each code unit of `string`, with the 0x20 bit set, is the lowercase letter,
+/// digit or punctuation at its place in `lowercaseLetters`, compared in place.
+func webAuthnEqualsLettersIgnoringASCIICase(_ string: borrowing WTF.String, _ lowercaseLetters: Swift.String) -> Bool {
+    webAuthnEndMatches(string, lowercaseLetters, wholeString: true) { ($0 | 0x20) == $1 }
+}
+
+/// Whether the last code units of `string` are the ASCII `suffix`, with A-Z and a-z alike, compared in place.
+func webAuthnEndsWithIgnoringASCIICase(_ string: borrowing WTF.String, _ suffix: Swift.String) -> Bool {
+    webAuthnEndMatches(string, suffix, wholeString: false) { $0.webAuthnASCIILowercased == $1.webAuthnASCIILowercased }
+}
+
+/// Whether the last code units of `string`, all of them when `wholeString`, match the ASCII `literal` by `matches`.
+private func webAuthnEndMatches(
+    _ string: borrowing WTF.String,
+    _ literal: Swift.String,
+    wholeString: Bool,
+    _ matches: (UInt16, UInt16) -> Bool
+) -> Bool {
+    let expected: Span<UInt8> = literal.utf8.span
+    let length = Int(string.length())
+    guard wholeString ? length == expected.count : length >= expected.count else {
+        return false
+    }
+    if expected.isEmpty {
+        return true
+    }
+    let start = length - expected.count
+    if string.is8Bit() {
+        let characters: Span<WTF.Latin1Character> = string.span8()
+        for index in expected.indices where !matches(UInt16(characters[start + index].value), UInt16(expected[index])) {
+            return false
+        }
+    } else {
+        let characters: Span<UInt16> = string.checkedSpan16()
+        for index in expected.indices where !matches(characters[start + index], UInt16(expected[index])) {
+            return false
+        }
+    }
+    return true
+}
+
+extension UInt16 {
+    /// The code unit with A-Z lowercased.
+    fileprivate var webAuthnASCIILowercased: UInt16 {
+        (0x41...0x5A).contains(self) ? self | 0x20 : self
+    }
 }
 
 /// `string` as a Swift string, each unpaired surrogate as U+FFFD: the characters the writer encodes for it.

@@ -25,6 +25,18 @@
 
 #pragma once
 
+// Swift refers to these classes through objc_lookUpClass instead of a class symbol, which the soft link does not
+// provide. A lookup made before the framework is loaded misses, and the class lookup hook WebKit installs at
+// initialization (WebAuthnSoftLinkForSwift.h) then loads it through the soft-link getter, which traps if it cannot.
+// Objective-C++ is unaffected.
+#ifndef WK_SOFT_LINKED_OBJC_CLASS
+#if defined(__swift__)
+#define WK_SOFT_LINKED_OBJC_CLASS __attribute__((objc_runtime_visible))
+#else
+#define WK_SOFT_LINKED_OBJC_CLASS
+#endif
+#endif
+
 OBJC_CLASS NSString;
 typedef NSString *ASAuthorizationPublicKeyCredentialUserVerificationPreference;
 typedef NSString *ASAuthorizationCustomMethod;
@@ -58,6 +70,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorization : NSObject
 
 @property (nonatomic, readonly, strong) id<ASAuthorizationProvider> provider;
@@ -79,11 +92,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)authorizationController:(ASAuthorizationController *)controller didCompleteWithCustomMethod:(ASAuthorizationCustomMethod)method;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationRequest : NSObject <NSCopying, NSSecureCoding>
 @property (nonatomic, readonly, strong) id<ASAuthorizationProvider> provider;
 @end
 typedef NSString *ASAuthorizationPublicKeyCredentialAttestationKind;
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationController : NSObject
 @property (nonatomic, weak, nullable) id<ASAuthorizationControllerDelegate> delegate;
 @property (nonatomic, weak, nullable) id<ASAuthorizationControllerPresentationContextProviding> presentationContextProvider;
@@ -111,9 +126,9 @@ typedef NSString *ASAuthorizationPublicKeyCredentialAttestationKind;
 
 @property (nonatomic, copy) NSData *challenge;
 
-@property (nonatomic, assign) ASAuthorizationPublicKeyCredentialUserVerificationPreference userVerificationPreference;
+@property (nonatomic, strong) ASAuthorizationPublicKeyCredentialUserVerificationPreference userVerificationPreference;
 
-@property (nonatomic, assign) ASAuthorizationPublicKeyCredentialAttestationKind attestationPreference;
+@property (nonatomic, strong) ASAuthorizationPublicKeyCredentialAttestationKind attestationPreference;
 
 @end
 
@@ -122,11 +137,13 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPublicKeyCredentialLargeBlobSupportReq
     ASAuthorizationPublicKeyCredentialLargeBlobSupportRequirementPreferred,
 };
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialLargeBlobRegistrationInput : NSObject
 - (instancetype)initWithSupportRequirement:(ASAuthorizationPublicKeyCredentialLargeBlobSupportRequirement)requirement;
 @property (nonatomic, assign) ASAuthorizationPublicKeyCredentialLargeBlobSupportRequirement supportRequirement;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialLargeBlobRegistrationOutput : NSObject
 
 @property (nonatomic, readonly) BOOL isSupported;
@@ -152,11 +169,13 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPublicKeyCredentialAttachment) {
 
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPlatformPublicKeyCredentialRegistration : NSObject <ASAuthorizationPublicKeyCredentialRegistration>
 @property (nonatomic, readonly) ASAuthorizationPublicKeyCredentialAttachment attachment;
 @property (nonatomic, readonly, nullable) ASAuthorizationPublicKeyCredentialLargeBlobRegistrationOutput *largeBlob NS_REFINED_FOR_SWIFT;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPlatformPublicKeyCredentialRegistrationRequest : ASAuthorizationRequest <ASAuthorizationPublicKeyCredentialRegistrationRequest>
 
 @property (nonatomic, nullable, copy) ASAuthorizationPublicKeyCredentialLargeBlobRegistrationInput *largeBlob;
@@ -169,6 +188,7 @@ typedef NS_ENUM(NSInteger, ASPublicKeyCredentialClientDataCrossOriginValue) {
     ASPublicKeyCredentialClientDataCrossOriginValueSameOriginWithAncestors,
 };
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASPublicKeyCredentialClientData : NSObject
 - (instancetype)initWithChallenge:(NSData *)challenge origin:(NSString *)origin;
 
@@ -200,6 +220,7 @@ typedef NS_ENUM(NSInteger, ASPublicKeyCredentialClientDataCrossOriginValue) {
 
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPlatformPublicKeyCredentialDescriptor : NSObject <ASAuthorizationPublicKeyCredentialDescriptor>
 
 - (instancetype)initWithCredentialID:(NSData *)credentialID NS_DESIGNATED_INITIALIZER;
@@ -220,6 +241,7 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPublicKeyCredentialLargeBlobAssertionO
     ASAuthorizationPublicKeyCredentialLargeBlobAssertionOperationWrite,
 };
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialLargeBlobAssertionInput : NSObject
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
@@ -241,6 +263,7 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPublicKeyCredentialLargeBlobAssertionO
 
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialLargeBlobAssertionOutput : NSObject
 
 @property (nonatomic, nullable, readonly) NSData *readData;
@@ -248,12 +271,14 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPublicKeyCredentialLargeBlobAssertionO
 
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPlatformPublicKeyCredentialAssertion : NSObject <ASAuthorizationPublicKeyCredentialAssertion>
 @property (nonatomic, readonly) ASAuthorizationPublicKeyCredentialAttachment attachment;
 
 @property (nonatomic, readonly, nullable) ASAuthorizationPublicKeyCredentialLargeBlobAssertionOutput *largeBlob NS_REFINED_FOR_SWIFT;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPlatformPublicKeyCredentialAssertionRequest : ASAuthorizationRequest <ASAuthorizationPublicKeyCredentialAssertionRequest>
 @property (nonatomic, copy) NSArray<ASAuthorizationPlatformPublicKeyCredentialDescriptor *> *allowedCredentials;
 @property (nonatomic, nullable, copy) ASAuthorizationPublicKeyCredentialLargeBlobAssertionInput *largeBlob;
@@ -267,6 +292,7 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPublicKeyCredentialLargeBlobAssertionO
 @interface ASAuthorizationPlatformPublicKeyCredentialAssertionRequest () <ASAuthorizationWebBrowserPlatformPublicKeyCredentialAssertionRequest>
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPlatformPublicKeyCredentialProvider : NSObject <ASAuthorizationProvider>
 
 - (instancetype)initWithRelyingPartyIdentifier:(NSString *)relyingPartyIdentifier NS_DESIGNATED_INITIALIZER;
@@ -296,6 +322,7 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPublicKeyCredentialLargeBlobAssertionO
 
 typedef NSString *ASAuthorizationSecurityKeyPublicKeyCredentialDescriptorTransport;
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationSecurityKeyPublicKeyCredentialDescriptor : NSObject <ASAuthorizationPublicKeyCredentialDescriptor>
 
 - (instancetype)initWithCredentialID:(NSData *)credentialID transports:(NSArray<ASAuthorizationSecurityKeyPublicKeyCredentialDescriptorTransport> *)allowedTransports;
@@ -303,12 +330,14 @@ typedef NSString *ASAuthorizationSecurityKeyPublicKeyCredentialDescriptorTranspo
 @property (nonatomic, copy) NSArray<ASAuthorizationSecurityKeyPublicKeyCredentialDescriptorTransport> *transports;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationSecurityKeyPublicKeyCredentialRegistration : NSObject <ASAuthorizationPublicKeyCredentialRegistration>
 @property (nonatomic, readonly) NSArray<ASAuthorizationSecurityKeyPublicKeyCredentialDescriptorTransport> *transports;
 @end
 
 typedef NSInteger ASCOSEAlgorithmIdentifier NS_TYPED_EXTENSIBLE_ENUM;
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialParameters : NSObject <NSSecureCoding, NSCopying>
 
 - (instancetype)initWithAlgorithm:(ASCOSEAlgorithmIdentifier)algorithm;
@@ -319,6 +348,7 @@ typedef NSInteger ASCOSEAlgorithmIdentifier NS_TYPED_EXTENSIBLE_ENUM;
 
 typedef NSString *ASAuthorizationPublicKeyCredentialResidentKeyPreference;
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationSecurityKeyPublicKeyCredentialRegistrationRequest : ASAuthorizationRequest <ASAuthorizationPublicKeyCredentialRegistrationRequest>
 
 @property (nonatomic, copy) NSArray<ASAuthorizationPublicKeyCredentialParameters *> *credentialParameters;
@@ -332,10 +362,12 @@ typedef NSString *ASAuthorizationPublicKeyCredentialResidentKeyPreference;
 
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationSecurityKeyPublicKeyCredentialAssertion : NSObject <ASAuthorizationPublicKeyCredentialAssertion>
 @property (nonatomic, readonly) BOOL appID;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationSecurityKeyPublicKeyCredentialAssertionRequest : ASAuthorizationRequest <ASAuthorizationPublicKeyCredentialAssertionRequest>
 
 @property (nonatomic, copy) NSArray<ASAuthorizationSecurityKeyPublicKeyCredentialDescriptor *> *allowedCredentials;
@@ -343,6 +375,7 @@ typedef NSString *ASAuthorizationPublicKeyCredentialResidentKeyPreference;
 
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationSecurityKeyPublicKeyCredentialProvider : NSObject <ASAuthorizationProvider>
 
 - (instancetype)initWithRelyingPartyIdentifier:(NSString *)relyingPartyIdentifier NS_DESIGNATED_INITIALIZER;
@@ -369,17 +402,20 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPlatformPublicKeyCredentialRegistratio
 @end
 
 #if HAVE(WEB_AUTHN_PRF_API)
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialPRFAssertionOutput : NSObject
 @property (nonatomic, readonly) NSData *first;
 @property (nonatomic, nullable, readonly) NSData *second;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialPRFAssertionInputValues : NSObject
 - (instancetype)initWithSaltInput1:(NSData *)saltInput1 saltInput2:(nullable NSData *)saltInput2;
 @property (nonatomic, readonly) NSData *saltInput1;
 @property (nonatomic, nullable, readonly) NSData *saltInput2;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialPRFAssertionInput : NSObject
 - (instancetype)initWithInputValues:(nullable ASAuthorizationPublicKeyCredentialPRFAssertionInputValues *)inputValues perCredentialInputValues:(nullable NSDictionary<NSData *, ASAuthorizationPublicKeyCredentialPRFAssertionInputValues *> *)perCredentialInputValues;
 @property (nonatomic, nullable, readonly) ASAuthorizationPublicKeyCredentialPRFAssertionInputValues *inputValues;
@@ -402,6 +438,7 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPlatformPublicKeyCredentialRegistratio
 @property (nonatomic, nullable, readonly) ASAuthorizationPublicKeyCredentialPRFAssertionOutput *prf;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialPRFRegistrationInput : NSObject
 + (instancetype)checkForSupport;
 - (instancetype)initWithInputValues:(nullable ASAuthorizationPublicKeyCredentialPRFAssertionInputValues *)inputValues;
@@ -417,6 +454,7 @@ typedef NS_ENUM(NSInteger, ASAuthorizationPlatformPublicKeyCredentialRegistratio
 @property (nonatomic, nullable) ASAuthorizationPublicKeyCredentialPRFRegistrationInput *prf;
 @end
 
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationPublicKeyCredentialPRFRegistrationOutput : NSObject
 @property (nonatomic, readonly) BOOL isSupported;
 @property (nonatomic, nullable, readonly) NSData *first;
@@ -448,6 +486,7 @@ typedef NS_ERROR_ENUM(ASAuthorizationErrorDomain, ASAuthorizationError) {
 };
 
 #if HAVE(WEB_AUTHN_PUBLIC_KEY_CREDENTIAL_MANAGER)
+WK_SOFT_LINKED_OBJC_CLASS
 @interface ASAuthorizationWebBrowserPublicKeyCredentialManager : NSObject
 @property (class, nonatomic, readonly) BOOL isDeviceConfiguredForPasskeys;
 @end

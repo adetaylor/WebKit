@@ -81,6 +81,7 @@ _test_receiver_names = [
     'TestWithSwiftTarget',
     'TestWithSwiftTypes',
     'TestWithSwiftTypesOptIn',
+    'TestWithSwiftUntrusted',
     'TestWithSwiftWorkQueue',
     'TestWithValidator',
     'TestWithWantsAsyncDispatch',
@@ -326,7 +327,7 @@ messages -> TestReceiver WorkQueue {
         swift = messages.generate_swift_message_handler(receiver)
         self.assertIn('    private let target: TestReceiver\n', swift)
         self.assertEqual(swift.count('        target.assumeIsolated { target in\n'), 4)
-        self.assertIn('    @_expose(!Cxx)\n    init(target: TestReceiver) {\n', swift)
+        self.assertIn('    @_expose(!Cxx)\n    fileprivate init(target: TestReceiver) {\n', swift)
         self.assertIn('        connection: sending IPC.Connection,\n', swift)
         self.assertIn('        nonisolated(unsafe) let dataLent = decoder.lentBytes(dataPosition)\n', swift)
         self.assertIn('                try unsafe mayThrowInvalidMessage(\n', swift)
@@ -363,6 +364,41 @@ messages -> TestReceiver WorkQueue {
 
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftSyncHandler', which is for messages a Swift receiver handles"):
             parse_swift_receiver(['ExceptionForEnabledBy'], '    Message(uint32_t value) SwiftSyncHandler')
+
+    def test_swift_completion_handler(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+    Message(uint32_t value) -> (uint32_t reply) SwiftCompletionHandler
+""")
+        swift = messages.generate_swift_message_handler(receiver)
+        run = re.search(r'func run\(\) async \{(.|\n)*?\n        \}\n', swift).group(0)
+        self.assertIn('try await mayThrowInvalidMessage(', run)
+        self.assertIn('completionHandler: completionHandler', run)
+        self.assertNotIn('let reply = try', run)
+        self.assertNotIn('CompletionHandlers.TestReceiver.complete(completionHandler, reply)\n            } catch', run)
+        # The handler gets a main-actor reply object, not the C++ completion handler: one call takes the completion
+        # handler out, a second traps, and a failed check replies only if the handler has not.
+        self.assertIn('completionHandler: TestReceiverMessageReply(completionHandler)', swift)
+        self.assertIn('completionHandler.completeIfPending(failing: error)', run)
+        reply_class = re.search(r'@MainActor\nfinal class TestReceiverMessageReply \{(.|\n)*?\n\}\n', swift).group(0)
+        self.assertIn('    private var completionHandler: CompletionHandlers.TestReceiver.MessageCompletionHandler?\n', reply_class)
+        self.assertIn('    fileprivate init(', reply_class)
+        self.assertIn('    func callAsFunction(_ reply: UInt32) {\n        guard let completionHandler = completionHandler.take() else {\n            preconditionFailure(', reply_class)
+        self.assertIn('    fileprivate func completeIfPending(failing error: InvalidMessage) {\n        guard let completionHandler = completionHandler.take() else {\n            return\n', reply_class)
+        # Dropping without a reply takes the completion handler out as a reply does, and empties it in C++ without calling it.
+        self.assertIn('    func dropWithoutReplying() {\n        guard let completionHandler = completionHandler.take() else {\n            preconditionFailure(', reply_class)
+        self.assertIn('        CompletionHandlers.TestReceiver.dropWithoutReply(completionHandler)\n', reply_class)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftCompletionHandler', whose reply types must have Swift names"):
+            messages.generate_swift_message_handler(parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message(uint32_t value) -> (Vector<uint8_t> reply) SwiftCompletionHandler'))
+
+        error = r"ERROR: Message TestReceiver.Message has 'SwiftCompletionHandler', which is for messages with a reply, to a main-thread Swift receiver, that take no Swift types"
+        for attributes, message in [
+            (['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message(uint32_t value) SwiftCompletionHandler'),
+            (['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message(uint32_t value) -> (uint32_t reply) SwiftCompletionHandler'),
+            (['ExceptionForEnabledBy'], '    Message(uint32_t value) -> (uint32_t reply) SwiftCompletionHandler'),
+        ]:
+            with self.assertRaisesRegex(Exception, error):
+                parse_swift_receiver(attributes, message)
 
     def test_swift_implementation(self):
         def parse_swift_implementation(messages_text, stream=True, attributes=('SwiftImplementation', 'SwiftTypes')):
@@ -819,7 +855,7 @@ messages -> TestReceiver Stream {
         header = messages.generate_messages_header(receiver)
         # A conditional message's completion handler exists only where the message does.
         self.assertIn('#if PLATFORM(COCOA)\nusing CocoaOnlyCompletionHandler = ', header)
-        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaOnlyCompletionHandler&);\n#endif\n', header)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaOnlyCompletionHandler&);\nvoid dropWithoutReply(CocoaOnlyCompletionHandler&);\n#endif\n', header)
         # The declaration that messages with the same reply types share exists if any of them does.
         self.assertIn('\nvoid completeWithDefaultReply(AlwaysCompletionHandler&);\n', header)
         self.assertNotIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(AlwaysCompletionHandler&);', header)
@@ -852,7 +888,7 @@ messages -> TestReceiver Stream {
 #endif
 """)
         header = messages.generate_messages_header(receiver)
-        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaMessageCompletionHandler&);\n#elif PLATFORM(GTK)\nvoid completeWithDefaultReply(GTKMessageCompletionHandler&);\n#endif\n', header)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaMessageCompletionHandler&);\nvoid dropWithoutReply(CocoaMessageCompletionHandler&);\n#elif PLATFORM(GTK)\nvoid completeWithDefaultReply(GTKMessageCompletionHandler&);\nvoid dropWithoutReply(GTKMessageCompletionHandler&);\n#endif\n', header)
         implementation = messages.generate_message_handler(receiver)
         self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaMessageCompletionHandler& completionHandler)\n', implementation)
         self.assertIn('#elif PLATFORM(GTK)\nvoid completeWithDefaultReply(GTKMessageCompletionHandler& completionHandler)\n', implementation)

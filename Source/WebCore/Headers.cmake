@@ -638,11 +638,13 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/webauthn/CurrentUserDetailsOptions.h
     Modules/webauthn/PublicKeyCredential.h
     Modules/webauthn/PublicKeyCredentialCreationOptions.h
+    Modules/webauthn/PublicKeyCredentialCreationOptionsJSON.h
     Modules/webauthn/PublicKeyCredentialDescriptor.h
     Modules/webauthn/PublicKeyCredentialDescriptorJSON.h
     Modules/webauthn/PublicKeyCredentialEntity.h
     Modules/webauthn/PublicKeyCredentialParameters.h
     Modules/webauthn/PublicKeyCredentialRequestOptions.h
+    Modules/webauthn/PublicKeyCredentialRequestOptionsJSON.h
     Modules/webauthn/PublicKeyCredentialRpEntity.h
     Modules/webauthn/PublicKeyCredentialType.h
     Modules/webauthn/PublicKeyCredentialUserEntity.h

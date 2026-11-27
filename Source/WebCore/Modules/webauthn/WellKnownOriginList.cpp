@@ -27,13 +27,15 @@
 #include "WellKnownOriginList.h"
 
 #include "PublicSuffixStore.h"
-#include "SecurityOriginData.h"
-#include <wtf/IterationStatus.h>
 #include <wtf/JSONValues.h>
 #include <wtf/URL.h>
 #include <wtf/Vector.h>
 #include <wtf/text/MakeString.h>
 #include <wtf/text/StringCommon.h>
+
+#if ENABLE(WEB_AUTHN)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -66,106 +68,60 @@ bool isWellKnownRedirectAllowed(const URL& url)
     return url.isValid() && url.protocolIs("https"_s);
 }
 
-static String registrableOriginLabel(StringView host)
-{
-    return PublicSuffixStore::singleton().topPrivatelyControlledDomainWithoutPublicSuffix(host);
-}
-
-static RefPtr<JSON::Array> parseCandidatesArray(std::span<const uint8_t> resource, ASCIILiteral memberName, size_t maxResourceSize)
+bool WellKnownCandidates::parse([[clang::noescape]] std::span<const uint8_t> resource, const String& memberName, size_t maxResourceSize)
 {
     if (resource.empty() || resource.size() > maxResourceSize)
-        return nullptr;
+        return false;
 
     RefPtr parsedValue = JSON::Value::parseJSON(String::fromUTF8(resource));
     if (!parsedValue)
-        return nullptr;
+        return false;
 
     RefPtr object = parsedValue->asObject();
     if (!object)
-        return nullptr;
+        return false;
 
     RefPtr member = object->getValue(memberName);
     if (!member)
-        return nullptr;
+        return false;
 
     RefPtr candidates = member->asArray();
     if (!candidates)
-        return nullptr;
+        return false;
 
     for (Ref entry : *candidates) {
         if (entry->type() != JSON::Value::Type::String)
-            return nullptr;
+            return false;
     }
 
-    return candidates;
+    strings.clear();
+    for (Ref entry : *candidates)
+        strings.append(entry->asString());
+    return true;
 }
 
-template<typename Visitor>
-static void forEachValidOrigin(JSON::Array& candidates, const WellKnownOriginListPolicy& policy, NOESCAPE const Visitor& visitor)
+WellKnownCandidate WellKnownCandidates::candidate(size_t index) const
 {
-    Vector<String> labelsSeen(ReserveCapacityTag { }, policy.maxRegistrableOriginLabels);
-    size_t examined = 0;
+    URL url { strings[index] };
+    if (!url.isValid())
+        return { };
 
-    for (Ref candidate : candidates) {
-        if (examined >= policy.maxCandidates)
-            break;
-
-        auto candidateString = candidate->asString();
-        if (!candidateString)
-            continue;
-
-        URL url { candidateString };
-        if (!url.isValid())
-            continue;
-
-        auto label = registrableOriginLabel(url.host());
-        if (label.isEmpty())
-            continue;
-
-        ++examined;
-
-        bool alreadySeen = labelsSeen.contains(label);
-        if (labelsSeen.size() >= policy.maxRegistrableOriginLabels && !alreadySeen)
-            continue;
-
-        if (visitor(url, candidateString) == IterationStatus::Done)
-            return;
-
-        if (!alreadySeen)
-            labelsSeen.append(WTF::move(label));
-    }
+    auto label = PublicSuffixStore::singleton().topPrivatelyControlledDomainWithoutPublicSuffix(url.host());
+    return { WTF::move(label), WTF::move(url) };
 }
+
+#if ENABLE(WEB_AUTHN)
 
 WellKnownOriginListResult findOriginInWellKnownList(const SecurityOriginData& callerOrigin, std::span<const uint8_t> resource, ASCIILiteral memberName, WellKnownOriginListPolicy&& policy)
 {
-    RefPtr candidates = parseCandidatesArray(resource, memberName, policy.maxResourceSize);
-    if (!candidates)
-        return WellKnownOriginListResult::Malformed;
-
-    WellKnownOriginListResult result = WellKnownOriginListResult::NotFound;
-    forEachValidOrigin(*candidates, policy, [&](const URL& url, const String&) {
-        if (SecurityOriginData::fromURL(url) == callerOrigin) {
-            result = WellKnownOriginListResult::Found;
-            return IterationStatus::Done;
-        }
-        return IterationStatus::Continue;
-    });
-    return result;
+    return webAuthnFindOriginInWellKnownList(callerOrigin, resource, String { memberName }, policy);
 }
 
 Vector<String> parseOriginsFromWellKnownList(std::span<const uint8_t> resource, ASCIILiteral memberName, WellKnownOriginListPolicy&& policy)
 {
-    Vector<String> result;
-
-    RefPtr candidates = parseCandidatesArray(resource, memberName, policy.maxResourceSize);
-    if (!candidates)
-        return result;
-
-    forEachValidOrigin(*candidates, policy, [&](const URL&, const String& candidateString) {
-        result.append(candidateString);
-        return IterationStatus::Continue;
-    });
-    return result;
+    return webAuthnParseOriginsFromWellKnownList(resource, String { memberName }, policy);
 }
+
+#endif // ENABLE(WEB_AUTHN)
 
 } // namespace WebCore

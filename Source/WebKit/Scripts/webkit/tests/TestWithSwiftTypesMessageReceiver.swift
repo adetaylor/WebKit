@@ -28,7 +28,7 @@ import WebKit_Internal
 @_expose(Cxx)
 final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
     private weak var target: TestWithSwiftTypes?
-    init(target: TestWithSwiftTypes) {
+    fileprivate init(target: TestWithSwiftTypes) {
         self.target = target
     }
 
@@ -636,7 +636,11 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -756,7 +760,11 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftTypes.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftTypes.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -1029,5 +1037,18 @@ extension WebKit.TestWithSwiftTypesMessageForwarder {
                 Unmanaged.passRetained(weakRefContainer).toOpaque()
             )
         )
+    }
+}
+
+extension TestWithSwiftTypes {
+    @_expose(!Cxx)
+    nonisolated func withMainActorTarget(_ body: @MainActor @Sendable (TestWithSwiftTypes) -> Void) {
+        let weakRefContainer = TestWithSwiftTypesWeakRef(target: self)
+        MainActor.assumeIsolated {
+            guard weakRefContainer.hasMessageTarget() else {
+                return
+            }
+            body(weakRefContainer.messageTarget())
+        }
     }
 }

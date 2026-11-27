@@ -490,18 +490,8 @@ func sharedVideoFrameCreatePixelBuffer(
         guard headerSize >= 0 else {
             return nil
         }
-#if compiler(>=6.6)
-        // Safety: UInt8 has no alignment, and every bit pattern is a UInt8.
-        let bytes = unsafe Span<UInt8>(_unsafeBytes: storage)
+        let bytes = Span<UInt8>(viewing: storage)
         return makePixelBuffer(layout, from: bytes.extracting(droppingFirst: headerSize), pool: pool).map(cvBuffer)
-#else
-        // Swift 6.5's Span has no init(_unsafeBytes:) from a RawSpan, and deprecates init(_bytes:) in later builds.
-        return storage.withUnsafeBytes { buffer in
-            // Safety: UInt8 has no alignment, and every bit pattern is a UInt8.
-            let bytes = unsafe Span<UInt8>(_unsafeBytes: buffer)
-            return makePixelBuffer(layout, from: bytes.extracting(droppingFirst: headerSize), pool: pool).map(cvBuffer)
-        }
-#endif
     }
 }
 

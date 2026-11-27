@@ -30,6 +30,7 @@
 #include "HidConnection.h"
 #include <WebCore/FidoHidMessage.h>
 #include <WebCore/MockWebAuthenticationConfiguration.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 
 namespace WebKit {
@@ -43,7 +44,7 @@ namespace WebKit {
 // There are indefinite stages for each U2F request:
 // FSM: Info::Init => Info::Msg => [Request::Init => Request::Msg]+
 // According to different combinations of error and stages, error will manifest differently.
-class MockHidConnection final : public HidConnection {
+class SWIFT_PRIVATE_FILEID("WebKit/MockHidConnection.swift") MockHidConnection final : public HidConnection {
 public:
     static Ref<MockHidConnection> create(IOHIDDeviceRef, const WebCore::MockWebAuthenticationConfiguration&);
     virtual ~MockHidConnection() = default;
@@ -63,11 +64,22 @@ private:
     void assembleRequest(Vector<uint8_t>&&);
     void parseRequest();
     void feedReports();
+    // The next response message, or an invalid state when there is none to send as packets.
+    fido::HidMessageState nextResponse();
     NODELETE bool stagesMatch() const;
     void shouldContinueFeedReports();
     void continueFeedReports();
-    void validateExpectedCommand(const Vector<uint8_t>& actualCommand);
+    void validateExpectedCommand(Vector<uint8_t> actualCommand);
     void initializeExpectedCommands();
+
+    // The assembled request's channel, command and payload, for parseRequest.
+    fido::HidMessageState requestMessageState() const
+    {
+        if (!m_requestMessage)
+            return { };
+        return { .valid = true, .channelId = m_requestMessage->channelId(), .cmd = m_requestMessage->cmd(), .payload = m_requestMessage->getMessagePayload() };
+    }
+    void clearRequestMessage() { m_requestMessage = std::nullopt; }
 
     WebCore::MockWebAuthenticationConfiguration m_configuration;
     std::optional<fido::FidoHidMessage> m_requestMessage;

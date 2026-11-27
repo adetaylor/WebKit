@@ -79,17 +79,18 @@ enum class ReceiverName : uint8_t {
     , TestWithSwiftTarget = 35
     , TestWithSwiftTypes = 36
     , TestWithSwiftTypesOptIn = 37
-    , TestWithSwiftWorkQueue = 38
-    , TestWithValidator = 39
-    , TestWithWantsAsyncDispatch = 40
-    , TestWithWantsDispatch = 41
-    , TestWithWantsDispatchNoSyncMessages = 42
-    , TestWithWorkQueueSwiftImplementation = 43
-    , TestWithWorkQueueSwiftState = 44
-    , TestWithoutAttributes = 45
-    , TestWithoutUsingIPCConnection = 46
-    , IPC = 47
-    , Invalid = 48
+    , TestWithSwiftUntrusted = 38
+    , TestWithSwiftWorkQueue = 39
+    , TestWithValidator = 40
+    , TestWithWantsAsyncDispatch = 41
+    , TestWithWantsDispatch = 42
+    , TestWithWantsDispatchNoSyncMessages = 43
+    , TestWithWorkQueueSwiftImplementation = 44
+    , TestWithWorkQueueSwiftState = 45
+    , TestWithoutAttributes = 46
+    , TestWithoutUsingIPCConnection = 47
+    , IPC = 48
+    , Invalid = 49
 };
 
 enum class MessageName : uint16_t {
@@ -258,6 +259,11 @@ enum class MessageName : uint16_t {
     TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply,
 #endif
     TestWithSwiftTypes_SyncHandlerMessageWithoutReply,
+    TestWithSwiftUntrusted_UntrustedOptionalOriginReply,
+    TestWithSwiftUntrusted_UntrustedOriginReply,
+    TestWithSwiftUntrusted_UntrustedOriginWithRepliesReply,
+    TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReplyReply,
+    TestWithSwiftUntrusted_UntrustedOriginWithoutReply,
     TestWithSwiftWorkQueue_SendCxxDecodedReply,
     TestWithSwiftWorkQueue_SendCxxString,
     TestWithSwiftWorkQueue_SendCxxStringAsyncReply,
@@ -267,6 +273,7 @@ enum class MessageName : uint16_t {
     TestWithSwiftWorkQueue_SendStringAsyncReply,
     TestWithSwift_TestAsyncMessageReply,
     TestWithSwift_TestMessageWithAliasedParameter,
+    TestWithSwift_TestMessageWithCompletionHandlerReply,
     TestWithSwift_TestMessageWithEmptyReplyReply,
     TestWithSwift_TestThrowingMessageWithoutReply,
     TestWithValidator_AlwaysEnabled,
@@ -390,12 +397,17 @@ enum class MessageName : uint16_t {
 #if PLATFORM(COCOA)
     TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes,
 #endif
+    TestWithSwiftUntrusted_UntrustedOptionalOrigin,
+    TestWithSwiftUntrusted_UntrustedOrigin,
+    TestWithSwiftUntrusted_UntrustedOriginWithReplies,
+    TestWithSwiftUntrusted_UntrustedOriginWithUnnamedReply,
     TestWithSwiftWorkQueue_SendCxxDecoded,
     TestWithSwiftWorkQueue_SendCxxStringAsync,
     TestWithSwiftWorkQueue_SendEmptyAsync,
     TestWithSwiftWorkQueue_SendSharedMemory,
     TestWithSwiftWorkQueue_SendStringAsync,
     TestWithSwift_TestAsyncMessage,
+    TestWithSwift_TestMessageWithCompletionHandler,
     TestWithSwift_TestMessageWithEmptyReply,
     TestWithValidator_MessageWithReply,
     TestWithWorkQueueSwiftImplementation_SendStringAsync,

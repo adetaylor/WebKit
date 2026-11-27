@@ -58,12 +58,14 @@ public:
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the
     // type hierarchy.
-    void ref() const
+    // SWIFT_UNSAFE as ThreadSafeRefCounted's: a redeclaration does not inherit it, and Swift that calls deref()
+    // releases the object under its own reference.
+    SWIFT_UNSAFE void ref() const
     {
         ThreadSafeRefCounted<RefCountable<T>>::ref();
     }
 
-    void deref() const
+    SWIFT_UNSAFE void deref() const
     {
         ThreadSafeRefCounted<RefCountable<T>>::deref();
     }
@@ -103,12 +105,12 @@ public:
 
 #ifdef __swift__
     // As RefCountable does, for the same reason.
-    void ref() const
+    SWIFT_UNSAFE void ref() const
     {
         ThreadSafeRefCounted<MoveOnlyBox<T>>::ref();
     }
 
-    void deref() const
+    SWIFT_UNSAFE void deref() const
     {
         ThreadSafeRefCounted<MoveOnlyBox<T>>::deref();
     }

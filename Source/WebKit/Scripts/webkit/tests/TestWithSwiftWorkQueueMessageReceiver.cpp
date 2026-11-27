@@ -157,6 +157,11 @@ void completeWithDefaultReply(SendCxxStringSyncCompletionHandler& completionHand
     IPC::Connection::cancelReply<Messages::TestWithSwiftWorkQueue::SendCxxStringSync>(*completionHandler);
 }
 
+void dropWithoutReply(SendCxxStringSyncCompletionHandler& completionHandler)
+{
+    *completionHandler = { };
+}
+
 void complete(SendCxxStringSyncCompletionHandler& completionHandler, uint64_t reply)
 {
     (*completionHandler)(reply);

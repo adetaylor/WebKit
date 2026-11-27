@@ -56,8 +56,9 @@ SWIFT_IMPLEMENTATION_ATTRIBUTE = 'SwiftImplementation'
 # makes for the first of them and keeps, without the receiver, unless the message is 'WantsReceiver'. Its messages must
 # all be dispatched on one serial queue, as a stream receiver's are.
 SWIFT_STATE_ATTRIBUTE = 'SwiftState'
-# On a Swift stream or WorkQueue receiver: 'SwiftTarget=Target' names the Swift class its generated forwarder dispatches to, when that isn't the
-# receiver's name because a C++ class of that name stays for C++ callers and owns the Swift receiver.
+# On a Swift receiver: 'SwiftTarget=Target' names the Swift class its generated forwarder dispatches to, when that isn't the
+# receiver's name because a C++ class of that name stays for C++ callers and owns the Swift receiver. A main-thread
+# receiver's forwarder asks C++ for its target, so there the Swift class is visible to C++ under that name.
 SWIFT_TARGET_ATTRIBUTE = 'SwiftTarget'
 # On a message that takes Swift types, to a receiver with 'SwiftState=': its handler is a method of the receiver's Swift
 # extension, as it is without 'SwiftState='.
@@ -76,6 +77,12 @@ SENT_FROM_CXX_ATTRIBUTE = 'SentFromCxx'
 CXX_DECODED_ATTRIBUTE = 'CxxDecoded'
 LENT_ATTRIBUTE = 'Lent'
 SWIFT_SYNC_HANDLER_ATTRIBUTE = 'SwiftSyncHandler'
+# On a message with a reply, to a main-thread Swift receiver, that takes no Swift types: its handler is given a
+# generated reply object, <Receiver><Message>Reply, which it calls when it has the reply, as a C++ handler calls its
+# completion handler, so that a reply that comes from a callback is sent from that callback rather than once the
+# handler's task resumes. The reply object is isolated to the main actor and keeps the C++ completion handler private:
+# a call takes it out, a second call traps, and dispatch's catch of a failed check replies only if the handler has not.
+SWIFT_COMPLETION_HANDLER_ATTRIBUTE = 'SwiftCompletionHandler'
 NOT_USING_IPC_CONNECTION_ATTRIBUTE = 'NotUsingIPCConnection'
 WANTS_CONNECTION_ATTRIBUTE = 'WantsConnection'
 # On a message to a receiver whose state C++ lends: its Swift handler returns false to decline the message, which the
@@ -186,8 +193,8 @@ class MessageReceiver(object):
         self._enforce_swift_implementation_constraints()
         if self.has_swift_receiver_owner() and (not self.is_swift_receiver() or not self.has_attribute(STREAM_ATTRIBUTE) or self.swift_receiver_state_lender):
             raise Exception("ERROR: Receiver %s has '%s', which is for Swift stream receivers without a state lender" % (self.name, SWIFT_RECEIVER_OWNER_ATTRIBUTE))
-        if self.swift_target and not (self.is_swift_receiver() and not self.is_swift_implementation() and (self.has_attribute(WORK_QUEUE_ATTRIBUTE) or self.has_attribute(STREAM_ATTRIBUTE))):
-            raise Exception("ERROR: Receiver %s has '%s=', which is for Swift stream or WorkQueue receivers" % (self.name, SWIFT_TARGET_ATTRIBUTE))
+        if self.swift_target and not (self.is_swift_receiver() and not self.is_swift_implementation()):
+            raise Exception("ERROR: Receiver %s has '%s=', which is for Swift receivers" % (self.name, SWIFT_TARGET_ATTRIBUTE))
         if self.swift_types and not (self.is_swift_receiver() or self.is_swift_implementation()):
             raise Exception("ERROR: Receiver %s has 'SwiftTypes' but is not a Swift receiver: it also needs 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy='" % self.name)
         if self.has_attribute(WORK_QUEUE_ATTRIBUTE) and not (self.is_swift_receiver() or self.is_swift_implementation()):
@@ -297,6 +304,8 @@ class MessageReceiver(object):
                 if attribute == CXX_ENCODED_REPLY_ATTRIBUTE:
                     raise Exception("ERROR: Message %s has '%s', which is for messages with a reply that take Swift types: asynchronous ones, Synchronous ones to a WorkQueue receiver, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver" % (description, attribute))
                 raise Exception("ERROR: Message %s has '%s', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types" % (description, attribute))
+        if message.has_attribute(SWIFT_COMPLETION_HANDLER_ATTRIBUTE) and (message.reply_parameters is None or self.takes_swift_types(message) or not self.is_swift_receiver() or self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE)):
+            raise Exception("ERROR: Message %s has '%s', which is for messages with a reply, to a main-thread Swift receiver, that take no Swift types" % (description, SWIFT_COMPLETION_HANDLER_ATTRIBUTE))
         if message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) and not (self.is_swift_receiver() or self.is_swift_implementation()):
             raise Exception("ERROR: Message %s has '%s', which is for messages a Swift receiver handles" % (description, SWIFT_SYNC_HANDLER_ATTRIBUTE))
         if message.has_attribute(SWIFT_TYPES_ATTRIBUTE) and message.has_attribute(CXX_TYPES_ATTRIBUTE):
@@ -488,7 +497,7 @@ def check_global_model_inputs(receivers):
     # A message might be defined multiple times using ifdef conditions.
     # Certain attributes must match in this case. E.g. USE(COCOA) cannot have a sync message that
     # would be non-sync in USE(GTK).
-    matching_attributes = [SYNCHRONOUS_ATTRIBUTE, SWIFT_TYPES_ATTRIBUTE, CXX_TYPES_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE]
+    matching_attributes = [SYNCHRONOUS_ATTRIBUTE, SWIFT_TYPES_ATTRIBUTE, CXX_TYPES_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, SWIFT_COMPLETION_HANDLER_ATTRIBUTE]
     for receiver in receivers:
         receiver_messages = defaultdict(list)
         for message in receiver.messages:

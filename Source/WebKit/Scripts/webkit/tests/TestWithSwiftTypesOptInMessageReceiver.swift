@@ -31,7 +31,7 @@ import WebKit_Internal
 @_expose(Cxx)
 final class TestWithSwiftTypesOptInWeakRef: @unchecked Sendable {
     private weak var target: TestWithSwiftTypesOptIn?
-    init(target: TestWithSwiftTypesOptIn) {
+    fileprivate init(target: TestWithSwiftTypesOptIn) {
         self.target = target
     }
 
@@ -100,7 +100,11 @@ final class TestWithSwiftTypesOptInWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftTypesOptIn.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftTypesOptIn.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftTypesOptIn.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftTypesOptIn.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -351,7 +355,11 @@ final class TestWithSwiftTypesOptInWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftTypesOptIn.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftTypesOptIn.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftTypesOptIn.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftTypesOptIn.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -368,6 +376,19 @@ extension WebKit.TestWithSwiftTypesOptInMessageForwarder {
                 Unmanaged.passRetained(weakRefContainer).toOpaque()
             )
         )
+    }
+}
+
+extension TestWithSwiftTypesOptIn {
+    @_expose(!Cxx)
+    nonisolated func withMainActorTarget(_ body: @MainActor @Sendable (TestWithSwiftTypesOptIn) -> Void) {
+        let weakRefContainer = TestWithSwiftTypesOptInWeakRef(target: self)
+        MainActor.assumeIsolated {
+            guard weakRefContainer.hasMessageTarget() else {
+                return
+            }
+            body(weakRefContainer.messageTarget())
+        }
     }
 }
 #endif

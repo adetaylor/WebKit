@@ -28,45 +28,14 @@
 
 #if ENABLE(WEB_AUTHN) && HAVE(NEAR_FIELD)
 
+#import "MainRunLoopDestroyedHandler.h"
 #import "NfcService.h"
 #import "WKNFReaderSessionDelegate.h"
-#import <WebCore/FidoConstants.h>
 #import <wtf/BlockPtr.h>
 #import <wtf/Borrow.h>
-#import <wtf/StdLibExtras.h>
 #import <wtf/cocoa/VectorCocoa.h>
-#import <wtf/text/Base64.h>
 
 namespace WebKit {
-using namespace fido;
-
-namespace {
-inline bool compareVersion(NSData *data, std::span<const uint8_t> version)
-{
-    return data && equalSpans(span(data), version);
-}
-
-// Confirm the FIDO applet is avaliable.
-// https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#nfc-applet-selection
-static bool trySelectFidoApplet(NFReaderSession *session)
-{
-    RetainPtr versionData = [session transceive:toNSData(std::span { kCtapNfcAppletSelectionCommand }).get()];
-    if (compareVersion(versionData.get(), std::span { kCtapNfcAppletSelectionU2f })
-        || compareVersion(versionData.get(), std::span { kCtapNfcAppletSelectionCtap }))
-        return true;
-
-    // Some legacy U2F keys such as Google T1 Titan don't understand the FIDO applet command. Instead,
-    // they are configured to only have the FIDO applet. Therefore, when the above command fails, we
-    // use U2F_VERSION command to double check if the connected tag can actually speak U2F, indicating
-    // we are interacting with one of these legacy keys.
-    versionData = [session transceive:toNSData(std::span { kCtapNfcU2fVersionCommand }).get()];
-    if (compareVersion(versionData.get(), std::span { kCtapNfcAppletSelectionU2f }))
-        return true;
-
-    return false;
-}
-
-} // namespace
 
 Ref<NfcConnection> NfcConnection::create(RetainPtr<NFReaderSession>&& session, NfcService& service)
 {
@@ -102,12 +71,16 @@ void NfcConnection::stop() const
     [m_session endSession];
 }
 
-void NfcConnection::stopWithCompletionHandler(Function<void()>&& completionHandler)
+void NfcConnection::stopWithCompletionHandler(CompletionHandler<void()>&& completionHandler)
 {
     [m_session disconnectTag];
     [m_session stopPolling];
-    [m_session endSessionWithCompletion:makeBlockPtr([completionHandler = WTF::move(completionHandler)]() mutable {
-        completionHandler();
+    // The handler is called, or destroyed if the block is dropped uncalled, on the main run loop where it was made,
+    // whichever queue runs or releases the block.
+    [m_session endSessionWithCompletion:makeBlockPtr([completionHandler = MainRunLoopDestroyedHandler { WTF::move(completionHandler) }] mutable {
+        RunLoop::mainSingleton().dispatch([completionHandler = completionHandler.take()] mutable {
+            completionHandler();
+        });
     }).get()];
 }
 
@@ -134,7 +107,7 @@ void NfcConnection::didDetectTags(NSArray *tags)
         if ((tag.type != NFTagTypeGeneric4A && tag.type != NFTagTypeGeneric4B && tag.type != NFTagTypeMiFareDESFire) || ![m_session connectTag:tag])
             continue;
 
-        if (!trySelectFidoApplet(m_session.get())) {
+        if (!trySelectFidoApplet()) {
             [m_session disconnectTag];
             continue;
         }
@@ -143,22 +116,6 @@ void NfcConnection::didDetectTags(NSArray *tags)
         return;
     }
     restartPolling();
-}
-
-// NearField polling is a one shot polling. It halts after tags are detected.
-// Therefore, a restart process is needed to resume polling after error.
-void NfcConnection::restartPolling()
-{
-    [m_session stopPolling];
-    m_retryTimer.startOneShot(1_s); // Magic number to give users enough time for reactions.
-}
-
-void NfcConnection::startPolling()
-{
-    NSError *error = nil;
-    [m_session startPollingWithError:&error];
-    if (error)
-        LOG_ERROR("Couldn't start NFC reader polling: %@", error);
 }
 
 } // namespace WebKit

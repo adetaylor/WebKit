@@ -31,7 +31,7 @@ import WebKit_Internal
 @_expose(Cxx)
 final class TestWithSwiftConditionallyWeakRef: @unchecked Sendable {
     private weak var target: TestWithSwiftConditionally?
-    init(target: TestWithSwiftConditionally) {
+    fileprivate init(target: TestWithSwiftConditionally) {
         self.target = target
     }
 
@@ -100,7 +100,11 @@ final class TestWithSwiftConditionallyWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftConditionally.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftConditionally.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftConditionally.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftConditionally.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -157,7 +161,11 @@ final class TestWithSwiftConditionallyWeakRef: @unchecked Sendable {
                 CompletionHandlers.TestWithSwiftConditionally.complete(completionHandler, reply)
             } catch {
                 markMessageInvalid(error, on: connection)
-                CompletionHandlers.TestWithSwiftConditionally.completeWithDefaultReply(completionHandler)
+                if let reply = error.reply(as: UInt8.self) {
+                    CompletionHandlers.TestWithSwiftConditionally.complete(completionHandler, reply)
+                } else {
+                    CompletionHandlers.TestWithSwiftConditionally.completeWithDefaultReply(completionHandler)
+                }
             }
         }
     }
@@ -174,6 +182,19 @@ extension WebKit.TestWithSwiftConditionallyMessageForwarder {
                 Unmanaged.passRetained(weakRefContainer).toOpaque()
             )
         )
+    }
+}
+
+extension TestWithSwiftConditionally {
+    @_expose(!Cxx)
+    nonisolated func withMainActorTarget(_ body: @MainActor @Sendable (TestWithSwiftConditionally) -> Void) {
+        let weakRefContainer = TestWithSwiftConditionallyWeakRef(target: self)
+        MainActor.assumeIsolated {
+            guard weakRefContainer.hasMessageTarget() else {
+                return
+            }
+            body(weakRefContainer.messageTarget())
+        }
     }
 }
 #endif

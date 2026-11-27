@@ -28,12 +28,16 @@
 #if ENABLE(WEB_AUTHN)
 
 #include "AuthenticatorTransportService.h"
+#include <wtf/SwiftBridging.h>
 
 namespace WebKit {
 
 class LocalConnection;
 
-class LocalService : public AuthenticatorTransportService, public RefCounted<LocalService> {
+// The name LocalService.swift spells for the instantiation.
+using RefLocalConnection = Ref<LocalConnection>;
+
+class SWIFT_PRIVATE_FILEID("WebKit/LocalService.swift") LocalService : public AuthenticatorTransportService, public RefCounted<LocalService> {
     WTF_MAKE_TZONE_ALLOCATED(LocalService);
 public:
     static Ref<LocalService> create(AuthenticatorTransportServiceObserver&);

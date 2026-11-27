@@ -25,6 +25,10 @@
 
 #pragma once
 
+#if defined(__swift__)
+#error "Swift reaches the soft-linked frameworks through WebAuthnSoftLinkForSwift.h: this header's alloc<Class>Instance() would give it an object whose initializer never ran."
+#endif
+
 #import "LocalAuthenticationSPI.h"
 #import <wtf/SoftLinking.h>
 

@@ -53,7 +53,7 @@ void TestWithSwiftConditionallyAndEnabledBy::didReceiveMessage(IPC::Connection& 
         decoder.markInvalid();
         return;
     }
-    auto sharedPreferences = target->sharedPreferencesForWebProcess(connection);
+    auto sharedPreferences = target->sharedPreferencesForWebProcess(&connection);
 #else // ENABLE(SWIFT_TEST_CONDITION)
     auto sharedPreferences = sharedPreferencesForWebProcess(connection);
 #endif // ENABLE(SWIFT_TEST_CONDITION)
@@ -89,7 +89,7 @@ void TestWithSwiftConditionallyAndEnabledBy::didReceiveSyncMessage(IPC::Connecti
         decoder.markInvalid();
         return;
     }
-    auto sharedPreferences = target->sharedPreferencesForWebProcess(connection);
+    auto sharedPreferences = target->sharedPreferencesForWebProcess(&connection);
 #else // ENABLE(SWIFT_TEST_CONDITION)
     auto sharedPreferences = sharedPreferencesForWebProcess(connection);
 #endif // ENABLE(SWIFT_TEST_CONDITION)
@@ -142,6 +142,11 @@ namespace TestWithSwiftConditionallyAndEnabledBy {
 void completeWithDefaultReply(TestAsyncMessageCompletionHandler& completionHandler)
 {
     IPC::Connection::cancelReply<Messages::TestWithSwiftConditionallyAndEnabledBy::TestAsyncMessage>(*completionHandler);
+}
+
+void dropWithoutReply(TestAsyncMessageCompletionHandler& completionHandler)
+{
+    *completionHandler = { };
 }
 
 void complete(TestAsyncMessageCompletionHandler& completionHandler, uint8_t reply)

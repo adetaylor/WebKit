@@ -30,6 +30,7 @@
 #include <WebCore/AuthenticationExtensionsClientOutputs.h>
 #include <WebCore/IDLTypes.h>
 #include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TypeCasts.h>
 
 namespace WebCore {
@@ -39,7 +40,8 @@ enum class AuthenticatorTransport : uint8_t;
 
 struct AuthenticatorResponseData;
 
-class AuthenticatorResponse : public RefCounted<AuthenticatorResponse> {
+// AuthenticatorResponse.swift reads the private members: it implements data() and toJSON() for this class and both subclasses.
+class SWIFT_PRIVATE_FILEID("WebCore/AuthenticatorResponse.swift") AuthenticatorResponse : public RefCounted<AuthenticatorResponse> {
 public:
     enum class Type {
         Assertion,
@@ -47,7 +49,8 @@ public:
     };
 
     static RefPtr<AuthenticatorResponse> tryCreate(AuthenticatorResponseData&&, AuthenticatorAttachment);
-    virtual ~AuthenticatorResponse() = default;
+    // Out of line so the vtable is emitted in C++: a key function implemented in Swift leaves the destructor undefined (rdar://192229165).
+    virtual ~AuthenticatorResponse();
 
     virtual Type type() const = 0;
     virtual AuthenticatorResponseData data() const;

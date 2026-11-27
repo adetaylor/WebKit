@@ -31,6 +31,7 @@
 #import "CcidConnection.h"
 #import "CtapCcidDriver.h"
 #import "Logging.h"
+#import "WKSmartCardObservers.h"
 #import <CryptoTokenKit/TKSmartCard.h>
 #import <WebCore/AuthenticatorTransport.h>
 #import <wtf/BlockPtr.h>
@@ -39,22 +40,12 @@
 
 #define CCID_SERVICE_RELEASE_LOG(fmt, ...) RELEASE_LOG(WebAuthn, "%p - CcidService::" fmt, this, ##__VA_ARGS__)
 
-@interface _WKSmartCardSlotObserver : NSObject {
-    WeakPtr<WebKit::CcidService> m_service;
-}
-
-- (instancetype)initWithService:(WeakPtr<WebKit::CcidService>&&)service;
+@interface _WKSmartCardSlotObserver ()
 - (void)observeValueForKeyPath:(id)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context;
 @end
 
-@interface _WKSmartCardSlotStateObserver : NSObject {
-    WeakPtr<WebKit::CcidService> m_service;
-    RetainPtr<TKSmartCardSlot> m_slot;
-}
-
-- (instancetype)initWithService:(WeakPtr<WebKit::CcidService>&&)service slot:(RetainPtr<TKSmartCardSlot>&&)slot;
+@interface _WKSmartCardSlotStateObserver ()
 - (void)observeValueForKeyPath:(id)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context;
-- (void)removeObserver;
 @end
 
 namespace WebKit {
@@ -111,7 +102,7 @@ void CcidService::platformStartDiscovery()
         Ref { *m_connection }->stop();
     m_connection = nullptr;
     removeObservers();
-    m_slotsObserver = adoptNS([[_WKSmartCardSlotObserver alloc] initWithService:this]);
+    m_slotsObserver = adoptNS([[_WKSmartCardSlotObserver alloc] initWithService:*this]);
     [[TKSmartCardSlotManager defaultManager] addObserver:protect(m_slotsObserver) forKeyPath:@"slotNames" options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionInitial context:nil];
 }
 
@@ -138,7 +129,7 @@ void CcidService::updateSlots(NSArray *slots)
         auto it = m_slotObservers.find(name);
         if (it == m_slotObservers.end()) {
             [[TKSmartCardSlotManager defaultManager] getSlotWithName:nsName reply:makeBlockPtr([this, protectedThis = Ref { *this }, name](TKSmartCardSlot * _Nullable slot) mutable {
-                auto slotObserver = adoptNS([[_WKSmartCardSlotStateObserver alloc] initWithService:this slot:WTF::move(slot)]);
+                RetainPtr slotObserver = adoptNS([[_WKSmartCardSlotStateObserver alloc] initWithService:*this slot:slot]);
                 [slot addObserver:slotObserver.get() forKeyPath:@"state" options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionInitial context:nil];
                 callOnMainRunLoop([this, protectedThis = WTF::move(protectedThis), name, slotObserver = WTF::move(slotObserver)] () mutable {
                     m_slotObservers.add(name, slotObserver);
@@ -159,13 +150,16 @@ void CcidService::updateSlots(NSArray *slots)
 
 } // namespace WebKit
 
-@implementation _WKSmartCardSlotObserver
-- (instancetype)initWithService:(WeakPtr<WebKit::CcidService>&&)service
+@implementation _WKSmartCardSlotObserver {
+    WeakPtr<WebKit::CcidService> m_service;
+}
+
+- (instancetype)initWithService:(WebKit::CcidService&)service
 {
     if (!(self = [super init]))
         return nil;
 
-    m_service = WTF::move(service);
+    m_service = service;
 
     return self;
 }
@@ -185,14 +179,18 @@ void CcidService::updateSlots(NSArray *slots)
 }
 @end
 
-@implementation _WKSmartCardSlotStateObserver
-- (instancetype)initWithService:(WeakPtr<WebKit::CcidService>&&)service slot:(RetainPtr<TKSmartCardSlot>&&)slot
+@implementation _WKSmartCardSlotStateObserver {
+    WeakPtr<WebKit::CcidService> m_service;
+    RetainPtr<TKSmartCardSlot> m_slot;
+}
+
+- (instancetype)initWithService:(WebKit::CcidService&)service slot:(TKSmartCardSlot *)slot
 {
     if (!(self = [super init]))
         return nil;
 
-    m_service = WTF::move(service);
-    m_slot = WTF::move(slot);
+    m_service = service;
+    m_slot = slot;
 
     return self;
 }

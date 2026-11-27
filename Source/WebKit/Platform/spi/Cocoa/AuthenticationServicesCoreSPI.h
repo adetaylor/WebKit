@@ -29,12 +29,46 @@ DECLARE_SYSTEM_HEADER
 
 #if HAVE(ASC_AUTH_UI) || HAVE(UNIFIED_ASC_AUTH_UI) || HAVE(WEB_AUTHN_AS_MODERN)
 
+// Swift refers to these classes through objc_lookUpClass instead of a class symbol, which the soft link does not
+// provide. A lookup made before the framework is loaded misses, and the class lookup hook WebKit installs at
+// initialization (WebAuthnSoftLinkForSwift.h) then loads it through the soft-link getter, which traps if it cannot.
+// Objective-C++ is unaffected.
+#ifndef WK_SOFT_LINKED_OBJC_CLASS
+#if defined(__swift__)
+#define WK_SOFT_LINKED_OBJC_CLASS __attribute__((objc_runtime_visible))
+#else
+#define WK_SOFT_LINKED_OBJC_CLASS
+#endif
+#endif
+
+// An optional soft-linked class (ASCWebKitSPISupport, ASCWebAuthenticationExtensionsClientInputs,
+// ASGlobalFrameIdentifier) may be absent, and Swift's lookup of it is then nil, with nothing to trap. So the class, and
+// every member typed with it, is unavailable to Swift, which reaches it only through the helpers in
+// WebAuthnSoftLinkForSwift.h: they make one as an NSObject and check its class where it is set.
+#ifndef WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE
+#if defined(__swift__)
+#define WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE NS_SWIFT_UNAVAILABLE("The class is optional; use the helper in WebAuthnSoftLinkForSwift.h")
+#else
+#define WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE
+#endif
+#endif
+
+// The other ASC classes have soft-link getters, and so entries in the class lookup hook, only with ASC_AUTH_UI or
+// UNIFIED_ASC_AUTH_UI. Without either, nothing loads AuthenticationServicesCore on a miss and the lookup would come
+// back nil, so Swift may not name them.
+#if defined(__swift__) && !HAVE(ASC_AUTH_UI) && !HAVE(UNIFIED_ASC_AUTH_UI)
+#define WK_SOFT_LINKED_ASC_CLASS WK_SOFT_LINKED_OBJC_CLASS NS_SWIFT_UNAVAILABLE("AuthenticationServicesCore has no soft-link getters on this platform")
+#else
+#define WK_SOFT_LINKED_ASC_CLASS WK_SOFT_LINKED_OBJC_CLASS
+#endif
+
+WK_SOFT_LINKED_OBJC_CLASS WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE
 @interface ASCWebKitSPISupport : NSObject
 @property (class, nonatomic) BOOL shouldUseAlternateCredentialStore;
 @property (class, nonatomic, readonly) BOOL shouldUseAlternateKeychainAttribute;
-+ (void)getArePasskeysDisallowedForRelyingParty:(nonnull NSString *)relyingParty withCompletionHandler:(void (^ _Nonnull)(BOOL))completionHandler NS_REFINED_FOR_SWIFT;
-+ (void)getCanCurrentProcessAccessPasskeysForRelyingParty:(nonnull NSString *)relyingParty withCompletionHandler:(void (^ _Nonnull)(BOOL))completionHandler;
-+ (void)getClientCapabilitiesForRelyingParty:(nonnull NSString *)relyingParty withCompletionHandler:(void (^ _Nonnull)(NSDictionary<NSString *, NSNumber *> * _Nonnull))completionHandler;
++ (void)getArePasskeysDisallowedForRelyingParty:(nonnull NSString *)relyingParty withCompletionHandler:(NS_SWIFT_SENDABLE void (^ _Nonnull)(BOOL))completionHandler NS_REFINED_FOR_SWIFT;
++ (void)getCanCurrentProcessAccessPasskeysForRelyingParty:(nonnull NSString *)relyingParty withCompletionHandler:(NS_SWIFT_SENDABLE void (^ _Nonnull)(BOOL))completionHandler;
++ (void)getClientCapabilitiesForRelyingParty:(nonnull NSString *)relyingParty withCompletionHandler:(NS_SWIFT_SENDABLE void (^ _Nonnull)(NSDictionary<NSString *, NSNumber *> * _Nonnull))completionHandler;
 + (NSData *)entepriseAttestationIdentityPersistentReferenceForRelyingParty:(NSString *)relyingParty;
 + (NSData *)alternateLargeBlobIfNecessaryForRelyingParty:(NSString *)relyingParty clientDataHash:(NSData *)clientDataHash;
 @end
@@ -52,11 +86,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol ASCAuthorizationPresenterHostProtocol <NSObject>
 
-- (void)authorizationRequestInitiatedWithLoginChoice:(id <ASCLoginChoiceProtocol>)loginChoice authenticatedContext:(nullable LAContext *)context completionHandler:(void (^)(id <ASCCredentialProtocol> credential, NSError *error))completionHandler;
+- (void)authorizationRequestInitiatedWithLoginChoice:(id <ASCLoginChoiceProtocol>)loginChoice authenticatedContext:(nullable LAContext *)context completionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
 
-- (void)authorizationRequestFinishedWithCredential:(nullable id<ASCCredentialProtocol>)credential error:(nullable NSError *)error completionHandler:(void (^)(void))completionHandler;
+- (void)authorizationRequestFinishedWithCredential:(nullable id<ASCCredentialProtocol>)credential error:(nullable NSError *)error completionHandler:(NS_SWIFT_SENDABLE void (^)(void))completionHandler;
 
-- (void)validateUserEnteredPIN:(NSString *)pin completionHandler:(void (^)(id <ASCCredentialProtocol> credential, NSError *error))completionHandler;
+- (void)validateUserEnteredPIN:(NSString *)pin completionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
 
 @end
 
@@ -65,30 +99,33 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol ASCAuthorizationPresenterDelegate <NSObject>
 
-- (void)authorizationPresenter:(ASCAuthorizationPresenter *)presenter credentialRequestedForLoginChoice:(id <ASCLoginChoiceProtocol>)loginChoice authenticatedContext:(nullable LAContext *)context completionHandler:(void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
+- (void)authorizationPresenter:(ASCAuthorizationPresenter *)presenter credentialRequestedForLoginChoice:(id <ASCLoginChoiceProtocol>)loginChoice authenticatedContext:(nullable LAContext *)context completionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
 
-- (void)authorizationPresenter:(ASCAuthorizationPresenter *)presenter validateUserEnteredPIN:(NSString *)pin completionHandler:(void (^)(id <ASCCredentialProtocol> credential, NSError *error))completionHandler;
+- (void)authorizationPresenter:(ASCAuthorizationPresenter *)presenter validateUserEnteredPIN:(NSString *)pin completionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
 
 @end
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCAuthorizationPresenter : NSObject <ASCAuthorizationPresenterHostProtocol>
 
-- (void)presentAuthorizationWithContext:(ASCAuthorizationPresentationContext *)context completionHandler:(void (^)(id<ASCCredentialProtocol> _Nullable, NSError * _Nullable))completionHandler;
-- (void)presentError:(NSError *)error forService:(NSString *)service completionHandler:(void (^)(void))completionHandler;
+- (void)presentAuthorizationWithContext:(ASCAuthorizationPresentationContext *)context completionHandler:(NS_SWIFT_SENDABLE void (^)(id<ASCCredentialProtocol> _Nullable, NSError * _Nullable))completionHandler;
+- (void)presentError:(NSError *)error forService:(NSString *)service completionHandler:(NS_SWIFT_SENDABLE void (^)(void))completionHandler;
 - (void)updateInterfaceWithLoginChoices:(NSArray<id <ASCLoginChoiceProtocol>> *)loginChoices;
 - (void)presentPINEntryInterface;
 - (void)presentNewPINEntryInterfaceWithMinLength:(NSUInteger)minLength;
 - (void)updateInterfaceForUserVisibleError:(NSError *)userVisibleError;
 - (void)dismissWithError:(nullable NSError *)error;
 
-@property (nonatomic, weak) id <ASCAuthorizationPresenterDelegate> delegate;
+// Called on the framework's queue: the delegate is Objective-C, WKASCAuthorizationPresenterDelegate.
+@property (nonatomic, weak) id <ASCAuthorizationPresenterDelegate> delegate NS_SWIFT_UNAVAILABLE("The framework calls the delegate on its own queue");
 
 @end
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCAuthorizationRemotePresenter : NSObject
 
 #if TARGET_OS_OSX
-- (void)presentWithWindow:(NSWindow *)window daemonEndpoint:(NSXPCListenerEndpoint *)daemonEndpoint completionHandler:(void (^)(id <ASCCredentialProtocol>, NSError *))completionHandler;
+- (void)presentWithWindow:(NSWindow *)window daemonEndpoint:(NSXPCListenerEndpoint *)daemonEndpoint completionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable, NSError * _Nullable))completionHandler;
 #endif
 
 @end
@@ -97,6 +134,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 extern NSString * const ASCAuthorizationPresentationContextDataKey;
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCAuthorizationPresentationContext : NSObject <NSSecureCoding>
 
 - (instancetype)init NS_UNAVAILABLE;
@@ -129,6 +167,7 @@ typedef NS_ENUM(NSInteger, ASCSecurityKeyPublicKeyCredentialKind) {
 
 @class ASCPublicKeyCredentialDescriptor;
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCPublicKeyCredentialDescriptor : NSObject <NSSecureCoding>
 
 - (instancetype)initWithCredentialID:(NSData *)credentialID transports:(nullable NSArray<NSString *> *)allowedTransports;
@@ -140,6 +179,7 @@ typedef NS_ENUM(NSInteger, ASCSecurityKeyPublicKeyCredentialKind) {
 
 @class ASCWebAuthenticationExtensionsClientInputs;
 
+WK_SOFT_LINKED_OBJC_CLASS WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE
 @interface ASCWebAuthenticationExtensionsClientInputs : NSObject <NSCopying, NSSecureCoding>
 
 - (instancetype)initWithAppID:(NSString * _Nullable)appID NS_DESIGNATED_INITIALIZER;
@@ -155,6 +195,7 @@ typedef NS_ENUM(NSUInteger, ASCPublicKeyCredentialKind) {
     ASCPublicKeyCredentialKindSecurityKey,
 };
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCPublicKeyCredentialAssertionOptions : NSObject <NSSecureCoding>
 
 - (instancetype)initWithKind:(ASCPublicKeyCredentialKind)credentialKind relyingPartyIdentifier:(NSString *)relyingPartyIdentifier challenge:(NSData *)challenge userVerificationPreference:(nullable NSString *)userVerificationPreference allowedCredentials:(nullable NSArray<ASCPublicKeyCredentialDescriptor *> *)allowedCredentials;
@@ -172,7 +213,7 @@ typedef NS_ENUM(NSUInteger, ASCPublicKeyCredentialKind) {
 @property (nonatomic, nullable, copy) NSData *clientDataHash;
 @property (nonatomic, nullable, copy) NSData *clientDataJSON;
 @property (nonatomic, nullable, readonly, copy) NSString *userVerificationPreference;
-@property (nonatomic, nullable, copy) ASCWebAuthenticationExtensionsClientInputs *extensions;
+@property (nonatomic, nullable, copy) ASCWebAuthenticationExtensionsClientInputs *extensions WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE;
 @property (nonatomic, nullable, copy) NSData *extensionsCBOR;
 @property (nonatomic, nullable, copy) NSNumber *timeout;
 
@@ -200,6 +241,7 @@ typedef NS_ENUM(NSInteger, ASPublicKeyCredentialResidentKeyPreference) {
     ASPublicKeyCredentialResidentKeyPreferenceRequired,
 };
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCPublicKeyCredentialCreationOptions : NSObject <NSSecureCoding>
 
 @property (nonatomic, nullable, copy) NSData *challenge;
@@ -212,7 +254,7 @@ typedef NS_ENUM(NSInteger, ASPublicKeyCredentialResidentKeyPreference) {
 @property (nonatomic, copy) NSArray<NSNumber *> *supportedAlgorithmIdentifiers;
 @property (nonatomic, nullable, copy) NSString *userVerificationPreference;
 @property (nonatomic, nullable, copy) NSString *attestationPreference;
-@property (nonatomic, nullable, copy) ASCWebAuthenticationExtensionsClientInputs *extensions;
+@property (nonatomic, nullable, copy) ASCWebAuthenticationExtensionsClientInputs *extensions WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE;
 @property (nonatomic, nullable, copy) NSData *extensionsCBOR;
 @property (nonatomic, nullable, copy) NSNumber *timeout;
 
@@ -222,6 +264,7 @@ typedef NS_ENUM(NSInteger, ASPublicKeyCredentialResidentKeyPreference) {
 
 @end
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCSecurityKeyPublicKeyCredentialLoginChoice : NSObject <ASCLoginChoiceProtocol>
 
 - (instancetype)initRegistrationChoiceWithOptions:(ASCPublicKeyCredentialCreationOptions *)options;
@@ -238,6 +281,7 @@ typedef NS_ENUM(NSInteger, ASPublicKeyCredentialResidentKeyPreference) {
 
 @end
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCPlatformPublicKeyCredentialLoginChoice : NSObject <ASCLoginChoiceProtocol>
 
 - (instancetype)initRegistrationChoiceWithOptions:(ASCPublicKeyCredentialCreationOptions *)options;
@@ -261,6 +305,7 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 
 @class ASGlobalFrameIdentifier;
 
+WK_SOFT_LINKED_OBJC_CLASS WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE
 @interface ASGlobalFrameIdentifier : NSObject <NSCopying, NSSecureCoding>
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
@@ -270,6 +315,7 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 @property (nonatomic, readonly) NSNumber *webFrameID;
 @end
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCCredentialRequestContext : NSObject <NSSecureCoding>
 
 - (instancetype)init NS_UNAVAILABLE;
@@ -288,7 +334,7 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 
 @property (nonatomic) ASCredentialRequestStyle requestStyle;
 
-@property (nonatomic, nullable, copy) ASGlobalFrameIdentifier *globalFrameID;
+@property (nonatomic, nullable, copy) ASGlobalFrameIdentifier *globalFrameID WK_OPTIONAL_SOFT_LINKED_CLASS_SWIFT_UNAVAILABLE;
 
 #if TARGET_OS_IOS || (defined(TARGET_OS_VISION) && TARGET_OS_VISION)
 @property (nonatomic, copy) NSString *windowSceneIdentifier;
@@ -301,6 +347,7 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 
 @class _WKAuthenticatorAttestationResponse;
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCPlatformPublicKeyCredentialRegistration : NSObject <ASCCredentialProtocol>
 
 - (instancetype)initWithRelyingPartyIdentifier:(NSString *)relyingPartyIdentifier attestationObject:(NSData *)attestationObject rawClientDataJSON:(NSData *)rawClientDataJSON credentialID:(NSData *)credentialID;
@@ -320,6 +367,7 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 
 @end
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCSecurityKeyPublicKeyCredentialRegistration : NSObject <ASCCredentialProtocol>
 
 - (instancetype)initWithRelyingPartyIdentifier:(NSString *)relyingPartyIdentifier authenticatorAttestationResponse:(_WKAuthenticatorAttestationResponse *)attestationResponse;
@@ -336,6 +384,7 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 
 @class _WKAuthenticatorAssertionResponse;
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCPlatformPublicKeyCredentialAssertion : NSObject <ASCCredentialProtocol>
 
 - (instancetype)initWithRelyingPartyIdentifier:(NSString *)relyingPartyIdentifier authenticatorAssertionResponse:(_WKAuthenticatorAssertionResponse *)assertionResponse;
@@ -351,6 +400,7 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 
 @end
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCSecurityKeyPublicKeyCredentialAssertion : NSObject <ASCCredentialProtocol>
 
 - (instancetype)initWithRelyingPartyIdentifier:(NSString *)relyingPartyIdentifier authenticatorAssertionResponse:(_WKAuthenticatorAssertionResponse *)assertionResponse;
@@ -369,25 +419,26 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 @protocol ASCAgentProtocol <NSObject>
 
 #if (TARGET_OS_IOS && !TARGET_OS_MACCATALYST) || (defined(TARGET_OS_VISION) && TARGET_OS_VISION)
-- (void)performAuthorizationRequestsForContext:(ASCCredentialRequestContext *)context withCompletionHandler:(void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
+- (void)performAuthorizationRequestsForContext:(ASCCredentialRequestContext *)context withCompletionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
 #elif TARGET_OS_OSX || TARGET_OS_MACCATALYST
-- (void)performAuthorizationRequestsForContext:(ASCCredentialRequestContext *)context withClearanceHandler:(void (^)(NSXPCListenerEndpoint * _Nullable daemonEndpoint, NSError * _Nullable error))clearanceHandler;
+- (void)performAuthorizationRequestsForContext:(ASCCredentialRequestContext *)context withClearanceHandler:(NS_SWIFT_SENDABLE void (^)(NSXPCListenerEndpoint * _Nullable daemonEndpoint, NSError * _Nullable error))clearanceHandler;
 
 - (void)beginAuthorizationForApplicationIdentifier:(NSString *)applicationIdentifier fromEndpoint:(NSXPCListenerEndpoint *)listenerEndpoint;
 
-- (void)userSelectedLoginChoice:(id <ASCLoginChoiceProtocol>)loginChoice authenticatedContext:(LAContext *)context completionHandler:(void (^)(id <ASCCredentialProtocol> _Nullable, NSError * _Nullable))completionHandler;
+- (void)userSelectedLoginChoice:(id <ASCLoginChoiceProtocol>)loginChoice authenticatedContext:(LAContext *)context completionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable, NSError * _Nullable))completionHandler;
 
 - (void)requestCompletedWithCredential:(nullable id<ASCCredentialProtocol>)credential error:(nullable NSError *)error;
 
-- (void)performAutoFillAuthorizationRequestsForContext:(ASCCredentialRequestContext *)context withCompletionHandler:(void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
+- (void)performAutoFillAuthorizationRequestsForContext:(ASCCredentialRequestContext *)context withCompletionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
 #endif
 
-- (void)performSilentAuthorizationRequestsForContext:(ASCCredentialRequestContext *)context withCompletionHandler:(void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
+- (void)performSilentAuthorizationRequestsForContext:(ASCCredentialRequestContext *)context withCompletionHandler:(NS_SWIFT_SENDABLE void (^)(id <ASCCredentialProtocol> _Nullable credential, NSError * _Nullable error))completionHandler;
 
 - (void)cancelCurrentRequest;
 
 @end
 
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCAgentProxy : NSObject <ASCAgentProtocol>
 
 - (instancetype)init;
@@ -403,6 +454,7 @@ typedef NS_ENUM(NSInteger, ASCredentialRequestStyle) {
 @end
 
 // FIXME(219767): Remove ASCAppleIDCredential.
+WK_SOFT_LINKED_ASC_CLASS
 @interface ASCAppleIDCredential : NSObject <ASCCredentialProtocol>
 
 - (instancetype)init NS_UNAVAILABLE;

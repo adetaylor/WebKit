@@ -104,12 +104,16 @@ struct Lexer<Unit: LexerCharacter>: ~Copyable, ~Escapable {
 
     @_lifetime(copy source)
     init(source: Span<Unit>, modes: JSC.JSParseModes) {
+        // Computed before any stored property is initialized: reading self.source while current is uninitialized fails SIL verification.
         let end = Int(modes.endOffset)
-        self.source = source.extracting(first: end)
+        let start = Int(modes.startOffset)
+        let lexed = source.extracting(first: end)
+        let initialCharacter: Unit = lexed.count > start && start >= 0 ? lexed[start] : 0
+        self.source = lexed
         parsingBuiltinFunction = modes.builtinMode == .Builtin || modes.exposePrivateIdentifiers
         scriptMode = modes.scriptMode
-        code = Int(modes.startOffset)
-        current = self.source.count > code && code >= 0 ? self.source[code] : 0
+        code = start
+        current = initialCharacter
         buffer8.reserveCapacity(Self.initialReadBufferCapacity)
         buffer16.reserveCapacity(Self.initialReadBufferCapacity)
         bufferForRawTemplateString16.reserveCapacity(Self.initialReadBufferCapacity)

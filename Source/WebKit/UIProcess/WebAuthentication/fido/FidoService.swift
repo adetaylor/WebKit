@@ -30,7 +30,26 @@ import wtf
 // A transport service's getInfo step: makes a CTAP2 or a U2F authenticator from the device's answer.
 
 extension WebKit.FidoService {
-    @cxx @implementation
+    @cxx
+    @implementation
+    func getInfo(_ driver: WebKit.CtapDriverRef) {
+        let weakThis = WebKit.WeakPtrFidoService(self, .Yes)
+        let weakDriver = WebKit.WeakPtrCtapDriver(driver.get(), .Yes)
+        let callback = WebKit.CtapDriver.ResponseCallback { (response: cbor.Bytes) in
+            assert(WTF.RunLoop.isMain())
+            if let this = WebKit.FidoService.protectedService(weakThis).get(),
+                let driver = WebKit.FidoService.protectedDriver(weakDriver).get()
+            {
+                this.continueAfterGetInfo(driver, response)
+            }
+        }
+        // Get authenticator info from the device.
+        driver.get().transact(consuming: fido.encodeEmptyAuthenticatorRequest(.authenticatorGetInfo), consuming: callback)
+        addDriver(driver)
+    }
+
+    @cxx
+    @implementation
     func continueAfterGetInfo(_ inputDriver: WebKit.CtapDriver, _ response: cbor.Bytes) {
         guard let driver = takeDriver(inputDriver).get() else {
             return
@@ -42,9 +61,10 @@ extension WebKit.FidoService {
             return
         }
 
-        WebKit.LogChannel.WebAuthn().releaseLog.log(
-            "FidoService::Got response from getInfo: \(fido.base64EncodeBytes(response).description)"
-        )
+        WebKit.LogChannel.WebAuthn().releaseLog
+            .log(
+                "FidoService::Got response from getInfo: \(fido.base64EncodeBytes(response).description)"
+            )
 
         if let authenticator = WebKit.FidoService.ctapAuthenticatorForGetInfo(driver, response).get() {
             notifyAuthenticatorAdded(authenticator)

@@ -81,6 +81,11 @@ private:
     RetainPtr<LAContext> m_context;
 };
 
+// A new LAContext, from the soft-linked class, for Swift, which has no class symbol to construct one with. Out of line
+// and returned retained: an Objective-C object returned to Swift through an inline function is over-released under
+// thin LTO (rdar://191370671).
+LAContext *createWebAuthnLAContext() NS_RETURNS_RETAINED;
+
 } // namespace WebKit
 
 #endif // ENABLE(WEB_AUTHN)

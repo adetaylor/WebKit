@@ -166,8 +166,8 @@ private func writePRFValues(_ writer: inout CBORWriter, _ values: borrowing WebC
 
 /// The body of `AuthenticationExtensionsClientOutputs::fromCBOR`, which forwards here.
 ///
-/// `buffer` is the `const Vector&` of `fromCBOR`, so it stays allocated and unwritten for the call (a temporary of
-/// `makeVector` in `WebAuthenticatorCoordinatorProxy.mm`), and its bytes have no invalid bit patterns.
+/// `buffer` is the `const Vector&` of `fromCBOR`, so it stays allocated and unwritten for the call (a temporary at
+/// the caller), and its bytes have no invalid bit patterns.
 /// FIXME: Take a `Span<UInt8>` parameter once a `std::span` can cross safely (rdar://186723514).
 @_expose(Cxx)
 func webAuthnExtensionOutputsFromCBOR(_ buffer: cbor.ByteSpan) -> fido.OptionalClientOutputs {

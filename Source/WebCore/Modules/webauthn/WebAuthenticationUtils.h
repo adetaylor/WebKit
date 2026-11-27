@@ -49,7 +49,11 @@ WEBCORE_EXPORT String toString(AuthenticatorTransport);
 NODELETE WEBCORE_EXPORT std::optional<AuthenticatorTransport> convertStringToAuthenticatorTransport(const String& transport);
 
 // Returns why a URL can't be used as the crossDeviceFallbackUrl extension input, or nullopt if it can.
-WEBCORE_EXPORT std::optional<ASCIILiteral> validateCrossDeviceFallbackURL(const URL&);
+WEBCORE_EXPORT std::optional<String> validateCrossDeviceFallbackURL(const URL&);
+
+// Names the results' types for the Swift implementations, which cannot spell a template instantiation.
+using OptionalAuthenticatorTransport = std::optional<AuthenticatorTransport>;
+using OptionalWebAuthnString = std::optional<String>;
 
 // Names the members' type for the Swift implementation, which cannot spell a template instantiation.
 using OptionalBool = std::optional<bool>;

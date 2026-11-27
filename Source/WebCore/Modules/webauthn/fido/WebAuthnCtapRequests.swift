@@ -727,7 +727,7 @@ func encodeGetInfoResponseAsCBOR(_ response: borrowing fido.AuthenticatorGetInfo
         writer.writeInteger(fido.kCtapAuthenticatorGetInfoTransportsKey)
         writer.beginArray(count: transports.size())
         for index in 0..<transports.size() {
-            writer.writeTextString(WebCore.toString(transports[index]))
+            writer.writeTextString(webAuthnTransportString(transports[index]))
         }
     }
     if let minPINLength {

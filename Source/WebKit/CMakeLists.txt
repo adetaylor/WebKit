@@ -1099,6 +1099,18 @@ if (APPLE)
         WebProcess/WebPage/MomentumEventDispatcher.cpp
         WebProcess/WebPage/RemoteLayerTree/RemoteScrollingCoordinator.mm
 
+        # Web Authentication
+        UIProcess/API/Cocoa/_WKWebAuthenticationPanel.mm
+
+        UIProcess/WebAuthentication/WebAuthenticatorCoordinatorProxy.cpp
+
+        UIProcess/WebAuthentication/Cocoa/LocalAuthenticator.mm
+        UIProcess/WebAuthentication/Cocoa/LocalConnection.mm
+        UIProcess/WebAuthentication/Cocoa/LocalService.mm
+
+        UIProcess/WebAuthentication/Mock/MockLocalConnection.mm
+        UIProcess/WebAuthentication/Mock/MockNfcService.mm
+
         WebProcess/GPU/webrtc/SharedVideoFrame.cpp
     )
 endif ()
@@ -1670,6 +1682,7 @@ set_source_files_properties(
     ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/ServiceWorkerFetchTaskMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/WebAuthenticatorCoordinatorProxyMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebSWServerConnectionMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebSWServerToContextConnectionMessageReceiver.swift

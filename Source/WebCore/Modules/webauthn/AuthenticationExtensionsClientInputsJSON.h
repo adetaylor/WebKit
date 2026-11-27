@@ -27,6 +27,11 @@
 
 #if ENABLE(WEB_AUTHN)
 
+#include <optional>
+#include <wtf/KeyValuePair.h>
+#include <wtf/Vector.h>
+#include <wtf/text/WTFString.h>
+
 namespace WebCore {
 
 struct AuthenticationExtensionsClientInputsJSON {
@@ -43,6 +48,9 @@ struct AuthenticationExtensionsClientInputsJSON {
         std::optional<PRFValuesJSON> eval;
         std::optional<Vector<KeyValuePair<String, PRFValuesJSON>>> evalByCredential;
     };
+
+    // Completes KeyValuePair<String, PRFValuesJSON>, which Swift otherwise imports, with every type holding it, as unsafe.
+    static_assert(sizeof(KeyValuePair<String, PRFValuesJSON>));
 
     String appid;
     std::optional<bool> credProps;

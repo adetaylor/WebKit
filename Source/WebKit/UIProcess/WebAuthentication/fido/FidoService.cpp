@@ -30,11 +30,9 @@
 
 #include "CtapAuthenticator.h"
 #include "CtapDriver.h"
-#include <WebCore/DeviceRequestConverter.h>
 #include <WebCore/DeviceResponseConverter.h>
 #include <WebCore/PublicKeyCredentialDescriptor.h>
 #include <WebCore/PublicKeyCredentialParameters.h>
-#include <wtf/RunLoop.h>
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebKit {
@@ -50,20 +48,6 @@ FidoService::FidoService(AuthenticatorTransportServiceObserver& observer)
 void FidoService::notifyAuthenticatorAdded(Authenticator& authenticator)
 {
     protect(observer())->authenticatorAdded(Ref { authenticator });
-}
-
-void FidoService::getInfo(Ref<CtapDriver>&& driver)
-{
-    // Get authenticator info from the device.
-    driver->transact(encodeEmptyAuthenticatorRequest(CtapRequestCommand::kAuthenticatorGetInfo), [weakThis = WeakPtr { *this }, weakDriver = WeakPtr { driver.get() }] (Vector<uint8_t>&& response) mutable {
-        ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
-        RefPtr protectedThis = weakThis.get();
-        RefPtr driver = weakDriver.get();
-        if (protectedThis && driver)
-            protectedThis->continueAfterGetInfo(*driver, WTF::move(response));
-    });
-    auto addResult = m_drivers.add(WTF::move(driver));
-    ASSERT_UNUSED(addResult, addResult.isNewEntry);
 }
 
 RefPtr<Authenticator> FidoService::ctapAuthenticatorForGetInfo(CtapDriver& driver, const Vector<uint8_t>& response)

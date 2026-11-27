@@ -72,7 +72,6 @@ class RemotePagePlaybackSessionManagerProxy;
 class RemotePageScreenOrientationManagerProxy;
 class RemotePageVideoPresentationManagerProxy;
 class RemotePageVisitedLinkStoreRegistration;
-class RemotePageWebAuthenticatorCoordinatorProxy;
 class UserData;
 class WebFrameProxy;
 class WebPageProxy;
@@ -183,7 +182,8 @@ private:
     WebCore::MediaProducerMediaStateFlags m_mediaState;
     RefPtr<RemotePageScreenOrientationManagerProxy> m_screenOrientationManager;
 #if ENABLE(WEB_AUTHN)
-    RefPtr<RemotePageWebAuthenticatorCoordinatorProxy> m_webAuthenticatorCoordinator;
+    // Whether this page's WebAuthn messages are routed from m_process to the page's coordinator.
+    bool m_isReceivingWebAuthnMessages { false };
 #endif
 #if ENABLE(WEBXR)
     bool m_isReceivingXRMessages { false };

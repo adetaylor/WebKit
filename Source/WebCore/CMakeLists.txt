@@ -3372,8 +3372,14 @@ list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)"
 # The WebAuthn sources that forward to the WebAuthn Swift include WebCore-Swift.h, so they compile
 # in WebCore_SwiftInterop, after WebCore's Swift module.
 set(_webcore_webauthn_swift_interop_sources
+    Modules/credentialmanagement/CredentialsContainer.cpp
+
     Modules/webauthn/AuthenticationExtensionsClientInputs.cpp
     Modules/webauthn/AuthenticationExtensionsClientOutputs.cpp
+    Modules/webauthn/AuthenticatorCoordinator.cpp
+    Modules/webauthn/PublicKeyCredential.cpp
+    Modules/webauthn/WebAuthenticationUtils.cpp
+    Modules/webauthn/WellKnownOriginList.cpp
 
     Modules/webauthn/cbor/CBORBytes.cpp
 
@@ -3386,8 +3392,13 @@ if (ENABLE_MEDIA_STREAM AND NOT APPLE)
 endif ()
 if (ENABLE_WEB_AUTHN)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
+        "(^|/)CredentialsContainer\\.cpp( |$)"
         "(^|/)AuthenticationExtensionsClientInputs\\.cpp( |$)"
         "(^|/)AuthenticationExtensionsClientOutputs\\.cpp( |$)"
+        "(^|/)AuthenticatorCoordinator\\.cpp( |$)"
+        "(^|/)PublicKeyCredential\\.cpp( |$)"
+        "(^|/)WebAuthenticationUtils\\.cpp( |$)"
+        "(^|/)WellKnownOriginList\\.cpp( |$)"
         "(^|/)CBORBytes\\.cpp( |$)"
         "(^|/)AuthenticatorGetInfoResponse\\.cpp( |$)"
         "(^|/)Pin\\.cpp( |$)")
@@ -4251,13 +4262,18 @@ if (APPLE)
     )
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES page/csp/ContentSecurityPolicy.cpp)
 
-    # The WebAuthn protocol code (CBOR, CTAP2, U2F, HID framing, PIN, APDU), as in WebCore.xcodeproj.
+    # The WebAuthn Swift, as in WebCore.xcodeproj.
     if (ENABLE_WEB_AUTHN)
         target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/Modules/credentialmanagement/CredentialsContainer.swift
             ${WEBCORE_DIR}/Modules/webauthn/AuthenticationExtensionsClientCBOR.swift
             ${WEBCORE_DIR}/Modules/webauthn/AuthenticatorAttestationResponse.swift
+            ${WEBCORE_DIR}/Modules/webauthn/AuthenticatorCoordinatorValidation.swift
+            ${WEBCORE_DIR}/Modules/webauthn/AuthenticatorResponse.swift
+            ${WEBCORE_DIR}/Modules/webauthn/PublicKeyCredential.swift
             ${WEBCORE_DIR}/Modules/webauthn/WebAuthenticationUtils.swift
             ${WEBCORE_DIR}/Modules/webauthn/WebAuthnConversions.swift
+            ${WEBCORE_DIR}/Modules/webauthn/WellKnownOriginList.swift
             ${WEBCORE_DIR}/Modules/webauthn/apdu/WebAuthnApdu.swift
             ${WEBCORE_DIR}/Modules/webauthn/cbor/WebAuthnCBOR.swift
             ${WEBCORE_DIR}/Modules/webauthn/cbor/WebAuthnCBORCanonical.swift

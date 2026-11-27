@@ -45,80 +45,13 @@
 #include "Navigator.h"
 #include "Page.h"
 #include "PhoneNumberPossessionCredential.h"
-#include <wtf/OptionSet.h>
+#include "WebCore-Swift.h"
 
 namespace WebCore {
 
 CredentialsContainer::CredentialsContainer(WeakPtr<Document, WeakPtrImplWithEventTargetData>&& document)
     : m_document(WTF::move(document))
 {
-}
-
-// https://w3c.github.io/webappsec-credential-management/#credential-type-registry
-static bool checkCredentialTypeCombinations(const CredentialRequestOptions& options, CredentialPromise& promise)
-{
-    enum class CredentialType : uint8_t {
-        Password  = 1 << 0,
-        Federated = 1 << 1,
-        Identity  = 1 << 2,
-        OTP       = 1 << 3,
-        PublicKey = 1 << 4,
-        Digital   = 1 << 5,
-#if ENABLE(PHONE_NUMBER_POSSESSION)
-        PhoneNumberPossession = 1 << 6,
-#endif
-    };
-
-    OptionSet<CredentialType> requestedTypes;
-    if (options.password)
-        requestedTypes.add(CredentialType::Password);
-    if (options.federated)
-        requestedTypes.add(CredentialType::Federated);
-    if (options.identity)
-        requestedTypes.add(CredentialType::Identity);
-    if (options.otp)
-        requestedTypes.add(CredentialType::OTP);
-    if (options.publicKey)
-        requestedTypes.add(CredentialType::PublicKey);
-    if (options.digital)
-        requestedTypes.add(CredentialType::Digital);
-#if ENABLE(PHONE_NUMBER_POSSESSION)
-    if (options.phoneNumberPossessionIdentifier)
-        requestedTypes.add(CredentialType::PhoneNumberPossession);
-#endif
-
-    if (requestedTypes.isEmpty()) {
-        promise.reject(Exception { ExceptionCode::NotSupportedError, "No credential type was specified."_s });
-        return false;
-    }
-
-    // NOTE: allowedWith() must be symmetric — if type A lists B, then B must
-    // also list A. Asymmetry causes inconsistent rejection depending on
-    // iteration order. See https://w3c.github.io/webappsec-credential-management/#credential-type-registry
-    auto allowedWith = [](CredentialType type) -> OptionSet<CredentialType> {
-        switch (type) {
-        case CredentialType::Password:  return { CredentialType::Federated };
-        case CredentialType::Federated: return { CredentialType::Password };
-        case CredentialType::Identity:
-        case CredentialType::OTP:
-        case CredentialType::PublicKey:
-#if ENABLE(PHONE_NUMBER_POSSESSION)
-        case CredentialType::PhoneNumberPossession:
-#endif
-        case CredentialType::Digital:   return { };
-        }
-        ASSERT_NOT_REACHED();
-        return { };
-    };
-
-    for (auto type : requestedTypes) {
-        auto others = requestedTypes - type;
-        if (!others.isEmpty() && !allowedWith(type).containsAll(others)) {
-            promise.reject(Exception { ExceptionCode::NotSupportedError, "The credential type combination is not supported."_s });
-            return false;
-        }
-    }
-    return true;
 }
 
 template<typename Options>
@@ -141,8 +74,15 @@ static bool performCommonChecks(const Document& document, const Options& options
 
     if constexpr (std::is_same_v<Options, CredentialRequestOptions>) {
 #if ENABLE(WEB_AUTHN)
-        if (!checkCredentialTypeCombinations(options, promise))
+#if ENABLE(PHONE_NUMBER_POSSESSION)
+        bool phoneNumberPossession = !!options.phoneNumberPossessionIdentifier;
+#else
+        bool phoneNumberPossession = false;
+#endif
+        if (auto message = credentialTypeCombinationError(options.password, !!options.federated, !!options.identity, !!options.otp, !!options.publicKey, !!options.digital, phoneNumberPossession)) {
+            promise.reject(Exception { ExceptionCode::NotSupportedError, WTF::move(*message) });
             return false;
+        }
 #else
         if (!options.publicKey) {
             promise.reject(Exception { ExceptionCode::NotSupportedError, "Missing request type."_s });

@@ -27,7 +27,7 @@ import WebKit_Internal
 @_expose(Cxx)
 final class TestWithStreamSwiftTypesWeakRef {
     private let target: TestWithStreamSwiftTypes
-    init(target: TestWithStreamSwiftTypes) {
+    fileprivate init(target: TestWithStreamSwiftTypes) {
         self.target = target
     }
 

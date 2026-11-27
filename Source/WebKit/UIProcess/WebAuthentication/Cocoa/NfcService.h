@@ -29,6 +29,8 @@
 
 #include "FidoService.h"
 #include <wtf/RunLoop.h>
+#include <wtf/SwiftBridging.h>
+#include <wtf/WeakPtr.h>
 
 OBJC_CLASS NFReaderSession;
 
@@ -36,7 +38,7 @@ namespace WebKit {
 
 class NfcConnection;
 
-class NfcService : public FidoService {
+class SWIFT_PRIVATE_FILEID("WebKit/NfcService.swift") NfcService : public FidoService {
 public:
     static Ref<NfcService> create(AuthenticatorTransportServiceObserver&);
     ~NfcService();
@@ -67,8 +69,16 @@ private:
     RefPtr<NfcConnection> m_connection;
     bool m_startingSession { false };
 #endif
+    // For NfcService.swift: a strong reference for the duration of a Swift call.
+    static RefPtr<NfcService> protectedService(const WeakPtr<NfcService>& service) { return service.get(); }
+    // For NfcService.swift: RunLoop::Timer imports as an unsafe type.
+    void startRestartTimer(Seconds delay) { m_restartTimer.startOneShot(delay); }
+
     RunLoop::Timer m_restartTimer;
 };
+
+// The name NfcService.swift spells for the instantiation.
+using WeakPtrNfcService = WeakPtr<NfcService>;
 
 } // namespace WebKit
 

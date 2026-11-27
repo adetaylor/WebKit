@@ -247,6 +247,36 @@ private:
     uint32_t m_param;
 };
 
+class TestMessageWithCompletionHandler {
+public:
+    using Arguments = std::tuple<uint32_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwift_TestMessageWithCompletionHandler; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwift_TestMessageWithCompletionHandlerReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<uint8_t>;
+    using Reply = CompletionHandler<void(uint8_t)>;
+    using Promise = WTF::NativePromise<uint8_t, IPC::Error>;
+    explicit TestMessageWithCompletionHandler(uint32_t param)
+        : m_param(param)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_param;
+    }
+
+private:
+    uint32_t m_param;
+};
+
 class TestAsyncMessageReply {
 public:
     using Arguments = std::tuple<uint8_t>;
@@ -294,6 +324,31 @@ public:
 private:
 };
 
+class TestMessageWithCompletionHandlerReply {
+public:
+    using Arguments = std::tuple<uint8_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwift_TestMessageWithCompletionHandlerReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit TestMessageWithCompletionHandlerReply(uint8_t reply)
+        : m_reply(reply)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_reply;
+    }
+
+private:
+    uint8_t m_reply;
+};
+
 } // namespace TestWithSwift
 } // namespace Messages
 
@@ -303,10 +358,13 @@ using TestAsyncMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSw
 using TestSyncMessageCompletionHandler = WTF::RefCountable<Messages::TestWithSwift::TestSyncMessage::Reply>;
 using TestThrowingMessageWithReplyCompletionHandler = WTF::RefCountable<Messages::TestWithSwift::TestThrowingMessageWithReply::Reply>;
 using TestMessageWithEmptyReplyCompletionHandler = WTF::RefCountable<Messages::TestWithSwift::TestMessageWithEmptyReply::Reply>;
+using TestMessageWithCompletionHandlerCompletionHandler = WTF::RefCountable<Messages::TestWithSwift::TestMessageWithCompletionHandler::Reply>;
 
 void completeWithDefaultReply(TestAsyncMessageCompletionHandler&);
+void dropWithoutReply(TestAsyncMessageCompletionHandler&);
 
 void completeWithDefaultReply(TestMessageWithEmptyReplyCompletionHandler&);
+void dropWithoutReply(TestMessageWithEmptyReplyCompletionHandler&);
 
 void complete(TestAsyncMessageCompletionHandler&, uint8_t);
 } // namespace TestWithSwift
