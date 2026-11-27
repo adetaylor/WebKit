@@ -260,6 +260,8 @@
 #include "ServiceWorkerFetchTaskMessages.h"
 #include "ServiceWorkerNavigationPreloader.h"
 #include "ServiceWorkerSoftUpdateLoader.h"
+// ServiceWorkerFetchTask.swift names IPC.SharedBufferReference, which the Cocoa media headers include.
+#include "SharedBufferReference.h"
 #include "WebSWOriginStore.h"
 #include "WebSWRegistrationStore.h"
 #include "WebSWServerConnection.h"
