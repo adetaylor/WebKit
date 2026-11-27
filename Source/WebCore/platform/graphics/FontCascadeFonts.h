@@ -28,6 +28,7 @@
 #include <WebCore/GlyphPage.h>
 #include <WebCore/TextMeasurementCache.h>
 #include <WebCore/TextRun.h>
+#include <WebCore/TextShapingResultAndDisplayList.h>
 #include <wtf/CurrentThread.h>
 #include <wtf/EnumeratedArray.h>
 #include <wtf/Forward.h>
