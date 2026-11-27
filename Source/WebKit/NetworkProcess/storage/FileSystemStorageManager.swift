@@ -333,7 +333,7 @@ extension WebKit.FileSystemStorageManager {
     }
 
     func requestSpace(_ size: UInt64, _ completionHandler: @escaping (Bool) -> Void) {
-        m_quotaCheckFunction(size, consuming: WTF.BoolCompletionHandler(completionHandler))
+        m_quotaCheckFunction(.init(size), consuming: WTF.BoolCompletionHandler(completionHandler))
     }
 
     func addGlobalIdentifierReference(_ globalIdentifier: FileSystemHandleGlobalIdentifier) {

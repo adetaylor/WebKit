@@ -84,7 +84,7 @@ extension WebKit.BackgroundFetchStoreManager {
             guard let fileSize = WTF.FileSystemImpl.fileSize(fetchPath).value else {
                 continue
             }
-            fetches.append(consuming: .init(first: fileContents(fetchPath, fileSize), second: fileName))
+            fetches.append(consuming: .init(first: fileContents(fetchPath, UInt64(fileSize)), second: fileName))
         }
         return fetches
     }
@@ -95,7 +95,7 @@ extension WebKit.BackgroundFetchStoreManager {
         guard let fileSize = WTF.FileSystemImpl.fileSize(filePath).value else {
             return WebKit.SharedBufferRefPtr()
         }
-        return fileContents(filePath, fileSize)
+        return fileContents(filePath, UInt64(fileSize))
     }
 
     @cxx
@@ -107,7 +107,7 @@ extension WebKit.BackgroundFetchStoreManager {
     ) -> WebCore.BackgroundFetchStore.StoreResult {
         let size = UInt64(data.size())
         let writtenSize = WebKit.fileSystemOverwriteEntireFile(filePath, data)
-        guard writtenSize.value == size else {
+        guard let written = writtenSize.value, UInt64(written) == size else {
             return .InternalError
         }
         if let index = responseBodyIndexToClear.value {
@@ -127,6 +127,9 @@ extension WebKit.BackgroundFetchStoreManager {
         guard handle.isValid() else {
             return .InternalError
         }
-        return WebKit.fileHandleWrite(&handle, data).value == UInt64(data.size()) ? .OK : .InternalError
+        guard let written = WebKit.fileHandleWrite(&handle, data).value else {
+            return .InternalError
+        }
+        return UInt64(written) == UInt64(data.size()) ? .OK : .InternalError
     }
 }
