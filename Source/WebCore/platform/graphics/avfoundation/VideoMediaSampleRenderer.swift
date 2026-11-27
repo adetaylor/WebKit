@@ -24,8 +24,8 @@
 // The video sample renderer: the compressed and decoded sample queues, the decoding decisions, which frame is displayed
 // and when the decoded queue is purged, readiness for more samples, the playback statistics, the observation of the
 // renderer, and the renderer or display layer with the AVSampleBufferVideoRenderer that its queue enqueues decoded
-// frames into. AudioVideoRendererAVFObjC.swift owns it. It reaches the C++ AudioVideoRendererAVFObjC through
-// AudioVideoRendererHost for the decompression session, the timebase and its purge timer, the resource owner and the
+// frames into. AudioVideoRendererAVFObjC.swift owns it and gives it the timebase and its purge timer. It reaches the C++
+// AudioVideoRendererAVFObjC through AudioVideoRendererHost for the decompression session, the resource owner and the
 // logger.
 //
 // WebCore soft-links AVFoundation and CoreMedia: their symbols come from the generated accessors (platform/cocoa/
@@ -190,16 +190,6 @@ private enum DecodedFrameResult {
     case displayed
 }
 
-// WebCoreDecompressionSession::DecodingFlag.
-private struct DecodingFlags: OptionSet {
-    let rawValue: UInt8
-    static let nonDisplaying = DecodingFlags(rawValue: 1 << 0)
-    static let realTime = DecodingFlags(rawValue: 1 << 1)
-    static let enableStereo = DecodingFlags(rawValue: 1 << 2)
-    // Fail instead of decoding in software formats the content process can decode.
-    static let hardwareOnly = DecodingFlags(rawValue: 1 << 3)
-}
-
 // WebCore::VideoRendererPreference.
 private struct RendererPreferences: OptionSet {
     let rawValue: UInt8
@@ -227,9 +217,17 @@ protocol VideoMediaSampleRendererClient: AnyObject, Sendable {
     func videoRendererErrorOccurred(code: Int, hdcpObscured: Bool?)
     func videoRendererRequiresFlushToResume()
     func videoRendererReadyForMoreMediaData()
+    // On the renderer's queue or the main thread: the synchronizer's timebase and the purge timer on it.
+    func videoRendererHasTimebase() -> Bool
+    func videoRendererTimebaseTime() -> CMTime
+    func videoRendererTimebaseRate() -> Double
+    func videoRendererFrameRateUpdate() -> Double
+    func videoRendererDisplayLayerObject() -> NSObject?
+    func setVideoRendererPurgeTimerFireTime(_ fireTime: CMTime)
+    func stopVideoRendererTimebase(_ rendererIdentifier: UInt64)
 }
 
-// The renderer the samples go to on the main thread: a display layer or a video renderer, which the C++ renderer made.
+// The renderer the samples go to on the main thread: a display layer or a video renderer, which AudioVideoRendererCore made.
 struct VideoMediaSampleMainRenderer {
     let kind: WebCore.AudioVideoRendererObject
     let renderer: any QueuedSampleBufferRenderer
@@ -318,7 +316,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         }
     }
 
-    // Before the core goes away, as the C++ renderer's destructor did.
+    // Before the core goes away.
     func invalidate() {
         assertOnMain()
         if let mainRenderer {
@@ -357,7 +355,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     }
     private var decodedSamplesCount: Int { decodedSampleQueue.count }
 
-    // MonotonicTime's clock, as the C++ renderer measured it: seconds since its first sample, or since boot before it.
+    // MonotonicTime's clock, seconds since its first sample, or since boot before it.
     private func secondsSinceStartup() -> Double {
         ProcessInfo.processInfo.systemUptime - startupTime.withLock { $0 }
     }
@@ -370,8 +368,21 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         }
     }
 
+    // Once the client is gone there is no timebase.
+    private func hasTimebase() -> Bool {
+        client?.videoRendererHasTimebase() ?? false
+    }
+
+    private func timebaseTime() -> RendererTime {
+        client.map { RendererTime(time: $0.videoRendererTimebaseTime()) } ?? .invalid
+    }
+
+    private func timebaseRate() -> Double {
+        client?.videoRendererTimebaseRate() ?? 0
+    }
+
     private func currentTime() -> RendererTime {
-        host.hasTimebase() ? RendererTime(time: host.timebaseTime()) : .invalid
+        hasTimebase() ? timebaseTime() : .invalid
     }
 
     private func increment(_ counter: borrowing Atomic<UInt32>, by amount: UInt32 = 1) {
@@ -455,6 +466,15 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         )
     }
 
+    private func rendererDroppedVideoFrames(_ renderer: NSObject?) -> UInt32 {
+        #if WTF_PLATFORM_WATCHOS
+        return .max
+        #else
+        let metrics = renderer?.value(forKey: "videoPerformanceMetrics") as? NSObject
+        return UInt32(truncatingIfNeeded: (metrics?.value(forKey: "numberOfDroppedVideoFrames") as? NSNumber)?.uint64Value ?? 0)
+        #endif
+    }
+
     var mainRendererKind: WebCore.AudioVideoRendererObject? { mainRenderer?.kind }
 
     var mainRendererObject: NSObject? { mainRenderer?.renderer.object }
@@ -509,7 +529,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         if !managesDecodedFrames() {
             return
         }
-        purgeDecodedSampleQueue(flushId)
+        purgeDecodedSampleQueue(flushId, client)
         if let videoRenderer {
             for sample in decodedSampleQueue {
                 videoRenderer.queued.enqueue(sample.sampleBuffer)
@@ -682,7 +702,8 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
 
         if !useDecompressionSessionForProtectedFallback && !decompressionSessionBlocked && info.isProtected {
             decompressionSessionBlocked = true
-            let numberOfDroppedVideoFrames = host.rendererDroppedVideoFrames(mainRenderer?.kind ?? .DisplayLayer)
+            let rendererObject = mainRenderer?.renderer.object ?? client?.videoRendererDisplayLayerObject()
+            let numberOfDroppedVideoFrames = rendererDroppedVideoFrames(rendererObject)
             let dropped = droppedVideoFramesValue.load(ordering: .sequentiallyConsistent)
             if dropped >= numberOfDroppedVideoFrames {
                 droppedVideoFramesOffset = dropped - numberOfDroppedVideoFrames
@@ -767,9 +788,9 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
             return
         }
 
-        let hasTimebase = host.hasTimebase()
-        let currentTime = hasTimebase ? RendererTime(time: host.timebaseTime()) : RendererTime.invalid
-        let playbackRate = hasTimebase ? host.timebaseRate() : 0
+        let hasTimebase = self.hasTimebase()
+        let currentTime = hasTimebase ? timebaseTime() : RendererTime.invalid
+        let playbackRate = hasTimebase ? timebaseRate() : 0
         let nextDecodedSampleTime = decodedSampleQueue.first?.presentationTime ?? .zero
         let lowWaterMarkTime = currentTime.isValid ? maxTime(currentTime, nextDecodedSampleTime) + lowWaterMark : RendererTime.invalid
         let highWaterMarkTime = currentTime.isValid ? maxTime(currentTime, nextDecodedSampleTime) + highWaterMark : RendererTime.invalid
@@ -922,7 +943,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
 
         if host.willLog(.Performance) {
             let now = ProcessInfo.processInfo.systemUptime
-            let observedFrameRate = host.frameRateMonitorUpdate()
+            let observedFrameRate = client?.videoRendererFrameRateUpdate() ?? 0
             var format = "----"
             var presentationTime = RendererTime.invalid
             if let firstFrame = decodedFrames.first {
@@ -958,7 +979,15 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         if RendererTime(time: sample.info.presentationEndTime) >= currentTime {
             return true
         }
-        return sample.info.isDependedOnByOthers
+        return isDependedOnByOthers(sample.sampleBuffer)
+    }
+
+    // False when an attachment of the sample says no other sample depends on it.
+    private func isDependedOnByOthers(_ sample: CMSampleBuffer) -> Bool {
+        guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: false) as? [[CFString: AnyObject]] else {
+            return true
+        }
+        return !attachments.contains { $0[kCMSampleAttachmentKey_IsDependedOnByOthers] === kCFBooleanFalse }
     }
 
     // MARK: Displaying (queue)
@@ -972,7 +1001,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
 
         renderer?.queued.enqueue(sample.sampleBuffer)
 
-        if host.hasTimebase() {
+        if hasTimebase() {
             enqueueDecodedSample(sample)
             maybeReschedulePurge(sampleFlushId)
         } else {
@@ -1064,10 +1093,10 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
 
     // On the queue, when the purge timer fires or the effective rate becomes non-zero.
     func purgeDecodedSampleQueue() {
-        purgeDecodedSampleQueue(flushId)
+        purgeDecodedSampleQueue(flushId, client)
     }
 
-    private func purgeDecodedSampleQueue(_ sampleFlushId: Int32) {
+    private func purgeDecodedSampleQueue(_ sampleFlushId: Int32, _ client: (any VideoMediaSampleRendererClient)?) {
         assertOnQueue()
 
         if !hasDecompressionSession.withLock({ $0 }) && !isReceivingDecodedSamplesValue.load(ordering: .sequentiallyConsistent) {
@@ -1081,10 +1110,10 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
 
         var samplesPurged = false
 
-        if host.hasTimebase() {
-            let currentTime = RendererTime(time: host.timebaseTime())
+        if let client, client.videoRendererHasTimebase() {
+            let currentTime = RendererTime(time: client.videoRendererTimebaseTime())
 
-            samplesPurged = purgeDecodedSampleQueueUntilTime(currentTime)
+            samplesPurged = purgeDecodedSampleQueueUntilTime(currentTime, client)
             if let nextSample = decodedSampleQueue.first {
                 let result = maybeQueueFrameForDisplay(currentTime, nextSample, sampleFlushId)
                 if host.willLog(.Debug) {
@@ -1106,7 +1135,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         }
     }
 
-    private func purgeDecodedSampleQueueUntilTime(_ currentTime: RendererTime) -> Bool {
+    private func purgeDecodedSampleQueueUntilTime(_ currentTime: RendererTime, _ client: any VideoMediaSampleRendererClient) -> Bool {
         assertOnQueue()
 
         if decodedSampleQueue.isEmpty {
@@ -1138,17 +1167,17 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
             return samplesPurged
         }
 
-        schedulePurgeAtTime(nextPurgeTime)
+        schedulePurgeAtTime(nextPurgeTime, client)
 
         return samplesPurged
     }
 
-    private func schedulePurgeAtTime(_ nextPurgeTime: RendererTime) {
-        if !host.hasTimebase() {
+    private func schedulePurgeAtTime(_ nextPurgeTime: RendererTime, _ client: (any VideoMediaSampleRendererClient)?) {
+        guard let client, client.videoRendererHasTimebase() else {
             return
         }
 
-        host.setPurgeTimerFireTime(nextPurgeTime.time)
+        client.setVideoRendererPurgeTimerFireTime(nextPurgeTime.time)
 
         if nextPurgeTime.isValid {
             assertOnQueue()
@@ -1168,10 +1197,10 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         }
 
         if (nextScheduledPurge?.isPositiveInfinite ?? false) || presentationEndTime.isPositiveInfinite {
-            purgeDecodedSampleQueue(sampleFlushId)
+            purgeDecodedSampleQueue(sampleFlushId, client)
             return
         }
-        schedulePurgeAtTime(presentationEndTime)
+        schedulePurgeAtTime(presentationEndTime, client)
     }
 
     // MARK: Flushing
@@ -1196,8 +1225,8 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     }
 
     private func cancelTimer() {
-        if host.hasTimebase() {
-            host.setPurgeTimerFireTime(RendererTime.invalid.time)
+        if hasTimebase() {
+            client?.setVideoRendererPurgeTimerFireTime(RendererTime.invalid.time)
         }
     }
 
@@ -1232,7 +1261,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         assertOnMain()
 
         requestMediaDataPending = false
-        host.setVideoRendererTimebase(false, identifier)
+        client?.stopVideoRendererTimebase(identifier)
         mainRenderer?.renderer.flush()
         cancelTimer()
         flushCompressedSampleQueue()
@@ -1342,17 +1371,17 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         assertOnMain()
         let (sample, presentationTime): (CMSampleBuffer?, RendererTime) = queue.sync {
             assertOnQueue()
-            guard host.hasTimebase() else {
+            guard let client, client.videoRendererHasTimebase() else {
                 return (nil, .invalid)
             }
 
             forceLateSampleToBeDisplayed = true
-            purgeDecodedSampleQueue(flushId)
+            purgeDecodedSampleQueue(flushId, client)
 
             guard let nextSample = decodedSampleQueue.first else {
                 return (nil, .invalid)
             }
-            let currentTime = RendererTime(time: host.timebaseTime())
+            let currentTime = RendererTime(time: client.videoRendererTimebaseTime())
             let presentationTime = nextSample.presentationTime
 
             if presentationTime > currentTime && (lastDisplayedSample.map { presentationTime > $0 } ?? true) {

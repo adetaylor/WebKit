@@ -27,9 +27,11 @@
 
 #include <CoreMedia/CMFormatDescription.h>
 #include <CoreMedia/CMTime.h>
+#include <VideoToolbox/VTDecompressionSession.h>
 #include <WebCore/MediaPromiseTypes.h>
 #include <WebCore/ProcessIdentity.h>
 #include <atomic>
+#include <wtf/BlockPtr.h>
 #include <wtf/Function.h>
 #include <wtf/Lock.h>
 #include <wtf/MediaTime.h>
@@ -43,29 +45,28 @@
 typedef struct opaqueCMSampleBuffer *CMSampleBufferRef;
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
 typedef struct __CVBuffer *CVImageBufferRef;
-typedef struct __CVPixelBufferPool *CVPixelBufferPoolRef;
-typedef struct OpaqueCMTaggedBufferGroup *CMTaggedBufferGroupRef;
 typedef UInt32 VTDecodeInfoFlags;
-typedef struct OpaqueVTDecompressionSession*  VTDecompressionSessionRef;
 
 namespace WebCore {
 
 class VideoDecoder;
-class VideoDecoderVTBSession;
 struct PlatformVideoColorSpace;
+
+// Outside the class, which as an imported shared reference has no type descriptor for nested types to name.
+enum class DecompressionSessionSoftwareDecoder : uint8_t { Invalidated, Present, Absent };
+enum class DecompressionSessionSoftwareStart : uint8_t { Present, Started, Rejected };
 
 class WebCoreDecompressionSession : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<WebCoreDecompressionSession> {
 public:
-    NODELETE WEBCORE_EXPORT static Ref<WebCoreDecompressionSession> createOpenGL(GuaranteedSerialFunctionDispatcher* = nullptr);
-    WEBCORE_EXPORT static Ref<WebCoreDecompressionSession> createRGB(GuaranteedSerialFunctionDispatcher* = nullptr);
-    static Ref<WebCoreDecompressionSession> create(NSDictionary *pixelBufferAttributes, GuaranteedSerialFunctionDispatcher* dispatcher = nullptr) { return adoptRef(*new WebCoreDecompressionSession(pixelBufferAttributes, dispatcher)); }
+    NODELETE WEBCORE_EXPORT static Ref<WebCoreDecompressionSession> createOpenGL(WorkQueue* = nullptr);
+    WEBCORE_EXPORT static Ref<WebCoreDecompressionSession> createRGB(WorkQueue* = nullptr);
+    static Ref<WebCoreDecompressionSession> create(NSDictionary *pixelBufferAttributes, WorkQueue* dispatcher = nullptr) { return adoptRef(*new WebCoreDecompressionSession(pixelBufferAttributes, dispatcher)); }
 
     WEBCORE_EXPORT ~WebCoreDecompressionSession();
     WEBCORE_EXPORT void invalidate();
 
     WEBCORE_EXPORT RetainPtr<CVPixelBufferRef> decodeSampleSync(CMSampleBufferRef);
 
-    using DecodingPromise = NativePromise<Vector<RetainPtr<CMSampleBufferRef>>, OSStatus>;
     enum class DecodingFlag : uint8_t {
         NonDisplaying = 1 << 0,
         RealTime = 1 << 1,
@@ -75,68 +76,70 @@ public:
     };
     using DecodingFlags = OptionSet<DecodingFlag>;
 
-    WEBCORE_EXPORT Ref<DecodingPromise> decodeSample(CMSampleBufferRef, DecodingFlags);
+    typedef void (^DecodeCompletion)(NSArray *, OSStatus) NS_SWIFT_SENDABLE;
+    WEBCORE_EXPORT void decodeSample(CMSampleBufferRef, uint8_t flags, DecodeCompletion);
     WEBCORE_EXPORT void flush();
 
     void setResourceOwner(const ProcessIdentity& resourceOwner) { m_resourceOwner = resourceOwner; }
     bool isHardwareAccelerated() const;
+    SWIFT_UNSAFE static void destroySwiftCore(uint64_t);
+    SWIFT_UNSAFE static void markInvalidatedSwift(uint64_t);
+    SWIFT_UNSAFE static bool isInvalidatedSwift(uint64_t);
+    [[nodiscard]] SWIFT_UNSAFE static bool decodedFormatIsFullRange(CMFormatDescriptionRef);
+    static bool canDecodeInContentProcess(CMFormatDescriptionRef);
+    SWIFT_UNSAFE void decodeOnQueueSwift(CMSampleBufferRef, uint8_t flags);
+    [[nodiscard]] SWIFT_UNSAFE CF_RETURNS_NOT_RETAINED CFArrayRef decodeSampleSyncSwift(CMSampleBufferRef);
+    DecompressionSessionSoftwareDecoder checkSoftwareDecoder(bool formatChanged);
+    bool hasDecoder() const { Locker lock { m_lock }; return !!m_videoDecoder; }
+    DecompressionSessionSoftwareStart startSoftwareDecoder(CMSampleBufferRef, uint8_t flags, DecodeCompletion);
+    SWIFT_UNSAFE void decode(CMSampleBufferRef, uint8_t flags, DecodeCompletion);
+    // Returns the completion decodeOnQueue() holds for its call into Swift.
+    SWIFT_UNSAFE DecodeCompletion resetDecodeResults(size_t numberOfSamples)
+    {
+        assertIsCurrent(m_dispatcher.get());
+        m_lastDecodingError = noErr;
+        m_lastDecodedSamples = { };
+        m_lastDecodedSamples.reserveInitialCapacity(numberOfSamples);
+        return m_decodeCompletion.get();
+    }
+    [[nodiscard]] SWIFT_UNSAFE bool decodeAlphaSample(CMSampleBufferRef, CMSampleBufferRef alphaSample, uint8_t flags, bool resetAlpha, DecodeCompletion);
+    void flushAlpha();
+    void bumpFlushId() { m_flushId++; }
+    uint64_t swiftToken() const { return m_swiftToken; }
+    bool isDispatcherCurrent() const { return m_dispatcher->isCurrent(); }
 
 private:
-    enum class IsAlphaDecoder : bool { No, Yes };
-    WEBCORE_EXPORT WebCoreDecompressionSession(NSDictionary *, GuaranteedSerialFunctionDispatcher*, IsAlphaDecoder = IsAlphaDecoder::No);
-    static NSDictionary *defaultPixelBufferAttributes();
+    enum class IsAlphaDecoder : uint8_t { No, VideoRange, FullRange };
+    WEBCORE_EXPORT WebCoreDecompressionSession(NSDictionary *, WorkQueue*, IsAlphaDecoder = IsAlphaDecoder::No);
 
-    std::expected<RefPtr<VideoDecoderVTBSession>, OSStatus> ensureDecoderForSample(CMSampleBufferRef, DecodingFlags);
+    // On m_dispatcher.
+    void decodeOnQueue(CMSampleBufferRef sample, uint8_t flags, DecodeCompletion completion) { m_decodeCompletion = makeBlockPtr(completion); decodeOnQueueSwift(sample, flags); m_decodeCompletion = nullptr; }
 
-    Ref<DecodingPromise> decodeSampleInternal(CMSampleBufferRef, DecodingFlags);
-    Ref<DecodingPromise> decodeSampleWithAlpha(CMSampleBufferRef, CFArrayRef alphaDatas, DecodingFlags);
-    std::expected<Vector<RetainPtr<CMSampleBufferRef>>, OSStatus> compositeAlphaOntoColorFrames(Vector<RetainPtr<CMSampleBufferRef>>&&, const Vector<RetainPtr<CVPixelBufferRef>>& alphaPixelBuffers);
     void assignResourceOwner(CVImageBufferRef);
 
     Ref<MediaPromise> initializeVideoDecoder(FourCharCode, std::span<const uint8_t>, const std::optional<PlatformVideoColorSpace>&);
-    bool isInvalidated() const { return m_invalidated; }
+    bool isInvalidated() const { return isInvalidatedSwift(m_swiftToken); }
 
-    const RetainPtr<NSDictionary> m_pixelBufferAttributes;
-    const IsAlphaDecoder m_isAlphaDecoder;
     static WorkQueue& queueSingleton();
-    const Ref<GuaranteedSerialFunctionDispatcher> m_dispatcher;
+    const Ref<WorkQueue> m_dispatcher;
+    const uint64_t m_swiftToken;
 
     mutable Lock m_lock;
-    RefPtr<VideoDecoderVTBSession> m_videoDecoderVTB WTF_GUARDED_BY_LOCK(m_lock);
-    mutable std::optional<bool> m_isHardwareAccelerated WTF_GUARDED_BY_LOCK(m_lock);
 
     std::atomic<uint32_t> m_flushId { 0 };
+    BlockPtr<void(NSArray *, OSStatus)> m_decodeCompletion; // Set and cleared on m_dispatcher around decodeOnQueue()'s one call into Swift.
     RefPtr<VideoDecoder> m_videoDecoder WTF_GUARDED_BY_LOCK(m_lock);
-    bool m_videoDecoderCreationFailed { false };
     struct PendingDecodeData {
         DecodingFlags flags;
     };
     std::optional<PendingDecodeData> m_pendingDecodeData WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
     Vector<RetainPtr<CMSampleBufferRef>> m_lastDecodedSamples WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-    RetainPtr<CMFormatDescriptionRef> m_lastFormatDescription WTF_GUARDED_BY_LOCK(m_lock);
     OSStatus m_lastDecodingError WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get()) { noErr };
-    // Only ever accessed from a single thread per instance: either m_dispatcher
-    // (MSE path, where flush() dispatches its write to serialize with
-    // ensureDecoderForSample()), or the caller thread of decodeSampleSync()
-    // (ImageDecoderAVFObjC path, which never calls flush()). Not annotated
-    // with a capability guard because the owning thread differs per instance.
-    bool m_waitingForKeyframe { true };
-    RetainPtr<CMFormatDescriptionRef> m_currentImageDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
 
     // WebM alpha compositing.
     RefPtr<WebCoreDecompressionSession> m_alphaDecompressionSession WTF_GUARDED_BY_LOCK(m_lock);
     RetainPtr<CMFormatDescriptionRef> m_alphaSourceFormatDescription WTF_GUARDED_BY_LOCK(m_lock);
     bool m_alphaDecoderIsFullRange WTF_GUARDED_BY_LOCK(m_lock) { false };
-    RetainPtr<CVPixelBufferPoolRef> m_mergedPixelBufferPool WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-    RetainPtr<CMFormatDescriptionRef> m_mergedFormatDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-    RetainPtr<CMFormatDescriptionRef> m_mergedSourceFormatDescription WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-
-    // Stereo playback support
-    const bool m_stereoSupported { false };
-    bool m_stereoConfigured WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get()) { false };
-    RetainPtr<CFArrayRef> m_tagCollections WTF_GUARDED_BY_CAPABILITY(m_dispatcher.get());
-
-    std::atomic<bool> m_invalidated { false };
 
     ProcessIdentity m_resourceOwner;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);

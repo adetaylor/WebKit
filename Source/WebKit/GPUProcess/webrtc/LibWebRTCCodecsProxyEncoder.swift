@@ -605,17 +605,16 @@ private func sameColorSpace(_ a: WebCore.PlatformVideoColorSpaceValues, _ b: Web
         && a.hasChromaLocation == b.hasChromaLocation && (!a.hasChromaLocation || a.chromaLocation == b.chromaLocation)
 }
 
-// The colour properties of a compression session for the colour space of the frames it encodes. The CoreMedia keys that
-// WebCore converts the colour space's values to are constants, so taking them unretained is safe.
+// The colour properties of a compression session for the colour space of the frames it encodes.
 private func compressionSessionColorProperties(_ colorSpace: WebCore.PlatformVideoColorSpaceValues) -> CFDictionary {
     var properties: [CFString: CFString] = [:]
-    if colorSpace.hasPrimaries, let value = unsafe WebCore.convertToCMColorPrimaries(colorSpace.primaries)?.takeUnretainedValue() {
+    if colorSpace.hasPrimaries, let value = WebCore.convertToCMColorPrimaries(colorSpace.primaries) {
         properties[kVTCompressionPropertyKey_ColorPrimaries] = value
     }
-    if colorSpace.hasTransfer, let value = unsafe WebCore.convertToCMTransferFunction(colorSpace.transfer)?.takeUnretainedValue() {
+    if colorSpace.hasTransfer, let value = WebCore.convertToCMTransferFunction(colorSpace.transfer) {
         properties[kVTCompressionPropertyKey_TransferFunction] = value
     }
-    if colorSpace.hasMatrix, let value = unsafe WebCore.convertToCMYCbCRMatrix(colorSpace.matrix)?.takeUnretainedValue() {
+    if colorSpace.hasMatrix, let value = WebCore.convertToCMYCbCRMatrix(colorSpace.matrix) {
         properties[kVTCompressionPropertyKey_YCbCrMatrix] = value
     }
     return properties as CFDictionary

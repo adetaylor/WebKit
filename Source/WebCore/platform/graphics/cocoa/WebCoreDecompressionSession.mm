@@ -29,24 +29,20 @@
 #import "CMUtilities.h"
 #import "CVUtilities.h"
 #import "FormatDescriptionUtilities.h"
-#import "FourCC.h"
 #import "IOSurface.h"
 #import "Logging.h"
 #import "MediaSampleAVFObjC.h"
 #import "MediaSamplesDecoder.h"
 #import "PixelBufferConformerCV.h"
 #import "SharedBuffer.h"
-#import "VP9UtilitiesCocoa.h"
 #import "VideoDecoder.h"
-#import "VideoDecoderVTBSession.h"
 #import "VideoFrame.h"
+#import "WebCore-Swift.h"
 #import <CoreFoundation/CoreFoundation.h>
 #import <CoreMedia/CMBufferQueue.h>
 #import <CoreMedia/CMFormatDescription.h>
-#import <map>
 #import <pal/avfoundation/MediaTimeAVFoundation.h>
 #import <wtf/BlockPtr.h>
-#import <wtf/Borrow.h>
 #import <wtf/MainThread.h>
 #import <wtf/MediaTime.h>
 #import <wtf/NativePromise.h>
@@ -65,119 +61,17 @@
 
 namespace WebCore {
 
-static RetainPtr<CMSampleBufferRef> createAlphaSampleBuffer(CFArrayRef alphaDatas, CMSampleBufferRef colorSample)
-{
-    CMItemCount count = CFArrayGetCount(alphaDatas);
-    if (!count || count != CMItemCount(PAL::CMSampleBufferGetNumSamples(colorSample)))
-        return nullptr;
-
-    RetainPtr formatDescription = PAL::CMSampleBufferGetFormatDescription(colorSample);
-
-    CMBlockBufferRef rawBlockBuffer = nullptr;
-    if (PAL::CMBlockBufferCreateEmpty(kCFAllocatorDefault, count, 0, &rawBlockBuffer) != kCMBlockBufferNoErr || !rawBlockBuffer)
-        return nullptr;
-    RetainPtr blockBuffer = adoptCF(rawBlockBuffer);
-
-    Vector<CMSampleTimingInfo> timings;
-    Vector<size_t> sizes;
-    Vector<bool> syncFlags;
-    timings.reserveInitialCapacity(count);
-    sizes.reserveInitialCapacity(count);
-    syncFlags.reserveInitialCapacity(count);
-
-    for (CMItemCount index = 0; index < count; ++index) {
-        RetainPtr alphaData = dynamic_cf_cast<CFDataRef>(CFArrayGetValueAtIndex(alphaDatas, index));
-        if (!alphaData)
-            return nullptr;
-
-        RetainPtr sampleBlockBuffer = SharedBuffer::create(alphaData)->createCMBlockBuffer();
-        if (!sampleBlockBuffer || PAL::CMBlockBufferAppendBufferReference(blockBuffer, sampleBlockBuffer, 0, 0, 0) != kCMBlockBufferNoErr)
-            return nullptr;
-
-        CMSampleTimingInfo timing { };
-        if (PAL::CMSampleBufferGetSampleTimingInfo(colorSample, index, &timing) != noErr)
-            return nullptr;
-        timings.append(timing);
-        sizes.append(CFDataGetLength(alphaData));
-
-        bool isSync = false;
-#if ENABLE(VP9)
-        // The alpha stream's keyframes are not guaranteed to align with the
-        // color track's, so derive its sync flag from its own bitstream.
-        isSync = vpxFrameIsKeyframe(PAL::CMFormatDescriptionGetMediaSubType(formatDescription), span(alphaData));
-#endif
-        syncFlags.append(isSync);
-    }
-
-    CMSampleBufferRef rawSampleBuffer = nullptr;
-    if (PAL::CMSampleBufferCreateReady(kCFAllocatorDefault, blockBuffer, formatDescription, count, count, borrow(timings)->span().data(), count, borrow(sizes)->span().data(), &rawSampleBuffer) != noErr)
-        return nullptr;
-
-    RetainPtr sampleBuffer = adoptCF(rawSampleBuffer);
-
-    RetainPtr attachmentsArray = PAL::CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, true);
-    if (attachmentsArray && CFArrayGetCount(attachmentsArray) == count) {
-        for (CMItemCount index = 0; index < count; ++index) {
-            if (syncFlags[index])
-                continue;
-            RetainPtr attachments = checked_cf_cast<CFMutableDictionaryRef>(CFArrayGetValueAtIndex(attachmentsArray, index));
-            CFDictionarySetValue(attachments, PAL::kCMSampleAttachmentKey_NotSync, kCFBooleanTrue);
-        }
-    }
-
-    return sampleBuffer;
-}
-
-static RetainPtr<CMSampleBufferRef> createSampleBufferWithPixelBuffer(CVPixelBufferRef pixelBuffer, CMSampleBufferRef sourceSampleBuffer, CMFormatDescriptionRef description)
-{
-    if (!description)
-        return nullptr;
-
-    CMSampleTimingInfo timing {
-        PAL::CMSampleBufferGetOutputDuration(sourceSampleBuffer),
-        PAL::CMSampleBufferGetOutputPresentationTimeStamp(sourceSampleBuffer),
-        PAL::CMSampleBufferGetOutputPresentationTimeStamp(sourceSampleBuffer),
-    };
-    CMSampleBufferRef rawSampleBuffer = nullptr;
-    if (PAL::CMSampleBufferCreateReadyWithImageBuffer(kCFAllocatorDefault, pixelBuffer, description, &timing, &rawSampleBuffer) != noErr)
-        return nullptr;
-    RetainPtr sampleBuffer = adoptCF(rawSampleBuffer);
-
-    if (RetainPtr sourceAttachments = PAL::CMSampleBufferGetSampleAttachmentsArray(sourceSampleBuffer, false); sourceAttachments && CFArrayGetCount(sourceAttachments)) {
-        RetainPtr destAttachments = PAL::CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, true);
-        if (destAttachments && CFArrayGetCount(destAttachments)) {
-            RetainPtr sourceDict = checked_cf_cast<CFDictionaryRef>(CFArrayGetValueAtIndex(sourceAttachments, 0));
-            RetainPtr destDict = checked_cf_cast<CFMutableDictionaryRef>(CFArrayGetValueAtIndex(destAttachments, 0));
-            CFDictionaryApplyFunction(sourceDict, [](const void* key, const void* value, void* context) {
-                CFDictionarySetValue(static_cast<CFMutableDictionaryRef>(context), key, value);
-            }, destDict);
-        }
-    }
-
-    return sampleBuffer;
-}
-
-Ref<WebCoreDecompressionSession> WebCoreDecompressionSession::createOpenGL(GuaranteedSerialFunctionDispatcher* dispatcher)
+Ref<WebCoreDecompressionSession> WebCoreDecompressionSession::createOpenGL(WorkQueue* dispatcher)
 {
     return adoptRef(*new WebCoreDecompressionSession(nullptr, dispatcher));
 }
 
-Ref<WebCoreDecompressionSession> WebCoreDecompressionSession::createRGB(GuaranteedSerialFunctionDispatcher* dispatcher)
+Ref<WebCoreDecompressionSession> WebCoreDecompressionSession::createRGB(WorkQueue* dispatcher)
 {
     return adoptRef(*new WebCoreDecompressionSession(@{
         (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA),
         (__bridge NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{ /* empty dictionary */ }
     }, dispatcher));
-}
-
-namespace {
-
-struct DecodedPixelFormat {
-    OSType format;
-    bool isFullRange;
-    bool isTenBit;
-};
-
 }
 
 static RetainPtr<CFDataRef> vpcCFromFormatDescription(CMFormatDescriptionRef description)
@@ -191,105 +85,16 @@ static RetainPtr<CFDataRef> vpcCFromFormatDescription(CMFormatDescriptionRef des
     return dynamic_cf_cast<CFDataRef>(CFDictionaryGetValue(atoms, CFSTR("vpcC")));
 }
 
-static std::optional<DecodedPixelFormat> decodedPixelFormat(CMFormatDescriptionRef description)
-{
-#if ENABLE(VP9)
-    RetainPtr configuration = vpcCFromFormatDescription(description);
-    if (!configuration)
-        return { };
-    auto record = createVPCodecConfigurationRecordFromVPCC(span(configuration));
-    if (!record)
-        return { };
-
-    bool isFullRange = record->videoFullRangeFlag == VPConfigurationRange::FullRange;
-    bool isChroma422 = record->chromaSubsampling == VPConfigurationChromaSubsampling::Subsampling_422;
-    if (!isChroma422 && record->chromaSubsampling != VPConfigurationChromaSubsampling::Subsampling_420_Vertical && record->chromaSubsampling != VPConfigurationChromaSubsampling::Subsampling_420_Colocated)
-        return { };
-
-    switch (record->bitDepth) {
-    case 8:
-        if (isChroma422) {
-            return DecodedPixelFormat {
-                .format = isFullRange ? kCVPixelFormatType_422YpCbCr8BiPlanarFullRange : kCVPixelFormatType_422YpCbCr8BiPlanarVideoRange,
-                .isFullRange = isFullRange,
-                .isTenBit = false,
-            };
-        }
-        return DecodedPixelFormat {
-            .format = isFullRange ? kCVPixelFormatType_420YpCbCr8BiPlanarFullRange : kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
-            .isFullRange = isFullRange,
-            .isTenBit = false,
-        };
-    case 10:
-        if (isChroma422) {
-            return DecodedPixelFormat {
-                .format = isFullRange ? kCVPixelFormatType_422YpCbCr10BiPlanarFullRange : kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange,
-                .isFullRange = isFullRange,
-                .isTenBit = true,
-            };
-        }
-        return DecodedPixelFormat {
-            .format = isFullRange ? kCVPixelFormatType_420YpCbCr10BiPlanarFullRange : kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange,
-            .isFullRange = isFullRange,
-            .isTenBit = true,
-        };
-    default:
-        return { };
-    }
-#else
-    UNUSED_PARAM(description);
-    return { };
-#endif
-}
-
-static NSDictionary *pixelBufferAttributesWithFormats(NSArray *formats)
-{
-    return @{
-        (__bridge NSString *)kCVPixelBufferPixelFormatTypeKey: formats,
-        (__bridge NSString *)kCVPixelBufferIOSurfaceCoreAnimationCompatibilityKey: (id)kCFBooleanTrue,
-        (__bridge NSString *)kCVPixelBufferPreferRealTimeCacheModeIfEveryoneDoesKey: (id)kCFBooleanTrue,
-        (__bridge NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{ /* empty dictionary */ }
-    };
-}
-
-// 8-bit in the stream's range keeps coverage unscaled; an explicit format avoids the hardware decoder's lossless-compressed output.
-static RetainPtr<NSDictionary> alphaDecoderPixelBufferAttributes(bool isFullRange)
-{
-    return pixelBufferAttributesWithFormats(@[ @(isFullRange ? kCVPixelFormatType_420YpCbCr8BiPlanarFullRange : kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) ]);
-}
-
-// VideoToolbox fails to convert '420f' into 'x0a8' at some sizes (rdar://192565918), so 8-bit full range is merged on the CPU.
-static NSDictionary *colorDecoderPixelBufferAttributesWithAlpha(CMFormatDescriptionRef description)
-{
-    if (auto format = decodedPixelFormat(description)) {
-        if (format->isFullRange && !format->isTenBit)
-            return pixelBufferAttributesWithFormats(@[ @(format->format) ]);
-        if (auto formatWithAlpha = pixelFormatWithAlpha(format->format))
-            return pixelBufferAttributesWithFormats(@[ @(*formatWithAlpha) ]);
-    }
-    return pixelBufferAttributesWithFormats(createNSArray(pixelFormatsWithAlphaPlane(), [](OSType format) {
-        return @(format);
-    }));
-}
-
-NSDictionary *WebCoreDecompressionSession::defaultPixelBufferAttributes()
-{
-    return @{
-        (__bridge NSString *)kCVPixelBufferIOSurfaceCoreAnimationCompatibilityKey: (id)kCFBooleanTrue,
-        (__bridge NSString *)kCVPixelBufferPreferRealTimeCacheModeIfEveryoneDoesKey: (id)kCFBooleanTrue,
-        (__bridge NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{ /* empty dictionary */ }
-    };
-}
-
-WebCoreDecompressionSession::WebCoreDecompressionSession(NSDictionary *pixelBufferAttributes, GuaranteedSerialFunctionDispatcher* dispatcher, IsAlphaDecoder isAlphaDecoder)
-    : m_pixelBufferAttributes(pixelBufferAttributes ? pixelBufferAttributes : defaultPixelBufferAttributes())
-    , m_isAlphaDecoder(isAlphaDecoder)
-    , m_dispatcher(dispatcher ? *dispatcher : queueSingleton())
-    , m_stereoSupported(VTIsStereoMVHEVCDecodeSupported())
+WebCoreDecompressionSession::WebCoreDecompressionSession(NSDictionary *pixelBufferAttributes, WorkQueue* dispatcher, IsAlphaDecoder isAlphaDecoder)
+    : m_dispatcher(dispatcher ? *dispatcher : queueSingleton())
+    , m_swiftToken(createDecompressionSessionCore(pixelBufferAttributes, isAlphaDecoder != IsAlphaDecoder::No, isAlphaDecoder == IsAlphaDecoder::FullRange, VTIsStereoMVHEVCDecodeSupported(), m_dispatcher->dispatchQueue()))
 {
 }
 
-WebCoreDecompressionSession::~WebCoreDecompressionSession() = default;
+WebCoreDecompressionSession::~WebCoreDecompressionSession()
+{
+    destroySwiftCore(m_swiftToken);
+}
 
 WorkQueue& WebCoreDecompressionSession::queueSingleton()
 {
@@ -303,7 +108,7 @@ WorkQueue& WebCoreDecompressionSession::queueSingleton()
 
 void WebCoreDecompressionSession::invalidate()
 {
-    m_invalidated = true;
+    markInvalidatedSwift(m_swiftToken);
     RefPtr<WebCoreDecompressionSession> alphaSession;
     {
         Locker lock { m_lock };
@@ -325,211 +130,23 @@ void WebCoreDecompressionSession::assignResourceOwner(CVImageBufferRef imageBuff
         IOSurface::setOwnershipIdentity(surface.get(), m_resourceOwner);
 }
 
-static RetainPtr<CFArrayRef> createMVHEVCVideoLayersArray(CMVideoFormatDescriptionRef videoFormatDescription)
-{
-    if (!videoFormatDescription)
-        return { };
-
-    // Get the tag collection array
-    CFArrayRef rawTagCollectionArray = nullptr;
-    if (auto status = PAL::CMVideoFormatDescriptionCopyTagCollectionArray(videoFormatDescription, &rawTagCollectionArray); status != noErr)
-        return { };
-
-    RetainPtr tagCollectionArray = adoptCF(rawTagCollectionArray);
-    // Get the layer IDs to decode
-    if (!tagCollectionArray || CFArrayGetCount(tagCollectionArray.get()) <= 1)
-        return { };
-
-    RetainPtr layersArray = adoptCF(CFArrayCreateMutable(kCFAllocatorDefault, 1, &kCFTypeArrayCallBacks));
-    if (!layersArray)
-        return { };
-
-    for (CFIndex i = 0; i < CFArrayGetCount(tagCollectionArray.get()); ++i) {
-        RetainPtr tagCollection = (CMTagCollectionRef)CFArrayGetValueAtIndex(tagCollectionArray.get(), i);
-        CMTag videoLayerIDTag = PAL::kCMTagInvalid;
-        CMItemCount numberOfTagsCopied = 0;
-        if (auto status = PAL::CMTagCollectionGetTagsWithCategory(tagCollection.get(), kCMTagCategory_VideoLayerID, &videoLayerIDTag, 1, &numberOfTagsCopied); status == noErr && numberOfTagsCopied == 1) {
-            auto videoLayerID = PAL::CMTagGetSInt64Value(videoLayerIDTag);
-            if (RetainPtr number = adoptCF(CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &videoLayerID)))
-                CFArrayAppendValue(layersArray.get(), number.get());
-        }
-    }
-    return layersArray;
-}
-
-static std::map<int64_t, uint64_t> createMVHEVCStereoViewMap(CMVideoFormatDescriptionRef videoFormatDescription)
-{
-    // Get the tag collection array
-    CFArrayRef rawTagCollectionArray = nullptr;
-    if (auto status = PAL::CMVideoFormatDescriptionCopyTagCollectionArray(videoFormatDescription, &rawTagCollectionArray); status != noErr)
-        return { };
-
-    RetainPtr tagCollectionArray = adoptCF(rawTagCollectionArray);
-    // Get the layer IDs to decode
-    if (!tagCollectionArray || CFArrayGetCount(tagCollectionArray.get()) <= 1)
-        return { };
-
-    std::map<int64_t, uint64_t> stereoViewMap;
-
-    for (CFIndex i = 0; i < CFArrayGetCount(tagCollectionArray.get()); ++i) {
-        RetainPtr tagCollection = (CMTagCollectionRef)CFArrayGetValueAtIndex(tagCollectionArray.get(), i);
-        CMTag videoLayerIDTag = PAL::kCMTagInvalid;
-        CMItemCount numberOfTagsCopied = 0;
-        if (auto status = PAL::CMTagCollectionGetTagsWithCategory(tagCollection.get(), kCMTagCategory_VideoLayerID, &videoLayerIDTag, 1, &numberOfTagsCopied); status == noErr && numberOfTagsCopied == 1) {
-            auto videoLayerID = PAL::CMTagGetSInt64Value(videoLayerIDTag);
-            CMTag stereoViewTag = PAL::kCMTagInvalid;
-            if (auto status = PAL::CMTagCollectionGetTagsWithCategory(tagCollection.get(), kCMTagCategory_StereoView, &stereoViewTag, 1, &numberOfTagsCopied); status == noErr && numberOfTagsCopied == 1) {
-                auto stereoView = PAL::CMTagGetFlagsValue(stereoViewTag);
-                stereoViewMap[videoLayerID] = stereoView;
-            }
-        }
-    }
-    return stereoViewMap;
-}
-
-static RetainPtr<CFArrayRef> createTagCollectionRequiredFromVideoToolboxOutput(CMTaggedBufferGroupRef bufferGroup, const std::map<int64_t, uint64_t>& layerIDToStereoViewTable)
-{
-    ASSERT(bufferGroup);
-
-    CFIndex bufferGroupCount = PAL::CMTaggedBufferGroupGetCount(bufferGroup);
-    RetainPtr tagCollections = adoptCF(CFArrayCreateMutable(kCFAllocatorDefault, bufferGroupCount, &kCFTypeArrayCallBacks));
-
-    for (CFIndex index = 0; index < bufferGroupCount; ++index) {
-        CMTag videoLayerIDTag = PAL::kCMTagInvalid;
-        CFIndex copiedTags = kCFNotFound;
-        RetainPtr tagCollection = PAL::CMTaggedBufferGroupGetTagCollectionAtIndex(bufferGroup, index);
-        if (!tagCollection)
-            return nullptr;
-
-        PAL::CMTagCollectionGetTagsWithCategory(tagCollection.get(), kCMTagCategory_VideoLayerID, &videoLayerIDTag, 1, &copiedTags);
-        if (copiedTags != 1 || PAL::CMTagEqualToTag(PAL::kCMTagInvalid, videoLayerIDTag)) {
-            RELEASE_LOG_ERROR(Media, "Unable to retrieve CMTagCollection");
-            return nullptr;
-        }
-        int64_t videoLayerValue = CMTagGetValue(videoLayerIDTag);
-        auto it = layerIDToStereoViewTable.find(videoLayerValue);
-        if (it == layerIDToStereoViewTable.end()) {
-            RELEASE_LOG_ERROR(Media, "Unable to find stereoView mapping for layer:%lld", videoLayerValue);
-            return nullptr;
-        }
-        CMTag stereoView = PAL::CMTagMakeWithFlagsValue(kCMTagCategory_StereoView, it->second);
-
-        CMTag refinedTags[] = { PAL::kCMTagMediaTypeVideo, videoLayerIDTag, stereoView };
-        CMTagCollectionRef rawRefinedTagCollection = nullptr;
-        if (auto status = PAL::CMTagCollectionCreate(kCFAllocatorDefault, refinedTags, sizeof(refinedTags) / sizeof(refinedTags[0]), &rawRefinedTagCollection); status != noErr) {
-            RELEASE_LOG_ERROR(Media, "Unable to allocate CMTagCollection for layer:%lld with error:%d", videoLayerValue, int(status));
-            return nullptr;
-        }
-        RetainPtr refinedTagCollection = adoptCF(rawRefinedTagCollection);
-        CFArrayAppendValue(tagCollections.get(), refinedTagCollection.get());
-    }
-    if (!CFArrayGetCount(tagCollections.get()))
-        return nullptr;
-
-    return tagCollections;
-}
-
-static RetainPtr<CMTaggedBufferGroupRef> createTaggedBufferGroupWithRequiredVideoTagsFromVideoToolboxOutput(CMTaggedBufferGroupRef bufferGroup, CFArrayRef tagCollections)
-{
-    ASSERT(bufferGroup);
-
-    CFIndex bufferGroupCount = PAL::CMTaggedBufferGroupGetCount(bufferGroup);
-
-    if (CFArrayGetCount(tagCollections) != bufferGroupCount) {
-        RELEASE_LOG_ERROR(Media, "Mismatch between tag collection count and buffer group.");
-        return nullptr;
-    }
-
-    RetainPtr buffers = adoptCF(CFArrayCreateMutable(kCFAllocatorDefault, bufferGroupCount, &kCFTypeArrayCallBacks));
-    for (CFIndex index = 0; index < bufferGroupCount; ++index) {
-        RetainPtr pbuf = PAL::CMTaggedBufferGroupGetCVPixelBufferAtIndex(bufferGroup, index);
-        if (!pbuf)
-            return nullptr;
-        CFArrayAppendValue(buffers.get(), pbuf.get());
-    }
-
-    CMTaggedBufferGroupRef refinedTaggedBufferGroup = nullptr;
-    if (auto status = PAL::CMTaggedBufferGroupCreate(kCFAllocatorDefault, tagCollections, buffers.get(), &refinedTaggedBufferGroup); status != noErr) {
-        RELEASE_LOG_ERROR(Media, "Unable to allocate CMTaggedBufferGroup with error:%d", int(status));
-        return bufferGroup;
-    }
-    return adoptCF(refinedTaggedBufferGroup);
-}
-
-static bool canDecodeInContentProcess(CMFormatDescriptionRef description)
+bool WebCoreDecompressionSession::canDecodeInContentProcess(CMFormatDescriptionRef description)
 {
     RefPtr info = createVideoInfoFromFormatDescription(description);
     return info && MediaSamplesDecoder::canDecode(*info, { MediaSamplesDecoder::Filter::InProcess, MediaSamplesDecoder::Filter::SoftwareAllowed, MediaSamplesDecoder::Filter::ForceSoftware });
 }
 
-static bool requiresHardwareDecoder(CMFormatDescriptionRef description, WebCoreDecompressionSession::DecodingFlags flags)
+DecompressionSessionSoftwareDecoder WebCoreDecompressionSession::checkSoftwareDecoder(bool formatChanged)
 {
-    return flags.contains(WebCoreDecompressionSession::DecodingFlag::HardwareOnly) && canDecodeInContentProcess(description);
-}
-
-std::expected<RefPtr<VideoDecoderVTBSession>, OSStatus> WebCoreDecompressionSession::ensureDecoderForSample(CMSampleBufferRef cmSample, DecodingFlags flags)
-{
-    if (m_waitingForKeyframe) {
-        if (!isCMSampleBufferRandomAccess(cmSample))
-            return RefPtr<VideoDecoderVTBSession> { };
-        RELEASE_LOG_INFO(Media, "VTDecompressionSession received keyframe after format change, creating new VTDecompressionSession");
-        m_waitingForKeyframe = false;
-    }
-
     Locker lock { m_lock };
 
     if (isInvalidated())
-        return makeUnexpected(kVTInvalidSessionErr);
+        return DecompressionSessionSoftwareDecoder::Invalidated;
 
-    RetainPtr videoFormatDescription = PAL::CMSampleBufferGetFormatDescription(cmSample);
-    bool videoFormatDescriptionChanged = !m_lastFormatDescription || !PAL::CMFormatDescriptionEqual(videoFormatDescription.get(), m_lastFormatDescription.get());
-
-    if (videoFormatDescriptionChanged && m_videoDecoder)
+    if (formatChanged && m_videoDecoder)
         std::exchange(m_videoDecoder, nullptr)->close();
 
-    if (m_videoDecoder)
-        return RefPtr<VideoDecoderVTBSession> { };
-
-    RefPtr videoDecoderVTB = m_videoDecoderVTB;
-    if (videoFormatDescriptionChanged && videoDecoderVTB && !videoDecoderVTB->canAccept(videoFormatDescription.get())) {
-        auto status = videoDecoderVTB->flush();
-        m_videoDecoderVTB = nullptr;
-        m_isHardwareAccelerated.reset();
-        if (!isCMSampleBufferRandomAccess(cmSample)) {
-            RELEASE_LOG_ERROR(Media, "VTDecompressionSession can't accept format description change on non-keyframe, waiting for keyframe status:%d", int(status));
-            m_waitingForKeyframe = true;
-            return RefPtr<VideoDecoderVTBSession> { };
-        }
-        RELEASE_LOG_INFO(Media, "VTDecompressionSession can't accept format description change on keyframe, creating new VTDecompressionSession status:%d", int(status));
-    }
-
-    m_lastFormatDescription = videoFormatDescription;
-
-    if (!m_videoDecoderVTB) {
-        RetainPtr attributes = m_pixelBufferAttributes;
-        if (m_isAlphaDecoder == IsAlphaDecoder::No && (hasSeparateAlphaStream(videoFormatDescription) || compressedAlphaData(cmSample)))
-            attributes = colorDecoderPixelBufferAttributesWithAlpha(videoFormatDescription);
-        bool requiresHardware = requiresHardwareDecoder(videoFormatDescription.get(), flags);
-        m_videoDecoderVTB = VideoDecoderVTBSession::create(videoFormatDescription, bridge_cast(WTF::move(attributes)), requiresHardware ? VideoDecoderVTBSession::HardwareDecoder::Required : VideoDecoderVTBSession::HardwareDecoder::Enabled);
-        if (!m_videoDecoderVTB && requiresHardware) {
-            RELEASE_LOG_ERROR(Media, "Couldn't create a hardware VTDecompressionSession");
-            return makeUnexpected(kVTCouldNotFindVideoDecoderErr);
-        }
-        if (m_dispatcher->isCurrent()) {
-            assertIsCurrent(m_dispatcher.get());
-
-            m_currentImageDescription = nullptr;
-            m_stereoConfigured = false;
-            m_tagCollections = nullptr;
-        }
-    }
-
-    return m_videoDecoderVTB;
-}
-
-NODELETE static bool isNonRecoverableError(OSStatus status)
-{
-    return status != noErr && status != kVTVideoDecoderReferenceMissingErr;
+    return m_videoDecoder ? DecompressionSessionSoftwareDecoder::Present : DecompressionSessionSoftwareDecoder::Absent;
 }
 
 #if PLATFORM(VISION)
@@ -547,11 +164,9 @@ static RetainPtr<CFDictionaryRef> cfDictionaryCreateCombined(CFDictionaryRef a, 
 
     return result;
 }
-#endif
 
 NODELETE static RetainPtr<CMFormatDescriptionRef> copyDescriptionExtensionValuesIfNeeded(RetainPtr<CMFormatDescriptionRef>&& description, const CMVideoFormatDescriptionRef originalDescription, const CMTaggedBufferGroupRef group)
 {
-#if PLATFORM(VISION)
     RetainPtr metadata = extractImmersiveVideoMetadata(originalDescription);
 
     if (!metadata || !CFDictionaryGetCount(metadata.get()))
@@ -574,46 +189,22 @@ NODELETE static RetainPtr<CMFormatDescriptionRef> copyDescriptionExtensionValues
     if (auto status = PAL::CMVideoFormatDescriptionCreate(kCFAllocatorDefault, codecType, dimensions.width, dimensions.height, copyExtensions.get(), &newImageDescription); status != noErr)
         return description;
     return adoptCF(newImageDescription);
-#else
-    UNUSED_PARAM(originalDescription);
-    UNUSED_PARAM(group);
-    return description;
-#endif
 }
+#endif
 
-static std::expected<RetainPtr<CMSampleBufferRef>, OSStatus> handleDecompressionOutput(WebCoreDecompressionSession::DecodingFlags flags, OSStatus status, VTDecodeInfoFlags, CVImageBufferRef imageBuffer, CMTaggedBufferGroupRef group, CMTime presentationTimeStamp, CMTime presentationDuration, CMFormatDescriptionRef currentImageDescription, CMVideoFormatDescriptionRef description = nullptr)
+static std::expected<RetainPtr<CMSampleBufferRef>, OSStatus> handleDecompressionOutput(WebCoreDecompressionSession::DecodingFlags flags, CVImageBufferRef imageBuffer, CMTime presentationTimeStamp, CMTime presentationDuration)
 {
-    if (isNonRecoverableError(status)) {
-        RELEASE_LOG_ERROR(Media, "Video sample decompression failed with error:%d", int(status));
-        return makeUnexpected(status);
-    }
-
-    if (flags.contains(WebCoreDecompressionSession::DecodingFlag::NonDisplaying) || (!imageBuffer && !group))
+    if (flags.contains(WebCoreDecompressionSession::DecodingFlag::NonDisplaying) || !imageBuffer)
         return { };
 
-    if (group) {
-        RetainPtr groupFormatDescription = currentImageDescription;
-        if (!groupFormatDescription) {
-            CMTaggedBufferGroupFormatDescriptionRef rawBufferGroupFormatDescription = nullptr;
-            if (auto status = PAL::CMTaggedBufferGroupFormatDescriptionCreateForTaggedBufferGroup(kCFAllocatorDefault, group, &rawBufferGroupFormatDescription); status != noErr)
-                return makeUnexpected(status);
-            groupFormatDescription = copyDescriptionExtensionValuesIfNeeded(adoptCF(rawBufferGroupFormatDescription), description, group);
-        }
-        ASSERT(PAL::CMFormatDescriptionGetMediaType(groupFormatDescription.get()) == kCMMediaType_TaggedBufferGroup);
-        // This is an out-parameter which is immediately adopted below.
-        SUPPRESS_UNRETAINED_LOCAL CMSampleBufferRef rawGroupSampleBuffer;
-        if (auto status = PAL::CMSampleBufferCreateForTaggedBufferGroup(kCFAllocatorDefault, group, presentationTimeStamp, presentationDuration, groupFormatDescription.get(), &rawGroupSampleBuffer); status != noErr)
-            return makeUnexpected(status);
-        return adoptCF(rawGroupSampleBuffer);
-    }
-
-    RetainPtr imageBufferDescription = currentImageDescription;
-    if (!imageBufferDescription) {
-        CMVideoFormatDescriptionRef rawImageBufferDescription = nullptr;
-        if (auto status = PAL::CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, imageBuffer, &rawImageBufferDescription); status != noErr)
-            return makeUnexpected(status);
-        imageBufferDescription = copyDescriptionExtensionValuesIfNeeded(adoptCF(rawImageBufferDescription), description, nullptr);
-    }
+    CMVideoFormatDescriptionRef rawImageBufferDescription = nullptr;
+    if (auto status = PAL::CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, imageBuffer, &rawImageBufferDescription); status != noErr)
+        return makeUnexpected(status);
+#if PLATFORM(VISION)
+    RetainPtr imageBufferDescription = copyDescriptionExtensionValuesIfNeeded(adoptCF(rawImageBufferDescription), nullptr, nullptr);
+#else
+    RetainPtr imageBufferDescription = adoptCF(rawImageBufferDescription);
+#endif
     ASSERT(PAL::CMFormatDescriptionGetMediaType(imageBufferDescription.get()) == kCMMediaType_Video);
     CMSampleTimingInfo imageBufferTiming {
         presentationDuration,
@@ -628,199 +219,126 @@ static std::expected<RetainPtr<CMSampleBufferRef>, OSStatus> handleDecompression
     return adoptCF(rawImageSampleBuffer);
 }
 
-auto WebCoreDecompressionSession::decodeSample(CMSampleBufferRef sample, DecodingFlags flags) -> Ref<DecodingPromise>
+void WebCoreDecompressionSession::decodeSample(CMSampleBufferRef sample, uint8_t flags, DecodeCompletion completion)
 {
-    DecodingPromise::Producer producer;
-    auto promise = producer.promise();
-    m_dispatcher->dispatch([protectedThis = RefPtr { this }, producer = WTF::move(producer), sample = RetainPtr { sample }, flags, flushId = m_flushId.load()]() mutable {
+    auto deliver = makeBlockPtr([dispatcher = m_dispatcher, completion = makeBlockPtr(completion)](NSArray *frames, OSStatus status) {
+        RetainPtr delivered = adoptNS([frames mutableCopy]);
+        [delivered removeObjectIdenticalTo:NSNull.null];
+        dispatcher->dispatch([completion, frames = WTF::move(delivered), status] {
+            completion(frames.get(), status);
+        });
+    });
+    m_dispatcher->dispatch([protectedThis = RefPtr { this }, deliver, sample = RetainPtr { sample }, flags, flushId = m_flushId.load()] mutable {
         if (flushId != protectedThis->m_flushId) {
-            producer.reject(noErr);
+            deliver(nil, noErr);
             return;
         }
-        if (RetainPtr alphaDatas = compressedAlphaData(sample))
-            protectedThis->decodeSampleWithAlpha(sample, alphaDatas, flags)->chainTo(WTF::move(producer));
-        else
-            protectedThis->decodeSampleInternal(sample, flags)->chainTo(WTF::move(producer));
+        protectedThis->decodeOnQueue(sample.get(), flags, deliver.get());
     });
-    return promise;
 }
 
-Ref<WebCoreDecompressionSession::DecodingPromise> WebCoreDecompressionSession::decodeSampleInternal(CMSampleBufferRef sample, DecodingFlags flags)
+auto WebCoreDecompressionSession::startSoftwareDecoder(CMSampleBufferRef sample, uint8_t flags, DecodeCompletion completion) -> DecompressionSessionSoftwareStart
 {
-    assertIsCurrent(m_dispatcher.get());
+    RefPtr<MediaPromise> initPromise;
 
-    m_lastDecodingError = noErr;
-    size_t numberOfSamples = PAL::CMSampleBufferGetNumSamples(sample);
-    m_lastDecodedSamples = { };
-    m_lastDecodedSamples.reserveInitialCapacity(numberOfSamples);
+    {
+        Locker lock { m_lock };
+        if (!m_videoDecoder) {
+            if (isInvalidated())
+                return DecompressionSessionSoftwareStart::Rejected;
+            RetainPtr videoFormatDescription = PAL::CMSampleBufferGetFormatDescription(sample);
+            auto fourCC = PAL::CMFormatDescriptionGetMediaSubType(videoFormatDescription.get());
 
-    auto result = ensureDecoderForSample(sample, flags);
-    if (!result)
-        return DecodingPromise::createAndReject(result.error());
-    RefPtr videoDecoderVTB = WTF::move(*result);
+            // We should only hit this code path for VP8 and SW VP9 decoder, look for the vpcC path.
+            RetainPtr configurationRecord = vpcCFromFormatDescription(videoFormatDescription);
+            if (!configurationRecord)
+                return DecompressionSessionSoftwareStart::Rejected;
 
-    if (m_waitingForKeyframe)
-        return DecodingPromise::createAndResolve(Vector<RetainPtr<CMSampleBufferRef>> { });
+            auto colorSpace = colorSpaceFromFormatDescription(videoFormatDescription.get());
 
-    if (!videoDecoderVTB && !m_videoDecoderCreationFailed) {
-        RefPtr<MediaPromise> initPromise;
-
-        {
-            Locker lock { m_lock };
-            if (!m_videoDecoder) {
-                if (isInvalidated())
-                    return DecodingPromise::createAndReject(0);
-                RetainPtr videoFormatDescription = PAL::CMSampleBufferGetFormatDescription(sample);
-                auto fourCC = PAL::CMFormatDescriptionGetMediaSubType(videoFormatDescription.get());
-
-                // We should only hit this code path for VP8 and SW VP9 decoder, look for the vpcC path.
-                RetainPtr configurationRecord = vpcCFromFormatDescription(videoFormatDescription);
-                if (!configurationRecord)
-                    return DecodingPromise::createAndReject(0);
-
-                auto colorSpace = colorSpaceFromFormatDescription(videoFormatDescription.get());
-
-                initPromise = initializeVideoDecoder(fourCC, span(configurationRecord.get()), colorSpace);
-            }
+            initPromise = initializeVideoDecoder(fourCC, span(configurationRecord.get()), colorSpace);
         }
-        auto decode = [protectedThis = Ref { *this }, this, cmSamples = RetainPtr { sample }, flags] {
-            Locker lock { m_lock };
-            RefPtr videoDecoder = m_videoDecoder;
-            if (!videoDecoder)
-                return DecodingPromise::createAndReject(0);
-
-            assertIsCurrent(m_dispatcher.get());
-
-            m_pendingDecodeData = { flags };
-            MediaTime totalDuration = PAL::toMediaTime(PAL::CMSampleBufferGetDuration(cmSamples.get()));
-
-            Vector<Ref<VideoDecoder::DecodePromise>> promises;
-            for (Ref sample : MediaSampleAVFObjC::create(cmSamples.get(), 0)->divide()) {
-                RetainPtr cmSample = sample->platformSample().cmSampleBuffer();
-                MediaTime presentationTimestamp = PAL::toMediaTime(PAL::CMSampleBufferGetPresentationTimeStamp(cmSample.get()));
-                RetainPtr rawBuffer = PAL::CMSampleBufferGetDataBuffer(cmSample.get());
-                ASSERT(rawBuffer);
-                Ref data = sharedBufferFromCMBlockBuffer(rawBuffer.get());
-                if (data->isEmpty())
-                    return DecodingPromise::createAndReject(kVTAllocationFailedErr);
-                promises.append(videoDecoder->decode({ WTF::move(data), true, presentationTimestamp.toMicroseconds(), 0 }));
-            }
-            DecodingPromise::Producer producer;
-            auto promise = producer.promise();
-            VideoDecoder::DecodePromise::all(promises)->whenSettled(m_dispatcher, [weakThis = ThreadSafeWeakPtr { *this }, totalDuration = PAL::toCMTime(totalDuration), producer = WTF::move(producer)] (auto&& result) {
-                RefPtr protectedThis = weakThis.get();
-                if (!protectedThis || protectedThis->isInvalidated()) {
-                    producer.reject(0);
-                    return;
-                }
-                assertIsCurrent(protectedThis->m_dispatcher.get());
-                if (protectedThis->m_lastDecodingError)
-                    producer.reject(protectedThis->m_lastDecodingError);
-                else if (!result)
-                    producer.reject(kVTVideoDecoderBadDataErr);
-                else
-                    producer.resolve(std::exchange(protectedThis->m_lastDecodedSamples, { }));
-                if (!protectedThis->m_pendingDecodeData)
-                    return;
-                protectedThis->m_pendingDecodeData.reset();
-            });
-            return promise;
-        };
-        if (initPromise) {
-            return initPromise->then(m_dispatcher, WTF::move(decode), [] {
-                return DecodingPromise::createAndReject(kVTVideoDecoderNotAvailableNowErr);
-            });
-        }
-        return decode();
     }
-
-    if (!videoDecoderVTB)
-        return DecodingPromise::createAndReject(kVTVideoDecoderNotAvailableNowErr);
-
-    DecodingPromise::Producer producer;
-    auto promise = producer.promise();
-
-    auto handler = makeBlockPtr([weakThis = ThreadSafeWeakPtr { *this }, flags, producer = WTF::move(producer), numberOfTimesCalled = 0u, numberOfSamples, decodedSamples = std::exchange(m_lastDecodedSamples, { }), originalDescription = RetainPtr { PAL::CMSampleBufferGetFormatDescription(sample) }, currentImageDescription = m_currentImageDescription, tagCollections = m_tagCollections, workQueue = Ref { m_dispatcher }](OSStatus status, VTDecodeInfoFlags infoFlags, CVImageBufferRef imageBuffer, CMTaggedBufferGroupRef taggedBufferGroup, CMTime presentationTimeStamp, CMTime presentationDuration) mutable {
-        if (producer.isSettled())
-            return;
-        RetainPtr group = taggedBufferGroup;
-        if (taggedBufferGroup) {
-            if (!tagCollections) {
-                auto map = createMVHEVCStereoViewMap(originalDescription.get());
-                tagCollections = createTagCollectionRequiredFromVideoToolboxOutput(taggedBufferGroup, map);
-                if (!tagCollections) {
-                    producer.reject(kVTCouldNotOutputTaggedBufferGroupErr);
-                    return;
-                }
-                workQueue->dispatch([weakThis, tagCollections]() mutable {
-                    if (RefPtr protectedThis = weakThis.get()) {
-                        assertIsCurrent(protectedThis->m_dispatcher.get());
-                        protectedThis->m_tagCollections = WTF::move(tagCollections);
-                    }
-                });
+    if (initPromise) {
+        initPromise->whenSettled(m_dispatcher, [protectedThis = Ref { *this }, sample = RetainPtr { sample }, flags, completion = makeBlockPtr(completion)](auto&& result) {
+            if (!result) {
+                completion(nil, kVTVideoDecoderNotAvailableNowErr);
+                return;
             }
-            group = createTaggedBufferGroupWithRequiredVideoTagsFromVideoToolboxOutput(taggedBufferGroup, tagCollections.get());
-        }
-        auto result = handleDecompressionOutput(flags, status, infoFlags, imageBuffer, group.get(), presentationTimeStamp, presentationDuration, currentImageDescription.get(), originalDescription.get());
-        if (!result) {
-            producer.reject(result.error());
-            return;
-        }
-        if (!currentImageDescription) {
-            currentImageDescription = PAL::CMSampleBufferGetFormatDescription(result->get());
-            workQueue->dispatch([weakThis, currentImageDescription]() mutable {
-                if (RefPtr protectedThis = weakThis.get()) {
-                    assertIsCurrent(protectedThis->m_dispatcher.get());
-                    protectedThis->m_currentImageDescription = WTF::move(currentImageDescription);
-                }
-            });
-        }
-        decodedSamples.append(WTF::move(*result));
-        if (++numberOfTimesCalled == numberOfSamples)
-            producer.resolve(std::exchange(decodedSamples, { }));
-    });
-
-    VTDecodeInfoFlags decodeInfoFlags = kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_EnableTemporalProcessing;
-    if (flags.contains(DecodingFlag::NonDisplaying))
-        decodeInfoFlags |= kVTDecodeFrame_DoNotOutputFrame;
-    if (flags.contains(DecodingFlag::RealTime))
-        decodeInfoFlags |= kVTDecodeFrame_1xRealTimePlayback;
-
-    if (m_stereoSupported && flags.contains(DecodingFlag::EnableStereo) && !m_stereoConfigured) {
-        m_stereoConfigured = true;
-        RetainPtr videoFormatDescription = PAL::CMSampleBufferGetFormatDescription(sample);
-        if (RetainPtr layers = createMVHEVCVideoLayersArray(videoFormatDescription.get()))
-            videoDecoderVTB->setProperty(kVTDecompressionPropertyKey_RequestedMVHEVCVideoLayerIDs, layers.get());
+            protectedThis->decode(sample.get(), flags, completion.get());
+        });
+        return DecompressionSessionSoftwareStart::Started;
     }
-
-    videoDecoderVTB->decodeMultiImageFrame(sample, decodeInfoFlags, handler.get());
-    return promise;
+    return DecompressionSessionSoftwareStart::Present;
 }
 
-Ref<WebCoreDecompressionSession::DecodingPromise> WebCoreDecompressionSession::decodeSampleWithAlpha(CMSampleBufferRef sample, CFArrayRef alphaDatas, DecodingFlags flags)
+void WebCoreDecompressionSession::decode(CMSampleBufferRef cmSamples, uint8_t flags, DecodeCompletion completion)
 {
-    assertIsCurrent(m_dispatcher.get());
+    if (auto rejected = [&] -> std::optional<OSStatus> {
+        Locker lock { m_lock };
+        RefPtr videoDecoder = m_videoDecoder;
+        if (!videoDecoder)
+            return 0;
 
-    RetainPtr alphaSampleBuffer = createAlphaSampleBuffer(alphaDatas, sample);
-    if (!alphaSampleBuffer)
-        return decodeSampleInternal(sample, flags);
+        assertIsCurrent(m_dispatcher.get());
 
+        m_pendingDecodeData = { DecodingFlags::fromRaw(flags) };
+        MediaTime totalDuration = PAL::toMediaTime(PAL::CMSampleBufferGetDuration(cmSamples));
+
+        Vector<Ref<VideoDecoder::DecodePromise>> promises;
+        for (Ref sample : MediaSampleAVFObjC::create(cmSamples, 0)->divide()) {
+            RetainPtr cmSample = sample->platformSample().cmSampleBuffer();
+            MediaTime presentationTimestamp = PAL::toMediaTime(PAL::CMSampleBufferGetPresentationTimeStamp(cmSample.get()));
+            RetainPtr rawBuffer = PAL::CMSampleBufferGetDataBuffer(cmSample.get());
+            ASSERT(rawBuffer);
+            Ref data = sharedBufferFromCMBlockBuffer(rawBuffer.get());
+            if (data->isEmpty())
+                return kVTAllocationFailedErr;
+            promises.append(videoDecoder->decode({ WTF::move(data), true, presentationTimestamp.toMicroseconds(), 0 }));
+        }
+        VideoDecoder::DecodePromise::all(promises)->whenSettled(m_dispatcher, [weakThis = ThreadSafeWeakPtr { *this }, totalDuration = PAL::toCMTime(totalDuration), completion = makeBlockPtr(completion)](auto&& result) {
+            auto protectedThis = weakThis.get();
+            if (!protectedThis || protectedThis->isInvalidated()) {
+                completion(nil, 0);
+                return;
+            }
+            assertIsCurrent(protectedThis->m_dispatcher.get());
+            if (protectedThis->m_lastDecodingError)
+                completion(nil, protectedThis->m_lastDecodingError);
+            else if (!result)
+                completion(nil, kVTVideoDecoderBadDataErr);
+            else
+                completion(createNSArray(std::exchange(protectedThis->m_lastDecodedSamples, { }), [](auto&& sample) -> id {
+                    return sample ? (__bridge id)sample.get() : NSNull.null;
+                }).get(), noErr);
+            if (!protectedThis->m_pendingDecodeData)
+                return;
+            protectedThis->m_pendingDecodeData.reset();
+        });
+        return std::nullopt;
+    }())
+        completion(nil, *rejected);
+}
+
+bool WebCoreDecompressionSession::decodeAlphaSample(CMSampleBufferRef sample, CMSampleBufferRef alphaSample, uint8_t flags, bool resetAlpha, DecodeCompletion completion)
+{
     RefPtr<WebCoreDecompressionSession> alphaSession;
     RefPtr<WebCoreDecompressionSession> staleAlphaSession;
     {
         Locker lock { m_lock };
+        if (resetAlpha)
+            m_alphaDecompressionSession = nullptr;
         if (!isInvalidated()) {
             RetainPtr formatDescription = PAL::CMSampleBufferGetFormatDescription(sample);
             if (!m_alphaSourceFormatDescription || !PAL::CMFormatDescriptionEqual(formatDescription, m_alphaSourceFormatDescription)) {
-                auto format = decodedPixelFormat(formatDescription);
-                bool isFullRange = format && format->isFullRange;
+                bool isFullRange = decodedFormatIsFullRange(formatDescription.get());
                 if (m_alphaDecompressionSession && isFullRange != m_alphaDecoderIsFullRange)
                     staleAlphaSession = std::exchange(m_alphaDecompressionSession, nullptr);
                 m_alphaDecoderIsFullRange = isFullRange;
                 m_alphaSourceFormatDescription = WTF::move(formatDescription);
             }
             if (!m_alphaDecompressionSession)
-                m_alphaDecompressionSession = adoptRef(*new WebCoreDecompressionSession(alphaDecoderPixelBufferAttributes(m_alphaDecoderIsFullRange), m_dispatcher.ptr(), IsAlphaDecoder::Yes));
+                m_alphaDecompressionSession = adoptRef(*new WebCoreDecompressionSession(nullptr, m_dispatcher.ptr(), m_alphaDecoderIsFullRange ? IsAlphaDecoder::FullRange : IsAlphaDecoder::VideoRange));
         }
         alphaSession = m_alphaDecompressionSession;
     }
@@ -829,146 +347,32 @@ Ref<WebCoreDecompressionSession::DecodingPromise> WebCoreDecompressionSession::d
         staleAlphaSession->invalidate();
     }
     if (!alphaSession)
-        return decodeSampleInternal(sample, flags);
+        return false;
 
-    ASSERT(!compressedAlphaData(alphaSampleBuffer));
+    ASSERT(!compressedAlphaData(alphaSample));
 
-    // Decode directly on the current dispatcher turn so a flush cannot slip in between the alpha and color decodes.
-    Ref alphaPromise = alphaSession->decodeSampleInternal(alphaSampleBuffer, flags);
-    Ref colorPromise = decodeSampleInternal(sample, flags);
-
-    DecodingPromise::Producer producer;
-    Ref promise = producer.promise();
-
-    DecodingPromise::allSettled({ colorPromise, alphaPromise })->whenSettled(m_dispatcher, [weakThis = ThreadSafeWeakPtr { *this }, producer = WTF::move(producer)](auto&& results) mutable {
-        RefPtr protectedThis = weakThis;
-        if (!protectedThis || protectedThis->isInvalidated()) {
-            producer.reject(0);
-            return;
-        }
-        assertIsCurrent(protectedThis->m_dispatcher.get());
-        Borrow borrowedResults = *results;
-        auto& colorResult = borrowedResults->at(0);
-        auto& alphaResult = borrowedResults->at(1);
-
-        if (!colorResult) {
-            producer.reject(colorResult.error());
-            return;
-        }
-
-        if (!alphaResult && alphaResult.error() == kVTInvalidSessionErr) {
-            RELEASE_LOG_ERROR(Media, "WebM alpha decoder session invalidated, will recreate on the next sample");
-            Locker lock { protectedThis->m_lock };
-            protectedThis->m_alphaDecompressionSession = nullptr;
-        }
-
-        Vector<RetainPtr<CVPixelBufferRef>> alphaPixelBuffers;
-        if (alphaResult && alphaResult->size() == colorResult->size()) {
-            alphaPixelBuffers = WTF::map(*alphaResult, [](auto& sample) -> RetainPtr<CVPixelBufferRef> {
-                RetainPtr alphaSampleBuffer = sample;
-                if (!alphaSampleBuffer)
-                    return nullptr;
-                return PAL::CMSampleBufferGetImageBuffer(alphaSampleBuffer);
-            });
-        }
-
-        auto composited = protectedThis->compositeAlphaOntoColorFrames(WTF::move(*colorResult), alphaPixelBuffers);
-        if (!composited) {
-            producer.reject(composited.error());
-            return;
-        }
-        producer.resolve(WTF::move(*composited));
-    });
-
-    return promise;
-}
-
-std::expected<Vector<RetainPtr<CMSampleBufferRef>>, OSStatus> WebCoreDecompressionSession::compositeAlphaOntoColorFrames(Vector<RetainPtr<CMSampleBufferRef>>&& colorFrames, const Vector<RetainPtr<CVPixelBufferRef>>& alphaPixelBuffers)
-{
-    assertIsCurrent(m_dispatcher.get());
-
-    Vector<RetainPtr<CMSampleBufferRef>> output;
-    output.reserveInitialCapacity(colorFrames.size());
-
-    Borrow borrowedColorFrames = colorFrames;
-    for (size_t index = 0; index < colorFrames.size(); ++index) {
-        auto& colorFrame = borrowedColorFrames->at(index);
-        if (!colorFrame)
-            continue;
-
-        RetainPtr alphaPixelBuffer = index < alphaPixelBuffers.size() ? alphaPixelBuffers[index] : nullptr;
-        if (alphaPixelBuffer) {
-            RetainPtr colorPixelBuffer = PAL::CMSampleBufferGetImageBuffer(colorFrame);
-            OSType colorFormat = colorPixelBuffer ? CVPixelBufferGetPixelFormatType(colorPixelBuffer) : 0;
-            bool hasAlphaPlane = isPixelFormatWithAlphaPlane(colorFormat);
-            RetainPtr colorFormatDescription = PAL::CMSampleBufferGetFormatDescription(colorFrame);
-            if (!colorFormatDescription || !m_mergedSourceFormatDescription || !PAL::CMFormatDescriptionEqual(colorFormatDescription, m_mergedSourceFormatDescription)) {
-                m_mergedPixelBufferPool = nullptr;
-                if (!hasAlphaPlane && !pixelFormatWithAlpha(colorFormat))
-                    RELEASE_LOG_ERROR(Media, "WebM alpha merge: unsupported colour format %" PUBLIC_LOG_STRING ", playing without alpha", FourCC(colorFormat).string().data());
-                m_mergedFormatDescription = nullptr;
-                m_mergedSourceFormatDescription = WTF::move(colorFormatDescription);
-            }
-            if (!hasAlphaPlane && !m_mergedPixelBufferPool) {
-                if (auto mergedFormat = pixelFormatWithAlpha(colorFormat)) {
-                    auto pool = createIOSurfaceCVPixelBufferPool(CVPixelBufferGetWidth(colorPixelBuffer), CVPixelBufferGetHeight(colorPixelBuffer), *mergedFormat, 4);
-                    if (!pool) {
-                        RELEASE_LOG_ERROR(Media, "WebM alpha merge: CVPixelBufferPool creation failed (status=%d)", int(pool.error()));
-                        return makeUnexpected(kVTAllocationFailedErr);
-                    }
-                    m_mergedPixelBufferPool = WTF::move(*pool);
-                }
-            }
-            RetainPtr<CVPixelBufferRef> merged;
-            if (hasAlphaPlane) {
-                if (copyAlphaIntoAlphaPlane(colorPixelBuffer, alphaPixelBuffer))
-                    merged = colorPixelBuffer;
-            } else if (m_mergedPixelBufferPool) {
-                auto mergedBuffer = createPixelBufferWithAlpha(colorPixelBuffer, alphaPixelBuffer, m_mergedPixelBufferPool);
-                if (!mergedBuffer)
-                    return makeUnexpected(kVTAllocationFailedErr);
-                merged = WTF::move(*mergedBuffer);
-            }
-            if (merged) {
-                if (!m_mergedFormatDescription)
-                    m_mergedFormatDescription = createFormatDescriptionWithAlpha(merged);
-                if (auto mergedSample = createSampleBufferWithPixelBuffer(merged, colorFrame, m_mergedFormatDescription)) {
-                    output.append(WTF::move(mergedSample));
-                    continue;
-                }
-            }
-        }
-
-        output.append(colorFrame);
-    }
-
-    return output;
+    alphaSession->decodeOnQueue(alphaSample, flags, completion);
+    return true;
 }
 
 RetainPtr<CVPixelBufferRef> WebCoreDecompressionSession::decodeSampleSync(CMSampleBufferRef sample)
 {
-    auto result = ensureDecoderForSample(sample, { });
-    if (!result || !*result)
-        return nullptr;
-
-    RefPtr videoDecoderVTB = WTF::move(*result);
     RetainPtr<CVPixelBufferRef> pixelBuffer;
-    VTDecodeInfoFlags flags { 0 };
-    WTF::Semaphore syncDecompressionOutputSemaphore { 0 };
-    Ref protectedThis { *this };
-    videoDecoderVTB->decodeFrame(sample, flags, makeBlockPtr([&protectedThis, &pixelBuffer, &syncDecompressionOutputSemaphore] (OSStatus, RetainPtr<CVPixelBufferRef>&& imageBuffer, CMTime) mutable {
-        protectedThis->assignResourceOwner(imageBuffer);
-        if (imageBuffer && CFGetTypeID(imageBuffer) == CVPixelBufferGetTypeID())
-            pixelBuffer = WTF::move(imageBuffer);
-        syncDecompressionOutputSemaphore.signal();
-    }));
-    syncDecompressionOutputSemaphore.wait();
+    @autoreleasepool {
+        if (CFArrayRef outputs = decodeSampleSyncSwift(sample)) {
+            for (CFIndex i = 0; i < CFArrayGetCount(outputs); ++i) {
+                if (RetainPtr buffer = dynamic_cf_cast<CVPixelBufferRef>(CFArrayGetValueAtIndex(outputs, i))) {
+                    assignResourceOwner(buffer.get());
+                    pixelBuffer = WTF::move(buffer);
+                }
+            }
+        }
+    }
     return pixelBuffer;
 }
 
-void WebCoreDecompressionSession::flush()
+void WebCoreDecompressionSession::flushAlpha()
 {
-    m_flushId++;
     RefPtr<WebCoreDecompressionSession> alphaSession;
     {
         Locker lock { m_lock };
@@ -976,9 +380,6 @@ void WebCoreDecompressionSession::flush()
     }
     if (alphaSession)
         alphaSession->flush();
-    m_dispatcher->dispatch([protectedThis = RefPtr { this }] {
-        protectedThis->m_waitingForKeyframe = true;
-    });
 }
 
 Ref<MediaPromise> WebCoreDecompressionSession::initializeVideoDecoder(FourCharCode codec, std::span<const uint8_t> description, const std::optional<PlatformVideoColorSpace>& colorSpace)
@@ -1008,7 +409,7 @@ Ref<MediaPromise> WebCoreDecompressionSession::initializeVideoDecoder(FourCharCo
 
                 auto presentationTime = PAL::toCMTime(MediaTime(result->timestamp, 1000000));
                 auto presentationDuration = PAL::toCMTime(MediaTime(result->duration.value_or(0), 1000000));
-                auto sampleResult = handleDecompressionOutput(protectedThis->m_pendingDecodeData->flags, noErr, 0, protect(protect(result->frame)->pixelBuffer()), nullptr, presentationTime, presentationDuration, nullptr);
+                auto sampleResult = handleDecompressionOutput(protectedThis->m_pendingDecodeData->flags, protect(protect(result->frame)->pixelBuffer()), presentationTime, presentationDuration);
                 if (!sampleResult)
                     protectedThis->m_lastDecodingError = sampleResult.error();
                 else
@@ -1027,18 +428,6 @@ Ref<MediaPromise> WebCoreDecompressionSession::initializeVideoDecoder(FourCharCo
     });
 
     return promise;
-}
-
-bool WebCoreDecompressionSession::isHardwareAccelerated() const
-{
-    Locker lock { m_lock };
-    if (m_videoDecoder)
-        return false;
-    if (m_isHardwareAccelerated)
-        return *m_isHardwareAccelerated;
-
-    m_isHardwareAccelerated = m_videoDecoderVTB && protect(*m_videoDecoderVTB)->isHardwareAccelerated();
-    return *m_isHardwareAccelerated;
 }
 
 } // namespace WebCore

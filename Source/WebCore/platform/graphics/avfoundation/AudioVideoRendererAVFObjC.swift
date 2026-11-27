@@ -22,10 +22,10 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 // The audio and video renderer's core: the tracks, the synchronizer's rate and time, seeking, stalling at a time, the
-// time observers, readiness for more samples, which renderer the video goes to, the audio renderers' state and the
-// video sample renderer (VideoMediaSampleRenderer.swift). AudioVideoRendererAVFObjC.mm keeps the C++ renderer that
-// implements AudioVideoRenderer: the clients' callbacks and promises, the shared timebase, the synchronizer, display
-// layer and audio renderers it makes and configures, the layer manager, content keys, and the decompression session,
+// time observers, readiness for more samples, which renderer the video goes to, the display layer, video renderer and
+// audio renderers it makes and configures, and the video sample renderer (VideoMediaSampleRenderer.swift).
+// AudioVideoRendererAVFObjC.mm keeps the C++ renderer that implements AudioVideoRenderer: the clients' callbacks and
+// promises, the shared timebase, the synchronizer, the layer manager, content keys, and the decompression session,
 // which this reaches through AudioVideoRendererHost. In the GPU process, the renderer receiver
 // (RemoteAudioVideoRendererProxyManager.swift) is the core's client instead of the C++ renderer's callbacks and promises.
 //
@@ -36,8 +36,12 @@
 
 internal import AVFoundation
 internal import CoreMedia
+internal import QuartzCore
 internal import Synchronization
+import WebCore_Private.Core.AudioVideoRendererAVFObjC
 import WebCore_Private.Core.AudioVideoRendererHost
+import WebCore_Private.Core.WebCoreObjCExceptionCatching
+import os
 
 // TrackInfoTrackType.
 private enum TrackType: UInt8 {
@@ -96,6 +100,19 @@ private struct PublishState {
 private let prefersDecompressionSession: UInt8 = 1 << 0
 private let useDecompressionSessionForProtectedContent: UInt8 = 1 << 2
 private let requiresHardwareDecoder: UInt8 = 1 << 5
+
+// QuartzCoreSPI.h's, which WebCore's Swift doesn't see.
+private let toneMapToStandardDynamicRangeKey = "toneMapToStandardDynamicRange"
+private let toneMapToStandardDynamicRangeSetter = "setToneMapToStandardDynamicRange:"
+
+// Sets a BOOL property that not every SDK declares to Swift, if the object has its setter, set<Key>:, which key-value
+// coding calls.
+private func setBoolPropertyIfResponds(_ object: NSObject, _ key: Swift.String, _ value: Bool) {
+    guard object.responds(to: NSSelectorFromString("set\(key.prefix(1).uppercased())\(key.dropFirst()):")) else {
+        return
+    }
+    object.setValue(NSNumber(value: value), forKey: key)
+}
 
 private let couldNotFindVideoDecoderError = -12906 // kVTCouldNotFindVideoDecoderErr
 private let videoDecoderNotAvailableNowError = -12913 // kVTVideoDecoderNotAvailableNowErr
@@ -286,6 +303,32 @@ public struct AudioVideoRendererPlaybackQuality: Sendable {
     public var displayCompositedVideoFrames: UInt32
 }
 
+private let performanceLog = Logger(subsystem: "com.apple.WebKit", category: "MediaPerformance")
+
+// What the C++ FrameRateMonitor observed of the decoded frames: the rate over the last 2 s, once the frames span 1 s.
+private struct FrameRateMonitor {
+    private var timeStamps: [Double] = []
+    private var observedFrameRate = 0.0
+
+    mutating func update(_ frameTime: Double) -> Double {
+        let lastFrameTime = timeStamps.last ?? frameTime
+        let expected = 1 / observedFrameRate
+        if observedFrameRate != 0, frameTime - lastFrameTime > 3 / observedFrameRate {
+            let delay = lastFrameTime - frameTime
+            performanceLog.error(
+                "VideoMediaSampleRenderer Frame decoding allowance exceeded:\(delay, format: .fixed(precision: 6)) expected:\(expected, format: .fixed(precision: 6))"
+            )
+        }
+        timeStamps.append(frameTime)
+        timeStamps.removeAll { $0 <= frameTime - 2 }
+        let queueDuration = timeStamps[timeStamps.count - 1] - timeStamps[0]
+        if queueDuration > 1 {
+            observedFrameRate = Double(timeStamps.count) / queueDuration
+        }
+        return observedFrameRate
+    }
+}
+
 private struct WeakAudioVideoRendererCore {
     weak var core: AudioVideoRendererCore?
 }
@@ -297,6 +340,74 @@ private struct AudioVideoRendererTokens {
 }
 
 private let audioVideoRendererTokens = Mutex(AudioVideoRendererTokens())
+
+private struct VideoRendererPurgeTimer {
+    var source: DispatchSource?
+    var rendererIdentifier: UInt64 = 0
+}
+
+// Periodic dispatch timer that broadcasts ticks to the cores that publish to a shared timebase. A single dispatch source
+// serves every registered core; the source is suspended whenever there is none, so an idle process pays no wakeups.
+private final class PeriodicSharedTimer: Sendable {
+    private struct State {
+        var active = false
+        var clients: [ObjectIdentifier: WeakAudioVideoRendererCore] = [:]
+    }
+
+    // Never deinitialised.
+    static let shared = PeriodicSharedTimer(interval: .milliseconds(100), leeway: .milliseconds(10))
+
+    private let source: any DispatchSourceTimer
+    private let state = Mutex(State())
+
+    private init(interval: DispatchTimeInterval, leeway: DispatchTimeInterval) {
+        let queue = DispatchQueue(label: "WebCore PeriodicSharedTimer", autoreleaseFrequency: .workItem)
+        source = DispatchSource.makeTimerSource(queue: queue)
+        source.schedule(deadline: .now(), repeating: interval, leeway: leeway)
+        source.setEventHandler { [weak self] in
+            self?.fire()
+        }
+        // The source starts inactive; add() resumes it when the first core registers.
+    }
+
+    deinit {
+        // Releasing the last reference to an inactive or suspended source is undefined, so resume it before cancelling.
+        if !state.withLock({ $0.active }) {
+            source.resume()
+        }
+        source.cancel()
+    }
+
+    // On the timer's queue. While it runs, each core is kept alive by the strong reference the copy holds.
+    private func fire() {
+        let cores = state.withLock { $0.clients.values.compactMap(\.core) }
+        for core in cores {
+            core.publishFromSharedTimer()
+        }
+    }
+
+    func add(_ core: AudioVideoRendererCore) {
+        state.withLock { state in
+            state.clients[ObjectIdentifier(core)] = WeakAudioVideoRendererCore(core: core)
+            if state.active {
+                return
+            }
+            state.active = true
+            source.resume()
+        }
+    }
+
+    func remove(_ core: AudioVideoRendererCore) {
+        state.withLock { state in
+            state.clients.removeValue(forKey: ObjectIdentifier(core))
+            if !state.clients.isEmpty || !state.active {
+                return
+            }
+            state.active = false
+            source.suspend()
+        }
+    }
+}
 
 // What AudioVideoRendererAVFObjC.mm calls, and what AudioVideoRendererMainActorCore lets the GPU process's renderer
 // receiver call.
@@ -314,17 +425,27 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     private let publishState = Mutex<PublishState>(PublishState())
     // The video sample renderer, for the decompression session's and the purge timer's callbacks on its queue.
     private let videoRendererForQueue = Mutex<VideoMediaSampleRendererCore?>(nil)
+    // The video sample renderer's purge timer on the synchronizer's timebase, and that renderer's identifier.
+    private let videoRendererPurgeTimer = Mutex<VideoRendererPurgeTimer>(VideoRendererPurgeTimer())
 
     // Main.
     private var isShutdown = false
+    private var isDestroyed = false
     private var trackTypes: [UInt64: TrackType] = [:]
     private var enabledVideoTrackId: UInt64?
     private var audioTracks: [UInt64: AudioTrack] = [:]
     private var videoRenderer: VideoMediaSampleRendererCore?
     private var lastVideoRendererIdentifier: UInt64 = 0
-    private var hasDisplayLayer = false
+    private var displayLayer: DisplayLayerHandle?
     private var displayLayerState = DisplayLayerState.removedFromSynchronizer
-    private var hasVideoRendererForTarget = false
+    // AVSampleBufferVideoRenderers, held as NSObjects: typed, the arrays would need the class object, which WebCore
+    // doesn't link.
+    private var videoRendererForTarget: NSObject?
+    // A video renderer for the target that the layer replaced, until the synchronizer lets it go.
+    private var expiredVideoRendererPendingRemoval: NSObject?
+    private var expiringVideoRenderers: [NSObject] = []
+    private var shouldMaintainAspectRatio = true
+    private var shouldDisableHDR = false
     private var hasVideoTarget = false
     private var isPlaying = false
     private var rate: Double = 1
@@ -349,6 +470,10 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     private var hasSizeChangedCallback = false
     private var hasAvailableVideoFrameCallback = false
     private var resourceOwner: TaskIdentityToken?
+    private var lastPixelBuffer: CVBuffer?
+    private var needsPlaceholderImage = false
+    private var copiedPixelBufferTime = RendererTime.invalid
+    private let frameRateMonitor = Mutex(FrameRateMonitor())
     private var timeJumpedObserver: AnyObject?
     private var currentTimeObserver: AnyObject?
     private var performTaskObserver: AnyObject?
@@ -357,12 +482,18 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     private var videoFrameMetadataGatheringObserver: AnyObject?
     private var lastForwardedEffectiveRate: Double = 0
     private var registeredWithSharedTimer = false
+    private var effectiveRateObserver: (any NSObjectProtocol)?
+    private var videoRendererRateObserver: (any NSObjectProtocol)?
     // The audio renderers' settings, which each audio renderer gets when it's made.
     private var volume: Float = 1
     private var muted = false
     private var preservesPitch = true
     // A MediaPlayerPitchCorrectionAlgorithm.
     private var pitchCorrectionAlgorithm: UInt8?
+    #if HAVE_AUDIO_OUTPUT_DEVICE_UNIQUE_ID
+    // Nil while the device ID is null.
+    private var audioOutputDevice: (id: Swift.String, isDefault: Bool)?
+    #endif
 
     // The synchronizer is the C++ renderer's; it is borrowed. The renderer's constructor calls this, so it must not call the host.
     @_expose(Cxx)
@@ -401,10 +532,9 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     deinit {
         let token = tokenValue
         // The entry goes after the lock is released, so that nothing is released while it is held.
-        let entry = audioVideoRendererTokens.withLock { tokens in
+        _ = audioVideoRendererTokens.withLock { tokens in
             tokens.cores.removeValue(forKey: token)
         }
-        _ = entry
     }
 
     // MARK: Token and client
@@ -432,18 +562,34 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
 
     // The C++ renderer's videoPlaybackQualityMetrics(), if it has any.
     @_expose(!Cxx)
-    func videoPlaybackQualityMetrics() -> AudioVideoRendererPlaybackQuality? {
-        let metrics = host.videoPlaybackQualityMetrics()
-        guard metrics.hasMetrics else {
+    func playbackQuality() -> AudioVideoRendererPlaybackQuality? {
+        guard let videoRenderer else {
             return nil
         }
+        let metrics = videoRenderer.metrics()
+        if metrics.managesDecodedFrames && !metrics.decompressionSessionBlocked {
+            return AudioVideoRendererPlaybackQuality(
+                totalVideoFrames: metrics.totalVideoFrames,
+                droppedVideoFrames: metrics.droppedVideoFrames,
+                corruptedVideoFrames: metrics.corruptedVideoFrames,
+                totalFrameDelay: metrics.totalFrameDelay,
+                displayCompositedVideoFrames: metrics.presentedVideoFrames
+            )
+        }
+        #if WTF_PLATFORM_WATCHOS
+        return nil
+        #else
+        let renderer = videoRenderer.mainRendererObject
+        let rendererMetrics = renderer?.value(forKey: "videoPerformanceMetrics") as? NSObject
+        func count(_ key: Swift.String) -> UInt64 { (rendererMetrics?.value(forKey: key) as? NSNumber)?.uint64Value ?? 0 }
         return AudioVideoRendererPlaybackQuality(
-            totalVideoFrames: metrics.totalVideoFrames,
-            droppedVideoFrames: metrics.droppedVideoFrames,
-            corruptedVideoFrames: metrics.corruptedVideoFrames,
-            totalFrameDelay: metrics.totalFrameDelay,
-            displayCompositedVideoFrames: metrics.displayCompositedVideoFrames
+            totalVideoFrames: UInt32(truncatingIfNeeded: count("totalNumberOfVideoFrames")),
+            droppedVideoFrames: UInt32(truncatingIfNeeded: count("numberOfDroppedVideoFrames") &+ UInt64(metrics.droppedVideoFramesOffset)),
+            corruptedVideoFrames: UInt32(truncatingIfNeeded: count("numberOfCorruptedVideoFrames") &+ UInt64(metrics.corruptedVideoFrames)),
+            totalFrameDelay: (rendererMetrics?.value(forKey: "totalFrameDelay") as? NSNumber)?.doubleValue ?? 0,
+            displayCompositedVideoFrames: videoRenderer.totalDisplayedFrames()
         )
+        #endif
     }
 
     // An error the C++ renderer ran into, which the client hears as the core's own.
@@ -478,6 +624,12 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     @_expose(Cxx)
     func destroy() {
         assertOnMain()
+        isDestroyed = true
+        if registeredWithSharedTimer {
+            registeredWithSharedTimer = false
+            PeriodicSharedTimer.shared.remove(self)
+        }
+        stopObservingEffectiveRate()
         cancelStartupGateObserver()
         cancelSeekingPromiseIfNeeded()
         cancelTimeReachedAction()
@@ -492,7 +644,10 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             videoFrameMetadataGatheringObserver = nil
         }
         destroyVideoTrack()
+        stopObservingVideoRendererRate()
         destroyAudioRenderers()
+        expiringVideoRenderers.removeAll()
+        expiredVideoRendererPendingRemoval = nil
         listener?.invalidate()
         listener = nil
     }
@@ -516,20 +671,19 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             removeFromSynchronizerIfNeeded(.AudioRenderer, trackId)
             listener?.stopObservingAudioRenderer(renderer.object)
             renderer.queued.stopRequestingMediaData()
-            host.destroyRenderingObject(.AudioRenderer, trackId)
         }
         audioTracks.removeAll()
 
         destroyVideoTrack()
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func setPreferences(_ rawValue: UInt8) {
         preferences = rawValue
         videoRenderer?.setPreferences(rawValue)
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func setHasProtectedVideoContent(_ protectedContent: Bool) {
         log(.Always, "AudioVideoRendererAVFObjC::setHasProtectedVideoContent protectedContent: \(protectedContent)")
         if hasProtectedVideoContent != protectedContent {
@@ -639,7 +793,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func isReadyForMoreSamples(_ trackId: UInt64) -> Bool {
         guard let type = trackTypes[trackId] else {
             return false
@@ -778,7 +932,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func flush() {
         log(.Always, "AudioVideoRendererAVFObjC::flush")
 
@@ -790,7 +944,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         flushAudio()
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func flushTrack(_ trackId: UInt64) {
         log(.Always, "AudioVideoRendererAVFObjC::flushTrack \(trackDescription(trackId))")
         guard let type = trackTypes[trackId] else {
@@ -808,7 +962,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func applicationWillResignActive() {
         guard let videoRenderer, videoRenderer.isUsingDecompressionSession() else {
             return
@@ -823,7 +977,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
 
     // MARK: Synchronizer
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func play(_ hasHostTime: Bool, _ hostTime: UInt64) {
         log(.Always, "AudioVideoRendererAVFObjC::play m_rate: \(rate) seeking: \(seeking())")
         isPlaying = true
@@ -832,7 +986,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func pause(_ hasHostTime: Bool, _ hostTime: UInt64) {
         log(.Always, "AudioVideoRendererAVFObjC::pause m_rate: \(rate)")
         isPlaying = false
@@ -846,17 +1000,17 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         setSynchronizerRate(0, hasHostTime ? hostTime : nil)
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func paused() -> Bool {
         !isPlaying
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func timeIsProgressing() -> Bool {
         isPlaying && lastSetSyncRate != 0
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func currentTime() -> CMTime {
         assertOnMain()
         if seeking() {
@@ -879,7 +1033,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     }
 
     // Whether the rate changed.
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func setRate(_ newRate: Double) -> Bool {
         log(.Always, "AudioVideoRendererAVFObjC::setRate m_rate: \(newRate)")
         if rate == newRate {
@@ -894,7 +1048,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         return true
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func effectiveRate() -> Double {
         if startupGateObserver != nil {
             return 0
@@ -944,14 +1098,14 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     }
 
     // On the shared timer's queue.
-    @_expose(Cxx)
-    func publishFromSharedTimer() {
+    fileprivate func publishFromSharedTimer() {
+        assert(configuration.hasSharedTimebase)
         let timebase = synchronizer.timebase
         let rawTime = RendererTime.maximum(.zero, RendererTime(time: CMTimebaseGetTime(timebase)))
         publishSnapshot(rawTime, CMTimebaseGetEffectiveRate(timebase))
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func stall() {
         log(.Always, "AudioVideoRendererAVFObjC::stall playing: \(isPlaying) rate: \(rate)")
         setSynchronizerRate(0, nil)
@@ -1107,9 +1261,29 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         return true
     }
 
-    // On the thread that the effective rate listener calls.
+    // Observes the synchronizer's timebase, replacing the observer that an earlier call started.
     @_expose(Cxx)
-    func effectiveRateChanged(_ rate: Double) {
+    func observeEffectiveRate() {
+        let timebase = synchronizer.timebase
+        let name = Notification.Name(CoreMediaSoftLink.kCMTimebaseNotification_EffectiveRateChanged as Swift.String)
+        let previous = effectiveRateObserver
+        effectiveRateObserver = NotificationCenter.default.addObserver(forName: name, object: timebase, queue: nil) { [weak self] _ in
+            self?.effectiveRateChanged(CMTimebaseGetEffectiveRate(timebase))
+        }
+        if let previous {
+            NotificationCenter.default.removeObserver(previous)
+        }
+    }
+
+    private func stopObservingEffectiveRate() {
+        if let observer = effectiveRateObserver {
+            NotificationCenter.default.removeObserver(observer)
+            effectiveRateObserver = nil
+        }
+    }
+
+    // On the thread that posts the timebase's notification.
+    private func effectiveRateChanged(_ rate: Double) {
         // On rate->0, publish synchronously on the listener thread before the main-thread hop.
         // The main-thread updateSharedTimebase that handleEffectiveRateChanged would do is too
         // late: the reader keeps extrapolating off the prior (rate=1) snapshot in the interim.
@@ -1174,7 +1348,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func seeking() -> Bool {
         seekState != .completed
     }
@@ -1250,9 +1424,9 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         // purge our retained images and pixel buffers when playing the synchronizer, to release that
         // retained memory.
         if newRate == 0 {
-            host.updateLastPixelBuffer()
+            updateLastPixelBuffer()
         } else {
-            host.purgeLastPixelBuffer()
+            lastPixelBuffer = nil
         }
 
         // Rate (and possibly time) just changed; publish so the reader extrapolates from a fresh anchor.
@@ -1263,10 +1437,10 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
         if newRate != 0 && !registeredWithSharedTimer {
             registeredWithSharedTimer = true
-            host.setSharedTimerActive(true)
+            PeriodicSharedTimer.shared.add(self)
         } else if newRate == 0 && registeredWithSharedTimer {
             registeredWithSharedTimer = false
-            host.setSharedTimerActive(false)
+            PeriodicSharedTimer.shared.remove(self)
         }
     }
 
@@ -1318,14 +1492,14 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         hasAvailableVideoFrame = flag
         if flag {
             events.firstFrameAvailable()
-            host.setNeedsPlaceholderImage(false)
+            setNeedsPlaceholderImage(false)
         }
         updateAllRenderersHaveAvailableSamples()
     }
 
     // MARK: Audio renderers
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func setVolume(_ newVolume: Float) {
         volume = newVolume
         for track in audioTracks.values {
@@ -1333,7 +1507,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func setMuted(_ newMuted: Bool) {
         muted = newMuted
         for track in audioTracks.values {
@@ -1342,7 +1516,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     }
 
     // algorithm is a MediaPlayerPitchCorrectionAlgorithm, if hasAlgorithm.
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func setPreservesPitchAndCorrectionAlgorithm(_ newPreservesPitch: Bool, _ hasAlgorithm: Bool, _ algorithm: UInt8) {
         preservesPitch = newPreservesPitch
         pitchCorrectionAlgorithm = hasAlgorithm ? algorithm : nil
@@ -1368,6 +1542,48 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
+    #if HAVE_AUDIO_OUTPUT_DEVICE_UNIQUE_ID
+    // deviceID is nil for a null device ID, which leaves the audio renderers' devices as they are.
+    @_expose(Cxx)
+    func setOutputDeviceID(_ deviceID: NSString?, _ isDefault: Bool) {
+        guard let deviceID else {
+            audioOutputDevice = nil
+            return
+        }
+        audioOutputDevice = (deviceID as Swift.String, isDefault)
+        for track in audioTracks.values {
+            if let renderer = track.renderer?.renderer {
+                setOutputDevice(renderer)
+            }
+        }
+    }
+
+    private func setOutputDevice(_ renderer: AVSampleBufferAudioRenderer) {
+        guard let audioOutputDevice else {
+            return
+        }
+        guard audioOutputDevice.isDefault else {
+            renderer.audioOutputDeviceUniqueID = audioOutputDevice.id
+            return
+        }
+        // FIXME(rdar://155986053): Remove the @try/@catch when this exception is resolved.
+        if let exception = WebCoreCatchingObjCException({ renderer.audioOutputDeviceUniqueID = nil }) {
+            log(
+                .Error,
+                "AudioVideoRendererAVFObjC::setOutputDeviceIdOnRenderer -[AVSampleBufferAudioRenderer setAudioOutputDeviceUniqueID:] threw an exception: \(exception.name.rawValue), reason : \(exception.reason ?? "")"
+            )
+        }
+    }
+    #endif
+
+    #if HAVE_SPATIAL_TRACKING_LABEL
+    // For the C++ renderer's spatial tracking label.
+    @_expose(Cxx)
+    func audioRenderers() -> NSArray {
+        audioTracks.values.compactMap { $0.renderer?.renderer } as NSArray
+    }
+    #endif
+
     private func addAudioRenderer(_ trackId: UInt64) {
         if audioTracks[trackId] != nil {
             return
@@ -1375,9 +1591,28 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         audioTracks[trackId] = AudioTrack()
         updateAllRenderersHaveAvailableSamples()
 
-        guard host.createRenderingObject(.AudioRenderer, trackId), let renderer = AVFoundationClass.cast(host.renderingObject(.AudioRenderer, trackId), to: AVFoundationClass.AVSampleBufferAudioRenderer) else {
+        guard let renderer = AVFoundationClass.AVSampleBufferAudioRenderer?.init() else {
+            log(.Error, "AudioVideoRendererAVFObjC::createRenderingObject -[AVSampleBufferAudioRenderer init] returned nil! bailing!")
+            assertionFailure()
+            notifyError(.audioDecodingError)
             return
         }
+
+        #if HAVE_AUDIO_OUTPUT_DEVICE_UNIQUE_ID
+        setOutputDevice(renderer)
+        #endif
+
+        let synchronizer = synchronizer
+        if let exception = WebCoreCatchingObjCException({ WebCore.addRendererToSynchronizer(synchronizer, renderer) }) {
+            log(
+                .Error,
+                "AudioVideoRendererAVFObjC::createRenderingObject -[AVSampleBufferRenderSynchronizer addRenderer:] threw an exception: \(exception.name.rawValue), reason : \(exception.reason ?? "")"
+            )
+            assertionFailure()
+            notifyError(.audioDecodingError)
+            return
+        }
+
         renderer.isMuted = muted
         renderer.volume = volume
         renderer.audioTimePitchAlgorithm = audioTimePitchAlgorithm
@@ -1399,7 +1634,6 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         listener?.stopObservingAudioRenderer(renderer.object)
         renderer.queued.flush()
         renderer.queued.stopRequestingMediaData()
-        host.destroyRenderingObject(.AudioRenderer, trackId)
     }
 
     private func destroyAudioRenderers() {
@@ -1435,12 +1669,158 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         setHasAvailableAudioSample(trackId, false)
     }
 
+    // MARK: Rendering objects
+
+    // An AudioVideoRendererObject's, for the C++ renderer; trackId picks the audio renderer, or a non-zero one the
+    // expired video renderer for the target.
+    @_expose(Cxx)
+    func renderingObject(_ object: UInt8, _ trackId: UInt64) -> NSObject? {
+        switch object {
+        case WebCore.AudioVideoRendererObject.DisplayLayer.rawValue:
+            return displayLayer?.layer
+        case WebCore.AudioVideoRendererObject.VideoRendererForTarget.rawValue:
+            return trackId != 0 ? expiredVideoRendererPendingRemoval : videoRendererForTarget
+        default:
+            return audioTracks[trackId]?.renderer?.renderer
+        }
+    }
+
+    private func renderingObject(_ object: WebCore.AudioVideoRendererObject, _ trackId: UInt64) -> NSObject? {
+        renderingObject(object.rawValue, trackId)
+    }
+
+    private var videoGravity: AVLayerVideoGravity {
+        shouldMaintainAspectRatio ? AVFoundationSoftLink.AVLayerVideoGravityResizeAspect : AVFoundationSoftLink.AVLayerVideoGravityResize
+    }
+
+    @_expose(!Cxx)
+    func setShouldMaintainAspectRatio(_ newShouldMaintainAspectRatio: Bool) {
+        if shouldMaintainAspectRatio == newShouldMaintainAspectRatio {
+            return
+        }
+        shouldMaintainAspectRatio = newShouldMaintainAspectRatio
+        guard let displayLayer else {
+            return
+        }
+        let gravity = videoGravity
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(0)
+        CATransaction.setDisableActions(true)
+        displayLayer.layer.setValue(gravity.rawValue, forKey: "videoGravity")
+        CATransaction.commit()
+    }
+
+    @_expose(!Cxx)
+    func setShouldDisableHDR(_ shouldDisable: Bool) {
+        shouldDisableHDR = shouldDisable
+        guard let displayLayer else {
+            return
+        }
+        guard displayLayer.layer.responds(to: NSSelectorFromString(toneMapToStandardDynamicRangeSetter)) else {
+            return
+        }
+        log(.Always, "AudioVideoRendererAVFObjC::setShouldDisableHDR \(shouldDisable)")
+        displayLayer.layer.setValue(NSNumber(value: shouldDisable), forKey: toneMapToStandardDynamicRangeKey)
+    }
+
+    private func createDisplayLayer() -> Bool {
+        let gravity = videoGravity
+        let shouldDisableHDR = shouldDisableHDR
+        guard let layer = AVFoundationClass.AVSampleBufferDisplayLayer?.init() else {
+            log(.Error, "AudioVideoRendererAVFObjC::createRenderingObject -[AVSampleBufferDisplayLayer init] returned nil! bailing!")
+            assertionFailure()
+            notifyError(.videoDecodingError)
+            return false
+        }
+        layer.name = "AudioVideoRendererAVFObjC AVSampleBufferDisplayLayer"
+        layer.setValue(gravity.rawValue, forKey: "videoGravity")
+        layer.setValue(NSNumber(value: false), forKey: "preventsDisplaySleepDuringVideoPlayback")
+        setBoolPropertyIfResponds(layer, "preventsAutomaticBackgroundingDuringVideoPlayback", false)
+        setBoolPropertyIfResponds(layer, toneMapToStandardDynamicRangeKey, shouldDisableHDR)
+        displayLayer = DisplayLayerHandle(layer: layer)
+        host.renderingObjectChanged(.DisplayLayer, layer, true)
+        return true
+    }
+
+    private func createVideoRendererForTarget() -> Bool {
+        #if ENABLE_LINEAR_MEDIA_PLAYER
+        guard let renderer = AVFoundationClass.AVSampleBufferVideoRenderer?.init() else {
+            log(.Error, "AudioVideoRendererAVFObjC::createRenderingObject -[VSampleBufferVideoRenderer init] returned nil! bailing!")
+            assertionFailure()
+            notifyError(.videoDecodingError)
+            return false
+        }
+        videoRendererForTarget = renderer
+        host.renderingObjectChanged(.VideoRendererForTarget, renderer, true)
+        renderer.setValue(NSNumber(value: false), forKey: "preventsDisplaySleepDuringVideoPlayback")
+        setBoolPropertyIfResponds(renderer, "preventsAutomaticBackgroundingDuringVideoPlayback", false)
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    private func destroyVideoRendererForTarget() {
+        if let renderer = videoRendererForTarget {
+            host.renderingObjectChanged(.VideoRendererForTarget, renderer, false)
+        }
+        videoRendererForTarget = nil
+    }
+
+    private func expireVideoRendererForTarget() {
+        if let renderer = videoRendererForTarget {
+            expiringVideoRenderers.append(renderer)
+        }
+        expiredVideoRendererPendingRemoval = videoRendererForTarget
+        videoRendererForTarget = nil
+    }
+
+    @_expose(!Cxx)
+    func isInFullscreenOrPictureInPictureChanged(_ isInFullscreenOrPictureInPicture: Bool) {
+        log(.Always, "AudioVideoRendererAVFObjC::isInFullscreenOrPictureInPictureChanged \(isInFullscreenOrPictureInPicture)")
+        destroyExpiringVideoRenderers()
+    }
+
+    private func destroyExpiringVideoRenderers() {
+        for renderer in expiringVideoRenderers {
+            host.renderingObjectChanged(.VideoRendererForTarget, renderer, false)
+        }
+        expiringVideoRenderers.removeAll()
+    }
+
+    private func addToSynchronizer(_ object: WebCore.AudioVideoRendererObject) -> Bool {
+        // Called once the object exists, so there is always a renderer here.
+        guard let renderer = queuedSampleBufferRenderer(renderingObject(object, 0))?.object else {
+            log(.Error, "AudioVideoRendererAVFObjC::addToSynchronizer no renderer")
+            assertionFailure()
+            notifyError(.decoderCreationError)
+            return false
+        }
+        let synchronizer = synchronizer
+        if let exception = WebCoreCatchingObjCException({ WebCore.addRendererToSynchronizer(synchronizer, renderer) }) {
+            log(
+                .Error,
+                "AudioVideoRendererAVFObjC::addToSynchronizer -[AVSampleBufferRenderSynchronizer addRenderer:] threw an exception: \(exception.name.rawValue), reason : \(exception.reason ?? "")"
+            )
+            assertionFailure()
+            notifyError(.decoderCreationError)
+            return false
+        }
+        return true
+    }
+
     private func removeFromSynchronizerIfNeeded(_ object: WebCore.AudioVideoRendererObject, _ trackId: UInt64) {
         let isDisplayLayer = object == .DisplayLayer
         if isDisplayLayer && displayLayerState == .removedFromSynchronizer {
             return
         }
-        host.removeFromSynchronizer(object, trackId)
+        // The C++ renderer is gone by destroy(), so the host never removed the renderers from the synchronizer.
+        if !isDestroyed, let renderer = queuedSampleBufferRenderer(renderingObject(object, trackId))?.object {
+            WebCore.removeRendererFromSynchronizer(synchronizer, renderer, CMTimebaseGetTime(synchronizer.timebase))
+        }
+        if object == .VideoRendererForTarget && trackId != 0 {
+            expiredVideoRendererPendingRemoval = nil
+        }
         if isDisplayLayer {
             displayLayerState = .removedFromSynchronizer
         }
@@ -1448,7 +1828,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
 
     // MARK: Video renderer
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func renderingCanBeAcceleratedChanged(_ isAccelerated: Bool) {
         log(.Always, "AudioVideoRendererAVFObjC::renderingCanBeAcceleratedChanged \(isAccelerated)")
         renderingCanBeAccelerated = isAccelerated
@@ -1496,14 +1876,58 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
+    // The frame on display, with the time it has when it is a decoded one: the decoded queue's, or the renderer's.
     @_expose(Cxx)
-    func copyDecodedSample() -> CMSampleBuffer? {
-        videoRenderer?.copyDecodedSample()
+    func copyDisplayedPixelBuffer() -> CVBuffer? {
+        assertOnMain()
+        copiedPixelBufferTime = .invalid
+        guard let videoRenderer else {
+            return nil
+        }
+        func copyFromRenderer() -> CVBuffer? {
+            guard let object = videoRenderer.mainRendererObject, let buffer = WebCore.copyDisplayedPixelBuffer(object) else {
+                return nil
+            }
+            if let resourceOwner {
+                IOSurfaceCore.setOwnershipIdentity(ofImagesIn: nil, image: buffer, resourceOwner)
+            }
+            return buffer
+        }
+
+        let metrics = videoRenderer.metrics()
+        if !metrics.managesDecodedFrames {
+            return copyFromRenderer()
+        }
+        guard let sample = videoRenderer.copyDecodedSample(), let image = WebCore.imageBufferForSample(sample) else {
+            return metrics.usingDecompressionSession ? nil : copyFromRenderer()
+        }
+        assert(CFGetTypeID(image) == CVPixelBufferGetTypeID())
+        guard CFGetTypeID(image) == CVPixelBufferGetTypeID() else {
+            return nil
+        }
+        copiedPixelBufferTime = RendererTime(time: videoRenderer.lastCopiedPresentationTime())
+        return image
     }
 
     @_expose(Cxx)
-    func lastCopiedPresentationTime() -> CMTime {
-        videoRenderer?.lastCopiedPresentationTime() ?? RendererTime.invalid.time
+    func displayedPixelBufferTime() -> CMTime {
+        copiedPixelBufferTime.time
+    }
+
+    private func updateLastPixelBuffer() {
+        guard let buffer = copyDisplayedPixelBuffer() else {
+            return
+        }
+        log(.Debug, "updateLastPixelBuffer displayed pixelbuffer copied for time: \(copiedPixelBufferTime.time.seconds)")
+        lastPixelBuffer = buffer
+    }
+
+    private func setNeedsPlaceholderImage(_ needsPlaceholder: Bool) {
+        if needsPlaceholderImage == needsPlaceholder {
+            return
+        }
+        needsPlaceholderImage = needsPlaceholder
+        displayLayer?.layer.setValue(needsPlaceholder ? lastPixelBuffer : nil, forKey: "contents")
     }
 
     @_expose(Cxx)
@@ -1514,13 +1938,29 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         return videoRenderer.metrics()
     }
 
+    // The plain record of playbackQuality(): hasVideoRenderer means the renderer has metrics (not that it has a video
+    // renderer, and it is false on watchOS's KVC branch too), and the other fields are unset and unread.
     @_expose(Cxx)
+    func playbackQualityMetrics() -> WebCore.AudioVideoRendererVideoMetrics {
+        var metrics = WebCore.AudioVideoRendererVideoMetrics()
+        if let quality = playbackQuality() {
+            metrics.hasVideoRenderer = true
+            metrics.totalVideoFrames = quality.totalVideoFrames
+            metrics.droppedVideoFrames = quality.droppedVideoFrames
+            metrics.corruptedVideoFrames = quality.corruptedVideoFrames
+            metrics.totalFrameDelay = quality.totalFrameDelay
+            metrics.presentedVideoFrames = quality.displayCompositedVideoFrames
+        }
+        return metrics
+    }
+
+    @_expose(!Cxx)
     func totalDisplayedFrames() -> UInt32 {
         videoRenderer?.totalDisplayedFrames() ?? 0
     }
 
     // On the video renderer's queue, when the decompression session settles a decodeSample().
-    @_expose(Cxx)
+    @_expose(!Cxx)
     func decodeCompleted(_ rendererIdentifier: UInt64, _ flushId: Int32, _ succeeded: Bool, _ status: Int32, _ frames: NSArray?) {
         guard let videoRenderer = videoRendererForQueue.withLock({ $0 }), videoRenderer.identifier == rendererIdentifier else {
             return
@@ -1528,13 +1968,56 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         videoRenderer.decodeCompleted(flushId, succeeded, status, frames)
     }
 
+    // A decodeSample() for a renderer without a decompression session fails, later on the video renderer's queue.
+    @_expose(!Cxx)
+    func decodeFailedWithoutSession(_ rendererIdentifier: UInt64, _ flushId: Int32) {
+        let queue: DispatchQueue = host.dispatchQueue()
+        queue.async { [weak self] in
+            self?.decodeCompleted(rendererIdentifier, flushId, false, noErr, nil)
+        }
+    }
+
     // On the video renderer's queue, when its purge timer fires or the effective rate becomes non-zero.
-    @_expose(Cxx)
-    func purgeDecodedSampleQueue(_ rendererIdentifier: UInt64) {
+    private func purgeDecodedSampleQueue(_ rendererIdentifier: UInt64) {
         guard let videoRenderer = videoRendererForQueue.withLock({ $0 }), videoRenderer.identifier == rendererIdentifier else {
             return
         }
         videoRenderer.purgeDecodedSampleQueue()
+    }
+
+    // Adds the video sample renderer's purge timer to the synchronizer's timebase, and purges once on its queue whenever
+    // the effective rate changes to non-zero.
+    private func startVideoRendererTimebase(_ rendererIdentifier: UInt64) {
+        let timebase = synchronizer.timebase
+        let queue: DispatchQueue = host.dispatchQueue()
+        // The timebase's accessor takes a dispatch_source_t.
+        guard let source = DispatchSource.makeTimerSource(queue: queue) as? DispatchSource else {
+            preconditionFailure("A timer source is a DispatchSource")
+        }
+        source.setEventHandler { [weak self] in
+            self?.purgeDecodedSampleQueue(rendererIdentifier)
+        }
+        source.activate()
+        _ = CMTimebaseAddTimerDispatchSource(timebase, timerSource: source)
+
+        let name = Notification.Name(CoreMediaSoftLink.kCMTimebaseNotification_EffectiveRateChanged as Swift.String)
+        let previous = videoRendererRateObserver
+        videoRendererRateObserver = NotificationCenter.default.addObserver(forName: name, object: timebase, queue: nil) { [weak self] _ in
+            let rate = CMTimebaseGetEffectiveRate(timebase)
+            queue.async { [weak self] in
+                if rate != 0 {
+                    self?.purgeDecodedSampleQueue(rendererIdentifier)
+                }
+            }
+        }
+        if let previous {
+            NotificationCenter.default.removeObserver(previous)
+        }
+
+        videoRendererPurgeTimer.withLock { timer in
+            timer.source = source
+            timer.rendererIdentifier = rendererIdentifier
+        }
     }
 
     private var isUsingDecompressionSession: Bool { videoRenderer?.isUsingDecompressionSession() ?? false }
@@ -1562,14 +2045,17 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     private func layerOrVideoRendererObject() -> WebCore.AudioVideoRendererObject? {
         switch acceleratedVideoMode {
         case .layer:
-            return hasDisplayLayer ? .DisplayLayer : nil
+            return displayLayer != nil ? .DisplayLayer : nil
         case .videoRenderer:
-            return hasVideoRendererForTarget ? .VideoRendererForTarget : nil
+            return videoRendererForTarget != nil ? .VideoRendererForTarget : nil
         }
     }
 
     private func mainRenderer(_ object: WebCore.AudioVideoRendererObject?) -> VideoMediaSampleMainRenderer? {
-        guard let object, let renderingObject = host.renderingObject(object, 0), let renderer = queuedSampleBufferRenderer(renderingObject) else {
+        guard let object,
+            let renderingObject = self.renderingObject(object, 0),
+            let renderer = queuedSampleBufferRenderer(renderingObject)
+        else {
             return nil
         }
         return VideoMediaSampleMainRenderer(kind: object, renderer: renderer, videoRenderer: videoRendererHandle(renderingObject))
@@ -1605,7 +2091,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             ensureVideoRenderer()
         }
 
-        guard let object = layerOrVideoRendererObject(), let renderingObject = host.renderingObject(object, 0) else {
+        guard let object = layerOrVideoRendererObject(), let renderingObject = self.renderingObject(object, 0) else {
             notifyError(.decoderCreationError)
             completion?(false)
             return
@@ -1623,7 +2109,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     }
 
     private func ensureLayer() {
-        if hasDisplayLayer {
+        if displayLayer != nil {
             if displayLayerState == .addedToSynchronizer {
                 return
             }
@@ -1631,51 +2117,48 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             return
         }
 
-        guard host.createRenderingObject(.DisplayLayer, 0) else {
+        guard createDisplayLayer() else {
             return
         }
-        hasDisplayLayer = true
         configureLayerOrVideoRenderer(.DisplayLayer)
     }
 
     private func destroyLayer() {
-        if !hasDisplayLayer {
+        guard let layer = displayLayer?.layer else {
             return
         }
 
         log(.Always, "AudioVideoRendererAVFObjC::destroyLayer")
 
         removeFromSynchronizerIfNeeded(.DisplayLayer, 0)
-        host.destroyRenderingObject(.DisplayLayer, 0)
-        hasDisplayLayer = false
+        host.renderingObjectChanged(.DisplayLayer, layer, false)
+        displayLayer = nil
     }
 
     private func ensureVideoRenderer() {
-        host.destroyExpiringVideoRenderers()
+        destroyExpiringVideoRenderers()
 
-        if hasVideoRendererForTarget {
+        if videoRendererForTarget != nil {
             return
         }
 
         log(.Always, "AudioVideoRendererAVFObjC::ensureVideoRenderer")
 
-        guard host.createRenderingObject(.VideoRendererForTarget, 0) else {
+        guard createVideoRendererForTarget() else {
             return
         }
-        hasVideoRendererForTarget = true
         configureLayerOrVideoRenderer(.VideoRendererForTarget)
     }
 
     private func destroyVideoRenderer() {
-        if !hasVideoRendererForTarget {
+        if videoRendererForTarget == nil {
             return
         }
 
         log(.Always, "AudioVideoRendererAVFObjC::destroyVideoRenderer")
 
         removeFromSynchronizerIfNeeded(.VideoRendererForTarget, 0)
-        host.destroyRenderingObject(.VideoRendererForTarget, 0)
-        hasVideoRendererForTarget = false
+        destroyVideoRendererForTarget()
     }
 
     private func setVideoRenderer(_ object: WebCore.AudioVideoRendererObject?, _ completion: ((Bool) -> Void)?) {
@@ -1697,7 +2180,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         videoRendererForQueue.withLock { $0 = newVideoRenderer }
 
         newVideoRenderer.setPreferences(preferences)
-        host.setVideoRendererTimebase(true, lastVideoRendererIdentifier)
+        startVideoRendererTimebase(lastVideoRendererIdentifier)
         configureHasAvailableVideoFrameCallbackIfNeeded()
         newVideoRenderer.setResourceOwner(resourceOwner)
 
@@ -1750,7 +2233,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             return
         }
 
-        guard host.addToSynchronizer(object, 0) else {
+        guard addToSynchronizer(object) else {
             return
         }
 
@@ -1766,7 +2249,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
 
         let newIsRenderingCompressedVideo = object != nil && !willUseDecompressionSessionIfNeeded && !isReceivingDecodedSamples && hasEverSubmittedVideoSample
-        let renderingObject = object.flatMap { host.renderingObject($0, 0) }
+        let renderingObject = object.flatMap { self.renderingObject($0, 0) }
         if renderingObject === videoRenderer.mainRendererObject {
             let configurationChanged = isRenderingCompressedVideo != newIsRenderingCompressedVideo
             isRenderingCompressedVideo = newIsRenderingCompressedVideo
@@ -1781,15 +2264,14 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         if object != nil {
             switch acceleratedVideoMode {
             case .layer:
-                if hasVideoRendererForTarget {
-                    host.expireVideoRendererForTarget()
-                    hasVideoRendererForTarget = false
-                    // The expired renderer, which the C++ renderer still holds for this.
+                if videoRendererForTarget != nil {
+                    expireVideoRendererForTarget()
+                    // A non-zero trackId picks the expired renderer.
                     objectToExpire = (.VideoRendererForTarget, 1)
                 }
             case .videoRenderer:
                 // We only need to remove the AVSampleBufferDisplayLayer from the synchronizer.
-                if hasDisplayLayer {
+                if displayLayer != nil {
                     objectToExpire = (.DisplayLayer, 0)
                 }
                 displayLayerState = .pendingRemovalFromSynchronizer
@@ -1843,7 +2325,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     private func notifyRequiresFlushToResume() {
         log(.Always, "AudioVideoRendererAVFObjC::notifyRequiresFlushToResume")
         clearReadyToRequestVideoData()
-        host.setNeedsPlaceholderImage(true)
+        setNeedsPlaceholderImage(true)
         events.requiresFlushToResume()
     }
 
@@ -1943,6 +2425,14 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
 
     // MARK: VideoMediaSampleRendererClient
 
+    func videoRendererDisplayLayerObject() -> NSObject? {
+        displayLayer?.layer
+    }
+
+    func videoRendererFrameRateUpdate() -> Double {
+        frameRateMonitor.withLock { $0.update(ProcessInfo.processInfo.systemUptime) }
+    }
+
     @_expose(!Cxx)
     func videoRendererFirstFrameAvailable(_ presentationTime: RendererTime, _ displayTime: Double) {
         setHasAvailableVideoFrame(true)
@@ -1987,6 +2477,57 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             }
             self.videoRequestTrackId = nil
             self.events.mediaDataRequestSettled(true, trackId, true)
+        }
+    }
+
+    // The renderer's queue or the main thread.
+    @_expose(!Cxx)
+    func videoRendererHasTimebase() -> Bool {
+        videoRendererPurgeTimer.withLock { $0.source != nil }
+    }
+
+    @_expose(!Cxx)
+    func videoRendererTimebaseTime() -> CMTime {
+        CMTimebaseGetTime(synchronizer.timebase)
+    }
+
+    @_expose(!Cxx)
+    func videoRendererTimebaseRate() -> Double {
+        CMTimebaseGetRate(synchronizer.timebase)
+    }
+
+    @_expose(!Cxx)
+    func setVideoRendererPurgeTimerFireTime(_ fireTime: CMTime) {
+        guard let source = videoRendererPurgeTimer.withLock({ $0.source }) else {
+            return
+        }
+        _ = CMTimebaseSetTimerDispatchSourceNextFireTime(synchronizer.timebase, timerSource: source, fireTime: fireTime, flags: 0)
+    }
+
+    // Main.
+    @_expose(!Cxx)
+    func stopVideoRendererTimebase(_ rendererIdentifier: UInt64) {
+        let (matches, source) = videoRendererPurgeTimer.withLock { timer -> (Bool, DispatchSource?) in
+            guard timer.rendererIdentifier == rendererIdentifier else {
+                return (false, nil)
+            }
+            timer.rendererIdentifier = 0
+            return (true, timer.source.take())
+        }
+        guard matches else {
+            return
+        }
+        if let source {
+            _ = CMTimebaseRemoveTimerDispatchSource(synchronizer.timebase, timerSource: source)
+            source.cancel()
+        }
+        stopObservingVideoRendererRate()
+    }
+
+    private func stopObservingVideoRendererRate() {
+        if let observer = videoRendererRateObserver {
+            NotificationCenter.default.removeObserver(observer)
+            videoRendererRateObserver = nil
         }
     }
 
@@ -2071,8 +2612,173 @@ public struct AudioVideoRendererMainActorCore {
     public func expectMinimumUpcomingPresentationTime(_ presentationTime: AudioVideoRendererTime) { core.expectMinimumUpcomingPresentationTime(presentationTime) }
     // Then the client hears rendererTimeObserverFired() every interval seconds, until it is set again.
     public func setTimeObserver(interval: Double, enabled: Bool) { core.setTimeObserver(interval: interval, enabled: enabled) }
-    // The C++ renderer's videoPlaybackQualityMetrics(), if it has any.
-    public func videoPlaybackQualityMetrics() -> AudioVideoRendererPlaybackQuality? { core.videoPlaybackQualityMetrics() }
+    /// The C++ renderer's videoPlaybackQualityMetrics(), if it has any.
+    public func videoPlaybackQualityMetrics() -> AudioVideoRendererPlaybackQuality? { core.playbackQuality() }
+}
+
+// The C++ renderer's members that the core implements; each finds the core by the renderer's token.
+extension WebCore.AudioVideoRendererAVFObjC {
+    private var core: AudioVideoRendererCore {
+        guard let core = AudioVideoRendererCore.renderer(forToken: swiftToken()) else {
+            preconditionFailure("The C++ renderer's core is gone")
+        }
+        return core
+    }
+
+    @cxx
+    @implementation
+    func paused() -> Bool { core.paused() }
+    @cxx
+    @implementation
+    func seeking() -> Bool { core.seeking() }
+    @cxx
+    @implementation
+    func setVolume(_ volume: Float) {
+        if m_isShutdown { return }
+        core.setVolume(volume)
+    }
+    @cxx
+    @implementation
+    func setMuted(_ muted: Bool) {
+        if m_isShutdown { return }
+        core.setMuted(muted)
+    }
+    /// The member of the C++ class, which WebCore's callers outside this file reach.
+    @cxx
+    @implementation
+    public func setPreferences(_ preferences: VideoRendererPreferenceSet) {
+        if m_isShutdown { return }
+        core.setPreferences(preferences.toRaw())
+    }
+    @cxx
+    @implementation
+    func setHasProtectedVideoContent(_ protectedContent: Bool) {
+        if m_isShutdown { return }
+        core.setHasProtectedVideoContent(protectedContent)
+    }
+    @cxx
+    @implementation
+    func isReadyForMoreSamples(_ trackId: TrackIdentifier) -> Bool {
+        core.isReadyForMoreSamples(trackId.toUInt64())
+    }
+    @cxx
+    @implementation
+    func flush() {
+        if m_isShutdown { return }
+        core.flush()
+    }
+    @cxx
+    @implementation
+    func flushTrack(_ trackId: TrackIdentifier) {
+        if m_isShutdown { return }
+        core.flushTrack(trackId.toUInt64())
+    }
+    @cxx
+    @implementation
+    func applicationWillResignActive() {
+        if m_isShutdown { return }
+        core.applicationWillResignActive()
+    }
+    /// The member of the C++ class, which WebCore's callers outside this file reach.
+    @cxx
+    @implementation
+    public func play(_ hostTime: OptionalMonotonicTime) {
+        if m_isShutdown { return }
+        let time = Optional(fromCxx: hostTime)
+        core.play(time != nil, time?.toMachAbsoluteTime() ?? 0)
+    }
+    /// The member of the C++ class, which WebCore's callers outside this file reach.
+    @cxx
+    @implementation
+    public func pause(_ hostTime: OptionalMonotonicTime) {
+        if m_isShutdown { return }
+        let time = Optional(fromCxx: hostTime)
+        core.pause(time != nil, time?.toMachAbsoluteTime() ?? 0)
+    }
+    @cxx
+    @implementation
+    func timeIsProgressing() -> Bool { core.timeIsProgressing() }
+    @cxx
+    @implementation
+    func setRate(_ rate: Double) {
+        if m_isShutdown { return }
+        _ = core.setRate(rate)
+    }
+    @cxx
+    @implementation
+    func effectiveRate() -> Double { core.effectiveRate() }
+    @cxx
+    @implementation
+    func stall() {
+        if m_isShutdown { return }
+        core.stall()
+    }
+    @cxx
+    @implementation
+    func setPreservesPitchAndCorrectionAlgorithm(_ preservesPitch: Bool, _ algorithm: OptionalPitchCorrectionAlgorithm) {
+        if m_isShutdown { return }
+        let value = Optional(fromCxx: algorithm)
+        core.setPreservesPitchAndCorrectionAlgorithm(preservesPitch, value != nil, value.map { UInt8($0.rawValue) } ?? 0)
+    }
+    /// The member of the C++ class, which WebCore's callers outside this file reach.
+    @cxx
+    @implementation
+    public func setIsVisible(_ visible: Bool) {
+        if m_isShutdown || m_visible == visible { return }
+        m_visible = visible
+        updateSpatialTrackingLabel()
+    }
+    /// The member of the C++ class, which WebCore's callers outside this file reach.
+    @cxx
+    @implementation
+    public func setShouldMaintainAspectRatio(_ shouldMaintainAspectRatio: Bool) {
+        if m_isShutdown { return }
+        core.setShouldMaintainAspectRatio(shouldMaintainAspectRatio)
+    }
+    /// The member of the C++ class, which WebCore's callers outside this file reach.
+    @cxx
+    @implementation
+    public func renderingCanBeAcceleratedChanged(_ isAccelerated: Bool) {
+        if m_isShutdown { return }
+        core.renderingCanBeAcceleratedChanged(isAccelerated)
+    }
+    @cxx
+    @implementation
+    func currentTime() -> WTF.MediaTime {
+        if core.seeking() { return m_lastSeekTargetTime }
+        let time = AudioVideoRendererTime(core.currentTime())
+        return WTF.MediaTime(time.value, time.scale, time.flags)
+    }
+
+    /// The member of the C++ class, which WebCore's callers outside this file reach.
+    @cxx
+    @implementation
+    public func isInFullscreenOrPictureInPictureChanged(_ isInFullscreenOrPictureInPicture: Bool) {
+        #if ENABLE_LINEAR_MEDIA_PLAYER
+        if m_isShutdown { return }
+        core.isInFullscreenOrPictureInPictureChanged(isInFullscreenOrPictureInPicture)
+        #endif
+    }
+    /// The member of the C++ class, which WebCore's callers outside this file reach.
+    @cxx
+    @implementation
+    public func setShouldDisableHDR(_ shouldDisable: Bool) {
+        if m_isShutdown { return }
+        core.setShouldDisableHDR(shouldDisable)
+    }
+    /// On the video renderer's queue: the core hears decodeCompleted() there once the renderer's session settles the decode.
+    @cxx
+    @implementation
+    func decodeSample(_ sample: CMSampleBuffer?, _ decodingFlags: UInt8, _ rendererIdentifier: UInt64, _ flushId: Int32) {
+        let core = self.core
+        guard let session = decompressionSessionFor(rendererIdentifier).get() else {
+            core.decodeFailedWithoutSession(rendererIdentifier, flushId)
+            return
+        }
+        session.decodeSample(sample, decodingFlags) { [weak core] frames, status in
+            core?.decodeCompleted(rendererIdentifier, flushId, frames != nil, status, frames as NSArray?)
+        }
+    }
 }
 
 private struct ObjectToExpire: @unchecked Sendable {

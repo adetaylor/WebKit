@@ -913,7 +913,7 @@ final class TaskIdentityToken: Sendable {
         #endif
     }
 
-    static func setOwnershipIdentity(ofImagesIn sampleBuffer: CMSampleBuffer, _ resourceOwner: TaskIdentityToken) {
+    static func setOwnershipIdentity(ofImagesIn sampleBuffer: CMSampleBuffer?, image: CVBuffer? = nil, _ resourceOwner: TaskIdentityToken) {
         func setOwnershipIdentity<Buffer: AnyObject>(of imageBuffer: Buffer?) {
             guard let imageBuffer, CFGetTypeID(imageBuffer) == CVPixelBufferGetTypeID() else {
                 return
@@ -930,6 +930,10 @@ final class TaskIdentityToken: Sendable {
             }
         }
 
+        guard let sampleBuffer else {
+            setOwnershipIdentity(of: image)
+            return
+        }
         if let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer),
             CMFormatDescriptionGetMediaType(formatDescription) == kCMMediaType_TaggedBufferGroup
         {

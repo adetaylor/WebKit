@@ -28,7 +28,6 @@
 
 #include <CoreMedia/CMTime.h>
 #include <WebCore/AudioVideoRenderer.h>
-#include <WebCore/PeriodicSharedTimer.h>
 #include <WebCore/PlatformDynamicRangeLimit.h>
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/TrackInfo.h>
@@ -40,15 +39,10 @@
 #include <wtf/LoggerHelper.h>
 #include <wtf/MonotonicTime.h>
 #include <wtf/RetainPtr.h>
-#include <wtf/StdUnorderedMap.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/darwin/DispatchOSObject.h>
 
-OBJC_CLASS AVSampleBufferAudioRenderer;
-OBJC_CLASS AVSampleBufferDisplayLayer;
 OBJC_CLASS AVSampleBufferRenderSynchronizer;
-OBJC_CLASS AVSampleBufferVideoRenderer;
 OBJC_CLASS NSObject;
 OBJC_PROTOCOL(WebSampleBufferVideoRendering);
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
@@ -59,8 +53,6 @@ namespace WebCore {
 class AudioVideoRendererHost;
 class CDMInstanceFairPlayStreamingAVFObjC;
 class CDMSessionAVContentKeySession;
-class EffectiveRateChangedListener;
-class FrameRateMonitor;
 class MediaSample;
 class NativeImage;
 class PixelBufferConformerCV;
@@ -78,7 +70,6 @@ enum class AudioVideoRendererObject : uint8_t;
 class AudioVideoRendererAVFObjC
     : public AudioVideoRenderer
     , public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<AudioVideoRendererAVFObjC, WTF::DestructionThread::Main>
-    , private PeriodicSharedTimer::Client
     , private LoggerHelper {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(AudioVideoRendererAVFObjC, WEBCORE_EXPORT);
 public:
@@ -90,8 +81,6 @@ public:
     using OptionalMonotonicTime = std::optional<MonotonicTime>;
     using VideoRendererPreferenceSet = OptionSet<VideoRendererPreference>;
     using OptionalPitchCorrectionAlgorithm = std::optional<PitchCorrectionAlgorithm>;
-    using OptionalVideoPlaybackQualityMetrics = std::optional<VideoPlaybackQualityMetrics>;
-    using VideoFrameRef = RefPtr<VideoFrame>;
 
     // WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL, with ref() and deref() unsafe in Swift.
     SWIFT_UNSAFE void ref() const final { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::ref(); }
@@ -101,7 +90,7 @@ public:
 
     // The token that finds the Swift core (AudioVideoRendererCore.renderer(forToken:)), for the GPU process's renderer
     // receiver, which becomes its client.
-    WEBCORE_EXPORT uint64_t swiftToken() const;
+    uint64_t swiftToken() const { return m_swiftToken; }
 
     WEBCORE_EXPORT void shutdown() final;
 
@@ -156,6 +145,7 @@ public:
     SharedTimebase* sharedTimebase() final { return m_sharedTimebase.get(); }
 
     void updateSpatialTrackingLabel();
+    RefPtr<WebCoreDecompressionSession> decompressionSessionFor(uint64_t identifier) const;
     void decodeSample(CMSampleBufferRef, uint8_t decodingFlags, uint64_t rendererIdentifier, int32_t flushId);
 
     // AudioInterface
@@ -209,37 +199,16 @@ private:
     void reportError(PlatformMediaError);
     String toString(TrackIdentifier) const;
     std::optional<TrackType> typeOf(TrackIdentifier) const;
-    void periodicSharedTimerFired() final;
-#if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
-    void setOutputDeviceIdOnRenderer(AVSampleBufferAudioRenderer *);
-#endif
-
-    struct DisplayedPixelBuffer {
-        RetainPtr<CVPixelBufferRef> pixelBuffer;
-        MediaTime presentationTimeStamp;
-    };
-    DisplayedPixelBuffer copyDisplayedPixelBuffer() const;
-    void setNeedsPlaceholderImage(bool);
+    // The core's, autoreleased.
+    NSObject *renderingObject(AudioVideoRendererObject, uint64_t trackIdentifier) const;
 
     // What AudioVideoRendererHost calls.
-    NSObject *renderingObject(AudioVideoRendererObject, uint64_t trackIdentifier) const;
-    bool createRenderingObject(AudioVideoRendererObject, uint64_t trackIdentifier);
-    void destroyRenderingObject(AudioVideoRendererObject, uint64_t trackIdentifier);
-    void expireVideoRendererForTarget();
-    void destroyExpiringVideoRenderers();
-    bool addToSynchronizer(AudioVideoRendererObject, uint64_t trackIdentifier);
-    void removeFromSynchronizer(AudioVideoRendererObject, uint64_t trackIdentifier);
-    void setVideoRendererTimebase(bool, uint64_t rendererIdentifier);
-    bool hasVideoRendererTimebase() const;
-    void setVideoRendererPurgeTimerFireTime(CMTime);
+    SWIFT_UNSAFE void renderingObjectChanged(AudioVideoRendererObject, NSObject *, bool created);
     void initializeDecompressionSession(uint64_t rendererIdentifier, uint8_t rendererObject);
     RefPtr<WebCoreDecompressionSession> decompressionSession() const;
     void invalidateDecompressionSession(std::optional<uint64_t> rendererIdentifier);
-    double updateFrameRateMonitor();
-    uint32_t rendererDroppedVideoFrames(AudioVideoRendererObject) const;
     void expectMinimumUpcomingPresentationTime(AudioVideoRendererObject, CMTime);
     void removeBlockedSamples(AudioVideoRendererBlockedSamples, uint64_t trackIdentifier);
-    void setSharedTimerActive(bool);
     void storeSharedTimebaseSnapshot(CMTime, double playbackRate);
     bool willLog(AudioVideoRendererLogLevel) const;
     void log(AudioVideoRendererLogLevel, std::span<const uint8_t>) const;
@@ -316,37 +285,17 @@ private:
     std::optional<GenericPromise::AutoRejectProducer> m_videoTargetPromise;
 #endif
 
-#if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
-    String m_audioOutputDeviceId;
-#endif
-
-    HashMap<uint64_t, RetainPtr<AVSampleBufferAudioRenderer>> m_audioRenderers;
-    RetainPtr<AVSampleBufferDisplayLayer> m_sampleBufferDisplayLayer;
-    RetainPtr<AVSampleBufferVideoRenderer> m_sampleBufferVideoRenderer;
-    RetainPtr<AVSampleBufferVideoRenderer> m_expiredVideoRendererPendingRemoval;
-    Vector<RetainPtr<AVSampleBufferVideoRenderer>> m_expiringSampleBufferVideoRenderers;
-    RetainPtr<CVPixelBufferRef> m_lastPixelBuffer;
-    bool m_needsPlaceholderImage { false };
 public:
     bool m_visible { false };
 private:
     IntSize m_presentationSize;
-    bool m_shouldMaintainAspectRatio { true };
-    bool m_shouldDisableHDR { false };
     PlatformDynamicRangeLimit m_dynamicRangeLimit { PlatformDynamicRangeLimit::initialValueForVideos() };
     ProcessIdentity m_resourceOwner;
 
-    bool m_registeredWithSharedTimer { false };
-    RefPtr<EffectiveRateChangedListener> m_effectiveRateChangedListener;
-
-    // The video renderer's timebase timer, rate listener and decompression session.
+    // The video renderer's decompression session.
     mutable Lock m_videoRendererLock;
-    OSObjectPtr<dispatch_source_t> m_videoRendererTimerSource WTF_GUARDED_BY_LOCK(m_videoRendererLock);
-    uint64_t m_videoRendererTimebaseIdentifier WTF_GUARDED_BY_LOCK(m_videoRendererLock) { 0 };
-    RefPtr<EffectiveRateChangedListener> m_videoRendererRateListener;
     RefPtr<WebCoreDecompressionSession> m_decompressionSession WTF_GUARDED_BY_LOCK(m_videoRendererLock);
     uint64_t m_decompressionSessionIdentifier WTF_GUARDED_BY_LOCK(m_videoRendererLock) { 0 };
-    const std::unique_ptr<FrameRateMonitor> m_frameRateMonitor;
 
     mutable std::unique_ptr<PixelBufferConformerCV> m_rgbConformer;
 

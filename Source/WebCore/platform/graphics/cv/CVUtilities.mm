@@ -33,6 +33,7 @@
 #import "Logging.h"
 #import "PlanarImageConverterCV.h"
 #import "RealtimeVideoUtilities.h"
+#import "SharedBuffer.h"
 #import <array>
 #import <pal/spi/cg/CoreGraphicsSPI.h>
 #import <wtf/CheckedArithmetic.h>
@@ -308,8 +309,13 @@ std::expected<RetainPtr<CVPixelBufferRef>, CVReturn> createPixelBufferWithAlpha(
     return output;
 }
 
-bool copyI420ToPixelBuffer(std::span<const uint8_t> source, size_t width, size_t height, CVPixelBufferRef destination)
+bool copyI420ToPixelBuffer(const FragmentedSharedBuffer& buffer, size_t width, size_t height, CVPixelBufferRef destination)
 {
+    if (!destination)
+        return false;
+
+    Ref contiguousBuffer = buffer.makeContiguous();
+    auto source = contiguousBuffer->span();
     auto format = CVPixelBufferGetPixelFormatType(destination);
     bool hasAlpha = format == kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar || format == pixelFormat420YpCbCr10VideoRange8ATriPlanar;
     if (!hasAlpha && format != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange && format != kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)

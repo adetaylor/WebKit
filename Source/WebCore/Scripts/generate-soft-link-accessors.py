@@ -223,8 +223,11 @@ def parse_manifest(lines):
         if len(words) == 4 and words[0] == 'function' and words[3] == 'refined':
             entries.append(tuple(words[:3]) + ('refined',))
             continue
+        if len(words) == 5 and words[0] == 'function' and words[3:] == ['refined', 'sendable']:
+            entries.append(tuple(words[:3]) + ('refined sendable',))
+            continue
         if len(words) != 3 or words[0] not in KINDS:
-            raise GeneratorError(f'manifest line {number}: expected "<{"|".join(KINDS[:3])}> <framework> <symbol>", "<constant|class> <framework> <symbol> as <type>", "member <framework> <class> <selector> <declaration>", "function <framework> <symbol> with pointer", or "function <framework> <symbol> refined"')
+            raise GeneratorError(f'manifest line {number}: expected "<{"|".join(KINDS[:3])}> <framework> <symbol>", "<constant|class> <framework> <symbol> as <type>", "member <framework> <class> <selector> <declaration>", "function <framework> <symbol> with pointer", "function <framework> <symbol> refined", or "function <framework> <symbol> refined sendable"')
         entries.append(tuple(words) + (None,))
     return entries
 
@@ -300,13 +303,31 @@ def find_declaration(interfaces, name):
 # refined` in the manifest). Their accessors take the pointer type's parameters, unlabeled, and its result with Unmanaged
 # dropped (the accessor then follows the Create rule). A CoreVideo buffer result is a CFTypeRef: WebKit's headers declare
 # CVPixelBufferRef and CVImageBufferRef themselves, so in a caller's file those names can be classes of their own, and a
-# call would then name a different accessor than the one generated.
+# call would then name a different accessor than the one generated. `refined sendable` also gives each block parameter
+# `@Sendable`, which the pointer type's typedef loses: the entry's author vouches that the SDK's block typedef is
+# CM_SWIFT_SENDABLE. Only `@escaping (` parameters are rewritten: the generator rejects an optional block
+# `((...) -> Void)?`, which it cannot mark.
 ERASED_RESULTS = ('CVBuffer', 'CVImageBuffer', 'CVPixelBuffer')
 RAW_POINTER = 'UnsafeMutableRawPointer?'
 CF_OUT_POINTER = 'UnsafeMutablePointer<CFTypeRef?>?'
 
 
-def declaration_from_typedef(name, typedef):
+# Marks a block parameter @Sendable. A caller's file can see CVImageBuffer as a type of its own
+# (SharedVideoFrameSwiftBridge.h), which the generated file spells CVBuffer: the block's parameter is spelled CVBuffer,
+# the type both sides agree on.
+def sendable_block(parameter):
+    if not parameter.startswith('@escaping ('):
+        return parameter
+    return '@escaping @Sendable (' + parameter[len('@escaping ('):].replace('CVImageBuffer?', 'CVBuffer?')
+
+
+def unsendable_block(parameter):
+    if not parameter.startswith('@escaping @Sendable ('):
+        return parameter
+    return parameter.replace('@Sendable ', '', 1).replace('CVBuffer?', 'CVImageBuffer?')
+
+
+def declaration_from_typedef(name, typedef, sendable_blocks=False):
     pointer_parameters, pointer_result, _ = typedef
     m = re.fullmatch(r'Unmanaged<(.*)>(\??)', pointer_result)
     result = m.group(1) + m.group(2) if m else pointer_result
@@ -315,6 +336,10 @@ def declaration_from_typedef(name, typedef):
     parameters = [re.sub(r'^(Unsafe(?:Mutable)?Pointer)<Unmanaged<(\w+)>\?>', r'\1<\2?>', parameter) for parameter in pointer_parameters]
     if parameters != pointer_parameters and not follows_create_rule(name):
         raise GeneratorError(f'{name}: an Unmanaged out-parameter is rewritten as retained, but the name does not follow the Create rule')
+    if sendable_blocks:
+        parameters = [sendable_block(parameter) for parameter in parameters]
+        if any('->' in parameter and '@Sendable' not in parameter for parameter in parameters):
+            raise GeneratorError(f'{name}: a block parameter is not an `@escaping (` block, so `refined sendable` cannot mark it')
     # The `void *` out-parameter of a Create or Copy function (VTSessionCopyProperty) receives one CF object at +1, or
     # nothing, so the accessor takes a pointer to the caller's CFTypeRef?: Swift warns about forming a raw pointer to one.
     raw_parameters = [i for i, parameter in enumerate(parameters) if parameter == RAW_POINTER]
@@ -343,6 +368,8 @@ def strip_optional(type_name):
 
 def adapt_argument(expression, declared_type, pointer_type):
     if declared_type == pointer_type:
+        return expression, False
+    if unsendable_block(declared_type) == pointer_type:
         return expression, False
     if declared_type == 'Bool' and pointer_type == 'DarwinBoolean':
         return f'DarwinBoolean({expression})', False
@@ -830,7 +857,7 @@ def accessors_file(framework, entries, declarations, typedefs, interfaces_for, h
         declaration = declarations.symbols[name]
         if kind == 'function':
             typedef = find_function_typedef(typedefs, f'PALSoftLink_{name}_t')
-            imported = declaration_from_typedef(name, typedef) if typedef and swift_type == 'refined' else find_declaration(interfaces_for(framework), name)
+            imported = declaration_from_typedef(name, typedef, swift_type == 'refined sendable') if typedef and swift_type in ('refined', 'refined sendable') else find_declaration(interfaces_for(framework), name)
             if not typedef or not imported:
                 raise GeneratorError(f'{name}: no typedef or imported declaration found')
             w += function_accessor(declaration, typedef, imported, swift_type == 'pointer')

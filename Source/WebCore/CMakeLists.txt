@@ -3651,6 +3651,7 @@ if (APPLE)
         platform/graphics/cocoa/H264UtilitiesCocoa.mm
         platform/graphics/cocoa/HEVCUtilitiesCocoa.mm
         platform/graphics/cocoa/VP9UtilitiesCocoa.mm
+        platform/graphics/cocoa/WebCoreDecompressionSession.mm
 
         platform/graphics/iso/ISOBox.cpp
         platform/graphics/iso/ISOOriginalFormatBox.cpp
@@ -3933,7 +3934,13 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/avfoundation/VideoMediaSampleRenderer.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/WebAVSampleBufferListener.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/WebCoreAVFResourceLoader.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/CMUtilitiesBuilders.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/CMUtilitiesParsing.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/WebCoreDecompressionSession.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/WebCoreDecompressionSessionDecoderState.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/WebCoreDecompressionSessionQueueState.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/WebCoreDecompressionSessionSampleHandoff.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/WebCoreDecompressionSessionVideoToolboxSessionOwner.swift
         ${WEBCORE_DIR}/platform/graphics/iso/ISOBoxes.swift
         ${WEBCORE_DIR}/platform/graphics/iso/ISOVTTCue.swift
         ${WEBCORE_DIR}/platform/media-parsers/AnnexB.swift

@@ -131,8 +131,11 @@ class ManifestTest(unittest.TestCase):
     def test_refined_function(self):
         self.assertEqual(generator.parse_manifest(['function Media MediaGroupGetCount refined']), [('function', 'Media', 'MediaGroupGetCount', 'refined')])
 
+    def test_refined_sendable_function(self):
+        self.assertEqual(generator.parse_manifest(['function Media MediaDecode refined sendable']), [('function', 'Media', 'MediaDecode', 'refined sendable')])
+
     def test_malformed_lines(self):
-        for line in ('method Media X', 'function Media', 'function Media X Y', 'function Media X as Y', 'class Media X as', 'member Media MediaPlayer play: play()', 'member Media MediaPlayer play: func play', 'function Media X with', 'class Media X with pointer'):
+        for line in ('function Media X sendable', 'function Media X refined sendabl', 'method Media X', 'function Media', 'function Media X Y', 'function Media X as Y', 'class Media X as', 'member Media MediaPlayer play: play()', 'member Media MediaPlayer play: func play', 'function Media X with', 'class Media X with pointer'):
             with self.assertRaises(generator.GeneratorError, msg=line):
                 generator.parse_manifest([line])
 
@@ -221,6 +224,32 @@ public typealias PALSoftLink_MediaMake_t = @convention(c) (Int64, Int32) -> Medi
         declaration = generator.Declaration('function', 'Media', 'MediaSessionCopyProperty', False)
         lines = generator.function_accessor(declaration, typedef, generator.declaration_from_typedef('MediaSessionCopyProperty', typedef))
         self.assertEqual(lines[-1], 'func MediaSessionCopyProperty(_ arg0: MediaSession, _ arg1: CFString, _ arg2: CFAllocator?, _ arg3: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus { unsafe softLink_MediaSessionCopyProperty(arg0, arg1, arg2, UnsafeMutableRawPointer(arg3)) }')
+
+    def test_refined_sendable_blocks(self):
+        typedef = (['MediaSession', 'UInt32', '@escaping (OSStatus, MediaTime) -> Void', 'UnsafeMutablePointer<UInt32>?'], 'OSStatus', True)
+        plain = generator.declaration_from_typedef('MediaSessionDecode', typedef)
+        self.assertEqual(plain[0][2], '_ arg2: @escaping (OSStatus, MediaTime) -> Void')
+        sendable = generator.declaration_from_typedef('MediaSessionDecode', typedef, True)
+        self.assertEqual(sendable, (['_ arg0: MediaSession', '_ arg1: UInt32', '_ arg2: @escaping @Sendable (OSStatus, MediaTime) -> Void', '_ arg3: UnsafeMutablePointer<UInt32>?'], 'OSStatus'))
+        declaration = generator.Declaration('function', 'Media', 'MediaSessionDecode', False)
+        lines = generator.function_accessor(declaration, typedef, sendable)
+        self.assertEqual(lines[-1], 'func MediaSessionDecode(_ arg0: MediaSession, _ arg1: UInt32, _ arg2: @escaping @Sendable (OSStatus, MediaTime) -> Void, _ arg3: UnsafeMutablePointer<UInt32>?) -> OSStatus { unsafe softLink_MediaSessionDecode(arg0, arg1, arg2, arg3) }')
+        self.assertEqual(generator.adapt_argument('arg2', '@escaping @Sendable (Int) -> Void', '@escaping (Int) -> Void'), ('arg2', False))
+        self.assertEqual(generator.adapt_argument('arg2', '@escaping @Sendable (Int) -> Void', '@escaping (Bool) -> Void'), (None, False))
+
+    def test_refined_sendable_blocks_respell_image_buffers(self):
+        typedef = (['MediaSession', '@escaping (OSStatus, CVImageBuffer?) -> Void'], 'OSStatus', True)
+        sendable = generator.declaration_from_typedef('MediaSessionDecode', typedef, True)
+        self.assertEqual(sendable, (['_ arg0: MediaSession', '_ arg1: @escaping @Sendable (OSStatus, CVBuffer?) -> Void'], 'OSStatus'))
+        self.assertEqual(generator.adapt_argument('arg1', '@escaping @Sendable (OSStatus, CVBuffer?) -> Void', '@escaping (OSStatus, CVImageBuffer?) -> Void'), ('arg1', False))
+        plain = generator.declaration_from_typedef('MediaSessionDecode', typedef)
+        self.assertEqual(plain[0][1], '_ arg1: @escaping (OSStatus, CVImageBuffer?) -> Void')
+
+    def test_refined_sendable_rejects_an_optional_block(self):
+        typedef = (['MediaSession', '((OSStatus) -> Void)?'], 'OSStatus', True)
+        generator.declaration_from_typedef('MediaSessionDecode', typedef)
+        with self.assertRaisesRegex(generator.GeneratorError, 'cannot mark it'):
+            generator.declaration_from_typedef('MediaSessionDecode', typedef, True)
 
     def test_refined_function_accessor(self):
         typedef = (['__MediaGroup', 'CFIndex'], 'Unmanaged<CVPixelBuffer>?', True)

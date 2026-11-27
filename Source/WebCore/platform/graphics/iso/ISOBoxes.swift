@@ -730,29 +730,6 @@ private func inlineBytes16(_ bytes: Span<UInt8>, at offset: Int) -> WebCore.Inli
     return WebCore.InlineBytes16(high: high, low: low)
 }
 
-// For getKeyIDs (CMUtilities.mm), which reads the tenc that AVStreamDataParser attaches to each sample.
-@_expose(Cxx)
-func parseTrackEncryptionBoxWithoutTypeAndSizeImpl(
-    _ data: borrowing WebCore.MediaParserBytes,
-    _ fields: inout WebCore.ISOTrackEncryptionFields
-) -> Bool {
-    let span: Span<UInt8> = data.span()
-    guard let box = TrackEncryptionBox.parseWithoutTypeAndSize(span) else {
-        return false
-    }
-    let tenc = box.fields
-    fields.version = tenc.fullBox.version
-    fields.flags = tenc.fullBox.flags
-    fields.hasDefaultCryptAndSkipByteBlocks = tenc.hasDefaultCryptAndSkipByteBlocks
-    fields.defaultCryptByteBlock = tenc.defaultCryptByteBlock
-    fields.defaultSkipByteBlock = tenc.defaultSkipByteBlock
-    fields.defaultIsProtected = tenc.defaultIsProtected
-    fields.defaultPerSampleIVSize = tenc.defaultPerSampleIVSize
-    fields.defaultKID = tenc.defaultKID
-    fields.defaultConstantIV = tenc.defaultConstantIVWasRead ? tenc.defaultConstantIV : WebCore.ISOByteRange()
-    return true
-}
-
 // The C++ shells' parse(view, offset) and read(view) (ISOBox.h): the box starts out as the shell's fields are, and they
 // go back to the shell as the parse left them.
 

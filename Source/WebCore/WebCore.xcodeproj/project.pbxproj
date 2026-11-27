@@ -2424,7 +2424,6 @@
 		516103AF1CADBA770016B4C7 /* IDBValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 516103AE1CADB9A30016B4C7 /* IDBValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5162C7F511F77EFB00612EFE /* LegacySchemeRegistry.h in Headers */ = {isa = PBXBuildFile; fileRef = 5162C7F311F77EFB00612EFE /* LegacySchemeRegistry.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5166D3CD1E8ED48F00AD62E3 /* StorageType.h in Headers */ = {isa = PBXBuildFile; fileRef = 5166D3CC1E8ED41100AD62E3 /* StorageType.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		516831102D53A1350057AA46 /* EffectiveRateChangedListener.h in Headers */ = {isa = PBXBuildFile; fileRef = 5168310D2D53A1350057AA46 /* EffectiveRateChangedListener.h */; };
 		516A7AF229BBFA1500C95501 /* ServiceWorkerClientPendingMessage.h in Headers */ = {isa = PBXBuildFile; fileRef = 516A7AF129BBFA1400C95501 /* ServiceWorkerClientPendingMessage.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		516C62201950D48700337E75 /* GamepadEvent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 516C621D1950D48700337E75 /* GamepadEvent.cpp */; };
 		516C62211950D48700337E75 /* GamepadEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 516C621E1950D48700337E75 /* GamepadEvent.h */; };
@@ -7922,7 +7921,6 @@
 		FE8A674816CDD19E00930BF8 /* SQLStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = FE8A674616CDD19E00930BF8 /* SQLStatement.h */; };
 		FE9E89FC16E2DC0500A908F8 /* OriginLock.h in Headers */ = {isa = PBXBuildFile; fileRef = FE9E89FA16E2DC0400A908F8 /* OriginLock.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FEB5079D8E50CAD92E49CE04 /* UnifiedSource54-header-RenderStyleGetters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 73C6E6F635A4B4C36B107EAE /* UnifiedSource54-header-RenderStyleGetters.cpp */; };
-		FED1234567890ABCDEF12347 /* PeriodicSharedTimer.h in Headers */ = {isa = PBXBuildFile; fileRef = FED1234567890ABCDEF12345 /* PeriodicSharedTimer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FED13D520CEA949700D89466 /* RenderThemeIOS.h in Headers */ = {isa = PBXBuildFile; fileRef = FED13D500CEA949700D89466 /* RenderThemeIOS.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		FEE1811416C319E800084849 /* SQLTransactionBackend.h in Headers */ = {isa = PBXBuildFile; fileRef = FEE1811216C319E800084849 /* SQLTransactionBackend.h */; };
 		FF945ECC161F7F3600971BC8 /* PseudoElement.h in Headers */ = {isa = PBXBuildFile; fileRef = FF945ECA161F7F3600971BC8 /* PseudoElement.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -7970,6 +7968,12 @@
 		003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */; };
 		5A4A9F52E16643198CC57B8E /* CDMInstanceFairPlayStreamingAVF.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55D89318EB24555A0FAA4DD /* CDMInstanceFairPlayStreamingAVF.swift */; };
 		97A301997B9D490FB832F399 /* VideoMediaSampleRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5482EB99DF8E4365B6C79234 /* VideoMediaSampleRenderer.swift */; };
+		5E0A7C21B3D94F6A8C1D2E02 /* CMUtilitiesBuilders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0A7C21B3D94F6A8C1D2E01 /* CMUtilitiesBuilders.swift */; };
+		5E0A7C21B3D94F6A8C1D2E32 /* WebCoreDecompressionSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0A7C21B3D94F6A8C1D2E31 /* WebCoreDecompressionSession.swift */; };
+		43E8AB36996D422491E49CA8 /* WebCoreDecompressionSessionDecoderState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D44E8A6CC134917AA2810AD /* WebCoreDecompressionSessionDecoderState.swift */; };
+		07BB3B25DCFB462C9AB89ECE /* WebCoreDecompressionSessionQueueState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF142300C146453E9B444EC6 /* WebCoreDecompressionSessionQueueState.swift */; };
+		BF1072A5D3B04CC7A285EC39 /* WebCoreDecompressionSessionSampleHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 216134E0ED1D472D86BB054E /* WebCoreDecompressionSessionSampleHandoff.swift */; };
+		6C3A91E7D2B54F08A1E4C7B5 /* WebCoreDecompressionSessionVideoToolboxSessionOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2D58A3B6C14E70D8A3F1C2 /* WebCoreDecompressionSessionVideoToolboxSessionOwner.swift */; };
 		B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */; };
 		182D187F1A4EF0CCD58D4057 /* FormatDescriptionCodecString.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */; };
 		34D6913D83C54474255F32FD /* MediaParsersCxxBridging.h in Headers */ = {isa = PBXBuildFile; fileRef = BF1F83AA251C9642C7C554B8 /* MediaParsersCxxBridging.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -11989,8 +11993,6 @@
 		41D6BD98251B3ADA0055A7B7 /* HTMLMediaElement+AudioOutput.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "HTMLMediaElement+AudioOutput.idl"; sourceTree = "<group>"; };
 		41DC04FB27A83C92008CF968 /* SharedVideoFrameInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SharedVideoFrameInfo.h; sourceTree = "<group>"; };
 		41DC04FD27A83C93008CF968 /* SharedVideoFrameInfo.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SharedVideoFrameInfo.mm; sourceTree = "<group>"; };
-		41DC698F2F7290A70033015A /* VideoDecoderVTBSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VideoDecoderVTBSession.h; sourceTree = "<group>"; };
-		41DC69902F7290A70033015A /* VideoDecoderVTBSession.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = VideoDecoderVTBSession.mm; sourceTree = "<group>"; };
 		41DD3C292902AC8D00369BEF /* WebCodecsVideoFrameData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCodecsVideoFrameData.h; sourceTree = "<group>"; };
 		41DEEFAC2719B28800CB8D74 /* VideoFrameRequestCallback.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VideoFrameRequestCallback.h; sourceTree = "<group>"; };
 		41DEEFAE2719B28900CB8D74 /* VideoFrameRequestCallback.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = VideoFrameRequestCallback.idl; sourceTree = "<group>"; };
@@ -13245,8 +13247,6 @@
 		51645B531B9F889B00F789CE /* IDBVersionChangeEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBVersionChangeEvent.h; sourceTree = "<group>"; };
 		51645B541B9F88E800F789CE /* IDBCursor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IDBCursor.cpp; sourceTree = "<group>"; };
 		5166D3CC1E8ED41100AD62E3 /* StorageType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StorageType.h; sourceTree = "<group>"; };
-		5168310D2D53A1350057AA46 /* EffectiveRateChangedListener.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EffectiveRateChangedListener.h; sourceTree = "<group>"; };
-		5168310E2D53A1350057AA46 /* EffectiveRateChangedListener.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = EffectiveRateChangedListener.mm; sourceTree = "<group>"; };
 		516A7AF129BBFA1400C95501 /* ServiceWorkerClientPendingMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ServiceWorkerClientPendingMessage.h; sourceTree = "<group>"; };
 		516BB7920CE91E6800512F79 /* JSTreeWalkerCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSTreeWalkerCustom.cpp; sourceTree = "<group>"; };
 		516C621D1950D48700337E75 /* GamepadEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GamepadEvent.cpp; sourceTree = "<group>"; };
@@ -24796,8 +24796,6 @@
 		FE8A674616CDD19E00930BF8 /* SQLStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SQLStatement.h; sourceTree = "<group>"; };
 		FE9E89F916E2DC0400A908F8 /* OriginLock.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OriginLock.cpp; sourceTree = "<group>"; };
 		FE9E89FA16E2DC0400A908F8 /* OriginLock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OriginLock.h; sourceTree = "<group>"; };
-		FED1234567890ABCDEF12345 /* PeriodicSharedTimer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PeriodicSharedTimer.h; sourceTree = "<group>"; };
-		FED1234567890ABCDEF12346 /* PeriodicSharedTimer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PeriodicSharedTimer.mm; sourceTree = "<group>"; };
 		FED13D390CEA934600D89466 /* EditorIOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EditorIOS.mm; sourceTree = "<group>"; };
 		FED13D3B0CEA936A00D89466 /* FrameIOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = FrameIOS.mm; sourceTree = "<group>"; };
 		FED13D3F0CEA939400D89466 /* IconIOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = IconIOS.mm; sourceTree = "<group>"; };
@@ -24894,6 +24892,12 @@
 		116D152E1CB7B95FB26EF85D /* CDMSupportedConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMSupportedConfiguration.swift; sourceTree = "<group>"; };
 		8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMFairPlayStreamingParsing.swift; sourceTree = "<group>"; };
 		D55D89318EB24555A0FAA4DD /* CDMInstanceFairPlayStreamingAVF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMInstanceFairPlayStreamingAVF.swift; sourceTree = "<group>"; };
+		5E0A7C21B3D94F6A8C1D2E01 /* CMUtilitiesBuilders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMUtilitiesBuilders.swift; sourceTree = "<group>"; };
+		5E0A7C21B3D94F6A8C1D2E31 /* WebCoreDecompressionSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebCoreDecompressionSession.swift; sourceTree = "<group>"; };
+		1D44E8A6CC134917AA2810AD /* WebCoreDecompressionSessionDecoderState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebCoreDecompressionSessionDecoderState.swift; sourceTree = "<group>"; };
+		DF142300C146453E9B444EC6 /* WebCoreDecompressionSessionQueueState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebCoreDecompressionSessionQueueState.swift; sourceTree = "<group>"; };
+		216134E0ED1D472D86BB054E /* WebCoreDecompressionSessionSampleHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebCoreDecompressionSessionSampleHandoff.swift; sourceTree = "<group>"; };
+		9F2D58A3B6C14E70D8A3F1C2 /* WebCoreDecompressionSessionVideoToolboxSessionOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebCoreDecompressionSessionVideoToolboxSessionOwner.swift; sourceTree = "<group>"; };
 		ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMUtilitiesParsing.swift; sourceTree = "<group>"; };
 		E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatDescriptionCodecString.swift; sourceTree = "<group>"; };
 		BF1F83AA251C9642C7C554B8 /* MediaParsersCxxBridging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaParsersCxxBridging.h; sourceTree = "<group>"; };
@@ -28256,8 +28260,6 @@
 			isa = PBXGroup;
 			children = (
 				977EC3421309091E4646C65B /* GPUVideoEncoder.h */,
-				41DC698F2F7290A70033015A /* VideoDecoderVTBSession.h */,
-				41DC69902F7290A70033015A /* VideoDecoderVTBSession.mm */,
 			);
 			path = cocoa;
 			sourceTree = "<group>";
@@ -35702,8 +35704,6 @@
 				CD7D33461C7A16BF00041293 /* CoreVideoSoftLink.h */,
 				F462E79F242ADA3C00204DDD /* DragDataCocoa.mm */,
 				F462E7A0242ADA3D00204DDD /* DragImageCocoa.mm */,
-				5168310D2D53A1350057AA46 /* EffectiveRateChangedListener.h */,
-				5168310E2D53A1350057AA46 /* EffectiveRateChangedListener.mm */,
 				7A09CEF01F01D1F700E93BDB /* FileMonitorCocoa.mm */,
 				A5C974CF11485FF10066F2AB /* KeyEventCocoa.h */,
 				A5C974D011485FF10066F2AB /* KeyEventCocoa.mm */,
@@ -38218,6 +38218,7 @@
 				151B943875D447C254665961 /* CMParsingTypes.h */,
 				5150B5DC27CDF2E0004FC81E /* CMUtilities.h */,
 				5150B5DE27CDF499004FC81E /* CMUtilities.mm */,
+				5E0A7C21B3D94F6A8C1D2E01 /* CMUtilitiesBuilders.swift */,
 				ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */,
 				F48D2AA32159740D00C6752B /* ColorCocoa.h */,
 				F48D2AA42159740D00C6752B /* ColorCocoa.mm */,
@@ -38273,8 +38274,6 @@
 				AFA81AFC192B3B83C4D127ED /* NativeImageCocoa.mm */,
 				CDC522422A4F6E7900155FAE /* NullPlaybackSessionInterface.h */,
 				CDC522442A4F705F00155FAE /* NullVideoPresentationInterface.h */,
-				FED1234567890ABCDEF12345 /* PeriodicSharedTimer.h */,
-				FED1234567890ABCDEF12346 /* PeriodicSharedTimer.mm */,
 				BCD8FA442F28010600B42872 /* PlatformMediaEngineConfigurationFactoryCocoa.cpp */,
 				BCD8FA432F28010600B42872 /* PlatformMediaEngineConfigurationFactoryCocoa.h */,
 				A19311012D1138B7003C8410 /* PlatformTimeRangesCocoa.mm */,
@@ -38314,6 +38313,11 @@
 				2D3EF4471917915C00034184 /* WebCoreCALayerExtras.mm */,
 				CD5D27761E8318E000D80A3D /* WebCoreDecompressionSession.h */,
 				CD5D27751E8318E000D80A3D /* WebCoreDecompressionSession.mm */,
+				5E0A7C21B3D94F6A8C1D2E31 /* WebCoreDecompressionSession.swift */,
+				1D44E8A6CC134917AA2810AD /* WebCoreDecompressionSessionDecoderState.swift */,
+				DF142300C146453E9B444EC6 /* WebCoreDecompressionSessionQueueState.swift */,
+				216134E0ED1D472D86BB054E /* WebCoreDecompressionSessionSampleHandoff.swift */,
+				9F2D58A3B6C14E70D8A3F1C2 /* WebCoreDecompressionSessionVideoToolboxSessionOwner.swift */,
 				7AFD16D22C63F70200B51D1A /* WebLayer.h */,
 				7AFD16D12C63F6CB00B51D1A /* WebLayer.mm */,
 				07F5CFF42582A4F800662EF5 /* WebMAudioUtilitiesCocoa.h */,
@@ -46887,7 +46891,6 @@
 				4BAE95B10B2FA9CE00AED8A0 /* EditorDeleteAction.h in Headers */,
 				93FDAFCA0B11307400E2746F /* EditorInsertAction.h in Headers */,
 				1A7E90022C5F4B0100E3A002 /* EditorInternalCommand.h in Headers */,
-				516831102D53A1350057AA46 /* EffectiveRateChangedListener.h in Headers */,
 				712BE47D1FE86458002031CC /* EffectTiming.h in Headers */,
 				A8C4A80709D563270003AC8D /* Element.h in Headers */,
 				E4AE7C1A17D232350009FB31 /* ElementAncestorIterator.h in Headers */,
@@ -49460,7 +49463,6 @@
 				86512EDF154A2AEF00A90426 /* PerformanceResourceTiming.h in Headers */,
 				8AF4E55C11DC5A63000ED3DE /* PerformanceTiming.h in Headers */,
 				A554B5F31E38393A001D4E03 /* PerformanceUserTiming.h in Headers */,
-				FED1234567890ABCDEF12347 /* PeriodicSharedTimer.h in Headers */,
 				FD581FB51520F93B003A7A75 /* PeriodicWave.h in Headers */,
 				E755E89224C7434B009F7C23 /* PeriodicWaveConstraints.h in Headers */,
 				E755E89924C7461D009F7C23 /* PeriodicWaveOptions.h in Headers */,
@@ -52568,6 +52570,7 @@
 				61C029A6BD383110885018DE /* CGRenderer.swift in Sources */,
 				23B6FEB7BC8E6912CC678555 /* CheckedMath.swift in Sources */,
 				5150B5DF27CDF499004FC81E /* CMUtilities.mm in Sources */,
+				5E0A7C21B3D94F6A8C1D2E02 /* CMUtilitiesBuilders.swift in Sources */,
 				B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */,
 				349C0CEA3BB44EE2963EC295 /* CompressorKernel.swift in Sources */,
 				A14090FB1AA51E1D0091191A /* ContentFilterUnblockHandlerCocoa.mm in Sources */,
@@ -53676,6 +53679,11 @@
 				51F6CA3E2B4D14D400F273C8 /* WebAVSampleBufferListener.swift in Sources */,
 				A180AD5B219F81B000DC039A /* WebCoreAdditions.mm in Sources */,
 				A4C0A4C00000000000000002 /* WebCoreAVFResourceLoader.swift in Sources */,
+				5E0A7C21B3D94F6A8C1D2E32 /* WebCoreDecompressionSession.swift in Sources */,
+				43E8AB36996D422491E49CA8 /* WebCoreDecompressionSessionDecoderState.swift in Sources */,
+				07BB3B25DCFB462C9AB89ECE /* WebCoreDecompressionSessionQueueState.swift in Sources */,
+				BF1072A5D3B04CC7A285EC39 /* WebCoreDecompressionSessionSampleHandoff.swift in Sources */,
+				6C3A91E7D2B54F08A1E4C7B5 /* WebCoreDecompressionSessionVideoToolboxSessionOwner.swift in Sources */,
 				CD225C0B1C46FBF400140761 /* WebCoreNSURLSession.mm in Sources */,
 				4FB67D2F109D3DEF4888C977 /* WebCoreObjCExceptionCatching.m in Sources */,
 				1CCD81502231F83E0065FC2B /* WebCoreResourceHandleAsOperationQueueDelegate.mm in Sources */,

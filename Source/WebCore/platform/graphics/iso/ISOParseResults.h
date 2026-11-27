@@ -84,19 +84,6 @@ struct ISOByteRange {
     size_t size { 0 };
 };
 
-// What ISOTrackEncryptionBox holds after a successful parse.
-struct ISOTrackEncryptionFields {
-    uint8_t version { 0 };
-    uint32_t flags { 0 };
-    bool hasDefaultCryptAndSkipByteBlocks { false };
-    int8_t defaultCryptByteBlock { 0 };
-    int8_t defaultSkipByteBlock { 0 };
-    int8_t defaultIsProtected { 0 };
-    int8_t defaultPerSampleIVSize { 0 };
-    InlineBytes16 defaultKID;
-    ISOByteRange defaultConstantIV;
-};
-
 // The contents of one of a WebVTT cue's string boxes, when the cue has one.
 struct ISOWebVTTCueString {
     bool isPresent { false };

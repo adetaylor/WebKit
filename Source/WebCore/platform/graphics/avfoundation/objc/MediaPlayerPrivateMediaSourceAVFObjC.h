@@ -58,7 +58,6 @@ namespace WebCore {
 class AudioTrackPrivate;
 class AudioVideoRenderer;
 class CDMSessionAVContentKeySession;
-class EffectiveRateChangedListener;
 class InbandTextTrackPrivate;
 class MediaSourcePrivateAVFObjC;
 class VideoFrameCV;

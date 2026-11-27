@@ -325,7 +325,7 @@ private func vpCodecParametersString(isVP9: Bool, record: borrowing WebCore.VPCo
 
 // createVPCodecConfigurationRecordFromVPCC: a VPCodecConfigurationRecord box payload ("VP Codec ISO Media File Format
 // Binding"), version and flags first, with no codec initialization data. The record gets no codec name.
-private func parseVPCC(_ vpcc: Span<UInt8>, into record: inout WebCore.VPCodecFields) -> Bool {
+func parseVPCC(_ vpcc: Span<UInt8>, into record: inout WebCore.VPCodecFields) -> Bool {
     guard vpcc.count >= 12 else {
         return false
     }

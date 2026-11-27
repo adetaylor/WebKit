@@ -10,6 +10,7 @@
 #     function <framework> <symbol> refined         (a function the SDK marks CF_REFINED_FOR_SWIFT, which Swift doesn't import; or a
 #                                                  Create or Copy function whose last `void *` is a CF out-parameter, which the
 #                                                  accessor takes as UnsafeMutablePointer<CFTypeRef?>? and not as the SDK's raw pointer)
+#     function <framework> <symbol> refined sendable (refined, and each non-optional block parameter is @Sendable, with CVImageBuffer? spelled CVBuffer?)
 # PAL must soft-link each one (pal/cf/AudioToolboxSoftLink.h, pal/cocoa/AVFoundationSoftLink.h, ...).
 # Scripts/generate-soft-link-accessors.py generates the accessors, <framework>SoftLinkAccessors.swift, from this list.
 # List only what Swift calls, so that the accessors stay small enough to review.
@@ -262,9 +263,12 @@ constant CoreMedia kCMTagMediaTypeVideo
 # The decompression session (WebCoreDecompressionSession.swift), soft-linked by platform/cocoa/VideoToolboxSoftLink.h.
 function VideoToolbox VTDecompressionSessionCanAcceptFormatDescription
 function VideoToolbox VTDecompressionSessionCreate refined
+function VideoToolbox VTDecompressionSessionDecodeFrameWithMultiImageCapableOutputHandler refined sendable
+function VideoToolbox VTDecompressionSessionDecodeFrameWithOutputHandler refined sendable
 function VideoToolbox VTDecompressionSessionInvalidate
 function VideoToolbox VTDecompressionSessionWaitForAsynchronousFrames
 function VideoToolbox VTSessionCopyProperty refined
+function VideoToolbox VTSessionSetProperty
 constant VideoToolbox kVTDecompressionPropertyKey_RequestedMVHEVCVideoLayerIDs
 constant VideoToolbox kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder
 constant VideoToolbox kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder

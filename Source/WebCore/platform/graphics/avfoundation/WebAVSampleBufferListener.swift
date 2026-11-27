@@ -154,7 +154,7 @@ struct AudioRendererHandle: QueuedSampleBufferRenderer, @unchecked Sendable {
     var queued: any QueuedSampleBufferRenderer { self }
 }
 
-// The renderer of an object the C++ renderer made, if it is one. No generic code over the classes: it would need their
+// The renderer of an object the core made, if it is one. No generic code over the classes: it would need their
 // class objects, which WebCore doesn't link.
 func queuedSampleBufferRenderer(_ object: AnyObject?) -> (any QueuedSampleBufferRenderer)? {
     if let layer = AVFoundationClass.cast(object, to: AVFoundationClass.AVSampleBufferDisplayLayer) {

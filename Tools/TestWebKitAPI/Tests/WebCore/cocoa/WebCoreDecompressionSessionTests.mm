@@ -128,14 +128,16 @@ static DecodeResult decodeSampleAndWait(WebCoreDecompressionSession& session, CM
     bool done = false;
     DecodeResult decodeResult;
 
-    session.decodeSample(sample, { })->whenSettled(RunLoop::mainSingleton(), [&done, &decodeResult](auto&& result) {
-        decodeResult.resolved = !!result;
-        if (result)
-            decodeResult.sampleCount = result->size();
-        else
-            decodeResult.error = result.error();
-        done = true;
-    });
+    session.decodeSample(sample, 0, makeBlockPtr([&done, &decodeResult](NSArray *frames, OSStatus status) {
+        RunLoop::mainSingleton().dispatch([&done, &decodeResult, resolved = !!frames, count = frames.count, status] {
+            decodeResult.resolved = resolved;
+            if (resolved)
+                decodeResult.sampleCount = count;
+            else
+                decodeResult.error = status;
+            done = true;
+        });
+    }).get());
     Util::run(&done);
     return decodeResult;
 }

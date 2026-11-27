@@ -309,7 +309,6 @@ platform/cocoa/CoreLocationGeolocationProvider.mm @nonARC
 platform/cocoa/CoreVideoSoftLink.cpp
 platform/cocoa/DragDataCocoa.mm @nonARC
 platform/cocoa/DragImageCocoa.mm @nonARC
-platform/cocoa/EffectiveRateChangedListener.mm @nonARC
 platform/cocoa/FileMonitorCocoa.mm @nonARC
 platform/cocoa/KeyEventCocoa.mm @nonARC
 platform/cocoa/LocalizedStringsCocoa.mm @nonARC
@@ -482,7 +481,6 @@ platform/graphics/cocoa/MediaPlayerPrivateWebM.mm @nonARC @no-unify-when(bundle<
 platform/graphics/cocoa/MeshGradientRendererMetal.mm @nonARC
 platform/graphics/cocoa/MetalColorConversion.mm @nonARC
 platform/graphics/cocoa/NativeImageCocoa.mm @nonARC
-platform/graphics/cocoa/PeriodicSharedTimer.mm @nonARC
 platform/graphics/cocoa/PlatformMediaEngineConfigurationFactoryCocoa.cpp
 platform/graphics/cocoa/PlatformTimeRangesCocoa.mm @nonARC @no-unify-when(bundle<=8)
 platform/graphics/cocoa/ShareableCVPixelBuffer.cpp
@@ -691,7 +689,6 @@ platform/text/cocoa/LocaleCocoa.mm @nonARC
 platform/text/cocoa/LocalizedDateCache.mm @nonARC
 platform/text/cocoa/TextBoundaries.mm @nonARC
 platform/text/mac/TextCheckingMac.mm @nonARC
-platform/video-codecs/cocoa/VideoDecoderVTBSession.mm @nonARC
 platform/xr/cocoa/PlatformXRPose.cpp
 rendering/AttachmentLayout.mm @nonARC
 rendering/cocoa/RenderThemeCocoa.mm @nonARC
