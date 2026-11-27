@@ -46,7 +46,6 @@
 #include "RemotePageWebDeviceOrientationUpdateProviderProxy.h"
 #include "UserMediaProcessManager.h"
 #include "WebAuthenticatorCoordinatorProxy.h"
-#include "WebAuthenticatorCoordinatorProxyMessages.h"
 #include "WebBackForwardList.h"
 #include "WebBackForwardListMessages.h"
 #include "WebFrameProxy.h"
@@ -63,6 +62,10 @@
 #include <WebCore/PageIdentifier.h>
 #include <WebCore/RemoteUserInputEventData.h>
 #include <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(WEB_AUTHN)
+#include "WebAuthenticatorCoordinatorProxyMessages.h"
+#endif
 
 #if ENABLE(FULLSCREEN_API)
 #include "WebFullScreenManagerProxy.h"
