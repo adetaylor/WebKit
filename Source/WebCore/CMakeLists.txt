@@ -4965,7 +4965,7 @@ else ()
         loader/CrossOriginAccessControl.h loader/CrossOriginEmbedderPolicy.h loader/CrossOriginEmbedderPolicyValue.h
         loader/CrossOriginOpenerPolicy.h loader/DocumentIsolationPolicy.h loader/FrameLoaderTypes.h loader/IntegrityPolicy.h
         loader/ResourceCryptographicDigest.h page/SecurityOrigin.h platform/network/HTTPHeaderMap.h
-        platform/network/StoredCredentialsPolicy.h)
+        platform/network/HTTPStatusCodes.h platform/network/StoredCredentialsPolicy.h)
     if (USE_CURL)
         list(APPEND _webcore_swift_core_submodules platform/network/curl/ResourceResponse.h)
     elseif (PORT STREQUAL "GTK" OR PORT STREQUAL "WPE")
