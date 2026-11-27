@@ -26,7 +26,10 @@
 # main and swift-experiments-main, in the weekly rows of a Quip tracking
 # spreadsheet.
 #
-#     update-swift-tracker
+#     update-swift-tracker [--dry-run]
+#
+# --dry-run reads the spreadsheet and measures and prints the same figures, but
+# writes nothing to it and does not open it.
 #
 # Run it from a WebKit worktree with no uncommitted changes to tracked files; it
 # checks out historical commits and restores the original checkout when done.
@@ -55,6 +58,7 @@
 #     git config swift-tracker.quip-url 'https://quip-apple.com/<document>#<table>'
 #     security add-generic-password -a "$USER" -s quip-api-token -w
 
+import argparse
 import collections
 import datetime
 import html.parser
@@ -400,6 +404,9 @@ def total(files, directories=None):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Record the Swift share of WebKit in the Quip tracking spreadsheet.')
+    parser.add_argument('--dry-run', action='store_true', help='measure and print the figures, but write nothing to the spreadsheet')
+    dry_run = parser.parse_args().dry_run
     sys.stdout.reconfigure(line_buffering=True)
     os.chdir(git('rev-parse', '--show-toplevel'))
     current_fingerprint = fingerprint()
@@ -427,6 +434,9 @@ def main():
     def write(cell, value):
         if cell.section_id not in sheet.writable_section_ids:
             sys.exit(f'Refusing to write to {cell.name}')
+        if dry_run:
+            print(f'    {cell.name} = {value} (dry run: not written)')
+            return
         print(f'    {cell.name} = {value}')
         quip.replace_cell(cell, value)
 
@@ -482,6 +492,9 @@ def main():
         write(sheet.fingerprint_cell, current_fingerprint)
     if not jobs:
         print('No spreadsheet rows needed measuring.')
+    if dry_run:
+        print('Dry run: nothing was written to the spreadsheet.')
+        return
     print(spreadsheet.url)
     print('Click anywhere in the spreadsheet once it has loaded, so that Quip turns the new values into numbers; until then its chart leaves them out.')
     subprocess.run(['open', spreadsheet.url])
