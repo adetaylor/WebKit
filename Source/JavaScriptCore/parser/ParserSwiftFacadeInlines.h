@@ -75,6 +75,7 @@
 #include "SourceProviderCacheItem.h"
 #include "VM.h"
 #include "VariableEnvironment.h"
+#include "VariableEnvironmentInlines.h"
 #include <array>
 #include <tuple>
 #include <wtf/CompactPointerTuple.h>
