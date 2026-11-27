@@ -145,7 +145,7 @@ extension WebCore.MemoryIDBStoreError {
 }
 
 private func backingStoreError(_ code: WebCore.ExceptionCode, _ message: Swift.String) -> WebCore.IDBError {
-    WebCore.IDBError(.init(code), WTF.String(message))
+    WebCore.IDBError(.init(code), sqliteIDBString(message))
 }
 
 extension IDBServerBackingStore {
