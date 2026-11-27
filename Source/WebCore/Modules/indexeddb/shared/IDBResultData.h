@@ -62,16 +62,11 @@ enum class IDBResultType : uint8_t {
     RenameIndexSuccess,
 };
 
-namespace IDBServer {
-class UniqueIDBDatabaseConnection;
-class UniqueIDBDatabaseTransaction;
-}
-
 class IDBResultData {
 public:
     static IDBResultData error(const IDBResourceIdentifier&, const IDBError&);
-    static IDBResultData openDatabaseSuccess(const IDBResourceIdentifier&, IDBServer::UniqueIDBDatabaseConnection&);
-    static IDBResultData openDatabaseUpgradeNeeded(const IDBResourceIdentifier&, IDBServer::UniqueIDBDatabaseTransaction&, IDBServer::UniqueIDBDatabaseConnection&);
+    static IDBResultData openDatabaseSuccess(const IDBResourceIdentifier&, IDBDatabaseConnectionIdentifier, const IDBDatabaseInfo&);
+    static IDBResultData openDatabaseUpgradeNeeded(const IDBResourceIdentifier&, IDBDatabaseConnectionIdentifier, const IDBDatabaseInfo&, const IDBTransactionInfo&);
     static IDBResultData deleteDatabaseSuccess(const IDBResourceIdentifier&, const IDBDatabaseInfo&);
     static IDBResultData createObjectStoreSuccess(const IDBResourceIdentifier&);
     static IDBResultData deleteObjectStoreSuccess(const IDBResourceIdentifier&);

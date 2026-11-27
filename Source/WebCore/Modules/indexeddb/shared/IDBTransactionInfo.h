@@ -39,15 +39,11 @@ namespace IDBClient {
 class IDBConnectionProxy;
 }
 
-namespace IDBServer {
-class IDBConnectionToClient;
-}
-
 class IDBTransactionInfo {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(IDBTransactionInfo, WEBCORE_EXPORT);
 public:
     static IDBTransactionInfo clientTransaction(const IDBClient::IDBConnectionProxy&, const Vector<String>& objectStores, IDBTransactionMode, std::optional<IDBTransactionDurability>);
-    static IDBTransactionInfo versionChange(const IDBServer::IDBConnectionToClient&, const IDBDatabaseInfo& originalDatabaseInfo, uint64_t newVersion);
+    static IDBTransactionInfo versionChange(IDBConnectionIdentifier, const IDBDatabaseInfo& originalDatabaseInfo, uint64_t newVersion);
 
     WEBCORE_EXPORT IDBTransactionInfo(const IDBTransactionInfo&);
     IDBTransactionInfo(IDBTransactionInfo&&) = default;

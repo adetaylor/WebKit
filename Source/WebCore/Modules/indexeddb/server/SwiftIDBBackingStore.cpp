@@ -145,7 +145,7 @@ uint64_t SwiftIDBBackingStore::databaseVersion()
 
 IDBError SwiftIDBBackingStore::beginTransaction(const IDBTransactionInfo& info)
 {
-    return makeMemoryIDBStoreError(m_store->store.beginTransaction(info));
+    return makeMemoryIDBStoreError(m_store->store.beginTransaction(info.identifier(), info.mode(), info.objectStores()));
 }
 
 IDBError SwiftIDBBackingStore::abortTransaction(const IDBResourceIdentifier& transactionIdentifier)
@@ -360,7 +360,7 @@ void SwiftSQLiteIDBBackingStore::handleLowMemoryWarning()
 
 IDBError SwiftSQLiteIDBBackingStore::beginTransaction(const IDBTransactionInfo& info)
 {
-    return m_store->store.beginTransaction(info);
+    return m_store->store.beginTransaction(info.identifier(), info.mode(), info.durability(), info.newVersion());
 }
 
 IDBError SwiftSQLiteIDBBackingStore::abortTransaction(const IDBResourceIdentifier& transactionIdentifier)

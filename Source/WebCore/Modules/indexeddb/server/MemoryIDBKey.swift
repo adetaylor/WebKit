@@ -209,76 +209,140 @@ func memoryIDBCompareBytes<T: FixedWidthInteger & UnsignedInteger>(_ a: Contiguo
 ///
 /// Two numbers or two dates that are unordered (a NaN) stop the process, as IDBKeyData's weakOrderingCast does.
 func memoryIDBCompare(_ a: MemoryIDBKey, _ b: MemoryIDBKey) -> Int {
-    switch (a, b) {
-    case (.number(let x), .number(let y)), (.date(let x), .date(let y)):
-        if x < y {
+    // One key's case, then the other's: a `switch (a, b)` forms a tuple, copying both keys (a retain and a release of
+    // each payload) on every comparison of the index scans.
+    switch a {
+    case .number(let x):
+        if case .number(let y) = b {
+            return memoryIDBCompareOrdered(x, y)
+        }
+    case .date(let x):
+        if case .date(let y) = b {
+            return memoryIDBCompareOrdered(x, y)
+        }
+    case .null:
+        switch b {
+        case .null:
+            return 0
+        case .invalid:
             return -1
+        default:
+            break
         }
-        if x > y {
+    case .invalid:
+        switch b {
+        case .invalid:
+            return 0
+        case .null:
             return 1
+        default:
+            break
         }
-        // WTFCrash, not precondition: the process stops as a RELEASE_ASSERT does (the crash handler's SIGKILL),
-        // where a Swift trap would end it with SIGTRAP.
-        if x != y {
-            WTFCrash()
+    case .min:
+        if case .min = b {
+            return 0
         }
-        return 0
-    case (.null, .null), (.invalid, .invalid), (.min, .min), (.max, .max):
-        return 0
-    case (.null, .invalid):
-        return -1
-    case (.invalid, .null):
-        return 1
-    case (.string(let x), .string(let y)):
-        guard let x else {
-            return y == nil ? 0 : -1
+    case .max:
+        if case .max = b {
+            return 0
         }
-        guard let y else {
-            return 1
+    case .string(let x):
+        if case .string(let y) = b {
+            return memoryIDBCompareOptionalBytes(x, y)
         }
-        return memoryIDBCompareBytes(x, y)
-    case (.binary(let x), .binary(let y)):
-        guard let x else {
-            return y == nil ? 0 : -1
+    case .binary(let x):
+        if case .binary(let y) = b {
+            return memoryIDBCompareOptionalBytes(x, y)
         }
-        guard let y else {
-            return 1
-        }
-        return memoryIDBCompareBytes(x, y)
-    case (.array(let x), .array(let y)):
-        let count = Swift.min(x.count, y.count)
-        for i in 0..<count {
-            let result = memoryIDBCompare(x[i], y[i])
-            if result != 0 {
-                return result
+    case .array(let x):
+        if case .array(let y) = b {
+            let count = Swift.min(x.count, y.count)
+            for i in 0..<count {
+                let result = memoryIDBCompare(x[i], y[i])
+                if result != 0 {
+                    return result
+                }
             }
+            return x.count == y.count ? 0 : (x.count < y.count ? -1 : 1)
         }
-        return x.count == y.count ? 0 : (x.count < y.count ? -1 : 1)
-    default:
-        let aRank = a.typeRank
-        let bRank = b.typeRank
-        return aRank < bRank ? -1 : 1
     }
+    return a.typeRank < b.typeRank ? -1 : 1
+}
+
+/// Two numbers or two dates as -1, 0 or 1; unordered ones (a NaN) stop the process.
+private func memoryIDBCompareOrdered(_ x: Double, _ y: Double) -> Int {
+    if x < y {
+        return -1
+    }
+    if x > y {
+        return 1
+    }
+    // WTFCrash, not precondition: the process stops as a RELEASE_ASSERT does (the crash handler's SIGKILL),
+    // where a Swift trap would end it with SIGTRAP.
+    if x != y {
+        WTFCrash()
+    }
+    return 0
+}
+
+/// Two strings' or buffers' units; the null one is less than, and unequal to, any other.
+private func memoryIDBCompareOptionalBytes<T: FixedWidthInteger & UnsignedInteger>(
+    _ x: ContiguousArray<T>?,
+    _ y: ContiguousArray<T>?
+) -> Int {
+    guard let x else {
+        return y == nil ? 0 : -1
+    }
+    guard let y else {
+        return 1
+    }
+    return memoryIDBCompareBytes(x, y)
 }
 
 extension MemoryIDBKey: Equatable {
     /// IDBKeyData's operator==: the same case and value, numbers and dates by `==` (NaN is unequal to itself, -0 equals
     /// +0), null strings and buffers unequal to empty ones.
     static func == (a: MemoryIDBKey, b: MemoryIDBKey) -> Bool {
-        switch (a, b) {
-        case (.number(let x), .number(let y)), (.date(let x), .date(let y)):
-            x == y
-        case (.null, .null), (.invalid, .invalid), (.min, .min), (.max, .max):
-            true
-        case (.string(let x), .string(let y)):
-            x == y
-        case (.binary(let x), .binary(let y)):
-            x == y
-        case (.array(let x), .array(let y)):
-            x == y
-        default:
-            false
+        // One key's case, then the other's, as memoryIDBCompare: no tuple copy of the two keys.
+        switch a {
+        case .number(let x):
+            if case .number(let y) = b {
+                return x == y
+            }
+        case .date(let x):
+            if case .date(let y) = b {
+                return x == y
+            }
+        case .null:
+            if case .null = b {
+                return true
+            }
+        case .invalid:
+            if case .invalid = b {
+                return true
+            }
+        case .min:
+            if case .min = b {
+                return true
+            }
+        case .max:
+            if case .max = b {
+                return true
+            }
+        case .string(let x):
+            if case .string(let y) = b {
+                return x == y
+            }
+        case .binary(let x):
+            if case .binary(let y) = b {
+                return x == y
+            }
+        case .array(let x):
+            if case .array(let y) = b {
+                return x == y
+            }
         }
+        return false
     }
 }
 

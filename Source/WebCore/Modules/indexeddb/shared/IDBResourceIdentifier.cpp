@@ -26,7 +26,6 @@
 #include "config.h"
 #include "IDBResourceIdentifier.h"
 
-#include "IDBConnectionToClient.h"
 #include "IDBConnectionToServer.h"
 #include "IDBRequest.h"
 #include <wtf/MainThread.h>
@@ -66,8 +65,8 @@ IDBResourceIdentifier::IDBResourceIdentifier(const IDBClient::IDBConnectionProxy
 {
 }
 
-IDBResourceIdentifier::IDBResourceIdentifier(const IDBServer::IDBConnectionToClient& connection)
-    : m_idbConnectionIdentifier(connection.identifier())
+IDBResourceIdentifier::IDBResourceIdentifier(IDBConnectionIdentifier connectionIdentifier)
+    : m_idbConnectionIdentifier(connectionIdentifier)
     , m_resourceNumber(IDBResourceObjectIdentifier { nextServerResourceNumber() })
 {
 }

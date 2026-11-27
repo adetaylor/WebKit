@@ -3400,6 +3400,7 @@ endif ()
 set(_webcore_swift_interop_sources_all_ports
     Modules/indexeddb/server/IDBBackingStoreFactories.cpp
     Modules/indexeddb/server/IDBSerialization.cpp
+    Modules/indexeddb/server/IDBServer.cpp
     Modules/indexeddb/server/SwiftIDBBackingStore.cpp
     html/parser/HTMLDocumentParserFastPath.cpp
     html/parser/HTMLTokenizer.cpp
@@ -3986,7 +3987,13 @@ if (APPLE)
         ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsFont.swift
         ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/css/typedom/CSSNumericValueSwift.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBConnectionToClient.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/IDBSerialization.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerBackingStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerContainers.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerCore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerRouter.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerShared.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBCursor.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBDatabaseState.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBIndex.swift
@@ -3996,10 +4003,17 @@ if (APPLE)
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBRecords.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBTransaction.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIndexValueStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/ServerOpenDBRequest.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStore.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStoreCursor.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStoreTransaction.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SwiftIDBServer.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/SwiftIDBStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabase+Operations.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabase+SizeEstimation.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabase.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabaseConnection.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabaseTransaction.swift
         ${WEBCORE_DIR}/html/parser/HTMLConstructionSite.swift
         ${WEBCORE_DIR}/html/parser/HTMLElementStack.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
@@ -4337,7 +4351,13 @@ else ()
         ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsFont.swift
         ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/css/typedom/CSSNumericValueSwift.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBConnectionToClient.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/IDBSerialization.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerBackingStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerContainers.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerCore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerRouter.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/IDBServerShared.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBCursor.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBDatabaseState.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBIndex.swift
@@ -4347,10 +4367,17 @@ else ()
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBRecords.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIDBTransaction.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/MemoryIndexValueStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/ServerOpenDBRequest.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStore.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStoreCursor.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/SQLiteIDBStoreTransaction.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/SwiftIDBServer.swift
         ${WEBCORE_DIR}/Modules/indexeddb/server/SwiftIDBStore.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabase+Operations.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabase+SizeEstimation.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabase.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabaseConnection.swift
+        ${WEBCORE_DIR}/Modules/indexeddb/server/UniqueIDBDatabaseTransaction.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift

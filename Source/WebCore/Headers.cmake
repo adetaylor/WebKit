@@ -394,18 +394,12 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/indexeddb/client/IDBConnectionToServerDelegate.h
     Modules/indexeddb/client/TransactionOperation.h
     Modules/indexeddb/server/IDBBackingStore.h
-    Modules/indexeddb/server/IDBConnectionToClient.h
     Modules/indexeddb/server/IDBConnectionToClientDelegate.h
     Modules/indexeddb/server/IDBSerialization.h
     Modules/indexeddb/server/IDBBackingStoreFactories.h
     Modules/indexeddb/server/IDBServer.h
     Modules/indexeddb/server/SQLiteIDBStoreTypes.h
-    Modules/indexeddb/server/ServerOpenDBRequest.h
     Modules/indexeddb/server/SwiftIDBTypes.h
-    Modules/indexeddb/server/UniqueIDBDatabase.h
-    Modules/indexeddb/server/UniqueIDBDatabaseConnection.h
-    Modules/indexeddb/server/UniqueIDBDatabaseManager.h
-    Modules/indexeddb/server/UniqueIDBDatabaseTransaction.h
     Modules/indexeddb/shared/IDBCursorInfo.h
     Modules/indexeddb/shared/IDBCursorRecord.h
     Modules/indexeddb/shared/IDBDatabaseConnectionIdentifier.h

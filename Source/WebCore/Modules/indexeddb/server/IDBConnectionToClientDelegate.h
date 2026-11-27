@@ -25,10 +25,12 @@
 
 #pragma once
 
+#include <WebCore/IDBDatabaseConnectionIdentifier.h>
 #include <WebCore/IDBKeyPath.h>
 #include <WebCore/IDBResourceIdentifier.h>
 #include <wtf/CheckedPtr.h>
 #include <wtf/Forward.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
@@ -42,8 +44,6 @@ class IDBResultData;
 struct IDBDatabaseNameAndVersion;
 
 namespace IDBServer {
-
-class UniqueIDBDatabaseConnection;
 
 class IDBConnectionToClientDelegate : public CanMakeThreadSafeCheckedPtr<IDBConnectionToClientDelegate> {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(IDBConnectionToClientDelegate);
@@ -72,14 +72,18 @@ public:
     virtual void didOpenCursor(const IDBResultData&) = 0;
     virtual void didIterateCursor(const IDBResultData&) = 0;
 
-    virtual void fireVersionChangeEvent(UniqueIDBDatabaseConnection&, const IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion) = 0;
+    virtual void fireVersionChangeEvent(IDBDatabaseConnectionIdentifier, const IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion) = 0;
     virtual void generateIndexKeyForRecord(const IDBResourceIdentifier& requestIdentifier, const IDBIndexInfo&, const std::optional<IDBKeyPath>&, const IDBKeyData&, const IDBValue&, std::optional<int64_t> recordID) = 0;
     virtual void didStartTransaction(const IDBResourceIdentifier& transactionIdentifier, const IDBError&) = 0;
-    virtual void didCloseFromServer(UniqueIDBDatabaseConnection&, const IDBError&) = 0;
+    virtual void didCloseFromServer(IDBDatabaseConnectionIdentifier, const IDBError&) = 0;
     virtual void notifyOpenDBRequestBlocked(const IDBResourceIdentifier& requestIdentifier, uint64_t oldVersion, uint64_t newVersion) = 0;
 
     virtual void didGetAllDatabaseNamesAndVersions(const IDBResourceIdentifier&, Vector<IDBDatabaseNameAndVersion>&&) = 0;
-};
+} SWIFT_SHARED_REFERENCE(retainIDBConnectionToClientDelegate, releaseIDBConnectionToClientDelegate) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 } // namespace IDBServer
 } // namespace WebCore
+
+// Swift's retain and release of a delegate reference: its checked-pointer count, as a CheckedPtr holds it.
+SWIFT_UNSAFE inline void retainIDBConnectionToClientDelegate(WebCore::IDBServer::IDBConnectionToClientDelegate* delegate) { delegate->incrementCheckedPtrCount(); }
+SWIFT_UNSAFE inline void releaseIDBConnectionToClientDelegate(WebCore::IDBServer::IDBConnectionToClientDelegate* delegate) { delegate->decrementCheckedPtrCount(); }

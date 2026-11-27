@@ -26,7 +26,6 @@
 #pragma once
 
 #include "Connection.h"
-#include <WebCore/IDBConnectionToClient.h>
 #include <WebCore/IDBConnectionToClientDelegate.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
@@ -45,7 +44,6 @@ public:
 
     std::optional<WebCore::IDBConnectionIdentifier> identifier() const final { return m_identifier; }
     IPC::Connection::UniqueID ipcConnection() const { return m_connection; }
-    NODELETE WebCore::IDBServer::IDBConnectionToClient& connectionToClient();
 
 private:
     // IDBConnectionToClientDelegate
@@ -70,9 +68,9 @@ private:
     void didIterateCursor(const WebCore::IDBResultData&) final;
     void didGetAllDatabaseNamesAndVersions(const WebCore::IDBResourceIdentifier&, Vector<WebCore::IDBDatabaseNameAndVersion>&&) final;
     void notifyOpenDBRequestBlocked(const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t oldVersion, uint64_t newVersion) final;
-    void fireVersionChangeEvent(WebCore::IDBServer::UniqueIDBDatabaseConnection&, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion) final;
+    void fireVersionChangeEvent(WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion) final;
     void generateIndexKeyForRecord(const WebCore::IDBResourceIdentifier& requestIdentifier, const WebCore::IDBIndexInfo&, const std::optional<WebCore::IDBKeyPath>&, const WebCore::IDBKeyData&, const WebCore::IDBValue&, std::optional<int64_t> recordID);
-    void didCloseFromServer(WebCore::IDBServer::UniqueIDBDatabaseConnection&, const WebCore::IDBError&) final;
+    void didCloseFromServer(WebCore::IDBDatabaseConnectionIdentifier, const WebCore::IDBError&) final;
     template<typename Message> void sendResultWithBlobFileAccess(WebIDBResult&&);
 
     WebIDBResult prepareGetResult(const WebCore::IDBResultData&);
@@ -81,7 +79,6 @@ private:
 
     IPC::Connection::UniqueID m_connection;
     WebCore::IDBConnectionIdentifier m_identifier;
-    const Ref<WebCore::IDBServer::IDBConnectionToClient> m_connectionToClient;
     ThreadSafeWeakPtr<NetworkStorageManager> m_networkStorageManager;
 };
 

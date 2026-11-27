@@ -25,30 +25,42 @@
 
 #pragma once
 
-#include <WebCore/IDBConnectionToClient.h>
-#include <WebCore/IDBDatabaseIdentifier.h>
+#include <WebCore/IDBDatabaseConnectionIdentifier.h>
+#include <WebCore/IDBIndexIdentifier.h>
 #include <WebCore/IDBObjectStoreIdentifier.h>
-#include <WebCore/UniqueIDBDatabase.h>
-#include <WebCore/UniqueIDBDatabaseConnection.h>
-#include <WebCore/UniqueIDBDatabaseManager.h>
-#include <pal/HysteresisActivity.h>
-#include <pal/SessionID.h>
-#include <wtf/CrossThreadTaskHandler.h>
-#include <wtf/HashMap.h>
-#include <wtf/RefPtr.h>
+#include <WebCore/IDBResourceIdentifier.h>
+#include <WebCore/IndexKey.h>
+#include <WebCore/IndexedDB.h>
+#include <WebCore/SecurityOriginData.h>
+#include <wtf/CheckedPtr.h>
+#include <wtf/Function.h>
+#include <wtf/HashSet.h>
 #include <wtf/TZoneMalloc.h>
 
 namespace WebCore {
 
 class IDBCursorInfo;
+class IDBIndexInfo;
+class IDBKeyData;
+class IDBObjectStoreInfo;
+class IDBOpenRequestData;
 class IDBRequestData;
+class IDBTransactionInfo;
 class IDBValue;
+class SwiftIDBServer;
 
+struct ClientOrigin;
+struct IDBGetAllRecordsData;
 struct IDBGetRecordData;
+struct IDBIterateCursorData;
+struct IDBKeyRangeData;
 
 namespace IDBServer {
 
-class IDBServer final : public UniqueIDBDatabaseManager {
+class IDBConnectionToClientDelegate;
+
+// The in-process server's C++ entry, for callers outside WebCore that cannot include WebCore-Swift.h.
+class IDBServer final : public CanMakeThreadSafeCheckedPtr<IDBServer> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(IDBServer, WEBCORE_EXPORT);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(IDBServer);
 public:
@@ -56,8 +68,9 @@ public:
     WEBCORE_EXPORT IDBServer(const String& databaseDirectoryPath, SpaceRequester&&);
     WEBCORE_EXPORT ~IDBServer();
 
-    WEBCORE_EXPORT void registerConnection(IDBConnectionToClient&);
-    WEBCORE_EXPORT void unregisterConnection(IDBConnectionToClient&);
+    WEBCORE_EXPORT void registerConnection(IDBConnectionToClientDelegate&);
+    WEBCORE_EXPORT void unregisterConnection(IDBConnectionIdentifier);
+    WEBCORE_EXPORT void setClientSuspended(IDBConnectionIdentifier, bool);
 
     // Operations requested by the client.
     WEBCORE_EXPORT void openDatabase(const IDBOpenRequestData&);
@@ -90,40 +103,13 @@ public:
 
     WEBCORE_EXPORT void getAllDatabaseNamesAndVersions(IDBConnectionIdentifier, const IDBResourceIdentifier&, const ClientOrigin&);
 
-    // UniqueIDBDatabaseManager
-    void registerConnection(UniqueIDBDatabaseConnection&) final;
-    void unregisterConnection(UniqueIDBDatabaseConnection&) final;
-    void registerTransaction(UniqueIDBDatabaseTransaction&) final;
-    void unregisterTransaction(UniqueIDBDatabaseTransaction&) final;
-    std::unique_ptr<IDBBackingStore> createBackingStore(const IDBDatabaseIdentifier&) final;
-    void requestSpace(const ClientOrigin&, uint64_t size, CompletionHandler<void(bool)>&&) final;
-
     WEBCORE_EXPORT HashSet<SecurityOriginData> getOrigins() const;
     WEBCORE_EXPORT void closeAndDeleteDatabasesModifiedSince(WallTime);
-    WEBCORE_EXPORT void closeAndDeleteDatabasesForOrigins(const Vector<SecurityOriginData>&);
-    void closeDatabasesForOrigins(const Vector<SecurityOriginData>&, NOESCAPE const Function<bool(const SecurityOriginData&, const ClientOrigin&)>&);
-    WEBCORE_EXPORT void renameOrigin(const WebCore::SecurityOriginData&, const WebCore::SecurityOriginData&);
 
     WEBCORE_EXPORT static uint64_t diskUsage(const String& rootDirectory, const ClientOrigin&);
 
 private:
-    UniqueIDBDatabase& getOrCreateUniqueIDBDatabase(const IDBDatabaseIdentifier&);
-    NODELETE RefPtr<UniqueIDBDatabaseTransaction> idbTransaction(const IDBRequestData&) const;
-
-    void upgradeFilesIfNecessary();
-    String upgradedDatabaseDirectory(const WebCore::IDBDatabaseIdentifier&);
-    void removeDatabasesModifiedSinceForVersion(WallTime, const String&);
-    void removeDatabasesWithOriginsForVersion(const Vector<SecurityOriginData>&, const String&);
-
-    HashMap<IDBConnectionIdentifier, Ref<IDBConnectionToClient>> m_connectionMap;
-    HashMap<IDBDatabaseIdentifier, std::unique_ptr<UniqueIDBDatabase>> m_uniqueIDBDatabaseMap;
-
-    HashMap<IDBDatabaseConnectionIdentifier, WeakPtr<UniqueIDBDatabaseConnection>> m_databaseConnections;
-    HashMap<IDBResourceIdentifier, WeakPtr<UniqueIDBDatabaseTransaction>> m_transactions;
-
-    String m_databaseDirectoryPath;
-
-    SpaceRequester m_spaceRequester;
+    std::unique_ptr<SwiftIDBServer> m_server;
 };
 
 } // namespace IDBServer

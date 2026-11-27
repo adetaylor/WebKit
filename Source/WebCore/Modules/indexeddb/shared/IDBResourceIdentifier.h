@@ -38,10 +38,6 @@ namespace IDBClient {
 class IDBConnectionProxy;
 }
 
-namespace IDBServer {
-class IDBConnectionToClient;
-}
-
 using IDBConnectionIdentifier = ProcessIdentifier;
 struct IDBResourceIdentifierHashTraits;
 
@@ -52,7 +48,8 @@ class IDBResourceIdentifier {
 public:
     NODELETE explicit IDBResourceIdentifier(const IDBClient::IDBConnectionProxy&);
     NODELETE IDBResourceIdentifier(const IDBClient::IDBConnectionProxy&, const IDBRequest&);
-    WEBCORE_EXPORT explicit IDBResourceIdentifier(const IDBServer::IDBConnectionToClient&);
+    // A new server resource of the connection to the client with this identifier.
+    WEBCORE_EXPORT explicit IDBResourceIdentifier(IDBConnectionIdentifier);
 
     bool isEmpty() const
     {

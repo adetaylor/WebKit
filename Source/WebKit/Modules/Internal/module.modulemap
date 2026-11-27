@@ -399,6 +399,18 @@ module WebKit_Internal [system] {
         requires objc
     }
 
+    module IDBQuotaCheckHolder {
+        requires cplusplus20
+        header "../../NetworkProcess/storage/IDBQuotaCheckHolder.h"
+        export *
+    }
+
+    module IDBStorageEndpointHolder {
+        requires cplusplus20
+        header "../../NetworkProcess/storage/IDBStorageEndpointHolder.h"
+        export *
+    }
+
     module StreamServerConnection {
         requires cplusplus20
         header "../../Platform/IPC/StreamServerConnection.h"

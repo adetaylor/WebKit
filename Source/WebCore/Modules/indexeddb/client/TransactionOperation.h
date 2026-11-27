@@ -51,7 +51,7 @@ namespace IDBClient {
 
 class TransactionOperation : public ThreadSafeRefCounted<TransactionOperation> {
     WTF_MAKE_TZONE_ALLOCATED(TransactionOperation);
-    friend IDBRequestData::IDBRequestData(TransactionOperation&);
+    friend class WebCore::IDBRequestData;
 public:
     virtual ~TransactionOperation()
     {

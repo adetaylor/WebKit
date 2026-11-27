@@ -28,7 +28,6 @@
 #include "IDBBackingStoreTestSupport.h"
 #include <WebCore/IDBBackingStore.h>
 #include <WebCore/IDBBackingStoreFactories.h>
-#include <WebCore/IDBConnectionToClient.h>
 #include <WebCore/IDBConnectionToClientDelegate.h>
 #include <WebCore/IDBCursorInfo.h>
 #include <WebCore/IDBDatabaseIdentifier.h>
@@ -79,7 +78,6 @@ IDBKeyRangeData numberRange(double lower, double upper)
 class TestStore {
 public:
     explicit TestStore(StoreKind kind)
-        : m_connection(IDBConnectionToClient::create(*m_delegate))
     {
         IDBDatabaseIdentifier identifier { "IDBBackingStoreTest"_s, SecurityOriginData { "https"_s, "test.example"_s, std::nullopt }, SecurityOriginData { "https"_s, "test.example"_s, std::nullopt } };
         m_store = kind == StoreKind::Memory ? makeMemoryIDBBackingStore(identifier) : makeSQLiteMemoryIDBBackingStore(identifier);
@@ -95,16 +93,15 @@ public:
     {
         m_store->close();
         m_store = nullptr;
-        m_connection->clearDelegate();
     }
 
     IDBBackingStore& store() { return *m_store; }
     IDBObjectStoreIdentifier objectStore() const { return m_objectStoreInfo->identifier(); }
-    IDBConnectionToClient& connection() { return m_connection; }
+    IDBConnectionIdentifier connectionIdentifier() const { return *m_delegate->identifier(); }
 
     IDBResourceIdentifier begin(IDBTransactionMode mode)
     {
-        IDBResourceIdentifier transaction { m_connection.get() };
+        IDBResourceIdentifier transaction { connectionIdentifier() };
         std::unique_ptr<IDBDatabaseInfo> original;
         uint64_t newVersion = 0;
         if (mode == IDBTransactionMode::Versionchange) {
@@ -134,7 +131,6 @@ public:
 
 private:
     std::unique_ptr<NullDelegate> m_delegate { makeUnique<NullDelegate>() };
-    Ref<IDBConnectionToClient> m_connection;
     std::unique_ptr<IDBBackingStore> m_store;
     IDBDatabaseInfo m_info;
     std::optional<IDBObjectStoreInfo> m_objectStoreInfo;
@@ -256,7 +252,7 @@ Vector<double> keysReadAroundRandomOrderWrites(StoreKind kind)
 
         // Under a cursor: 600 out-of-order puts, then one more after the cursor's transaction.
         auto underCursor = test.begin(IDBTransactionMode::Readwrite);
-        auto cursor = IDBCursorInfo::forBackingStore(IDBResourceIdentifier { test.connection() }, underCursor, test.objectStore(), std::nullopt, IDBKeyRangeData::allKeys(), IndexedDB::CursorDirection::Next, IndexedDB::CursorType::KeyOnly);
+        auto cursor = IDBCursorInfo::forBackingStore(IDBResourceIdentifier { test.connectionIdentifier() }, underCursor, test.objectStore(), std::nullopt, IDBKeyRangeData::allKeys(), IndexedDB::CursorDirection::Next, IndexedDB::CursorType::KeyOnly);
         IDBGetResult first;
         EXPECT_TRUE(store.openCursor(underCursor, cursor, first).isNull());
         keys.append(first.keyData().number());
@@ -337,7 +333,7 @@ Vector<double> indexRecordsReadAroundRandomOrderWrites(StoreKind kind)
 
         // Under an index cursor: 600 out-of-order puts, then one more after the cursor's transaction.
         auto underCursor = test.begin(IDBTransactionMode::Readwrite);
-        auto cursor = IDBCursorInfo::forBackingStore(IDBResourceIdentifier { test.connection() }, underCursor, test.objectStore(), index, IDBKeyRangeData::allKeys(), IndexedDB::CursorDirection::Next, IndexedDB::CursorType::KeyOnly);
+        auto cursor = IDBCursorInfo::forBackingStore(IDBResourceIdentifier { test.connectionIdentifier() }, underCursor, test.objectStore(), index, IDBKeyRangeData::allKeys(), IndexedDB::CursorDirection::Next, IndexedDB::CursorType::KeyOnly);
         IDBGetResult first;
         EXPECT_TRUE(store.openCursor(underCursor, cursor, first).isNull());
         records.append(first.keyData().number());

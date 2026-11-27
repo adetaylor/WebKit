@@ -29,11 +29,11 @@
 #include "NetworkStorageManager.h"
 #include "WebIDBConnectionToServerMessages.h"
 #include "WebIDBResult.h"
+#include <WebCore/IDBDatabaseNameAndVersion.h>
 #include <WebCore/IDBGetAllResult.h>
 #include <WebCore/IDBGetResult.h>
 #include <WebCore/IDBRequestData.h>
 #include <WebCore/IDBResultData.h>
-#include <WebCore/UniqueIDBDatabaseConnection.h>
 #include <wtf/Borrow.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -44,20 +44,11 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(IDBStorageConnectionToClient);
 IDBStorageConnectionToClient::IDBStorageConnectionToClient(IPC::Connection::UniqueID connection, WebCore::IDBConnectionIdentifier identifier, NetworkStorageManager& networkStorageManager)
     : m_connection(connection)
     , m_identifier(identifier)
-    , m_connectionToClient(WebCore::IDBServer::IDBConnectionToClient::create(*this))
     , m_networkStorageManager(networkStorageManager)
 {
 }
 
-IDBStorageConnectionToClient::~IDBStorageConnectionToClient()
-{
-    m_connectionToClient->clearDelegate();
-}
-
-WebCore::IDBServer::IDBConnectionToClient& IDBStorageConnectionToClient::connectionToClient()
-{
-    return m_connectionToClient;
-}
+IDBStorageConnectionToClient::~IDBStorageConnectionToClient() = default;
 
 void IDBStorageConnectionToClient::didDeleteDatabase(const WebCore::IDBResultData& resultData)
 {
@@ -232,9 +223,9 @@ void IDBStorageConnectionToClient::didGetAllDatabaseNamesAndVersions(const WebCo
     IPC::Connection::send(m_connection, Messages::WebIDBConnectionToServer::DidGetAllDatabaseNamesAndVersions(requestIdentifier, databases), 0);
 }
 
-void IDBStorageConnectionToClient::fireVersionChangeEvent(WebCore::IDBServer::UniqueIDBDatabaseConnection& connection, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion)
+void IDBStorageConnectionToClient::fireVersionChangeEvent(WebCore::IDBDatabaseConnectionIdentifier databaseConnectionIdentifier, const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion)
 {
-    IPC::Connection::send(m_connection, Messages::WebIDBConnectionToServer::FireVersionChangeEvent(connection.identifier(), requestIdentifier, requestedVersion), 0);
+    IPC::Connection::send(m_connection, Messages::WebIDBConnectionToServer::FireVersionChangeEvent(databaseConnectionIdentifier, requestIdentifier, requestedVersion), 0);
 }
 
 void IDBStorageConnectionToClient::generateIndexKeyForRecord(const WebCore::IDBResourceIdentifier& requestIdentifier, const WebCore::IDBIndexInfo& indexInfo, const std::optional<WebCore::IDBKeyPath>& keyPath, const WebCore::IDBKeyData& key, const WebCore::IDBValue& value, std::optional<int64_t> recordID)
@@ -248,9 +239,9 @@ void IDBStorageConnectionToClient::generateIndexKeyForRecord(const WebCore::IDBR
     networkStorageManager->allowAccessToBlobFilesForProcess(m_identifier, Vector<String> { value.blobFilePaths() }, WTF::move(sendResult));
 }
 
-void IDBStorageConnectionToClient::didCloseFromServer(WebCore::IDBServer::UniqueIDBDatabaseConnection& connection, const WebCore::IDBError& error)
+void IDBStorageConnectionToClient::didCloseFromServer(WebCore::IDBDatabaseConnectionIdentifier databaseConnectionIdentifier, const WebCore::IDBError& error)
 {
-    IPC::Connection::send(m_connection, Messages::WebIDBConnectionToServer::DidCloseFromServer(connection.identifier(), error), 0);
+    IPC::Connection::send(m_connection, Messages::WebIDBConnectionToServer::DidCloseFromServer(databaseConnectionIdentifier, error), 0);
 }
 
 void IDBStorageConnectionToClient::notifyOpenDBRequestBlocked(const WebCore::IDBResourceIdentifier& requestIdentifier, uint64_t oldVersion, uint64_t newVersion)

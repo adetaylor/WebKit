@@ -31,8 +31,7 @@
 #include "CacheStorageRegistry.h"
 #include "FileSystemStorageHandleRegistry.h"
 #include "FileSystemStorageManager.h"
-#include "IDBStorageManager.h"
-#include "IDBStorageRegistry.h"
+#include "IDBQuotaCheckHolder.h"
 #include "LocalStorageManager.h"
 #include "Logging.h"
 #include "MemoryStorageArea.h"
@@ -46,6 +45,9 @@
 #include <algorithm>
 #include <wtf/FileSystem.h>
 #include <wtf/TZoneMallocInlines.h>
+
+// Last: the generated header needs the declarations above (rdar://165068038).
+#include "WebKit-Swift.h"
 
 namespace WebKit {
 
@@ -79,7 +81,7 @@ public:
     NODELETE LocalStorageManager* existingLocalStorageManager() { return m_localStorageManager.get(); }
     SessionStorageManager& sessionStorageManager(StorageAreaRegistry&);
     NODELETE SessionStorageManager* existingSessionStorageManager() { return m_sessionStorageManager.get(); }
-    IDBStorageManager& idbStorageManager(IDBStorageRegistry&, IDBStorageManager::QuotaCheckFunction&&, bool useSQLiteMemoryBackingStore);
+    IDBStorageManager& idbStorageManager(IDBStorageRegistry&, IDBQuotaCheckHolder::QuotaCheckFunction&&, bool useSQLiteMemoryBackingStore);
     NODELETE IDBStorageManager* existingIDBStorageManager() { return m_idbStorageManager.get(); }
     CacheStorageManager& cacheStorageManager(CacheStorageRegistry&, const WebCore::ClientOrigin&, CacheStorageManager::QuotaCheckFunction&&, Ref<WorkQueue>&&);
     NODELETE CacheStorageManager* existingCacheStorageManager() { return m_cacheStorageManager.get(); }
@@ -238,10 +240,10 @@ SessionStorageManager& OriginStorageManager::StorageBucket::sessionStorageManage
     return *m_sessionStorageManager;
 }
 
-IDBStorageManager& OriginStorageManager::StorageBucket::idbStorageManager(IDBStorageRegistry& registry, IDBStorageManager::QuotaCheckFunction&& quotaCheckFunction, bool useSQLiteMemoryBackingStore)
+IDBStorageManager& OriginStorageManager::StorageBucket::idbStorageManager(IDBStorageRegistry& registry, IDBQuotaCheckHolder::QuotaCheckFunction&& quotaCheckFunction, bool useSQLiteMemoryBackingStore)
 {
     if (!m_idbStorageManager)
-        lazyInitialize(m_idbStorageManager, makeUnique<IDBStorageManager>(resolvedIDBStoragePath(), registry, WTF::move(quotaCheckFunction), useSQLiteMemoryBackingStore));
+        lazyInitialize(m_idbStorageManager, makeUniqueWithoutFastMallocCheck<IDBStorageManager>(IDBStorageManager::init(resolvedIDBStoragePath(), registry, IDBQuotaCheckHolder { WTF::move(quotaCheckFunction) }, useSQLiteMemoryBackingStore)));
     return *m_idbStorageManager;
 }
 
@@ -289,7 +291,7 @@ bool OriginStorageManager::StorageBucket::hasDataInMemory() const
 {
     return (m_localStorageManager && m_localStorageManager->hasDataInMemory())
         || (m_sessionStorageManager && m_sessionStorageManager->hasDataInMemory())
-        || (m_idbStorageManager && CheckedRef { *m_idbStorageManager }->hasDataInMemory())
+        || (m_idbStorageManager && m_idbStorageManager->hasDataInMemory())
         || (m_cacheStorageManager && m_cacheStorageManager->hasDataInMemory());
 }
 
@@ -336,7 +338,7 @@ OptionSet<WebsiteDataType> OriginStorageManager::StorageBucket::fetchDataTypesIn
     }
 
     if (types.contains(WebsiteDataType::IndexedDBDatabases)) {
-        if (m_idbStorageManager && CheckedRef { *m_idbStorageManager }->hasDataInMemory())
+        if (m_idbStorageManager && m_idbStorageManager->hasDataInMemory())
             result.add(WebsiteDataType::IndexedDBDatabases);
     }
 
@@ -453,7 +455,7 @@ void OriginStorageManager::StorageBucket::deleteSessionStorageData()
 
 void OriginStorageManager::StorageBucket::deleteIDBStorageData(WallTime time)
 {
-    if (CheckedPtr manager = m_idbStorageManager.get())
+    if (auto* manager = m_idbStorageManager.get())
         manager->closeDatabasesForDeletion();
 
     FileSystem::deleteAllFilesModifiedSince(resolvedIDBStoragePath(), time);
@@ -482,7 +484,7 @@ void OriginStorageManager::StorageBucket::moveData(OptionSet<WebsiteDataType> ty
     }
 
     if (types.contains(WebsiteDataType::IndexedDBDatabases) && !idbStoragePath.isEmpty()) {
-        if (CheckedPtr manager = m_idbStorageManager.get())
+        if (auto* manager = m_idbStorageManager.get())
             manager->closeDatabasesForDeletion();
 
         auto currentIDBStoragePath = resolvedIDBStoragePath();
