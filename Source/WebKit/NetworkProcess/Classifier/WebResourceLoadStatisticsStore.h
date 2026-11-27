@@ -33,6 +33,7 @@
 #include <WebCore/DocumentStorageAccess.h>
 #include <WebCore/FrameIdentifier.h>
 #include <WebCore/IsLoggedIn.h>
+#include <WebCore/LoginStatus.h>
 #include <WebCore/OrganizationStorageAccessPromptQuirk.h>
 #include <WebCore/PermissionState.h>
 #include <WebCore/ResourceLoadObserver.h>
