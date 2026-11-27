@@ -4909,6 +4909,56 @@ else ()
 
         platform/RegistrableDomain.h
     )
+    # The IndexedDB server's and the service worker server's Swift (WebCore_Private.Core.<header> imports), whose headers
+    # the Apple ports' framework umbrella gives as submodules.
+    list(APPEND _webcore_swift_core_submodules
+        Modules/indexeddb/IDBDatabaseIdentifier.h
+        Modules/indexeddb/IDBIndexIdentifier.h
+        Modules/indexeddb/IDBKeyPath.h
+        Modules/indexeddb/IDBObjectStoreIdentifier.h
+
+        Modules/indexeddb/server/IDBConnectionToClientDelegate.h
+
+        Modules/indexeddb/shared/IDBDatabaseConnectionIdentifier.h
+        Modules/indexeddb/shared/IDBDatabaseNameAndVersion.h
+        Modules/indexeddb/shared/IDBGetAllRecordsData.h
+        Modules/indexeddb/shared/IDBGetRecordData.h
+        Modules/indexeddb/shared/IDBIterateCursorData.h
+        Modules/indexeddb/shared/IDBOpenRequestData.h
+        Modules/indexeddb/shared/IDBRequestData.h
+        Modules/indexeddb/shared/IDBResultData.h
+
+        dom/ExceptionData.h
+
+        loader/FetchOptions.h
+
+        page/ClientOrigin.h
+        page/SecurityOriginData.h
+
+        platform/ProcessIdentifier.h
+        platform/ScriptExecutionContextIdentifier.h
+
+        workers/WorkerThreadMode.h
+
+        workers/service/ServiceWorkerClientData.h
+        workers/service/ServiceWorkerContextData.h
+        workers/service/ServiceWorkerJobData.h
+        workers/service/ServiceWorkerJobDataIdentifier.h
+        workers/service/ServiceWorkerRegistrationData.h
+        workers/service/ServiceWorkerRegistrationKey.h
+        workers/service/ServiceWorkerRoute.h
+        workers/service/ServiceWorkerTypes.h
+
+        workers/service/background-fetch/BackgroundFetchEngine.h
+
+        workers/service/server/SWOriginStore.h
+        workers/service/server/SWRegistrationStore.h
+        workers/service/server/SWServer.h
+        workers/service/server/SWServerJobQueue.h
+        workers/service/server/SWServerRegistration.h
+        workers/service/server/SWServerToContextConnection.h
+        workers/service/server/SWServerWorker.h
+    )
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_SECURITY_POLICIES_SWIFT_INTEROP_SOURCES})
     list(APPEND _webcore_swift_core_submodules loader/SecurityPoliciesSwiftTypes.h platform/network/ResourceResponseBase.h
         dom/Exception.h dom/ExceptionCode.h dom/OriginKeyed.h dom/SandboxFlags.h Modules/fetch/FetchHeadersGuard.h
