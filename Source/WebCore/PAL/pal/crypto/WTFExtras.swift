@@ -140,7 +140,7 @@ public func makeVectorUInt8(copying bytes: some ContiguousBytes) -> WTF.VectorUI
         if source.count > 0 {
             // Safe: result was just allocated at source.count bytes, so destination exactly covers its live storage.
             let destination = unsafe UnsafeMutableRawBufferPointer(
-                start: UnsafeMutableRawPointer(mutating: result.span().__dataUnsafe()),
+                start: UnsafeMutableRawPointer(mutating: result.span().data()),
                 count: result.size()
             )
             // Safe: copyMemory traps on a size mismatch, and source/destination come from separate, non-overlapping allocations.
