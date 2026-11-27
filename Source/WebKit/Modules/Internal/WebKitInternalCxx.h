@@ -39,6 +39,11 @@
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"
 
+// ResourceLoadStatisticsStore.swift calls SQLite's C API, which off Apple has no SQLite3 module to come from.
+#if !PLATFORM(COCOA)
+#include <sqlite3.h>
+#endif
+
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 #include "RemoteSampleBufferDisplayLayerManagerMessages.h"
 #include "RemoteSampleBufferDisplayLayerMessages.h"
