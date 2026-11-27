@@ -1991,6 +1991,7 @@ set(_jsc_swift_boundary_parser_headers
     bytecompiler/Label.h
 
     parser/ASTBuilder.h
+    parser/ModuleScopeData.h
     parser/NodeConstructors.h
     parser/Nodes.h
     parser/Parser.h
