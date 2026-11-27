@@ -34,7 +34,9 @@
 
 using CGColorSpaceRef = struct CGColorSpace*;
 using CVPixelBufferPoolRef = struct __CVPixelBufferPool*;
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
+typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 
 namespace WebCore {
 class ProcessIdentity;
