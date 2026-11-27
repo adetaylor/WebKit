@@ -573,12 +573,14 @@ list(APPEND WebKit_SOURCES
     UIProcess/WebAuthentication/Virtual/VirtualLocalConnection.mm
     UIProcess/WebAuthentication/Virtual/VirtualService.mm
 
+    # The Swift _WKAuthenticatorResponse (the Xcode build's) does not build with CMake: see the commit message.
+    UIProcess/API/Cocoa/_WKAuthenticatorResponse.mm
+
     UIProcess/WebAuthentication/fido/CtapAuthenticator.cpp
     UIProcess/WebAuthentication/fido/CtapCcidDriver.cpp
     UIProcess/WebAuthentication/fido/CtapHidDriver.cpp
     ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKAuthenticatorAssertionResponse.swift
     ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKAuthenticatorAttestationResponse.swift
-    ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKAuthenticatorResponse.swift
     ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKAuthenticatorSelectionCriteria.swift
     ${WEBKIT_DIR}/UIProcess/API/Cocoa/_WKWebAuthenticationPanel.swift
     ${WEBKIT_DIR}/UIProcess/WebAuthentication/AuthenticatorManager.swift
