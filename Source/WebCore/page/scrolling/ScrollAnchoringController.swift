@@ -43,10 +43,14 @@ internal import WebCore_Private.Core.RenderLayerScrollableArea
 internal import WebCore_Private.Core.RenderObject
 internal import WebCore_Private.Core.RenderObjectStyle
 internal import WebCore_Private.Core.ScrollAnchoringController
+#if canImport(os)
 import os
+#endif
 internal import wtf
 
+#if canImport(os)
 private let scrollAnchoringLogger = Logger(subsystem: "com.apple.WebKit", category: "ScrollAnchoring")
+#endif
 
 // LOG_WITH_STREAM(ScrollAnchoring, ...): writeMessage runs only while the channel is on.
 private func logScrollAnchoring(_ writeMessage: (inout WTF.TextStream) -> Void) {
@@ -611,18 +615,22 @@ extension WebCore.ScrollAnchoringController {
         roundedAdjustment = scrollerBox.writingMode().constrainedToBlockDirection(roundedAdjustment)
 
         if m_disablementHeuristic.disabledByHeuristic(roundedAdjustment) {
+            #if canImport(os)
             scrollAnchoringLogger.log(
                 "ScrollAnchoringController::adjustScrollPositionForAnchoring() is main frame: \(self.frameView().frame().isMainFrame(), privacy: .public), is main scroller: \(!self.owningScrollableAreaIsRenderLayer(), privacy: .public), adjustment (\(adjustment.width(), format: .fixed(precision: 2), privacy: .public), \(adjustment.height(), format: .fixed(precision: 2), privacy: .public)) disabled by heuristic"
             )
+            #endif
             return
         }
 
         let currentPosition = owningScrollPosition()
         let newScrollPosition = WebCore.ScrollPosition(currentPosition.x() &+ roundedAdjustment.width(), currentPosition.y() &+ roundedAdjustment.height())
 
+        #if canImport(os)
         scrollAnchoringLogger.log(
             "ScrollAnchoringController::adjustScrollPositionForAnchoring() is main frame: \(self.frameView().frame().isMainFrame(), privacy: .public), is main scroller: \(!self.owningScrollableAreaIsRenderLayer(), privacy: .public), adjusting from (\(currentPosition.x(), privacy: .public), \(currentPosition.y(), privacy: .public)) to (\(newScrollPosition.x(), privacy: .public), \(newScrollPosition.y(), privacy: .public))"
         )
+        #endif
         logScrollAnchoring { stream in
             stream.appendUTF8("ScrollAnchoringController ".utf8.span)
             writeAddress(&stream)

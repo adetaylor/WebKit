@@ -57,9 +57,11 @@ internal import WebCore_Private.Core.IDBValue
 internal import WebCore_Private.Core.IndexKey
 internal import WebCore_Private.Core.IndexedDB
 internal import WebCore_Private.Core.SwiftIDBTypes
+#if canImport(os)
 import os
 
 private let indexedDBLog = os.Logger(subsystem: "com.apple.WebKit", category: "IndexedDB")
+#endif
 
 /// A reference type, so reading a field out of the database's dictionary of transactions copies one reference, not the
 /// whole record (its arrays, its identifiers and a version change's copy of the schema).
@@ -120,9 +122,11 @@ extension UniqueIDBDatabaseTransaction {
 
     func shouldAbortDueToUnhandledRequestError(handledRequestResultsCount: UInt64) -> Bool {
         guard handledRequestResultsCount <= requestResultsCount else {
+            #if canImport(os)
             indexedDBLog.error(
                 "\(self.serial.value) - UniqueIDBDatabaseTransaction.shouldAbortDueToUnhandledRequestError: finished request count (\(handledRequestResultsCount)) is bigger than total request count \(self.requestResultsCount)"
             )
+            #endif
             return false
         }
 
@@ -434,9 +438,11 @@ extension UniqueIDBDatabase {
         }
 
         if transaction.activeCreateIndexRequestIdentifier != nil {
+            #if canImport(os)
             indexedDBLog.error(
                 "\(serial.value) - UniqueIDBDatabaseTransaction.createIndex: ignored create index request since there is one in progress"
             )
+            #endif
             return
         }
 
