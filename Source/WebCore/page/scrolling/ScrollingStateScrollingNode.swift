@@ -365,8 +365,7 @@ extension WebCore.ScrollingStateScrollingNode {
     @cxx
     @implementation
     public func setScrollbarHoverState(_ hoverState: WebCore.ScrollbarHoverState) {
-        if hoverState.mouseIsOverHorizontalScrollbar == m_scrollbarHoverState.mouseIsOverHorizontalScrollbar
-            && hoverState.mouseIsOverVerticalScrollbar == m_scrollbarHoverState.mouseIsOverVerticalScrollbar {
+        if hoverState == m_scrollbarHoverState {
             return
         }
 
