@@ -36,4 +36,7 @@ using ScrollingPlatformLayer = CoordinatedPlatformLayer;
 using ScrollingPlatformLayer = PlatformLayer;
 #endif
 
+// For Swift: CoordinatedPlatformLayer imports as a reference type with no ==.
+inline bool scrollingPlatformLayersAreSame(ScrollingPlatformLayer* a, ScrollingPlatformLayer* b) { return a == b; }
+
 } // namespace WebCore
