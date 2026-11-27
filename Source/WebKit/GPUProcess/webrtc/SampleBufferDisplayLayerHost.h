@@ -40,7 +40,9 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 
 namespace IPC {
 class SwiftReplyEncoder;

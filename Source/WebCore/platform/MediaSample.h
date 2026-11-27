@@ -37,7 +37,9 @@
 
 typedef struct opaqueCMSampleBuffer *CMSampleBufferRef;
 #if PLATFORM(COCOA)
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 #endif
 typedef struct _GstSample GstSample;
 typedef const struct opaqueCMFormatDescription *CMFormatDescriptionRef;

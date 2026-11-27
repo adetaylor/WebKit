@@ -48,7 +48,9 @@ typedef CF_CLOSED_ENUM(uint32_t, CGImageHDRTarget)
     kCGImageHDRTargetGainMap, // e.g. HDR -> M+
 };
 
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 
 IMAGEIO_EXTERN const CFStringRef kCGImageAuxiliaryDataInfoColorSpace;
 IMAGEIO_EXTERN const CFStringRef kCGImageAuxiliaryDataInfoMetadata;

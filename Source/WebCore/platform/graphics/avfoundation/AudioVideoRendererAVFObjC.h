@@ -45,7 +45,9 @@
 OBJC_CLASS AVSampleBufferRenderSynchronizer;
 OBJC_CLASS NSObject;
 OBJC_PROTOCOL(WebSampleBufferVideoRendering);
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 typedef struct opaqueCMSampleBuffer *CMSampleBufferRef;
 
 namespace WebCore {

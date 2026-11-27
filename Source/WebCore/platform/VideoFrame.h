@@ -46,7 +46,9 @@
 #endif
 
 #if PLATFORM(COCOA)
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 typedef struct CGAffineTransform CGAffineTransform;
 #endif
 

@@ -32,7 +32,9 @@
 
 typedef struct CGImage *CGImageRef;
 typedef struct OpaqueVTPixelTransferSession* VTPixelTransferSessionRef;
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 typedef struct __CVPixelBufferPool *CVPixelBufferPoolRef;
 typedef struct __IOSurface *IOSurfaceRef;
 typedef struct opaqueCMSampleBuffer *CMSampleBufferRef;

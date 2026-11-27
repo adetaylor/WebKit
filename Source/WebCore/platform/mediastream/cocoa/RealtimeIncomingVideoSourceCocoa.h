@@ -32,7 +32,9 @@
 #include <WebCore/RealtimeIncomingVideoSource.h>
 
 using CVPixelBufferPoolRef = struct __CVPixelBufferPool*;
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 
 namespace webrtc {
 enum class BufferType;

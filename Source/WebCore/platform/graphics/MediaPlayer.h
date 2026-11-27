@@ -66,7 +66,9 @@ OBJC_CLASS AVPlayer;
 OBJC_CLASS NSArray;
 
 #if USE(AVFOUNDATION)
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 #endif
 
 namespace WTF {
