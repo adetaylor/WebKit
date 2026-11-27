@@ -58,12 +58,12 @@ import WebCore_Private.Core.SharedMemory
 
     // The start of the memory, which this object keeps.
     private var baseAddress: UnsafeMutableRawPointer? {
-        unsafe UnsafeMutableRawPointer(memory.mutableSpan().data())
+        return unsafe UnsafeMutableRawPointer(memory.mutableSpan().__dataUnsafe())
     }
 
     public func withBytes<Result>(_ body: (Span<UInt8>) throws -> Result) rethrows -> Result {
         let span = unsafe memory.span()
-        let buffer = unsafe UnsafeBufferPointer(start: span.data(), count: span.size())
+        let buffer = unsafe UnsafeBufferPointer(start: span.__dataUnsafe(), count: span.size())
         return try body(unsafe buffer.span)
     }
 

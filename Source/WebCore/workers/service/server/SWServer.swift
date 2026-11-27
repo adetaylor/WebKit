@@ -455,7 +455,7 @@ extension WebCore.SWServer {
 
         m_isInspectable = inspectable
 
-        for unsafe connection in unsafe contextConnectionValues() {
+        for connection in contextConnectionValues() {
             connection.get().setInspectable(inspectable)
         }
     }
