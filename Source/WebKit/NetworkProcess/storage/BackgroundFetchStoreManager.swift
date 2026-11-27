@@ -120,8 +120,9 @@ extension WebKit.BackgroundFetchStoreManager {
     @implementation
     static func writeResponseBodyChunk(
         _ filePath: WTF.String,
-        _ data: borrowing WebCore.SharedBuffer
+        _ borrowedData: borrowing WebCore.SharedBuffer
     ) -> WebCore.BackgroundFetchStore.StoreResult {
+        let data = copy borrowedData
         var handle = WTF.FileSystemImpl.openFile(filePath, .ReadWrite)
         guard handle.isValid() else {
             return .InternalError
