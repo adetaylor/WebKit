@@ -45,7 +45,7 @@ extension WebCore.SWOriginStore {
             addToStore(origin)
         }
         // Wraps only after 2^64 adds of one origin.
-        _ = m_originCounts.setValue(origin, count &+ 1)
+        _ = m_originCounts.setValue(origin, .init(truncatingIfNeeded: count &+ 1))
     }
 
     @cxx
@@ -58,7 +58,7 @@ extension WebCore.SWOriginStore {
         }
 
         guard count == 1 else {
-            _ = m_originCounts.setValue(origin, count &- 1) // count is at least 2 here.
+            _ = m_originCounts.setValue(origin, .init(truncatingIfNeeded: count &- 1)) // count is at least 2 here.
             return
         }
 
