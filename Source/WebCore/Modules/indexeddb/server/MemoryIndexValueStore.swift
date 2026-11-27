@@ -27,12 +27,14 @@
 // both sorted arrays of MemoryIDBKey in IDBKeyData's order, searched by binary search with memoryIDBCompare. Cursors hold
 // a MemoryIndexValueStorePosition (indices plus a generation).
 
+#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
 internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
 internal import JavaScriptCore_Private.Cxx.Snippet
 internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+#endif
 internal import WebCore_Private.Core.IDBKeyData
 internal import WebCore_Private.Core.IndexedDB
 internal import WebCore_Private.Core.SwiftIDBTypes

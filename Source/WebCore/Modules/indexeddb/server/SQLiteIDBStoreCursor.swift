@@ -28,12 +28,14 @@
 // from the current position to the end of the range, the records fetched ahead of the current one, and the restart
 // after the object store changes. The statements are owned here and reached through get() for one use.
 
+#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
 internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
 internal import JavaScriptCore_Private.Cxx.Snippet
 internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+#endif
 internal import WebCore_Private.Core.IDBCursorInfo
 internal import WebCore_Private.Core.IDBGetResult
 internal import WebCore_Private.Core.IDBKeyData
