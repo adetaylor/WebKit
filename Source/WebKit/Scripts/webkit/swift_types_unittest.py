@@ -159,6 +159,9 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertEqual(swift_types.swift_type_and_coder('std::optional<WebCore::StyleAppearance>'), ('WebCore.StyleAppearance?', 'IPCCoding.StdOptional<IPCCoding.CxxEnum<WebCore.StyleAppearance>>'))
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::FontSmoothingMode'), ('WebCore.FontSmoothingMode', 'IPCCoding.CxxEnum<WebCore.FontSmoothingMode>'))
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::StrokeStyle'), ('WebCore.StrokeStyle', 'IPCCoding.CxxEnum<WebCore.StrokeStyle>'))
+        # Hand-written in IPC (SwiftCoding.swift), and coded as a C++ enum.
+        self.assertTrue(swift_types.is_hand_written('IPC::MessageName'))
+        self.assertEqual(swift_types.swift_type_and_coder('IPC::MessageName'), ('IPC.MessageName', 'IPCCoding.CxxEnum<IPC.MessageName>'))
 
     def test_cxx_name(self):
         self.assertEqual(swift_types.swift_cxx_name('WebCore::FrameIdentifier'), 'WebCore_FrameIdentifier')

@@ -81,6 +81,7 @@ extension WebKit.RemoteMediaPlayerManagerProxy {
         return player.mediaPlayer()
     }
 
+    #if WTF_PLATFORM_COCOA
     @cxx
     @implementation
     @MainActor
@@ -94,6 +95,7 @@ extension WebKit.RemoteMediaPlayerManagerProxy {
         }
         return WebKit.OptionalFloatRect()
     }
+    #endif
 
     // MARK: Messages
 

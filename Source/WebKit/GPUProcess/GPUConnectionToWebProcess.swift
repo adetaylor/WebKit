@@ -102,7 +102,7 @@ final class GPUConnectionState {
     // From before the connection opens: the C++ connection registers its forwarder on the codecs queue.
     fileprivate var libWebRTCCodecsProxy: LibWebRTCCodecsProxy?
     #endif
-    #if ENABLE_GPU_PROCESS_MEDIA_SWIFT
+    #if ENABLE_GPU_PROCESS_CORE_SWIFT
     // The web process's audio hardware listeners, by identifier, until it releases them.
     var audioHardwareListeners: [UInt64: RemoteAudioHardwareListenerProxy] = [:]
     #endif
@@ -534,7 +534,7 @@ extension WebKit.GPUConnectionToWebProcess {
         nowPlayingArbiter.isActive(process: state.processIdentifier, session: identifier.rawValue)
     }
 
-    #if ENABLE_GPU_PROCESS_MEDIA_SWIFT
+    #if ENABLE_GPU_PROCESS_CORE_SWIFT
     @cxx
     @implementation
     @MainActor
@@ -612,7 +612,7 @@ extension WebKit.GPUConnectionToWebProcess {
         _ hasWebProcessIdentity: Bool
     ) {
         precondition(state.renderingBackends[identifier] == nil, "The rendering backend has been added")
-        #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+        #if ENABLE_GPU_PROCESS_RENDERING_BACKEND_SWIFT
         let videoFrameSources = GPUVideoFrameSources(
             heap: videoFrameHeap.frames,
             webProcessIdentity: hasWebProcessIdentity ? webProcessIdentity : nil
@@ -628,7 +628,7 @@ extension WebKit.GPUConnectionToWebProcess {
     @MainActor
     func swiftAddRenderingBackend(_ identifier: UInt64, _ renderingBackend: WebKit.RemoteRenderingBackend) {
         precondition(state.renderingBackends[identifier] == nil, "The rendering backend has been added")
-        #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+        #if ENABLE_GPU_PROCESS_RENDERING_BACKEND_SWIFT
         renderingBackend.initializeSwiftState(videoFrameSources: GPUVideoFrameSources())
         #endif
         state.renderingBackends[identifier] = renderingBackend
@@ -936,7 +936,7 @@ extension WebKit.GPUConnectionToWebProcess {
         gpuProcess().releaseTransferredImageBuffer(identifier)
     }
 
-    #if ENABLE_MEDIA_STREAM
+    #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
     @cxx
     @implementation
     @MainActor

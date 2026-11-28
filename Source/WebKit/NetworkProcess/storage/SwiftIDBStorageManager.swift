@@ -26,9 +26,11 @@
 @_spi(IDBServer) internal import WebCore
 internal import WebCore_Private
 internal import WebKit_Internal
+#if canImport(os)
 import os
 
 private let indexedDBLog = os.Logger(subsystem: "com.apple.WebKit", category: "IndexedDB")
+#endif
 
 // One origin's IndexedDB databases in the network process.
 @_expose(Cxx)
@@ -332,7 +334,9 @@ final class IDBStorageManager {
     @used
     func tryCloseDatabase(_ identifier: WebCore.IDBDatabaseIdentifier) {
         if core.tryCloseDatabase(identifier) {
+            #if canImport(os)
             indexedDBLog.log("Closed database")
+            #endif
         }
     }
 }

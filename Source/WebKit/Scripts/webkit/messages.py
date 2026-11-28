@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_SENDERS_ATTRIBUTE, NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, SWIFT_COMPLETION_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, SWIFT_DESTINATION_ID_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_SENDERS_ATTRIBUTE, DESCRIBE_ARGUMENTS_ON_EVERY_PORT_ATTRIBUTE, NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, SWIFT_COMPLETION_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, SWIFT_DESTINATION_ID_ATTRIBUTE, MessageReceiver, Message
 
 # The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
 LENT_BYTES_CODER = 'IPC.LentBytes'
@@ -4226,6 +4226,12 @@ def generate_js_value_conversion_function(result, receivers, function_name, deco
     result.append('}')
 
 
+def argument_descriptions_receiver_condition(receiver):
+    if receiver.has_attribute(DESCRIBE_ARGUMENTS_ON_EVERY_PORT_ATTRIBUTE):
+        return None
+    return receiver.condition
+
+
 def generate_js_argument_descriptions(receivers, function_name, arguments_from_message):
     result = []
     result.append('std::optional<Vector<ArgumentDescription>> %s(MessageName name)' % function_name)
@@ -4234,8 +4240,9 @@ def generate_js_argument_descriptions(receivers, function_name, arguments_from_m
     for receiver in receivers:
         if receiver.has_attribute(BUILTIN_ATTRIBUTE):
             continue
-        if receiver.condition:
-            result.append('#if %s' % receiver.condition)
+        condition = argument_descriptions_receiver_condition(receiver)
+        if condition:
+            result.append('#if %s' % condition)
         previous_message_condition = None
         for message in receiver.messages:
             if message.has_attribute(BUILTIN_ATTRIBUTE):
@@ -4261,7 +4268,7 @@ def generate_js_argument_descriptions(receivers, function_name, arguments_from_m
             result.append('        };')
         if previous_message_condition:
             result.append('#endif')
-        if receiver.condition:
+        if condition:
             result.append('#endif')
     result.append('    default:')
     result.append('        break;')

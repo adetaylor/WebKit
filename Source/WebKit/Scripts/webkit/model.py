@@ -85,6 +85,8 @@ SWIFT_SYNC_HANDLER_ATTRIBUTE = 'SwiftSyncHandler'
 SWIFT_COMPLETION_HANDLER_ATTRIBUTE = 'SwiftCompletionHandler'
 NOT_USING_IPC_CONNECTION_ATTRIBUTE = 'NotUsingIPCConnection'
 WANTS_CONNECTION_ATTRIBUTE = 'WantsConnection'
+# On a receiver with a condition: its messages' argument descriptions, which decode nothing, don't carry that condition.
+DESCRIBE_ARGUMENTS_ON_EVERY_PORT_ATTRIBUTE = 'DescribeArgumentsOnEveryPort'
 # On a message to a receiver whose state C++ lends: its Swift handler returns false to decline the message, which the
 # lender then handles in C++, once the state is no longer lent, with the same arguments.
 SWIFT_MAY_DECLINE_ATTRIBUTE = 'SwiftMayDecline'

@@ -42,7 +42,25 @@ webkit_target_add_swift_options(WebCoreWebGL
     "-enable-experimental-feature CxxImplementation"
     -warnings-as-errors
 )
+if (NOT APPLE)
+    # What the Apple ports give every Swift target: the module that extends its clang module (WebCoreWebGL.h), WTF's
+    # module map, which is not at the root of its include directory here, and the experimental features the
+    # module's Swift is written against (WebKitSwiftFlags.cmake), which WebCore's Swift also takes per target.
+    webkit_target_add_swift_options(WebCoreWebGL
+        -import-underlying-module
+        "-Xcc -fmodule-map-file=${WTF_HEADERS_DIR}/module.modulemap"
+        ${WEBKIT_SWIFT_EXPERIMENTAL_FEATURE_FLAGS}
+        ${WEBKIT_SWIFT_MEMORY_SAFETY_FLAGS}
+    )
+endif ()
+# USE(COORDINATED_GRAPHICS), which the EGL context's configuration and attributes test.
+if (USE_COORDINATED_GRAPHICS)
+    webkit_target_add_swift_options(WebCoreWebGL "-D USE_COORDINATED_GRAPHICS")
+endif ()
 WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebCoreWebGL)
+if (NOT APPLE)
+    WEBKIT_SWIFT_LTO_OUTSIDE_DEBUG(WebCoreWebGL)
+endif ()
 
 # The C++ that includes the generated header is in WebCore_SwiftInterop, which WebCore orders after this through
 # WebCoreWebGL_SwiftInterop.

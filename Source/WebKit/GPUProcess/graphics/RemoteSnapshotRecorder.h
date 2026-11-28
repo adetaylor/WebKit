@@ -35,6 +35,7 @@
 #include <wtf/FunctionDispatcher.h>
 #include <wtf/HashMap.h>
 #include <wtf/Lock.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
 namespace WebKit {
@@ -42,8 +43,8 @@ namespace WebKit {
 class DisplayListData;
 
 // The display lists of a snapshot's frames, on the ports that record them as WebCore display lists: C++ records and draws
-// them, and the snapshot (RemoteSnapshot.swift) says when its frames are resolved. A frame that the snapshot abandoned
-// draws nothing, even if its display list comes in later.
+// them, and the snapshot (RemoteSnapshot.swift), which holds them, says when its frames are resolved. A frame that the snapshot
+// abandoned draws nothing, even if its display list comes in later. On any thread: m_lock guards the frames.
 class RemoteSnapshotDisplayLists final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<RemoteSnapshotDisplayLists> {
 public:
     static Ref<RemoteSnapshotDisplayLists> create() { return adoptRef(*new RemoteSnapshotDisplayLists); }
@@ -58,6 +59,13 @@ public:
     [[nodiscard]] bool applyFrame(WebCore::FrameIdentifier, WebCore::GraphicsContext&) const;
 #if PLATFORM(COCOA)
     std::optional<DisplayListData> createDisplayListData(WebCore::FrameIdentifier rootFrameIdentifier) const;
+#endif
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    // SWIFT_UNSAFE: Swift counts its references itself, and a call by name would unbalance them.
+    SWIFT_UNSAFE void ref() const { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::ref(); }
+    SWIFT_UNSAFE void deref() const { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::deref(); }
 #endif
 
 private:
@@ -84,7 +92,7 @@ private:
     mutable Lock m_lock;
     // None for a frame that was abandoned.
     HashMap<WebCore::FrameIdentifier, std::optional<DisplayListAndReleaseDispatcher>> m_frames WTF_GUARDED_BY_LOCK(m_lock);
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // RemoteSnapshotRecorder is a display list recorder that can convert a snapshot subframe rendering into
 // its own draw item. In other words, RemoteSnapshotRecorder has the right to source snapshot subframe
@@ -95,8 +103,15 @@ public:
     static Ref<RemoteSnapshotRecorder> create(RemoteSnapshotRecorderIdentifier, const RemoteSnapshotIdentifier&, RemoteRenderingBackend&);
     ~RemoteSnapshotRecorder();
     void stopListeningForIPC();
-    // Makes what it recorded the snapshot's frame, whose display list is released on the dispatcher.
-    void sinkIntoSnapshotFrame(WebCore::FrameIdentifier, SerialFunctionDispatcher&);
+    // Makes what it recorded the snapshot's frame, whose display list is released on the backend's work queue.
+    void sinkIntoSnapshotFrame(WebCore::FrameIdentifier);
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    // SWIFT_UNSAFE: Swift counts its references itself, and a call by name would unbalance them.
+    SWIFT_UNSAFE void ref() const { IPC::StreamMessageReceiver::ref(); }
+    SWIFT_UNSAFE void deref() const { IPC::StreamMessageReceiver::deref(); }
+#endif
 
 private:
     RemoteSnapshotRecorder(Ref<WebCore::DisplayList::RecorderImpl>&&, RemoteSnapshotRecorderIdentifier, const RemoteSnapshotIdentifier&, RemoteRenderingBackend&);
@@ -113,7 +128,7 @@ private:
     const Ref<RemoteSnapshotDisplayLists> m_displayLists;
     const Ref<WebCore::DisplayList::RecorderImpl> m_recorder;
     const RemoteSnapshotRecorderIdentifier m_identifier;
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

@@ -44,6 +44,7 @@ reset_results = False
 _test_receiver_names = [
     'TestWithCVPixelBuffer',
     'TestWithDeferSendingOption',
+    'TestWithDescribeArgumentsOnEveryPort',
     'TestWithDispatchedFromAndTo',
     'TestWithEnabledBy',
     'TestWithEnabledByAndConjunction',

@@ -44,6 +44,8 @@
     Recordable
 ]
 messages -> RemoteCGRenderer Stream {
+# Message names follow their messages' conditions, not the receiver's.
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     Save
     Restore
     Translate
@@ -152,6 +154,7 @@ messages -> RemoteCGRenderer Stream {
 #endif
     DrawDisplayList(WebKit::RemoteDisplayListIdentifier identifier) StreamBatched
     DrawSnapshotFrame(WebCore::FrameIdentifier frameIdentifier)
+#endif
 }
 
 #endif

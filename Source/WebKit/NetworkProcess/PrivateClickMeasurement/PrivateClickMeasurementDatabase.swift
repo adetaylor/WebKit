@@ -23,7 +23,9 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import WebKit_Internal
+#if canImport(os)
 import os
+#endif
 import wtf
 
 extension WTF.String {

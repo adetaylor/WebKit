@@ -33,7 +33,6 @@ GPUProcess/graphics/RemoteImageBuffer.cpp
 GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
 GPUProcess/graphics/RemoteImageBufferSet.cpp
 GPUProcess/graphics/RemoteRenderingBackend.cpp @cost:6
-GPUProcess/graphics/RemoteResourceCache.cpp
 GPUProcess/graphics/RemoteSnapshotSink.cpp
 GPUProcess/graphics/RemoteSnapshotRecorder.cpp
 GPUProcess/graphics/ScopedWebGLRenderingResourcesRequest.cpp

@@ -443,7 +443,7 @@ extension WebKit.FileSystemStorageHandle {
             return 0
         }
 
-        let actualSize = WTF.FileSystemImpl.fileSize(path()).value ?? 0
+        let actualSize = UInt64(WTF.FileSystemImpl.fileSize(path()).value ?? 0)
         return actualSize > capacity ? 0 : capacity - actualSize
     }
 }
@@ -607,7 +607,7 @@ extension WebKit.FileSystemStorageHandle {
                 return nil
             }
 
-            guard let fileSize = WTF.FileSystemImpl.fileSize(WTF.String(utf16Units: state.path)).value else {
+            guard let fileSize = WTF.FileSystemImpl.fileSize(WTF.String(utf16Units: state.path)).value.map({ UInt64($0) }) else {
                 return nil
             }
 
@@ -622,7 +622,7 @@ extension WebKit.FileSystemStorageHandle {
             if let position {
                 writeStart = position
             } else {
-                guard let currentOffset = file.handle.seek(0, .Current).value else {
+                guard let currentOffset = file.handle.seek(0, .Current).value.map({ UInt64($0) }) else {
                     return nil
                 }
                 writeStart = currentOffset

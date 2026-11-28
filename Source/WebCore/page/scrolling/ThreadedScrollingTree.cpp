@@ -275,7 +275,7 @@ void ThreadedScrollingTree::addPendingScrollUpdateWithDeferReason(ScrollUpdate u
     });
 }
 
-#if __BLOCKS__
+#ifdef __BLOCKS__
 void ThreadedScrollingTree::dispatchToScrollingCoordinator(void (^block)(AsyncScrollingCoordinator*))
 {
     RefPtr scrollingCoordinator = m_scrollingCoordinator;

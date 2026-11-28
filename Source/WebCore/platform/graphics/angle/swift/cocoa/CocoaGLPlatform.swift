@@ -329,7 +329,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
     private func destroyContextAndReleaseDisplay() {
         if !eglContext.isNull() {
             _ = GLContext.releaseCurrentContext(display)
-            _ = ANGLECocoa.destroyContext(display, eglContext)
+            _ = ANGLE.destroyContext(display, eglContext)
             eglContext = ANGLEContext()
         }
         if !display.isNull() {
@@ -419,7 +419,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
             if buffer.isInUse {
                 retireDrawingBuffer(index)
             } else if context.failsNextDrawingBufferAllocation() {
-                _ = ANGLECocoa.destroySurface(display, buffer.pbuffer)
+                _ = ANGLE.destroySurface(display, buffer.pbuffer)
                 drawingBuffers[index] = nil
             }
         }
@@ -439,7 +439,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
         return withRestoredTextureBinding(GLenum(GL_TEXTURE_BINDING_2D), GLenum(GL_TEXTURE_2D)) {
             GL_BindTexture(GLenum(GL_TEXTURE_2D), context.drawingBufferTexture())
             if !ANGLECocoa.bindTexImage(display, buffer.pbuffer) {
-                _ = ANGLECocoa.destroySurface(display, buffer.pbuffer)
+                _ = ANGLE.destroySurface(display, buffer.pbuffer)
                 drawingBuffers[index] = nil
                 return false
             }
@@ -455,7 +455,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
         }
         for index in drawingBuffers.indices {
             if let buffer = drawingBuffers[index] {
-                _ = ANGLECocoa.destroySurface(display, buffer.pbuffer)
+                _ = ANGLE.destroySurface(display, buffer.pbuffer)
                 drawingBuffers[index] = nil
             }
         }
@@ -466,7 +466,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
         guard let buffer = drawingBuffers[index] else {
             return
         }
-        _ = ANGLECocoa.destroySurface(display, buffer.pbuffer)
+        _ = ANGLE.destroySurface(display, buffer.pbuffer)
         drawingBuffers[index] = nil
         spareDrawingBuffers.append(CocoaGLSpareBuffer(surface: buffer.surface))
         if spareDrawingBuffers.count > Self.maxSpareDrawingBuffers {

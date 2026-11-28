@@ -29,27 +29,6 @@ import Synchronization
 import WebCore_Private
 import WebKit_Internal
 
-// An identifier that the web process names a display list or a recorder by, as the key of a dictionary that messages look up,
-// which hashes it as a C++ HashMap hashes an integer rather than with Hasher.
-struct RemoteIdentifierKey: Hashable {
-    let value: UInt64
-
-    func hash(into hasher: inout Swift.Hasher) {
-        hasher.combine(value)
-    }
-
-    func _rawHashValue(seed: Int) -> Int {
-        var bits = value
-        bits ^= bits >> 33
-        bits &*= 0xff51_afd7_ed55_8ccd
-        bits ^= UInt64(UInt(bitPattern: seed))
-        bits ^= bits >> 33
-        bits &*= 0xc4ce_b9fe_1a85_ec53
-        bits ^= bits >> 33
-        return Int(truncatingIfNeeded: bits)
-    }
-}
-
 // The native images and image buffers that a recording's draws name, by identifier, as the recording found them.
 final class RemoteCGRendererRecordedImages {
     fileprivate(set) var nativeImages: [RemoteIdentifierKey: RemoteCGRendererImage] = [:]

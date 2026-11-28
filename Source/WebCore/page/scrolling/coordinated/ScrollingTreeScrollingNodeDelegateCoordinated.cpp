@@ -33,8 +33,11 @@
 #include "ScrollingTreeOverflowScrollingNode.h"
 #include "ScrollingTreeScrollPhysicsClient.h"
 #include "ScrollingTreeScrollPhysicsDelegateHolder.h"
+#include <wtf/TZoneMallocInlines.h>
 
 namespace WebCore {
+
+WTF_MAKE_TZONE_ALLOCATED_IMPL(ScrollingTreeScrollingNodeDelegateCoordinated);
 
 ScrollingTreeScrollingNodeDelegateCoordinated::ScrollingTreeScrollingNodeDelegateCoordinated(ScrollingTreeScrollingNode& scrollingNode, bool scrollAnimatorEnabled)
     : ThreadedScrollingTreeScrollingNodeDelegate(scrollingNode)

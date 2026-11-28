@@ -133,10 +133,10 @@ void RemoteSnapshotRecorder::stopListeningForIPC()
     m_renderingBackend->streamConnection().stopReceivingMessages(Messages::RemoteSnapshotRecorder::messageReceiverName(), m_identifier.toUInt64());
 }
 
-void RemoteSnapshotRecorder::sinkIntoSnapshotFrame(FrameIdentifier frameIdentifier, SerialFunctionDispatcher& releaseDispatcher)
+void RemoteSnapshotRecorder::sinkIntoSnapshotFrame(FrameIdentifier frameIdentifier)
 {
     // The display list is in place before the snapshot hears of it, so that the frame has it once it is resolved.
-    m_displayLists->setFrame(frameIdentifier, m_recorder->takeDisplayList(), releaseDispatcher);
+    m_displayLists->setFrame(frameIdentifier, m_recorder->takeDisplayList(), m_renderingBackend->workQueue());
     GPUProcess::snapshotFrameWasRecorded(m_snapshotIdentifier, frameIdentifier, m_displayLists->token());
 }
 

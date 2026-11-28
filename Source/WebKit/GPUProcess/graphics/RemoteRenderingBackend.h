@@ -66,19 +66,6 @@
 #include <CoreGraphics/CoreGraphics.h>
 #endif
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include "IPCEvent.h"
-#include "MessageReceiver.h"
-#include "MessageSender.h"
-#include "RemoteResourceCache.h"
-#include "RemoteSnapshotSink.h"
-#include "ScopedActiveMessageReceiveQueue.h"
-#include "ScopedRenderingResourcesRequest.h"
-#include <WebCore/PixelFormat.h>
-#include <WebCore/ProcessIdentity.h>
-#include <wtf/HashMap.h>
-#endif
-
 namespace WebCore {
 class Filter;
 class Gradient;
@@ -86,6 +73,9 @@ class MeshGradient;
 class PathImpl;
 struct FontCustomPlatformData;
 struct FontCustomPlatformSerializedData;
+namespace DisplayList {
+class DisplayList;
+}
 }
 
 namespace WebKit {
@@ -96,10 +86,16 @@ class SharedFont;
 struct ImageBufferSetPrepareBufferForDisplayInputData;
 enum class SwapBuffersDisplayRequirement : uint8_t;
 
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-
 using RefPtrImageBuffer = RefPtr<WebCore::ImageBuffer>;
 using RefPtrNativeImage = RefPtr<WebCore::NativeImage>;
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+using RefPtrPathImpl = RefPtr<WebCore::PathImpl>;
+using RefPtrGradient = RefPtr<const WebCore::Gradient>;
+using RefPtrMeshGradient = RefPtr<WebCore::MeshGradient>;
+using RefPtrFilter = RefPtr<WebCore::Filter>;
+using RefPtrSharedFont = RefPtr<SharedFont>;
+using RefPtrDisplayList = RefPtr<const WebCore::DisplayList::DisplayList>;
+#endif
 using RefGradient = Ref<const WebCore::Gradient>;
 using RefMeshGradient = Ref<WebCore::MeshGradient>;
 using RefFilter = Ref<WebCore::Filter>;
@@ -119,7 +115,7 @@ using NativeImageBitmapCompletionHandler = WTF::RefCountable<CompletionHandler<v
 using MoveSerializedBufferToTransferHeapCompletionHandler = WTF::RefCountable<CompletionHandler<void(std::optional<WebCore::ImageBufferTransferIdentifier>)>>;
 using CreateSnapshotCompletionHandler = WTF::RefCountable<CompletionHandler<void()>>;
 
-// With the CG renderer in Swift, the backend's message handlers and its state are Swift's (RemoteRenderingBackend.swift).
+// The backend's message handlers and its state are Swift's (RemoteRenderingBackend.swift).
 // m_swiftState holds the state from when the connection adds the backend (GPUConnectionToWebProcess::swiftAddRenderingBackend())
 // to the destructor. The handlers whose arguments Swift can't take adapt them and call Swift.
 class SWIFT_PRIVATE_FILEID("WebKit/RemoteRenderingBackend.swift") RemoteRenderingBackend : public CanMakeWeakPtr<RemoteRenderingBackend>, public IPC::StreamMessageReceiver, public IPC::SwiftReceiverOwnerClient {
@@ -145,7 +141,9 @@ public:
 
     // Runs Function in RemoteRenderingBackend task queue.
     void dispatch(Function<void()>&& task) { workQueue().dispatch(WTF::move(task)); }
+#if PLATFORM(COCOA)
     void dispatchBlock(void (^block)(void)) { dispatch([block = makeBlockPtr(block)] { block(); }); }
+#endif
 
     IPC::StreamServerConnection& streamConnection() const { return m_streamConnection.get(); }
     // Ends the messages to a receiver on the stream connection: false if none receives them.
@@ -177,13 +175,29 @@ public:
     // already has one, or if it has none to replace.
     bool putNativeImageInCache(WebCore::NativeImage& image, WebCore::RenderingResourceIdentifier identifier, bool replaces)
     {
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
         auto size = image.size();
         return swiftCacheNativeImage(image, image.platformImage().get(), size.width(), size.height(), image.headroom(), identifier, replaces);
+#else
+        return swiftCacheNativeImage(image, identifier, replaces);
+#endif
     }
 
+#if PLATFORM(COCOA)
     // Paints the image into the image buffer with that identifier, scaled to its backend size, from another thread, which waits
     // for it on the work queue.
     void paintNativeImageToImageBuffer(WebCore::NativeImage&, WebCore::RenderingResourceIdentifier);
+#endif
+
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // The cached resources that the C++ drawing names, which Swift caches: null for an identifier that names none.
+    RefPtrPathImpl cachedPathImpl(RemotePathImplIdentifier);
+    RefPtrGradient cachedGradient(RemoteGradientIdentifier);
+    RefPtrMeshGradient cachedMeshGradient(RemoteMeshGradientIdentifier);
+    RefPtrFilter cachedFilter(WebCore::RenderingResourceIdentifier);
+    RefPtrSharedFont cachedFont(WebCore::RenderingResourceIdentifier);
+    RefPtrDisplayList cachedDisplayList(RemoteDisplayListIdentifier);
+#endif
 
     RefPtrImageBuffer allocateImageBuffer(WebCore::FloatSize logicalSize, WebCore::RenderingMode, WebCore::RenderingPurpose, float resolutionScale, WebCore::ColorSpace, WebCore::ImageBufferFormat, WebCore::ImageBufferCreationContext);
     RefPtrImageBuffer allocateImageBuffer(WebCore::FloatSize logicalSize, WebCore::RenderingMode renderingMode, WebCore::RenderingPurpose purpose, float resolutionScale, WebCore::ColorSpace colorSpace, WebCore::ImageBufferFormat bufferFormat)
@@ -197,8 +211,10 @@ public:
     // RemoteRenderingBackendState that nothing else releases.
     uintptr_t swiftState() const { return m_swiftState; }
     SWIFT_UNSAFE void setSwiftState(uintptr_t state) { m_swiftState = state; }
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     // For Swift, from any thread: has the work queue call swiftReleasePendingRecordings().
     void scheduleSwiftReleases() { m_owner->scheduleWork(); }
+#endif
 
     // The messages that Swift can't make, to the web process.
     void sendDidFailToCreateBackend(WebCore::RenderingResourceIdentifier);
@@ -225,10 +241,14 @@ public:
     static void appendRawVolatileBuffers(ImageBufferSetVolatileBuffers& buffers, ImageBufferSetIdentifier identifier, uint8_t volatileBuffers) { buffers.append({ identifier, OptionSet<BufferInSetType>::fromRaw(volatileBuffers) }); }
     static bool hasHandle(const OptionalShareableBitmapHandle& handle) { return !!handle; }
     static RefPtrNativeImage createNativeImage(WebCore::ShareableBitmap&);
+#if HAVE(IOSURFACE)
     // The image buffer's IOSurface, if it has one, and whether its colour space is Display P3.
     static IOSurfaceRef WTF_NULLABLE surfaceForCopy(WebCore::ImageBuffer&, bool& isDisplayP3) CF_RETURNS_NOT_RETAINED;
+#endif
+#if USE(CG)
     // An image that CG doesn't cache.
     static RefPtrNativeImage createTransientNativeImage(CGImageRef);
+#endif
     static RefSharedFont createFont(const WebCore::FontInternalAttributes&, const WebCore::FontPlatformDataAttributes&, WebCore::FontCustomPlatformData* WTF_NULLABLE, uint64_t& renderingResourceIdentifier);
 
 
@@ -236,7 +256,11 @@ private:
     RemoteRenderingBackend(GPUConnectionToWebProcess&, RemoteRenderingBackendIdentifier, Ref<IPC::StreamServerConnection>&&);
 
     // IPC::SwiftReceiverOwnerClient, on the work queue.
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     void runScheduledWork() final { swiftReleasePendingRecordings(); }
+#else
+    void runScheduledWork() final { }
+#endif
     // Implemented in Swift: ends every receiver, which releases the references that they and the recorders' resources hold
     // to this, and empties the display lists and the caches.
     void didStopReceiving() final;
@@ -296,12 +320,18 @@ private:
     void createSnapshot(RemoteSnapshotIdentifier, WebCore::FrameIdentifier rootFrameIdentifier, WebCore::FloatSize, CreateSnapshotCompletionHandler*);
     void createSnapshotRecorder(RemoteSnapshotRecorderIdentifier, RemoteSnapshotIdentifier);
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     // With the native image's platform image (null for one this process can't read), its size and its headroom.
     bool swiftCacheNativeImage(WebCore::NativeImage&, CGImageRef WTF_NULLABLE, float width, float height, float headroom, WebCore::RenderingResourceIdentifier, bool replaces);
+#else
+    bool swiftCacheNativeImage(WebCore::NativeImage&, WebCore::RenderingResourceIdentifier, bool replaces);
+#endif
     // Unsafe: the state must be the one the connection made, which only the destructor releases.
     SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     // Lets go, on the work queue, of the recordings that other threads let go of (scheduleSwiftReleases()).
     void swiftReleasePendingRecordings();
+#endif
 
     const Ref<IPC::StreamServerConnection> m_streamConnection;
     const Ref<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
@@ -317,167 +347,6 @@ private:
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 inline void complete(NativeImageBitmapCompletionHandler& handler, std::optional<WebCore::ShareableBitmap::Handle>&& handle) { (*handler)(WTF::move(handle)); }
-
-#else
-
-class RemoteDisplayListRecorder;
-class RemoteImageBuffer;
-class RemoteSnapshotRecorder;
-struct BufferIdentifierSet;
-struct ImageBufferSetPrepareBufferForDisplayOutputData;
-
-class SWIFT_PRIVATE_FILEID("WebKit/RemoteRenderingBackend.swift") RemoteRenderingBackend : public CanMakeWeakPtr<RemoteRenderingBackend>, public IPC::StreamServerConnection::Client {
-    WTF_MAKE_TZONE_ALLOCATED(RemoteRenderingBackend);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteRenderingBackend);
-
-public:
-    static Ref<RemoteRenderingBackend> create(GPUConnectionToWebProcess&, RemoteRenderingBackendIdentifier, Ref<IPC::StreamServerConnection>&&);
-    virtual ~RemoteRenderingBackend();
-    // Once the connection has added the backend (GPUConnectionToWebProcess::swiftAddRenderingBackend()).
-    void startListeningForIPC();
-    SWIFT_MAIN_ACTOR void stopListeningForIPC();
-
-    NODELETE std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
-
-    RemoteResourceCache& remoteResourceCache() LIFETIME_BOUND { return m_remoteResourceCache; }
-    // Stands in for an image that could not be created, so that the web process can keep using its
-    // identifier. Clipping to it clips everything.
-    static RefPtr<WebCore::NativeImage> createPlaceholderNativeImage();
-    RemoteSharedResourceCache& sharedResourceCache() { return m_sharedResourceCache; }
-
-    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
-
-    // Runs Function in RemoteRenderingBackend task queue.
-    void dispatch(Function<void()>&&);
-
-    IPC::StreamServerConnection& streamConnection() const { return m_streamConnection.get(); }
-    // Ends the messages to a receiver on the stream connection: false if none receives them.
-    bool tryStopReceivingMessages(IPC::ReceiverName receiverName, uint64_t destinationID)
-    {
-        assertIsCurrent(workQueue());
-        return m_streamConnection->tryStopReceivingMessages(receiverName, destinationID);
-    }
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
-    void ref() const { IPC::StreamMessageReceiver::ref(); }
-    void deref() const { IPC::StreamMessageReceiver::deref(); }
-#endif
-
-    GPUConnectionToWebProcess& gpuConnectionToWebProcess() { return m_gpuConnectionToWebProcess.get(); }
-
-    void setSharedMemoryForGetPixelBuffer(RefPtr<WebCore::SharedMemory> memory) { m_getPixelBufferSharedMemory = WTF::move(memory); }
-    RefPtr<WebCore::SharedMemory> sharedMemoryForGetPixelBuffer() const { return m_getPixelBufferSharedMemory; }
-
-    IPC::StreamConnectionWorkQueue& workQueue() const { return m_workQueue; }
-
-    // With the CG renderer in Swift, implemented in Swift (RemoteRenderingBackend.swift), on its registry of image buffers.
-    RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier);
-
-    RefPtr<WebCore::ImageBuffer> allocateImageBuffer(const WebCore::FloatSize& logicalSize, WebCore::RenderingMode, WebCore::RenderingPurpose, float resolutionScale, const WebCore::ColorSpace&, WebCore::ImageBufferFormat, WebCore::ImageBufferCreationContext, std::optional<ImageBufferBackendHandle>&& providedBackingStore);
-    RefPtr<WebCore::ImageBuffer> allocateImageBuffer(const WebCore::FloatSize& logicalSize, WebCore::RenderingMode renderingMode, WebCore::RenderingPurpose purpose, float resolutionScale, const WebCore::ColorSpace& colorSpace, WebCore::ImageBufferFormat bufferFormat, WebCore::ImageBufferCreationContext creationContext)
-    {
-        return allocateImageBuffer(logicalSize, renderingMode, purpose, resolutionScale, colorSpace, bufferFormat, WTF::move(creationContext), std::nullopt);
-    }
-    // With no creation context or backing store, for Swift, which can't pass an rvalue reference.
-    RefPtr<WebCore::ImageBuffer> allocateImageBuffer(const WebCore::FloatSize& logicalSize, WebCore::RenderingMode renderingMode, WebCore::RenderingPurpose purpose, float resolutionScale, const WebCore::ColorSpace& colorSpace, WebCore::ImageBufferFormat bufferFormat)
-    {
-        return allocateImageBuffer(logicalSize, renderingMode, purpose, resolutionScale, colorSpace, bufferFormat, { }, std::nullopt);
-    }
-
-    RemoteRenderingBackendIdentifier identifier() { return m_renderingBackendIdentifier; }
-private:
-    friend class RemoteImageBufferSet;
-    RemoteRenderingBackend(GPUConnectionToWebProcess&, RemoteRenderingBackendIdentifier, Ref<IPC::StreamServerConnection>&&);
-    void workQueueInitialize();
-    void workQueueUninitialize();
-    template<typename T>
-    IPC::Error send(T&& message) const
-    {
-        return m_streamConnection->send(std::forward<T>(message), m_renderingBackendIdentifier);
-    }
-
-    // IPC::StreamServerConnection::Client overrides.
-    void didReceiveInvalidMessage(IPC::StreamServerConnection&, IPC::MessageName, const Vector<uint32_t>&) final;
-
-    // Messages to be received.
-    void createImageBuffer(const WebCore::FloatSize& logicalSize, WebCore::RenderingMode, WebCore::RenderingPurpose, float resolutionScale, const WebCore::ColorSpace&, WebCore::ImageBufferFormat, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier);
-    void createMappableImageBuffer(const WebCore::FloatSize& logicalSize, WebCore::RenderingMode, WebCore::RenderingPurpose, float resolutionScale, const WebCore::ColorSpace&, WebCore::ImageBufferFormat, ImageBufferBackendHandle&& backingStore, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier);
-    void createImageBufferWithBackingStore(const WebCore::FloatSize& logicalSize, WebCore::RenderingMode, WebCore::RenderingPurpose, float resolutionScale, const WebCore::ColorSpace&, WebCore::ImageBufferFormat, std::optional<ImageBufferBackendHandle>&& backingStore, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier);
-    void releaseImageBuffer(WebCore::RenderingResourceIdentifier);
-    // The receiver of an image buffer's messages, from its creation to its release (takeImageBuffer()): false if one already
-    // has the identifier.
-    bool addImageBuffer(Ref<WebCore::ImageBuffer>&&, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier);
-    RefPtr<WebCore::ImageBuffer> takeImageBuffer(WebCore::RenderingResourceIdentifier);
-    void sinkImageBufferIntoNativeImage(WebCore::RenderingResourceIdentifier, WebCore::RenderingResourceIdentifier imageIdentifier);
-    void moveToSerializedBuffer(WebCore::RenderingResourceIdentifier, RemoteSerializedImageBufferIdentifier);
-    void moveToImageBuffer(RemoteSerializedImageBufferIdentifier, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier);
-    void moveSerializedBufferToTransferHeap(RemoteSerializedImageBufferIdentifier, CompletionHandler<void(std::optional<WebCore::ImageBufferTransferIdentifier>)>&&);
-    void takeTransferredBuffer(const WebCore::ImageBufferTransferHandle&, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier);
-    void createDisplayListRecorder(RemoteDisplayListRecorderIdentifier);
-    void sinkDisplayListRecorderIntoDisplayList(RemoteDisplayListRecorderIdentifier, RemoteDisplayListIdentifier);
-    void releaseDisplayList(RemoteDisplayListIdentifier);
-    void destroyGetPixelBufferSharedMemory();
-    void nativeImageBitmap(WebCore::RenderingResourceIdentifier imageIdentifier, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>)>&&);
-    void cacheNativeImage(WebCore::ShareableBitmap::Handle&&, WebCore::RenderingResourceIdentifier);
-    void cacheNativeImageFromSharedNativeImage(RemoteNativeImageReadReference&&);
-    void releaseNativeImage(WebCore::RenderingResourceIdentifier);
-    void cachePathImpl(Ref<WebCore::PathImpl>&&, RemotePathImplIdentifier);
-    void releasePathImpl(RemotePathImplIdentifier);
-    void cacheGradient(Ref<const WebCore::Gradient>&&, RemoteGradientIdentifier);
-    void releaseGradient(RemoteGradientIdentifier);
-    void cacheMeshGradient(Ref<WebCore::MeshGradient>&&, RemoteMeshGradientIdentifier);
-    void releaseMeshGradient(RemoteMeshGradientIdentifier);
-    void cacheFilter(Ref<WebCore::Filter>&&);
-    void releaseFilter(WebCore::RenderingResourceIdentifier);
-    void cacheFont(const WebCore::FontInternalAttributes&, WebCore::FontPlatformDataAttributes, std::optional<WebCore::RenderingResourceIdentifier>);
-    void releaseFont(WebCore::RenderingResourceIdentifier);
-    void cacheFontCustomPlatformData(WebCore::FontCustomPlatformSerializedData&&);
-    void releaseFontCustomPlatformData(WebCore::RenderingResourceIdentifier);
-    void releaseMemory();
-    void finalizeRenderingUpdate(RenderingUpdateID);
-    void markSurfacesVolatile(MarkSurfacesAsVolatileRequestIdentifier, const Vector<std::pair<ImageBufferSetIdentifier, OptionSet<BufferInSetType>>>&, bool forcePurge);
-    void createImageBufferSet(WebKit::ImageBufferSetIdentifier, RemoteGraphicsContextIdentifier);
-    void releaseImageBufferSet(WebKit::ImageBufferSetIdentifier);
-
-#if USE(GRAPHICS_LAYER_WC)
-    void flush(IPC::Semaphore&&);
-#endif
-
-#if PLATFORM(COCOA)
-    void prepareImageBufferSetsForDisplay(Vector<ImageBufferSetPrepareBufferForDisplayInputData> swapBuffersInput);
-    void prepareImageBufferSetsForDisplaySync(Vector<ImageBufferSetPrepareBufferForDisplayInputData> swapBuffersInput, CompletionHandler<void(Vector<SwapBuffersDisplayRequirement>&&)>&&);
-#endif
-
-    void createSnapshot(RemoteSnapshotIdentifier, WebCore::FrameIdentifier rootFrameIdentifier, const WebCore::FloatSize&, CompletionHandler<void()>&&);
-    void createSnapshotRecorder(RemoteSnapshotRecorderIdentifier, RemoteSnapshotIdentifier);
-    void sinkSnapshotRecorderIntoSnapshotFrame(RemoteSnapshotRecorderIdentifier, WebCore::FrameIdentifier, CompletionHandler<void(bool)>&&);
-
-    NODELETE bool shouldUseLockdownFontParser() const;
-
-    void getImageBufferResourceLimitsForTesting(CompletionHandler<void(WebCore::ImageBufferResourceLimits)>&&);
-
-
-    const Ref<IPC::StreamConnectionWorkQueue> m_workQueue;
-    const Ref<IPC::StreamServerConnection> m_streamConnection;
-    const Ref<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
-    const Ref<RemoteSharedResourceCache> m_sharedResourceCache;
-    // Snapshot taken on the main thread at construction and only ever read on the work queue,
-    // so it needs no locking. See sharedPreferencesForWebProcess().
-    const SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
-    RemoteResourceCache m_remoteResourceCache;
-    WebCore::ProcessIdentity m_resourceOwner;
-    RemoteRenderingBackendIdentifier m_renderingBackendIdentifier;
-    RefPtr<WebCore::SharedMemory> m_getPixelBufferSharedMemory;
-
-    HashMap<WebCore::RenderingResourceIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteImageBuffer>> m_remoteImageBuffers WTF_GUARDED_BY_CAPABILITY(workQueue());
-
-    HashMap<ImageBufferSetIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteImageBufferSet>> m_remoteImageBufferSets WTF_GUARDED_BY_CAPABILITY(workQueue());
-    HashMap<RemoteDisplayListRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteDisplayListRecorder>> m_remoteDisplayListRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
-    HashMap<RemoteSnapshotRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteSnapshotRecorder>> m_remoteSnapshotRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-#endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 bool isSmallLayerBacking(const WebCore::ImageBufferParameters&);
 

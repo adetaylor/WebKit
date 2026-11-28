@@ -93,10 +93,10 @@ extension WebCore.ScrollingTreeViewportConstrainedNode {
             if let positioningAncestor = WebCore.asScrollingTreePositionedNode(current) {
                 // See if sticky node already handled this positioning node.
                 // FIXME: Include positioning node information to sticky/fixed node to avoid these tests.
-                if let lastStickyNode, lastStickyNode.layer() == positioningAncestor.layer() {
+                if let lastStickyNode, WebCore.scrollingPlatformLayersAreSame(lastStickyNode.layer(), positioningAncestor.layer()) {
                     continue
                 }
-                if positioningAncestor.layer() != layer() {
+                if !WebCore.scrollingPlatformLayersAreSame(positioningAncestor.layer(), layer()) {
                     overflowScrollDelta -= unsafe positioningAncestor.scrollDeltaSinceLastCommit() // U5(m_treeLock): the caller holds it
                 }
                 continue

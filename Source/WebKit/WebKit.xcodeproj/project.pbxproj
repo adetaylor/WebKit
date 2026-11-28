@@ -7409,8 +7409,6 @@
 		B4848398B0965F2C40442DED /* DisplayListDataTester.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DisplayListDataTester.h; sourceTree = "<group>"; };
 		724DCF22284862FC0026ACF4 /* ImageBufferShareableAllocator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ImageBufferShareableAllocator.cpp; sourceTree = "<group>"; };
 		726952DF2B7F4636009E5F0C /* WebExtensionAPIWebPageRuntime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebExtensionAPIWebPageRuntime.h; sourceTree = "<group>"; };
-		726D56DD253A64810002EF90 /* RemoteResourceCache.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteResourceCache.cpp; sourceTree = "<group>"; };
-		726D56DE253A64810002EF90 /* RemoteResourceCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteResourceCache.h; sourceTree = "<group>"; };
 		727A7F342407857D004D2931 /* ImageBufferShareableMappedIOSurfaceBackend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageBufferShareableMappedIOSurfaceBackend.cpp; sourceTree = "<group>"; };
 		727A7F352407857F004D2931 /* ImageBufferShareableMappedIOSurfaceBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageBufferShareableMappedIOSurfaceBackend.h; sourceTree = "<group>"; };
 		727A7F36240788F0004D2931 /* ImageBufferShareableBitmapBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageBufferShareableBitmapBackend.h; sourceTree = "<group>"; };
@@ -15337,8 +15335,6 @@
 				550640A324071A6100AAE045 /* RemoteRenderingBackend.h */,
 				550640A424071C2100AAE045 /* RemoteRenderingBackend.messages.in */,
 				9A2510B12AC24C588F361D3D /* RemoteRenderingBackend.swift */,
-				726D56DD253A64810002EF90 /* RemoteResourceCache.cpp */,
-				726D56DE253A64810002EF90 /* RemoteResourceCache.h */,
 				01FAF1C997E8A006AF13C493 /* RemoteResourceCache.swift */,
 				5C0E2A1B9F3D4E6A8B7C1D02 /* RemoteSnapshot.swift */,
 				49041213C2405A7837C0F277 /* RemoteSnapshotPDFDrawingTask.cpp */,

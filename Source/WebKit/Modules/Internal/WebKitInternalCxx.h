@@ -39,6 +39,11 @@
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"
 
+// ResourceLoadStatisticsStore.swift calls SQLite's C API, which off Apple has no SQLite3 module to come from.
+#if !PLATFORM(COCOA)
+#include <sqlite3.h>
+#endif
+
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 #include "RemoteSampleBufferDisplayLayerManagerMessages.h"
 #include "RemoteSampleBufferDisplayLayerMessages.h"
@@ -46,13 +51,15 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CORE_SWIFT)
-#include "RemoteSnapshotPDFDrawingTask.h"
-#include <WebCore/AV1UtilitiesCocoa.h>
 #include <WebCore/CommonAtomStrings.h>
 #include <WebCore/DeprecatedGlobalSettings.h>
-#include <WebCore/IOSurface.h>
 #include <WebCore/MemoryRelease.h>
+#if PLATFORM(COCOA)
+#include "RemoteSnapshotPDFDrawingTask.h"
+#include <WebCore/AV1UtilitiesCocoa.h>
+#include <WebCore/IOSurface.h>
 #include <WebCore/VP9UtilitiesCocoa.h>
+#endif
 #include <wtf/Language.h>
 #include <wtf/MemoryPressureHandler.h>
 #if ENABLE(MEDIA_STREAM)
@@ -111,6 +118,9 @@
 #include "RemoteLegacyCDMProxyMessages.h"
 #include "RemoteLegacyCDMSessionMessages.h"
 #include "RemoteLegacyCDMSessionProxyMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS)
 #include "RemoteMediaEngineConfigurationFactoryProxyMessages.h"
 #include "RemoteMediaSwiftSupport.h"
 #endif
@@ -119,7 +129,7 @@
 #include "RemoteAudioDestinationManagerMessages.h"
 #endif
 
-#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
 #include <WebCore/AudioHardwareListener.h>
 #endif
 
@@ -167,6 +177,16 @@
 #include "RemoteRenderingBackend.h"
 #endif
 
+// The headers both renderers' Swift uses.
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(GPU_PROCESS_RENDERING_BACKEND_SWIFT)
+#include "RemoteImageBufferSet.h"
+#include "RemoteRenderingBackendMessages.h"
+#include "SharedFont.h"
+#include <WebCore/Filter.h>
+#include <WebCore/FontCustomPlatformData.h>
+#include <WebCore/MeshGradient.h>
+#endif
+
 #if ENABLE(GPU_PROCESS) && HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
 #include "RemoteBarcodeDetectorMessages.h"
 #include "RemoteFaceDetectorMessages.h"
@@ -182,18 +202,23 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "RemoteSnapshotPrintData.h"
-#include "SharedFont.h"
-#include <WebCore/Filter.h>
 #include <WebCore/FloatSegment.h>
-#include <WebCore/FontCustomPlatformData.h>
-#include <WebCore/MeshGradient.h>
 #include <WebCore/PathSegmentData.h>
 #include "RemoteCGRendererMessages.h"
 #include "RemoteImageBufferGraphicsContext.h"
 #include "RemoteImageBufferMessages.h"
-#include "RemoteImageBufferSet.h"
 #include "RemoteImageBufferSetMessages.h"
-#include "RemoteRenderingBackend.h"
+#endif
+
+#if ENABLE(GPU_PROCESS_RENDERING_BACKEND_SWIFT) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteDisplayListRecorder.h"
+#include "RemoteImageBuffer.h"
+#include "RemoteSnapshotRecorder.h"
+#include <WebCore/DisplayList.h>
+#include <WebCore/Gradient.h>
+#include <WebCore/GraphicsContextSwiftBridge.h>
+#include <WebCore/NullImageBufferBackend.h>
+#include <WebCore/PathImpl.h>
 #endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
@@ -260,6 +285,8 @@
 #include "ServiceWorkerFetchTaskMessages.h"
 #include "ServiceWorkerNavigationPreloader.h"
 #include "ServiceWorkerSoftUpdateLoader.h"
+// ServiceWorkerFetchTask.swift names IPC.SharedBufferReference, which the Cocoa media headers include.
+#include "SharedBufferReference.h"
 #include "WebSWOriginStore.h"
 #include "WebSWRegistrationStore.h"
 #include "WebSWServerConnection.h"

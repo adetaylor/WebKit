@@ -3331,6 +3331,13 @@ imported/w3c/web-platform-tests/encrypted-media/clearkey-update-non-ascii-input.
 # Specific to Cocoa-ports.
 ipc/pasteboard-write-custom-data.html [ Skip ]
 ipc/audio-video-renderer-receiver.html [ Skip ]
+# RemoteCGRenderer, the GPU process's Swift CoreGraphics renderer, is Cocoa-only (USE(CG)); GLIB ports draw through RemoteGraphicsContext.
+ipc/cg-renderer-receiver.html [ Skip ]
+ipc/cg-renderer-mesh-gradient.html [ Skip ]
+# The GPU process's audio destination (RemoteAudioDestinationManager) is Cocoa-only.
+ipc/audio-destination-unit-lifecycle.html [ Skip ]
+# UserMediaCaptureManagerProxy lives in the Cocoa GPU process only.
+ipc/user-media-capture-manager-proxy-messages.html [ Skip ]
 # Tests the mach message attachment limits.
 ipc/send-message-with-many-attachments.html [ Skip ]
 # Hardcodes Cocoa's WebCore::CertificateInfo::trust field in the IPC payload; SOUP's
@@ -3354,6 +3361,8 @@ ipc/restrictedendpoints/allow-access-testOnlyIPC.html [ Skip ]
 
 # ENABLE_WEBGPU is off for the GLIB ports.
 ipc/webgpu-write-texture-unaligned-offset-marks-slice-cleared.html [ Skip ]
+ipc/webgpu-reused-identifier-keeps-first-object.html [ Skip ]
+ipc/webgpu-video-frame-copy-negative-source-size.html [ Skip ]
 
 ### FAILING TESTS
 

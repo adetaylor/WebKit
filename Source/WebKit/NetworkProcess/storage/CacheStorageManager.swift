@@ -413,7 +413,7 @@ private func getDirectorySize(_ originDirectory: WTF.String) -> UInt64 {
             }
             continue
         }
-        directorySize &+= WTF.FileSystemImpl.fileSize(path).value ?? 0
+        directorySize &+= WTF.FileSystemImpl.fileSize(path).value.map { UInt64($0) } ?? 0
     }
     return directorySize
 }
@@ -428,7 +428,7 @@ extension WebKit.CacheStorageManager {
     func requestSpace(_ spaceRequested: UInt64, consuming completion: consuming WTF.BoolCompletionHandler) {
         let isSizeKnown = cacheStorageManagerStates.withState(for: swiftKey()) { $0.size.isKnown }
         if isSizeKnown {
-            m_quotaCheckFunction(spaceRequested, consuming: completion)
+            m_quotaCheckFunction(.init(spaceRequested), consuming: completion)
             return
         }
 

@@ -88,6 +88,7 @@ using GPUProcessConnectionParametersArgument = WTF::MoveOnlyArgument<GPUProcessC
 using GPUProcessSessionParametersArgument = WTF::MoveOnlyArgument<GPUProcessSessionParameters>;
 
 using RefPtrTransferredImageBuffer = RefPtr<WebCore::ImageBuffer>;
+using RefPtrGPUConnectionToWebProcess = RefPtr<GPUConnectionToWebProcess>;
 #if HAVE(AUDIT_TOKEN)
 using OptionalCoreIPCAuditToken = std::optional<CoreIPCAuditToken>;
 #endif
@@ -95,6 +96,8 @@ using OptionalCoreIPCAuditToken = std::optional<CoreIPCAuditToken>;
 using GPUProcessVoidReply = WTF::RefCountable<CompletionHandler<void()>>;
 using GPUProcessCountReply = WTF::RefCountable<CompletionHandler<void(uint64_t)>>;
 using GPUProcessDrawingCountsReply = WTF::RefCountable<CompletionHandler<void(uint64_t, uint64_t)>>;
+using GPUProcessBitmapReply = WTF::RefCountable<CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>>;
+using GPUConnectionToWebProcessVisitor = WTF::RefCountable<Function<void(GPUConnectionToWebProcess&)>>;
 
 // Swift (GPUProcess.swift) implements most of the process, and holds its state in m_swiftState. C++ keeps what Swift can't
 // take: messages with sandbox extension or connection handles, replies that move C++ values, and accessors that return
@@ -112,9 +115,10 @@ public:
     void ref() const final { ThreadSafeRefCounted::ref(); }
     void deref() const final { ThreadSafeRefCounted::deref(); }
 
-    void removeGPUConnectionToWebProcess(GPUConnectionToWebProcess&);
+    SWIFT_MAIN_ACTOR void removeGPUConnectionToWebProcess(GPUConnectionToWebProcess&);
+    SWIFT_MAIN_ACTOR void forEachWebProcessConnection(GPUConnectionToWebProcessVisitor&) const;
     void connectionToWebProcessClosed(IPC::Connection&) { }
-    GPUConnectionToWebProcess* webProcessConnection(WebCore::ProcessIdentifier) const;
+    SWIFT_MAIN_ACTOR RefPtrGPUConnectionToWebProcess webProcessConnection(WebCore::ProcessIdentifier) const;
     IPC::Connection* WTF_NULLABLE uiProcessConnection() const { return parentProcessConnection(); }
 
     SWIFT_MAIN_ACTOR String mediaCacheDirectory(PAL::SessionID) const;
@@ -125,7 +129,9 @@ public:
     WebCore::NowPlayingManager& nowPlayingManager() LIFETIME_BOUND;
 
 #if ENABLE(MEDIA_STREAM)
+#if PLATFORM(COCOA)
     WorkQueue& videoMediaStreamTrackRendererQueue() { return m_videoMediaStreamTrackRendererQueue; }
+#endif
     void ensureAVCaptureServerConnection();
     SWIFT_MAIN_ACTOR void didApplyCaptureEnvironment(WebCore::ProcessIdentifier, WebCore::PageIdentifier);
     bool setCaptureAttributionString(WebCore::SecurityOriginData);
@@ -153,6 +159,14 @@ public:
     // For a root that could not be recorded.
     void failSnapshot(RemoteSnapshotIdentifier);
     void abandonSnapshotFrame(RemoteSnapshotIdentifier, WebCore::FrameIdentifier);
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // For the ports that record snapshot frames as WebCore display lists (RemoteSnapshotRecorder.cpp): the recorders' frames
+    // reach the snapshot only if it holds the display lists they record into, which the token tells.
+    static void addSnapshotFrameReference(RemoteSnapshotIdentifier, WebCore::FrameIdentifier, uint64_t displayListsToken);
+    static void snapshotFrameWasRecorded(RemoteSnapshotIdentifier, WebCore::FrameIdentifier, uint64_t displayListsToken);
+    // The snapshot's display lists, or, for a snapshot that no longer exists, ones dropped with their last reference.
+    static RefRemoteSnapshotDisplayLists snapshotDisplayLists(RemoteSnapshotIdentifier);
+#endif
 
     // Hands an ImageBuffer from one web process's rendering backend to another's. Unlike
     // a snapshot's, the identifier is minted here and unguessable, so only a process it was given
@@ -193,16 +207,24 @@ private:
     SWIFT_MAIN_ACTOR void lowMemoryHandler(Critical, Synchronous);
     SWIFT_MAIN_ACTOR void tryExitIfUnused();
     SWIFT_MAIN_ACTOR bool canExitUnderMemoryPressure() const;
-    SWIFT_MAIN_ACTOR void didRemoveWebProcessConnection(GPUConnectionToWebProcess&);
+    SWIFT_MAIN_ACTOR bool hasWebProcessConnections() const;
 
     // AuxiliaryProcess
     void initializeProcess(const AuxiliaryProcessInitializationParameters&) override;
     void initializeProcessName(const AuxiliaryProcessInitializationParameters&) override;
     void initializeSandbox(const AuxiliaryProcessInitializationParameters&, SandboxInitializationParameters&) override;
     Thread::QOS connectionReceiveQueueQOS() const override { return Thread::QOS::UserInteractive; }
-    bool shouldTerminate() override { return m_webProcessConnections.isEmpty(); }
+    bool shouldTerminate() override { return !hasWebProcessConnections(); }
+#if USE(OS_STATE)
     RetainPtr<NSDictionary> additionalStateForDiagnosticReport() const final;
+#endif
+#if ENABLE(CFPREFS_DIRECT_MODE)
     void dispatchSimulatedNotificationsForPreferenceChange(const String&) final { }
+#endif
+#if PLATFORM(GTK) || PLATFORM(WPE)
+    void stopRunLoop() override;
+    void platformInitializeGPUProcess(GPUProcessCreationParameters&);
+#endif
 
     // IPC::Connection::Client
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
@@ -214,8 +236,6 @@ private:
     // Unsafe: Swift borrows the parameters for the call, and only reads their values.
     SWIFT_UNSAFE SWIFT_MAIN_ACTOR void swiftInitializeGPUProcess(const GPUProcessCreationParameters&);
     SWIFT_MAIN_ACTOR void createGPUConnectionToWebProcess(WebCore::ProcessIdentifier, PAL::SessionID, IPC::ConnectionHandleArgument, GPUProcessConnectionParametersArgument, GPUProcessVoidReply* WTF_NONNULL);
-    // Whether the connection is new, which this then keeps.
-    bool addWebProcessConnection(GPUConnectionToWebProcess&, bool ignoreInvalidMessageForTesting);
     SWIFT_MAIN_ACTOR void sharedPreferencesForWebProcessDidChange(WebCore::ProcessIdentifier, SharedPreferencesForWebProcess, GPUProcessVoidReply* WTF_NONNULL);
     void securityFlagsDidChange(SecurityFlags::Storage&& securityFlags) { SecurityFlags::Storage::update(WTF::move(securityFlags)); }
     SWIFT_MAIN_ACTOR void updateGPUProcessPreferences(GPUProcessPreferences);
@@ -240,12 +260,12 @@ private:
     bool platformSetUpCapturePreviewEnvironment(WebCore::PageIdentifier, bool hasCamera);
 #endif
     SWIFT_MAIN_ACTOR void addMockMediaDevice(WebCore::MockMediaDevice);
-    void clearMockMediaDevices();
+    SWIFT_MAIN_ACTOR void clearMockMediaDevices();
     SWIFT_MAIN_ACTOR void removeMockMediaDevice(String);
     SWIFT_MAIN_ACTOR void setMockMediaDeviceIsEphemeral(String, bool);
     SWIFT_MAIN_ACTOR void resetMockMediaDevices();
     SWIFT_MAIN_ACTOR void setMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted);
-    void triggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay);
+    SWIFT_MAIN_ACTOR void triggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay);
     void setShouldListenToVoiceActivity(bool);
 #endif
 #if HAVE(SCREEN_CAPTURE_KIT)
@@ -260,9 +280,9 @@ private:
     void openDirectoryCacheInvalidated(SandboxExtension::Handle&&);
 #endif
     void sinkCompletedSnapshotToPDF(RemoteSnapshotIdentifier, WebCore::FrameIdentifier, std::optional<WebCore::ProcessIdentifier> printProcessIdentifier, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&&);
-    void sinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier, WebCore::FrameIdentifier, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&&);
+    SWIFT_MAIN_ACTOR void sinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier, WebCore::FrameIdentifier, GPUProcessBitmapReply* WTF_NONNULL);
     void sinkCompletedSnapshotToIOSurface(RemoteSnapshotIdentifier, float scale, const WebCore::ColorSpace&, WebCore::FrameIdentifier, CompletionHandler<void(std::optional<ImageBufferBackendHandle>&&)>&&);
-    void waitForSnapshot(RemoteSnapshotIdentifier, CompletionHandler<void()>&&);
+    SWIFT_MAIN_ACTOR void waitForSnapshot(RemoteSnapshotIdentifier, GPUProcessVoidReply* WTF_NONNULL);
     SWIFT_MAIN_ACTOR void releaseSnapshot(RemoteSnapshotIdentifier);
     SWIFT_MAIN_ACTOR void snapshotFrameWillBeDrawnByProcess(RemoteSnapshotIdentifier, WebCore::FrameIdentifier, WebCore::ProcessIdentifier);
     SWIFT_MAIN_ACTOR void abandonSnapshotFramesOwnedBy(WebCore::ProcessIdentifier);
@@ -313,7 +333,6 @@ private:
             releaseTransferredImageBuffer(identifier);
     }
 
-    HashMap<WebCore::ProcessIdentifier, Ref<GPUConnectionToWebProcess>> m_webProcessConnections;
     String m_applicationVisibleName;
 #if PLATFORM(MAC)
     String m_uiProcessName;
@@ -323,7 +342,9 @@ private:
 #if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
     std::optional<String> m_savedPreferredMicrophoneID;
 #endif
+#if PLATFORM(COCOA)
     const Ref<WorkQueue> m_videoMediaStreamTrackRendererQueue { WorkQueue::create("RemoteVideoMediaStreamTrackRenderer"_s, WorkQueue::QOS::UserInitiated) };
+#endif
 #endif
 #if USE(LIBWEBRTC)
     const Ref<WorkQueue> m_libWebRTCCodecsQueue { WorkQueue::create("LibWebRTCCodecsQueue"_s, WorkQueue::QOS::UserInitiated) };

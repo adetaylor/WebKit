@@ -35,12 +35,14 @@
 //
 // Every method the C++ calls is in the class body: @_expose(Cxx) does not reach an extension's members.
 
+#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
 internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
 internal import JavaScriptCore_Private.Cxx.Snippet
 internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+#endif
 internal import WebCore_Private.Core.IDBDatabaseInfo
 internal import WebCore_Private.Core.IDBError
 internal import WebCore_Private.Core.IDBIndexInfo

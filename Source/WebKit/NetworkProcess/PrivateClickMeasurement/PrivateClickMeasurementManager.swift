@@ -24,7 +24,9 @@
 
 import WebCore_Private.Core.PrivateClickMeasurementSwift
 import WebKit_Internal
+#if canImport(os)
 import os
+#endif
 import wtf
 import wtf.Core.CryptographicallyRandomNumber
 

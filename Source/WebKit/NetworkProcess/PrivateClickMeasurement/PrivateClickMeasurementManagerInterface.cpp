@@ -32,6 +32,7 @@
 #include "PrivateClickMeasurementConnection.h"
 #include "PrivateClickMeasurementDaemonClient.h"
 #include "PrivateClickMeasurementManager.h"
+#include <wtf/NeverDestroyed.h>
 
 #if PLATFORM(COCOA)
 #include "PCMDaemonConnectionSet.h"

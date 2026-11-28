@@ -27,7 +27,7 @@
 
 #include <wtf/Platform.h>
 
-#if PLATFORM(COCOA)
+#if PLATFORM(COCOA) || (defined(__BLOCKS__) && __has_include(<Block.h>))
 
 #include <Block.h>
 #include <utility>
@@ -248,4 +248,4 @@ inline auto makeBlockPtr(F&& function)
 using WTF::BlockPtr;
 using WTF::makeBlockPtr;
 
-#endif // PLATFORM(COCOA)
+#endif // PLATFORM(COCOA) || (defined(__BLOCKS__) && __has_include(<Block.h>))

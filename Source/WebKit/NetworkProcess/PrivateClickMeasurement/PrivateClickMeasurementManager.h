@@ -78,6 +78,23 @@ public:
     void allowTLSCertificateChainForLocalPCMTesting(const WebCore::CertificateInfo&) final;
     void fetchRegistrableDomains(CompletionHandler<void(Vector<WebCore::RegistrableDomain>&&)>&&);
 
+    // The members m_attributionReportTestConfig and m_fraudPreventionValuesForTesting have these types, which WebKit's Swift names.
+    struct AttributionReportTestConfig {
+        URL attributionReportClickSourceURL;
+        URL attributionReportClickDestinationURL;
+    };
+
+    struct TestingFraudPreventionValues {
+        String unlinkableTokenForSource;
+        String secretTokenForSource;
+        String signatureForSource;
+        String keyIDForSource;
+        String unlinkableTokenForDestination;
+        String secretTokenForDestination;
+        String signatureForDestination;
+        String keyIDForDestination;
+    };
+
 private:
     PrivateClickMeasurementManager(UniqueRef<PCM::Client>&&, const String& storageDirectory, const ApplicationBundleIdentifiersOrAuditToken&);
 
@@ -118,23 +135,7 @@ private:
     const ApplicationBundleIdentifiersOrAuditToken m_applicationBundleIdentifier;
     const UniqueRef<PCM::Client> m_client;
 
-    struct AttributionReportTestConfig {
-        URL attributionReportClickSourceURL;
-        URL attributionReportClickDestinationURL;
-    };
-
     std::optional<AttributionReportTestConfig> m_attributionReportTestConfig;
-
-    struct TestingFraudPreventionValues {
-        String unlinkableTokenForSource;
-        String secretTokenForSource;
-        String signatureForSource;
-        String keyIDForSource;
-        String unlinkableTokenForDestination;
-        String secretTokenForDestination;
-        String signatureForDestination;
-        String keyIDForDestination;
-    };
 
     std::optional<TestingFraudPreventionValues> m_fraudPreventionValuesForTesting;
 };

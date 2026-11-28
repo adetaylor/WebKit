@@ -2416,7 +2416,7 @@ String convertImmersiveVideoMetadataToString(const ImmersiveVideoMetadata& metad
         WTF::LogArgument<std::optional<int32_t>>::toString(metadata.horizontalDisparityAdjustment), " }"_s);
 }
 
-#if PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
+#if ENABLE(WEBCORE_SWIFT)
 WTF_MAKE_TZONE_ALLOCATED_IMPL(SwiftMediaPlayerClientAdapter);
 
 SwiftMediaPlayerClientAdapter::~SwiftMediaPlayerClientAdapter()
@@ -2446,7 +2446,7 @@ void SwiftMediaPlayerClientAdapter::mediaPlayerGetRawCookies(const URL& url, Get
     m_rawCookiesProvider(url, WTF::move(completionHandler));
 }
 #endif
-#endif // PLATFORM(COCOA) && ENABLE(WEBCORE_SWIFT)
+#endif // ENABLE(WEBCORE_SWIFT)
 
 } // namespace WebCore
 

@@ -6980,7 +6980,7 @@ void WebPage::setMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool is
 
 void WebPage::triggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
 {
-    MockRealtimeMediaSourceCenter::singleton().triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
+    MockRealtimeMediaSourceCenter::triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
 }
 #endif // USE(GSTREAMER)
 

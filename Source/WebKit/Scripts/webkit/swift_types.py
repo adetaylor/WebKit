@@ -192,6 +192,9 @@ CXX_ENUM_TYPES = {
     # The CG renderer's text drawing.
     'WebCore::FontSmoothingMode': 'WebCore.FontSmoothingMode',
     'WebCore::StrokeStyle': 'WebCore.StrokeStyle',
+    # The generated message names (MessageNames.h), in no .serialization.in: SwiftCoding.swift says which values C++ declares, as
+    # WTF::isValidEnum<IPC::MessageName>() does.
+    'IPC::MessageName': 'IPC.MessageName',
 }
 
 # Trivially copyable C++ types that Swift imports, each conforming to IPCTrivialSpanElement with its stated promise, of which

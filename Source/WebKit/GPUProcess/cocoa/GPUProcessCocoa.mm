@@ -45,7 +45,6 @@
 #if ENABLE(MEDIA_STREAM)
 #import "SampleBufferDisplayLayerHost.h"
 #import <WebCore/CoreAudioCaptureUnit.h>
-#import <WebCore/MockRealtimeMediaSourceCenter.h>
 #import <WebCore/RealtimeMediaSourceCenter.h>
 #import <pal/cocoa/AVFoundationSoftLink.h>
 #import <pal/spi/cocoa/AVFoundationSPI.h>
@@ -111,6 +110,19 @@ GPUProcess& GPUProcess::singleton()
 {
     static NeverDestroyed<Ref<GPUProcess>> gpuProcess = adoptRef(*new GPUProcess);
     return gpuProcess.get().get();
+}
+
+WebCore::NowPlayingManager& GPUProcess::nowPlayingManager()
+{
+    if (!m_nowPlayingManager)
+        lazyInitialize(m_nowPlayingManager, makeUnique<WebCore::NowPlayingManager>());
+    return *m_nowPlayingManager;
+}
+
+void GPUProcess::updateSandboxAccess(const Vector<SandboxExtension::Handle>& extensions)
+{
+    RELEASE_LOG(WebRTC, "GPUProcess::updateSandboxAccess: Adding %zu extensions", extensions.size());
+    SandboxExtension::consumePermanently(extensions);
 }
 
 // The C++ part of start-up: what moves the parameters, or reaches AuxiliaryProcess and Launch Services.
@@ -179,57 +191,13 @@ void GPUProcess::initializeGPUProcess(GPUProcessCreationParameters&& parameters,
     completionHandler();
 }
 
-bool GPUProcess::addWebProcessConnection(GPUConnectionToWebProcess& connection, bool ignoreInvalidMessageForTesting)
-{
-#if ENABLE(IPC_TESTING_API)
-    if (ignoreInvalidMessageForTesting)
-        connection.connection().setIgnoreInvalidMessageForTesting();
-#else
-    UNUSED_PARAM(ignoreInvalidMessageForTesting);
-#endif
-    ASSERT(!m_webProcessConnections.contains(connection.webProcessIdentifier()));
-    return m_webProcessConnections.add(connection.webProcessIdentifier(), connection).isNewEntry;
-}
-
-GPUConnectionToWebProcess* GPUProcess::webProcessConnection(WebCore::ProcessIdentifier identifier) const
-{
-    return m_webProcessConnections.get(identifier);
-}
-
-void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& connection)
-{
-    Ref protectedConnection { connection };
-    ASSERT(m_webProcessConnections.get(connection.webProcessIdentifier()) == &connection);
-    if (m_webProcessConnections.get(connection.webProcessIdentifier()) == &connection)
-        m_webProcessConnections.remove(connection.webProcessIdentifier());
-    didRemoveWebProcessConnection(connection);
-}
-
-WebCore::NowPlayingManager& GPUProcess::nowPlayingManager()
-{
-    if (!m_nowPlayingManager)
-        lazyInitialize(m_nowPlayingManager, makeUnique<WebCore::NowPlayingManager>());
-    return *m_nowPlayingManager;
-}
-
-void GPUProcess::terminateWebProcess(WebCore::ProcessIdentifier identifier, IPC::MessageName invalidMessageName)
-{
-    protect(parentProcessConnection())->send(Messages::GPUProcessProxy::TerminateWebProcess(identifier, invalidMessageName), 0);
-}
-
-void GPUProcess::updateSandboxAccess(const Vector<SandboxExtension::Handle>& extensions)
-{
-    RELEASE_LOG(WebRTC, "GPUProcess::updateSandboxAccess: Adding %zu extensions", extensions.size());
-    SandboxExtension::consumePermanently(extensions);
-}
-
 RetainPtr<NSDictionary> GPUProcess::additionalStateForDiagnosticReport() const
 {
     RetainPtr backendStates = adoptNS([[NSMutableDictionary alloc] init]);
-    for (auto& [webProcessIdentifier, connection] : m_webProcessConnections) {
-        if (connection->swiftRenderingBackendCount())
-            [backendStates setObject:adoptNS([[NSMutableDictionary alloc] init]).get() forKey:webProcessIdentifier.loggingString().createNSString().get()];
-    }
+    forEachWebProcessConnection(GPUConnectionToWebProcessVisitor::create([&](GPUConnectionToWebProcess& connection) {
+        if (connection.swiftRenderingBackendCount())
+            [backendStates setObject:adoptNS([[NSMutableDictionary alloc] init]).get() forKey:connection.webProcessIdentifier().loggingString().createNSString().get()];
+    }));
     if (![backendStates count])
         return adoptNS([[NSDictionary alloc] init]);
     return @{ @"RemoteRenderingBackend states": backendStates.get() };
@@ -241,13 +209,6 @@ void GPUProcess::sinkCompletedSnapshotToPDF(RemoteSnapshotIdentifier identifier,
         if (!sink)
             return completionHandler({ });
         RemoteSnapshotPDFDrawingTask::create(*sink, WTF::move(completionHandler))->start(printProcessIdentifier);
-    })->swiftTakeSnapshotWhenComplete();
-}
-
-void GPUProcess::sinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier identifier, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&& completionHandler)
-{
-    RemoteSnapshotSink::create(identifier, rootFrameIdentifier, [completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink* sink) mutable {
-        completionHandler(sink ? sink->drawToBitmap() : std::nullopt);
     })->swiftTakeSnapshotWhenComplete();
 }
 
@@ -264,16 +225,6 @@ void GPUProcess::sinkCompletedSnapshotToIOSurface(RemoteSnapshotIdentifier ident
 #endif
         completionHandler(sink->drawToIOSurface(scale, colorSpace, connection->webProcessIdentity(), useIOSurfaceWebKitBehavior));
     })->swiftTakeSnapshotWhenComplete();
-}
-
-void GPUProcess::waitForSnapshot(RemoteSnapshotIdentifier identifier, CompletionHandler<void()>&& completionHandler)
-{
-    Ref wait = RemoteSnapshotSink::create(identifier, std::nullopt, [completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink*) mutable {
-        completionHandler();
-    });
-    // Sent after the sink, keeping its order, so a snapshot that is not here has already been drawn.
-    if (!wait->swiftWaitForSnapshot())
-        wait->completeWithoutSnapshot();
 }
 
 #if ENABLE(MEDIA_STREAM)
@@ -310,16 +261,6 @@ void GPUProcess::enableMicrophoneMuteStatusAPI()
         if (RefPtr process = weakProcess.get())
             protect(process->parentProcessConnection())->send(Messages::GPUProcessProxy::MicrophoneMuteStatusChanged(isMuting), 0);
     });
-}
-
-void GPUProcess::clearMockMediaDevices()
-{
-    WebCore::MockRealtimeMediaSourceCenter::setDevices({ });
-}
-
-void GPUProcess::triggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
-{
-    WebCore::MockRealtimeMediaSourceCenter::singleton().triggerMockCaptureConfigurationChange(forCamera, forMicrophone, forDisplay);
 }
 
 void GPUProcess::setShouldListenToVoiceActivity(bool shouldListen)
@@ -577,12 +518,10 @@ bool GPUProcess::platformSetUpCapturePreviewEnvironment(WebCore::PageIdentifier 
         return false;
     };
     RefPtr<GPUConnectionToWebProcess> pageConnection;
-    for (Ref connection : m_webProcessConnections.values()) {
-        if (isConnectionForPage(connection)) {
-            pageConnection = connection.ptr();
-            break;
-        }
-    }
+    forEachWebProcessConnection(GPUConnectionToWebProcessVisitor::create([&](GPUConnectionToWebProcess& connection) {
+        if (!pageConnection && isConnectionForPage(connection))
+            pageConnection = &connection;
+    }));
 
 #if ENABLE(EXTENSION_CAPABILITIES) && !PLATFORM(IOS_FAMILY_SIMULATOR)
     String mediaEnvironment = pageConnection ? pageConnection->mediaPlaybackEnvironment(pageIdentifier) : String { };

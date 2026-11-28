@@ -223,10 +223,10 @@ bool GraphicsContextGLGBM::bindNextDrawingBuffer()
 {
     m_currentDrawingBufferIndex++;
     auto& buffer = drawingBuffer();
-    if (buffer && (buffer.isInUse() || m_failNextDrawingBufferAllocation))
+    if (buffer && (buffer.isInUse() || failsNextDrawingBufferAllocation()))
         destroyDrawingBuffer(buffer);
 
-    if (std::exchange(m_failNextDrawingBufferAllocation, false))
+    if (takeFailNextDrawingBufferAllocation())
         return false;
 
     if (!buffer) {
@@ -236,7 +236,7 @@ bool GraphicsContextGLGBM::bindNextDrawingBuffer()
     }
 
     ScopedRestoreTextureBinding restoreBinding(TEXTURE_BINDING_2D, TEXTURE_2D);
-    GL_BindTexture(GL_TEXTURE_2D, m_texture);
+    GL_BindTexture(GL_TEXTURE_2D, drawingBufferTexture());
     GL_EGLImageTargetTexture2DOES(GL_TEXTURE_2D, buffer.image());
     return true;
 }
@@ -324,7 +324,7 @@ RefPtr<PixelBuffer> GraphicsContextGLGBM::readCompositedResults()
         GL_BindTexture(GL_TEXTURE_2D, displayTexture);
         GL_EGLImageTargetTexture2DOES(GL_TEXTURE_2D, displayBuffer.image());
     }
-    ScopedScratchReadFramebufferBinding fboBinding(m_isForWebGL2, m_state.boundReadFBO, displayTexture);
+    ScopedScratchReadFramebufferBinding fboBinding(m_isForWebGL2, boundReadFramebuffer(), displayTexture);
     return readPixelsForPaintResults();
 }
 
@@ -353,27 +353,7 @@ GCGLExternalImage GraphicsContextGLGBM::createExternalImage(ExternalImageSource&
         addError(GCGLErrorCode::InvalidOperation);
         return { };
     }
-    auto newName = ++m_nextExternalImageName;
-    m_eglImages.add(newName, eglImage);
-    return newName;
-}
-
-void GraphicsContextGLGBM::bindExternalImage(GCGLenum target, GCGLExternalImage image)
-{
-    if (!makeContextCurrent())
-        return;
-    EGLImage eglImage = EGL_NO_IMAGE_KHR;
-    if (image) {
-        eglImage = m_eglImages.get(image);
-        if (!eglImage) {
-            addError(GCGLErrorCode::InvalidOperation);
-            return;
-        }
-    }
-    if (target == RENDERBUFFER)
-        GL_EGLImageTargetRenderbufferStorageOES(RENDERBUFFER, eglImage);
-    else
-        GL_EGLImageTargetTexture2DOES(target, eglImage);
+    return addExternalImage(eglImage);
 }
 
 bool GraphicsContextGLGBM::enableRequiredWebXRExtensions()

@@ -399,8 +399,8 @@ protected:
 
     // Did the most recent drawing operation leave the GPU in an acceptable state?
     void checkGPUStatus();
-    // The platform's part of noticing a GPU reset, before the context is lost.
-    virtual void platformDidLoseDisplay();
+    // Called when WebCoreWebGL makes the context current on a thread where another one was.
+    virtual void platformDidMakeCurrent();
 
     RefPtr<PixelBuffer> readRenderingResults();
     virtual RefPtr<PixelBuffer> readCompositedResults() = 0;
@@ -419,6 +419,9 @@ protected:
 
     // The GL state of the island the platform code needs.
     GCGLuint drawingBufferTexture() const;
+    // For a platform whose drawing buffer is a swap chain of its own textures.
+    void setDrawingBufferTexture(GCGLuint);
+    GCGLuint drawingBufferFramebuffer() const;
     GCGLuint boundReadFramebuffer() const;
     GCGLuint boundDrawFramebuffer() const;
     void clampMaxInternalFramebufferSize(IntSize);
@@ -427,12 +430,15 @@ protected:
 #if ENABLE(WEBXR)
     GCGLExternalImage addExternalImage(void* eglImage);
     GCGLExternalSync addExternalSync(void* eglSync);
+    // The file descriptor of a duplicate of the sync's native fence, or -1.
+    int exportExternalSyncFileDescriptor(GCGLExternalSync);
 #endif
 
-    // The calls into the island, for the length of a call. Its context exists once initialize() made it, after
-    // platformInitializeContext().
+    // The calls into WebCoreWebGL, for the length of a call. Its context exists once platformInitializeContext() or
+    // createIslandContext() made it.
     SWIFT_UNSAFE GLIslandCalls islandCalls() const;
-    // Called by initialize(). Makes the island's context for the EGL context of platformInitializeContext().
+    bool hasIslandContext() const;
+    // Called by initialize(), after platformInitializeContext(), for a platform that makes WebCoreWebGL's context then.
     virtual void createIslandContext();
     uint64_t contextID() const { return m_contextID; }
 
@@ -440,7 +446,6 @@ protected:
 
     GCGLDisplay m_displayObj { nullptr };
     GCGLContext m_contextObj { nullptr };
-    GCGLContext m_angleSharingContextObj { nullptr };
     GCGLConfig m_configObj { nullptr };
 #if USE(TEXTURE_MAPPER) || USE(COORDINATED_GRAPHICS)
     GCEGLSurface m_surfaceObj { nullptr };

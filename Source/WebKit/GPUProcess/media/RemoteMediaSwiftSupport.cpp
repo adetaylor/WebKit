@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteMediaSwiftSupport.h"
 
-#if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
+#if ENABLE(GPU_PROCESS)
 
 #include "GPUConnectionToWebProcess.h"
 #include "RemoteMediaPlayerManagerProxy.h"
@@ -118,10 +118,12 @@ std::optional<ShareableBitmapHandle> createImageDecoderAVFFrameBitmap(ImageDecod
 #endif // HAVE(AVASSETREADER)
 
 #if ENABLE(VIDEO)
+#if PLATFORM(COCOA)
 CVBufferRef videoFramePixelBuffer(const VideoFrame& frame)
 {
     return frame.pixelBuffer();
 }
+#endif
 
 bool performMediaPlayerTaskAtTime(MediaPlayer& player, MediaPlayerTimeTask&& task, const MediaTime& time)
 {
@@ -202,4 +204,4 @@ void sendDataCue(IPC::Connection& connection, uint64_t mediaPlayerIdentifier, Tr
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
+#endif // ENABLE(GPU_PROCESS)

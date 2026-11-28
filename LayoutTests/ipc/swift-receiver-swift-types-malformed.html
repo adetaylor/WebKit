@@ -89,7 +89,9 @@ promise_test(async t => {
         assert_equals(takeInvalidMessageString(), '');
 
         // C++ decodes a SharedBuffer for Swift, so Swift accepts and rejects exactly what C++ does: under 4096 bytes
-        // it is inline, and from 4096 in shared memory.
+        // it is inline, and from 4096 in shared memory. With Unix domain sockets (GTK, WPE), which have no
+        // SerializableBuffer, every size is inline.
+        const useUnixDomainSockets = !('IPC::SharedBufferReference::SerializableBuffer' in IPC.serializedTypeInfo);
         const roundTripBuffer = args => send(IPC.messages.IPCTesterReceiver_RoundTripBufferSwift.name, args);
         const inlineBuffer = bytes => [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 1 }, { type: 'Vector', value: bytes.length ? [[{ type: 'uint64_t', value: bytes.length }, ...bytes.map(value => ({ type: 'uint8_t', value }))]] : [] }];
         result = await roundTripBuffer(inlineBuffer([1, 2, 3]));
@@ -97,11 +99,17 @@ promise_test(async t => {
         assert_equals(takeInvalidMessageString(), '');
         for (const [description, args] of [
             ['an unknown representation', [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 2 }]],
-            ['4096 bytes inline', inlineBuffer(Array(4096).fill(65))],
+            ...(useUnixDomainSockets ? [] : [['4096 bytes inline', inlineBuffer(Array(4096).fill(65))]]),
             ['a missing presence flag', []],
         ]) {
             assert_equals(await roundTripBuffer(args), null, `A buffer with ${description} is not handled`);
             takeInvalidMessageString();
+        }
+
+        if (useUnixDomainSockets) {
+            result = await roundTripBuffer(inlineBuffer(Array(4096).fill(65)));
+            assert_equals(result.arguments[result.arguments.length - 1].value, 4096, 'A buffer with 4096 bytes inline is handled with Unix domain sockets');
+            assert_equals(takeInvalidMessageString(), '');
         }
 
         // EnabledBy is checked against the receiver's preferences before Swift decodes anything.

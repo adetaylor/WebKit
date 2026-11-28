@@ -37,6 +37,7 @@
 #include "StreamMessageReceiver.h"
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/ShareableBitmap.h>
+#include <wtf/SwiftBridging.h>
 
 namespace IPC {
 class Semaphore;
@@ -50,11 +51,17 @@ class RemoteRenderingBackend;
 
 class RemoteImageBuffer : public IPC::StreamMessageReceiver {
 public:
-    static Ref<RemoteImageBuffer> create(Ref<WebCore::ImageBuffer>&&, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
+    static Ref<RemoteImageBuffer> create(WebCore::ImageBuffer&, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
     ~RemoteImageBuffer();
     void stopListeningForIPC();
     Ref<WebCore::ImageBuffer> imageBuffer() const { return m_imageBuffer; }
-    static Ref<WebCore::ImageBuffer> sinkIntoImageBuffer(Ref<RemoteImageBuffer>&&);
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    // SWIFT_UNSAFE: Swift counts its references itself, and a call by name would unbalance them.
+    SWIFT_UNSAFE void ref() const { IPC::StreamMessageReceiver::ref(); }
+    SWIFT_UNSAFE void deref() const { IPC::StreamMessageReceiver::deref(); }
+#endif
 private:
     RemoteImageBuffer(Ref<WebCore::ImageBuffer>&&, WebCore::RenderingResourceIdentifier, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
     void startListeningForIPC();
@@ -89,7 +96,7 @@ private:
     IPC::ScopedActiveMessageReceiveQueue<RemoteImageBufferGraphicsContext> m_context;
     ScopedRenderingResourcesRequest m_renderingResourcesRequest { ScopedRenderingResourcesRequest::acquire() };
     std::optional<IPC::Signal> m_flushSignal;
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

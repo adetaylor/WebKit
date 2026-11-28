@@ -62,6 +62,20 @@ Ref<RemoteSnapshotSink> RemoteSnapshotSink::create(const RemoteSnapshotIdentifie
     return adoptRef(*new RemoteSnapshotSink(snapshotIdentifier, rootFrameIdentifier, WTF::move(completion)));
 }
 
+Ref<RemoteSnapshotSink> RemoteSnapshotSink::createReplyingWithBitmap(const RemoteSnapshotIdentifier& snapshotIdentifier, FrameIdentifier rootFrameIdentifier, WTF::RefCountable<CompletionHandler<void(std::optional<ShareableBitmap::Handle>&&)>>& reply)
+{
+    return create(snapshotIdentifier, rootFrameIdentifier, [reply = Ref { reply }](RemoteSnapshotSink* sink) {
+        (*reply.get())(sink ? sink->drawToBitmap() : std::nullopt);
+    });
+}
+
+Ref<RemoteSnapshotSink> RemoteSnapshotSink::createReplying(const RemoteSnapshotIdentifier& snapshotIdentifier, WTF::RefCountable<CompletionHandler<void()>>& reply)
+{
+    return create(snapshotIdentifier, std::nullopt, [reply = Ref { reply }](RemoteSnapshotSink*) {
+        (*reply.get())();
+    });
+}
+
 RemoteSnapshotSink::RemoteSnapshotSink(const RemoteSnapshotIdentifier& snapshotIdentifier, std::optional<FrameIdentifier> rootFrameIdentifier, Completion&& completion)
     : m_snapshotIdentifier(snapshotIdentifier)
     , m_snapshotKey(WebKit::snapshotKey(snapshotIdentifier))
@@ -82,15 +96,18 @@ void RemoteSnapshotSink::setSwiftState(uintptr_t state)
     m_swiftState = state;
 }
 
-void RemoteSnapshotSink::complete(bool success, FloatSize size, uint64_t displayListsToken)
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+void RemoteSnapshotSink::complete(bool success, FloatSize size)
+#else
+void RemoteSnapshotSink::complete(bool success, FloatSize size, RemoteSnapshotDisplayLists& displayLists)
+#endif
 {
+    RELEASE_ASSERT(!m_didComplete.exchange(true));
     m_succeeded = success && m_rootFrameIdentifier;
     m_size = size;
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     if (m_succeeded)
-        m_displayLists = GPUProcess::snapshotDisplayLists(m_snapshotIdentifier, displayListsToken);
-#else
-    UNUSED_PARAM(displayListsToken);
+        m_displayLists = &displayLists;
 #endif
     // Swift completes the snapshot's sinks in order, on the thread that completes it, so dispatching even from the main
     // thread keeps them in that order.
@@ -101,6 +118,8 @@ void RemoteSnapshotSink::complete(bool success, FloatSize size, uint64_t display
 
 void RemoteSnapshotSink::completeWithoutSnapshot()
 {
+    // A sink that waits for a snapshot is completed by the snapshot, or here if there is none, never by both.
+    RELEASE_ASSERT(!m_didComplete.exchange(true));
     if (auto completion = std::exchange(m_completion, nullptr))
         completion(nullptr);
 }

@@ -30,12 +30,14 @@
 // Cursors hold positions (keys, and the index they were last found at with the store's generation), never iterators
 // or pointers into a container, so a mutation the cursor is not told about can make it re-seek but not dangle.
 
+#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
 internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
 internal import JavaScriptCore_Private.Cxx.Snippet
 internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+#endif
 internal import WebCore_Private.Core.IDBCursorInfo
 internal import WebCore_Private.Core.IDBDatabaseInfo
 internal import WebCore_Private.Core.IDBGetAllResult

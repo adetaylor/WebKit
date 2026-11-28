@@ -117,7 +117,7 @@ extension WebKit.OriginQuotaManager {
         if let usage {
             return min(usage, quota)
         }
-        let newUsage = m_getUsageFunction()
+        let newUsage = UInt64(m_getUsageFunction())
         return originQuotaManagerStates.withState(for: key) { state in
             state.usage = newUsage
             return min(newUsage, state.quota)
@@ -167,7 +167,7 @@ extension WebKit.OriginQuotaManager {
                 return nil
             }
             if let newQuota = newQuota.value {
-                state.quota = newQuota
+                state.quota = UInt64(newQuota)
                 // Recalculate quotaCountdown based on usage.
                 state.quotaCountdown = 0
             }
@@ -239,7 +239,7 @@ extension WebKit.OriginQuotaManager {
                 }
                 return state.quota
             }
-            m_increaseQuotaFunction(identifier, quota, usage, spaceRequested)
+            m_increaseQuotaFunction(identifier, .init(quota), .init(usage), .init(spaceRequested))
         }
     }
 
@@ -262,7 +262,7 @@ extension WebKit.OriginQuotaManager {
         // based on the assumption that the quota was increased to at least the disk usage under user's permission before.
         let key = swiftKey()
         let shouldUpdateQuotaBasedOnUsage = originQuotaManagerStates.withState(for: key) { $0.usage == nil }
-        let usage = m_getUsageFunction()
+        let usage = UInt64(m_getUsageFunction())
         originQuotaManagerStates.withState(for: key) { state in
             state.usage = usage
             let defaultQuotaStep = state.quota / 10
@@ -278,7 +278,7 @@ extension WebKit.OriginQuotaManager {
 
     private func spaceGranted(_ amount: UInt64) {
         if Bool(fromCxx: m_notifySpaceGrantedFunction) {
-            m_notifySpaceGrantedFunction(amount)
+            m_notifySpaceGrantedFunction(.init(amount))
         }
     }
 

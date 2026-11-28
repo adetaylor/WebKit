@@ -25,9 +25,11 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
+#if ENABLE(GPU_PROCESS)
 
+#if PLATFORM(COCOA)
 #include <CoreVideo/CVBuffer.h>
+#endif
 #include <WebCore/PlatformMediaCapabilitiesDecodingInfo.h>
 #include <WebCore/PlatformMediaCapabilitiesEncodingInfo.h>
 #include <WebCore/PlatformMediaDecodingConfiguration.h>
@@ -111,10 +113,12 @@ using MediaPlayerCallback = Function<void(WebCore::MediaPlayer&)>;
 // The player's performTaskAtTime(), with a task that Swift can make (Swift can't make one that takes a const MediaTime&).
 using MediaPlayerTimeTask = Function<void(MediaTime)>;
 bool performMediaPlayerTaskAtTime(WebCore::MediaPlayer&, MediaPlayerTimeTask&&, const MediaTime&);
+#if PLATFORM(COCOA)
 CVBufferRef WTF_NULLABLE videoFramePixelBuffer(const WebCore::VideoFrame&) CF_RETURNS_NOT_RETAINED;
 #endif
+#endif
 
-// Cocoa's media engine configuration factories answer synchronously.
+// The media engine configuration factories (Cocoa's and GStreamer's) answer synchronously.
 WebCore::PlatformMediaCapabilitiesDecodingInfo createMediaDecodingConfiguration(const WebCore::PlatformMediaDecodingConfiguration&);
 WebCore::PlatformMediaCapabilitiesEncodingInfo createMediaEncodingConfiguration(const WebCore::PlatformMediaEncodingConfiguration&);
 
@@ -136,4 +140,4 @@ void sendDataCue(IPC::Connection&, uint64_t mediaPlayerIdentifier, WebCore::Trac
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
+#endif // ENABLE(GPU_PROCESS)

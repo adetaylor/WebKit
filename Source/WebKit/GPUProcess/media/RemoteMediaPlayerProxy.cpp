@@ -139,9 +139,11 @@ void RemoteMediaPlayerProxy::initializeClientAdapter()
 #if !RELEASE_LOG_DISABLED
     adapter->setLogger(m_logger, m_configuration.logIdentifier);
 #endif
+#if PLATFORM(COCOA)
     adapter->setOutOfBandTrackSources(WTF::map(m_configuration.outOfBandTrackData, [](auto& data) {
         return PlatformTextTrack::create(WTF::move(data));
     }));
+#endif
     adapter->setResourceLoaderProvider([weakThis = WeakPtr { *this }] -> RefPtr<PlatformMediaResourceLoader> {
         RefPtr protectedThis = weakThis.get();
         if (!protectedThis)

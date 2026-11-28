@@ -69,15 +69,18 @@ GraphicsContextGLCoordinated::~GraphicsContextGLCoordinated()
     for (auto& buffer : m_drawingBuffers)
         destroyDrawingBuffer(buffer);
 
-    m_texture = 0;
+    // WebCoreWebGL has no context if initialize() failed before it made one.
+    if (hasIslandContext())
+        setDrawingBufferTexture(0);
 }
 
 bool GraphicsContextGLCoordinated::platformInitialize()
 {
     // Destroy the texture created by GraphicsContextGLANGLE since we will
     // use our own textures from the swap chain.
-    GL_DeleteTextures(1, &m_texture);
-    m_texture = 0;
+    GCGLuint texture = drawingBufferTexture();
+    GL_DeleteTextures(1, &texture);
+    setDrawingBufferTexture(0);
 
     return true;
 }
@@ -159,7 +162,7 @@ void GraphicsContextGLCoordinated::freeDrawingBuffers()
             destroyDrawingBuffer(buffer);
     }
 
-    m_texture = 0;
+    setDrawingBufferTexture(0);
 }
 
 void GraphicsContextGLCoordinated::freeObsoleteDrawingBuffers()
@@ -179,10 +182,10 @@ bool GraphicsContextGLCoordinated::bindNextDrawingBuffer()
 
     m_currentDrawingBufferIndex++;
     auto& buffer = drawingBuffer();
-    if (buffer && (buffer.isInUse() || m_failNextDrawingBufferAllocation))
+    if (buffer && (buffer.isInUse() || failsNextDrawingBufferAllocation()))
         m_obsoleteDrawingBuffers.append(WTF::move(buffer));
 
-    if (std::exchange(m_failNextDrawingBufferAllocation, false))
+    if (takeFailNextDrawingBufferAllocation())
         return false;
 
     if (!buffer) {
@@ -191,7 +194,7 @@ bool GraphicsContextGLCoordinated::bindNextDrawingBuffer()
             return false;
     }
 
-    m_texture = buffer.texture();
+    setDrawingBufferTexture(buffer.texture());
     return true;
 }
 
@@ -247,7 +250,7 @@ RefPtr<PixelBuffer> GraphicsContextGLCoordinated::readCompositedResults()
         return nullptr;
     // bindNextDrawingBuffer() leaves m_texture bound to the buffer that will be rendered into next,
     // so the presented frame is only available as the displayBuffer texture.
-    ScopedScratchReadFramebufferBinding fboBinding(m_isForWebGL2, m_state.boundReadFBO, displayBuffer.texture());
+    ScopedScratchReadFramebufferBinding fboBinding(m_isForWebGL2, boundReadFramebuffer(), displayBuffer.texture());
     return readPixelsForPaintResults();
 }
 

@@ -29,12 +29,6 @@ import Synchronization
 import WebCore_Private
 import WebKit_Internal
 
-// The value that a dictionary's subscript with a default stores: the one it had, or the default, which it adds, looking the key
-// up once.
-func storedValue<Value>(_ value: inout Value) -> Value {
-    value
-}
-
 // Whether two references are to the same image buffer. Safety: it compares the bits of the references, without using them,
 // which is the only way Swift has to compare C++ reference types.
 func isSameImageBuffer(_ imageBuffer: WebCore.ImageBuffer, _ other: WebCore.ImageBuffer?) -> Bool {

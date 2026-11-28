@@ -31,6 +31,7 @@
 #include "PrivateClickMeasurementManager.h"
 #include <WebCore/PrivateClickMeasurement.h>
 #include <wtf/CrossThreadCopier.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/RunLoop.h>
 #include <wtf/SuspendableWorkQueue.h>
 

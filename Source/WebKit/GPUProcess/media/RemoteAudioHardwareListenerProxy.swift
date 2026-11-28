@@ -23,7 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE_GPU_PROCESS_MEDIA_SWIFT
+#if ENABLE_GPU_PROCESS_CORE_SWIFT
 
 import WebKit_Internal
 
@@ -107,4 +107,4 @@ extension GPUConnectionState {
     }
 }
 
-#endif // ENABLE_GPU_PROCESS_MEDIA_SWIFT
+#endif // ENABLE_GPU_PROCESS_CORE_SWIFT

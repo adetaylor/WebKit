@@ -370,7 +370,6 @@ public:
 #endif
 };
 
-#if PLATFORM(COCOA)
 // A MediaPlayerClient for a Swift object conforming to MediaPlayerClientDelegate (SwiftMediaPlayerClientAdapter.swift).
 // The values the media engines query are fields here, read without leaving C++; the owner sets them. The members whose
 // types Swift can't take are functions the owner sets. Everything else goes to the delegate, which the adapter keeps
@@ -406,7 +405,9 @@ public:
     void setAllowedMediaCaptionFormatTypes(const std::optional<Vector<FourCC>>& value) { m_allowedMediaCaptionFormatTypes = value; }
     void setOutOfBandTrackSources(Vector<Ref<PlatformTextTrack>>&& value) { m_outOfBandTrackSources = WTF::move(value); }
     void setResourceLoaderProvider(Function<RefPtr<PlatformMediaResourceLoader>()>&& provider) { m_resourceLoaderProvider = WTF::move(provider); }
+#if PLATFORM(COCOA)
     void setVideoFrameMetadataHandler(Function<void(VideoFrameMetadata&&, RetainPtr<CVPixelBufferRef>&&)>&& handler) { m_videoFrameMetadataHandler = WTF::move(handler); }
+#endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     void setCachedKeyProvider(Function<RefPtr<ArrayBuffer>(const String&)>&& provider) { m_cachedKeyProvider = WTF::move(provider); }
 #endif
@@ -496,11 +497,13 @@ private:
     Vector<Ref<PlatformTextTrack>> outOfBandTrackSources() final { return m_outOfBandTrackSources; }
     Ref<PlatformMediaResourceLoader> mediaPlayerCreateResourceLoader() final;
 
+#if PLATFORM(COCOA)
     void mediaPlayerOnNewVideoFrameMetadata(VideoFrameMetadata&& metadata, RetainPtr<CVPixelBufferRef>&& pixelBuffer) final
     {
         if (m_videoFrameMetadataHandler)
             m_videoFrameMetadataHandler(WTF::move(metadata), WTF::move(pixelBuffer));
     }
+#endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RefPtr<ArrayBuffer> mediaPlayerCachedKeyForKeyId(const String& keyId) const final;
@@ -554,7 +557,9 @@ private:
     std::optional<Vector<FourCC>> m_allowedMediaCaptionFormatTypes;
     Vector<Ref<PlatformTextTrack>> m_outOfBandTrackSources;
     Function<RefPtr<PlatformMediaResourceLoader>()> m_resourceLoaderProvider;
+#if PLATFORM(COCOA)
     Function<void(VideoFrameMetadata&&, RetainPtr<CVPixelBufferRef>&&)> m_videoFrameMetadataHandler;
+#endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     Function<RefPtr<ArrayBuffer>(const String&)> m_cachedKeyProvider;
 #endif
@@ -573,8 +578,6 @@ private:
     uint64_t m_logIdentifier { 0 };
 #endif
 };
-
-#endif // PLATFORM(COCOA)
 
 class WEBCORE_EXPORT MediaPlayer : public MediaPlayerEnums, public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<MediaPlayer, WTF::DestructionThread::Main> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(MediaPlayer, WEBCORE_EXPORT);

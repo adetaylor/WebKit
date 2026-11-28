@@ -66,6 +66,7 @@ platform/glib/RunLoopObserverGLib.cpp
 
 platform/graphics/DMABufBuffer.cpp
 platform/graphics/PlatformDisplay.cpp @no-unify
+platform/graphics/TrackPrivateClientSwiftAdapters.cpp
 
 platform/graphics/angle/PlatformDisplayANGLE.cpp @no-unify
 

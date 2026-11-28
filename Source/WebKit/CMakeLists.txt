@@ -902,36 +902,14 @@ set(WebKit_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY TRUE)
 # PlatformMac.cmake and found by the Swift Clang importer via -F (same as
 # JavaScriptCore). The non-Apple ports build no framework bundles, so there is no
 # -F module to discover; the in-tree map is also a `framework module` that needs
-# the framework layout. Synthesize a plain module map exposing only what
-# WebBackForwardList.swift names directly (the rest of the WebCore:: types it uses
-# are reachable transitively via WebKit_Internal headers), and the headers of the C++
-# enums the generated serializers name (swift_types.py's CXX_ENUM_TYPES) and of the WebCore types SwiftCoding.swift
-# codes (ImageBufferFormat, ImageBufferResourceLimits, CaptureConstraints), which both import, and put it on the
-# importer's search path below. With the GPU process off nothing in WebKit_Internal brings them in.
+# the framework layout. They use the plain module map WebCore writes for its own Swift (WebCore's CMakeLists.txt,
+# SwiftModuleMap), whose non-explicit WebKitSwiftImports submodule has what WebKit's Swift names through
+# `import WebCore_Private`: what WebBackForwardList.swift names directly (the rest of the WebCore:: types it uses are
+# reachable transitively via WebKit_Internal headers), and the headers of the C++ enums the generated serializers name
+# (swift_types.py's CXX_ENUM_TYPES) and of the WebCore types SwiftCoding.swift codes. One map, not a second
+# WebCore_Private: WebKit's Swift loads WebCore's Swift module (the media Swift), which needs WebCore's.
 if (NOT USE_FRAMEWORK_BUNDLES)
-    set(WebCore_Private_SWIFT_MODULEMAP_DIR "${CMAKE_BINARY_DIR}/WebKit/SwiftModules/WebCorePrivate")
-    file(MAKE_DIRECTORY "${WebCore_Private_SWIFT_MODULEMAP_DIR}")
-    file(CONFIGURE OUTPUT "${WebCore_Private_SWIFT_MODULEMAP_DIR}/module.modulemap" CONTENT
-"module WebCore_Private [system] {
-    requires cplusplus
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/DiagnosticLoggingKeys.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/DiagnosticLoggingClient.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/TextGranularity.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/StyleAppearance.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/GraphicsTypes.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/FEColorMatrixParameters.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/FEComponentTransferParameters.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/FECompositeParameters.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/FEConvolveMatrixParameters.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/FEDisplacementMapParameters.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/FEMorphologyParameters.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/FETurbulenceParameters.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/ImageBufferFormat.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/ImageBufferResourceLimits.h\"
-    header \"${WebCore_PRIVATE_HEADERS_DIR}/MediaConstraintsEvaluation.h\"
-    export *
-}
-")
+    set(WebCore_Private_SWIFT_MODULEMAP_DIR "${CMAKE_BINARY_DIR}/Source/WebCore/SwiftModuleMap")
 endif ()
 
 WEBKIT_FRAMEWORK_DECLARE(WebKit)
@@ -966,6 +944,13 @@ if (NOT USE_FRAMEWORK_BUNDLES)
         ${WebKit_PRIVATE_INCLUDE_DIRECTORIES}
     )
     list(APPEND WebKit_SWIFT_CLANG_INCLUDE_DIRS ${WebCore_Private_SWIFT_MODULEMAP_DIR})
+    # WebCore's map names its headers in the source tree, and they include their neighbours by bare name
+    # ("ReferrerPolicy.h", "BoxLayoutShape.h", not all of them exported), which WebCore's own include directories
+    # resolve: WebKit's Swift compile (only) searches them after its own, as WebCore's Swift compile does. Not on
+    # Windows, whose 32K command line WebCore's include directories would overflow on top of WebKit's.
+    if (NOT WIN32)
+        target_include_directories(WebKit PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:$<TARGET_PROPERTY:WebCore,INCLUDE_DIRECTORIES>>")
+    endif ()
 endif ()
 
 if (NOT APPLE)
@@ -1014,6 +999,8 @@ set(WebKit_SWIFT_INTEROP_SOURCES
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftWorkQueueTesterMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeapMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLMessageReceiver.cpp
 )
 if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
     list(APPEND WebKit_SWIFT_INTEROP_SOURCES UIProcess/ViewGestureController.cpp)
@@ -1038,7 +1025,6 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteLegacyCDMFactoryProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteLegacyCDMProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteLegacyCDMSessionProxyMessageReceiver.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteBarcodeDetectorMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteFaceDetectorMessageReceiver.cpp
@@ -1054,7 +1040,6 @@ if (APPLE)
         Shared/IPCTesterCGRendererWireForms.cpp
         GPUProcess/graphics/RemoteSnapshotRecorder.cpp
         GPUProcess/media/RemoteVideoFrameObjectHeap.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLMessageReceiver.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteAdapterMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayoutMessageReceiver.cpp
@@ -1137,6 +1122,21 @@ if (TARGET WebCoreEME)
     add_dependencies(WebKit_SwiftGeneratedDeps WebCoreEME)
 endif ()
 
+# The GPU process's media Swift imports WebCore's own Swift module (the media player's Swift client, @_spi(WebKitGPU)),
+# which the Apple ports find in WebCore.framework; the other ports build it in WebCore's binary directory, before WebKit's
+# Swift compile once WebCore's interop header (the step after WebCore's Swift compile) is a dependency.
+if (SWIFT_REQUIRED AND NOT APPLE)
+    webkit_target_add_swift_options(WebKit "-I${CMAKE_BINARY_DIR}/Source/WebCore")
+    if (NOT WIN32)
+        # WebCore is objects linked into the image itself (no libWebCore): an ELF object's auto-link of WebCore's
+        # Swift module would ask for -lWebCore.
+        webkit_target_add_swift_options(WebKit "-Xfrontend -disable-autolink-library -Xfrontend WebCore")
+    endif ()
+    if (TARGET WebCore_SwiftCxxHeader)
+        add_dependencies(WebKit_SwiftGeneratedDeps WebCore_SwiftCxxHeader)
+    endif ()
+endif ()
+
 # The GPU process's WebGL receiver imports WebCore.framework's WebGL island Swift module, whose underlying clang module
 # needs ANGLE's headers.
 if (TARGET WebCoreWebGL)
@@ -1144,7 +1144,17 @@ if (TARGET WebCoreWebGL)
         "-I${WebCoreWebGL_SWIFT_MODULE_DIR}"
         "-Xcc -I${WebCoreWebGL_INTEROP_MODULE_DIR}"
         "-Xcc -I${ANGLE_FRAMEWORK_HEADERS_DIR}")
+    if (NOT APPLE)
+        # WebCore links the archive whole (Source/WebCore/CMakeLists.txt): an ELF object's auto-link of it would ask
+        # for -lWebCoreWebGL, which no image that links WebKit has on its search path.
+        webkit_target_add_swift_options(WebKit "-Xfrontend -disable-autolink-library -Xfrontend WebCoreWebGL")
+    endif ()
     add_dependencies(WebKit_SwiftGeneratedDeps WebCoreWebGL)
+endif ()
+
+# Under LTO_MODE, WebKit's Swift goes into the LTO link with its C++ callers.
+if (NOT APPLE)
+    WEBKIT_SWIFT_LTO_OUTSIDE_DEBUG(WebKit)
 endif ()
 
 # should match the rest of WebKit and use -Onone, but it negatively impacts build time
@@ -1160,6 +1170,17 @@ webkit_target_add_swift_options(WebKit
 webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
 # Lets WebKit's Swift implement members of C++ classes with @cxx @implementation.
 webkit_target_add_swift_options(WebKit "-enable-experimental-feature CxxImplementation")
+if (NOT APPLE)
+    # Apple's WebKit Swift gets these (CommonBase.xcconfig), and WebKit's Swift uses @_lifetime and the Span overloads
+    # SafeInteropWrappers makes for C++ std::span accessors. Without -strict-memory-safety: the GPU process's Swift passes C++
+    # types (ShareableBitmapHandle, String's optional conversions) it would warn on, and -Werror StrictMemorySafety makes
+    # warnings errors.
+    set(_webkit_swift_memory_safety_features ${WEBKIT_SWIFT_MEMORY_SAFETY_FLAGS})
+    list(FILTER _webkit_swift_memory_safety_features EXCLUDE REGEX "^-strict-memory-safety$")
+    webkit_target_add_swift_options(WebKit
+        ${WEBKIT_SWIFT_EXPERIMENTAL_FEATURE_FLAGS}
+        ${_webkit_swift_memory_safety_features})
+endif ()
 webkit_target_add_swift_options(WebKit "-Werror SendableClosureCaptures")
 
 if (WebKit_PUBLIC_FRAMEWORK_HEADERS)
@@ -1695,6 +1716,7 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/GPUProcess/GPUProcess.swift
     ${WEBKIT_DIR}/GPUProcess/RemoteSharedResourceCache.swift
     ${WEBKIT_DIR}/GPUProcess/graphics/RemoteSnapshot.swift
+    ${WEBKIT_DIR}/GPUProcess/graphics/RemoteSnapshotDisplayLists.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
     ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioHardwareListenerProxy.swift
@@ -1821,25 +1843,32 @@ if (SWIFT_REQUIRED AND APPLE)
 endif ()
 
 # Each compiles to nothing unless ENABLE_GPU_PROCESS and, for the legacy CDMs, ENABLE_LEGACY_ENCRYPTED_MEDIA, for the image
-# decoders, HAVE_AVASSETREADER, for the media engine configurations, ENABLE_GPU_PROCESS_MEDIA_SWIFT, and for the media
-# player frames, ENABLE_GPU_PROCESS_WEBGPU_SWIFT, are set.
+# decoders, HAVE_AVASSETREADER, and for the media player frames, ENABLE_GPU_PROCESS_WEBGPU_SWIFT, are set.
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageDecoderAVFProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMFactoryProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMSessionProxyMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/media/GPUVideoFrameSource.swift
         ${WEBKIT_DIR}/GPUProcess/media/RemoteImageDecoderAVFProxy.swift
         ${WEBKIT_DIR}/GPUProcess/media/RemoteLegacyCDMFactoryProxy.swift
-        ${WEBKIT_DIR}/GPUProcess/media/RemoteMediaEngineConfigurationFactoryProxy.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageDecoderAVFProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMFactoryProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMSessionProxyMessageReceiver.swift
+    )
+endif ()
+
+# Each compiles to nothing unless ENABLE_GPU_PROCESS_MEDIA_SWIFT is set.
+if (SWIFT_REQUIRED)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteMediaEngineConfigurationFactoryProxy.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.swift
     )
 endif ()
@@ -1856,7 +1885,7 @@ if (SWIFT_REQUIRED AND APPLE)
 endif ()
 
 # Each compiles to nothing unless ENABLE_GPU_PROCESS_MEDIA_SWIFT is set.
-if (SWIFT_REQUIRED AND APPLE)
+if (SWIFT_REQUIRED)
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaPlayerManagerProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaPlayerProxyMessageReceiver.swift
@@ -1890,7 +1919,7 @@ if (SWIFT_REQUIRED AND APPLE)
 endif ()
 
 # Compiles to nothing unless ENABLE_GPU_PROCESS, ENABLE_VIDEO and ENABLE_GPU_PROCESS_MEDIA_SWIFT are set.
-if (SWIFT_REQUIRED AND APPLE)
+if (SWIFT_REQUIRED)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/media/RemoteMediaPlayerProxy.swift
     )
@@ -1926,15 +1955,25 @@ if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBarcodeDetectorMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteFaceDetectorMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderingBackendMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextDetectorMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/ShapeDetection/RemoteShapeDetectors.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBarcodeDetectorMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteFaceDetectorMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderingBackendMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextDetectorMessageReceiver.swift
+    )
+endif ()
+
+# Each compiles to nothing unless ENABLE_GPU_PROCESS_RENDERING_BACKEND_SWIFT is set.
+if (SWIFT_REQUIRED)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderingBackendMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteRenderingBackend.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderingBackendMessageReceiver.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteResourceCache.swift
     )
 endif ()
 
@@ -1942,7 +1981,6 @@ endif ()
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/RemoteGraphicsContextGLMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferSetMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
@@ -1957,9 +1995,17 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteImageBufferSet.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferSetMessageReceiver.swift
-        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteRenderingBackend.swift
-        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteResourceCache.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/ScopedRenderingResourcesRequest.swift
+    )
+endif ()
+
+# Each compiles to nothing unless ENABLE_GPU_PROCESS and ENABLE_WEBGL are set. The GPU process's WebGL receiver is Swift's
+# on every port that builds Swift.
+if (SWIFT_REQUIRED)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteGraphicsContextGLMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGL.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLFunctionsGenerated.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteGraphicsContextGLMessageReceiver.swift

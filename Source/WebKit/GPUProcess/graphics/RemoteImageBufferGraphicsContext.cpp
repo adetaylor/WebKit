@@ -168,7 +168,6 @@ void RemoteImageBufferGraphicsContext::waitForDisplayBuffer()
 #include "SwiftCoding.h"
 #include "RemoteCGRendererMessages.h"
 #include "RemoteCGRendererStyleKind.h"
-#include "RemoteResourceCache.h"
 #include "StreamMessageReceiver.h"
 #include "WebKit-Swift.h"
 #include <WebCore/DisplayListRecorderImpl.h>
@@ -651,14 +650,14 @@ void RemoteImageBufferGraphicsContext::drawGlyphs(RenderingResourceIdentifier fo
 
 void RemoteImageBufferGraphicsContext::fillRectWithCachedGradient(const FloatRect& rect, RemoteGradientIdentifier identifier)
 {
-    RefPtr gradient = resourceCache().cachedGradient(identifier);
+    RefPtr gradient = m_renderingBackend->cachedGradient(identifier);
     MESSAGE_CHECK(gradient);
     context().fillRect(rect, *gradient);
 }
 
 void RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransform(const FloatRect& rect, RemoteGradientIdentifier identifier, const AffineTransform& transform, RequiresClipToRect requiresClipToRect)
 {
-    RefPtr gradient = resourceCache().cachedGradient(identifier);
+    RefPtr gradient = m_renderingBackend->cachedGradient(identifier);
     MESSAGE_CHECK(gradient);
     context().fillRect(rect, *gradient, transform, requiresClipToRect);
 }
