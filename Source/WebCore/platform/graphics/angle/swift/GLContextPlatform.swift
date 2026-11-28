@@ -96,6 +96,12 @@ final class EGLGLContextPlatform: GLContextPlatform {
         GLContextCallbacks.invalidateKnownTextureContent(contextID, texture)
     }
 
+    #if WTF_PLATFORM_COCOA
+    // Cocoa contexts lose their display through CocoaGLPlatform; an EGL platform's display has nothing to drop.
+    func didLoseDisplay() {
+    }
+    #endif
+
     func willDestroy(_ context: GLContext) {
     }
 

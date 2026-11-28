@@ -304,7 +304,7 @@ public:
 #if ENABLE(WEBXR)
     GCGLExternalImage createExternalImage(ExternalImageSource&&, GCGLenum internalFormat, GCGLint layer) override;
     void deleteExternalImage(GCGLExternalImage) final;
-    void bindExternalImage(GCGLenum target, GCGLExternalImage) final;
+    void bindExternalImage(GCGLenum target, GCGLExternalImage) override;
     GCGLExternalSync createExternalSync(ExternalSyncSource&&) override;
     void deleteExternalSync(GCGLExternalSync) final;
     void framebufferDiscard(GCGLenum target, std::span<const GCGLenum> attachments) final;
