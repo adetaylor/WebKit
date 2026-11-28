@@ -21,17 +21,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-// Swift operators import every visible C++ operator of the same name; these modules define reference types that some of
-// them name (rdar://192229293).
-#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
-internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
-internal import JavaScriptCore_Private.Cxx.Snippet
-internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
-internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
-internal import JavaScriptCore_Private.Cxx.WasmModule
-internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
-internal import JavaScriptCore_Private.Cxx.YarrInterpreter
-#endif
 internal import WebCore_Private.Core.BackgroundFetchEngine
 internal import WebCore_Private.Core.ClientOrigin
 internal import WebCore_Private.Core.ExceptionData
@@ -52,17 +41,26 @@ internal import WebCore_Private.Core.ServiceWorkerRegistrationKey
 internal import WebCore_Private.Core.ServiceWorkerTypes
 internal import wtf.Core.text.WTFString
 
+// Swift operators import every visible C++ operator of the same name; these modules define reference types that some of
+// them name (rdar://192229293).
+#if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
+internal import JavaScriptCore_Private.Cxx.DOMJITCallDOMGetterSnippet
+internal import JavaScriptCore_Private.Cxx.Snippet
+internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
+internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
+internal import JavaScriptCore_Private.Cxx.WasmModule
+internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+internal import JavaScriptCore_Private.Cxx.YarrInterpreter
+#endif
+
 extension WebCore.SWServer {
     @cxx
     @implementation
     func maxRegistrationCount() -> UInt32 {
-        if let overrideServiceWorkerRegistrationCountTestingValue = m_overrideServiceWorkerRegistrationCountTestingValue.value {
-            return overrideServiceWorkerRegistrationCountTestingValue
-        }
-
-        return Self.defaultMaxRegistrationCount()
+        m_overrideServiceWorkerRegistrationCountTestingValue.value ?? Self.defaultMaxRegistrationCount()
     }
 
+    /// Whether the registrations of topOrigin have been read from disk.
     @cxx
     @implementation
     public func isImportCompletedForOrigin(_ topOrigin: WebCore.SecurityOriginData) -> Bool {
@@ -88,6 +86,7 @@ extension WebCore.SWServer {
         replaceContextConnectionIfNotInServiceWorkerPageProcess(registration, newServiceWorkerPageIdentifier)
     }
 
+    /// Schedules a job that unregisters registration.
     @cxx
     @implementation
     public func scheduleUnregisterJob(
@@ -315,7 +314,6 @@ extension WebCore.SWServer {
         logAddingRegistration(registration)
 
         if getRegistration(key) == nil && !allowLoopbackIPAddress(Self.topOriginHost(key)) {
-            // m_uniqueRegistrationCount is unsigned: it wraps rather than traps.
             m_uniqueRegistrationCount &+= 1
         }
 
@@ -338,10 +336,10 @@ extension WebCore.SWServer {
     @cxx
     @implementation
     func removeRegistration(_ registrationID: WebCore.ServiceWorkerRegistrationIdentifier) {
-        let takenRegistration = m_registrations.take(registrationID).get()
-        assert(takenRegistration != nil)
         // Callers remove only a registration the map holds.
-        let registration = takenRegistration!
+        guard let registration = m_registrations.take(registrationID).get() else {
+            preconditionFailure()
+        }
 
         if let serviceWorkerPageIdentifier = registration.serviceWorkerPageIdentifier().value {
             m_serviceWorkerPageIdentifierToRegistrationMap.remove(serviceWorkerPageIdentifier)
@@ -349,7 +347,6 @@ extension WebCore.SWServer {
 
         let key = registration.keyValue()
         if removeScopeToRegistrationIfSame(key, registration) && !Self.isTopOriginLocalHostOrLoopbackIPAddress(key) {
-            // m_uniqueRegistrationCount is unsigned: it wraps rather than traps.
             m_uniqueRegistrationCount &-= 1
         }
 
@@ -365,16 +362,12 @@ extension WebCore.SWServer {
     @implementation
     func removeFromScopeToRegistrationMap(_ key: WebCore.ServiceWorkerRegistrationKey) {
         if getRegistration(key) != nil && !allowLoopbackIPAddress(Self.topOriginHost(key)) {
-            // m_uniqueRegistrationCount is unsigned: it wraps rather than traps.
             m_uniqueRegistrationCount &-= 1
         }
 
         removeScopeToRegistration(key)
     }
-}
 
-// Clients, context connections, workers and connections.
-extension WebCore.SWServer {
     @cxx
     @implementation
     func runServiceWorker(_ identifier: WebCore.ServiceWorkerIdentifier) -> Bool {
@@ -385,6 +378,7 @@ extension WebCore.SWServer {
         return runServiceWorker(worker)
     }
 
+    /// Handles each running or terminating worker of registrableDomain as terminated.
     @cxx
     @implementation
     public func markAllWorkersForRegistrableDomainAsTerminated(_ registrableDomain: WebCore.RegistrableDomain) {
@@ -402,13 +396,11 @@ extension WebCore.SWServer {
     func workerContextTerminated(_ worker: WebCore.SWServerWorker) {
         // At this point if no registrations are referencing the worker then it will be destroyed,
         // removing itself from the m_workersByID map.
-        // `taken` may hold the last reference to `worker`, so it is kept alive to the end of the body.
+        // Keeps the worker alive to the end of this function.
         guard let taken = m_runningOrTerminatingWorkers.take(worker.identifier()).get() else {
             assert(worker.isNotRunning())
             return
         }
-        // `taken` is `worker`: the map is keyed by identifier, and each worker adds itself to allWorkers() under its own
-        // unique identifier when it is constructed.
 
         withExtendedLifetime(taken) {
             worker.setState(WebCore.SWServerWorker.State.NotRunning)
@@ -419,6 +411,7 @@ extension WebCore.SWServer {
         }
     }
 
+    /// Adds the connection of a client process.
     @cxx
     @implementation
     public func addConnection(_ connection: WebCore.SWServer.RefConnection) {
@@ -431,6 +424,7 @@ extension WebCore.SWServer {
         }
     }
 
+    /// Removes the connection of a client process and cancels its jobs.
     @cxx
     @implementation
     public func removeConnection(_ connectionIdentifier: WebCore.SWServerConnectionIdentifier) {
@@ -446,6 +440,7 @@ extension WebCore.SWServer {
         }
     }
 
+    /// Sets whether service workers can be inspected, and tells each context connection.
     @cxx
     @implementation
     public func setInspectable(_ inspectable: WebCore.ServiceWorkerIsInspectable) {
@@ -468,6 +463,7 @@ extension WebCore.SWServer {
         }
     }
 
+    /// Takes the messages queued for a client that was being created.
     @cxx
     @implementation
     public func releaseServiceWorkerClientPendingMessage(
@@ -476,6 +472,7 @@ extension WebCore.SWServer {
         m_clientsToBeCreatedById.take(contextIdentifier)
     }
 
+    /// The data of the client with clientIdentifier, if the client belongs to clientOrigin.
     @cxx
     @implementation
     public func serviceWorkerClientWithOriginByID(
@@ -491,6 +488,7 @@ extension WebCore.SWServer {
         return clientData
     }
 
+    /// The data of the top-level client of clientOrigin in the page.
     @cxx
     @implementation
     public func topLevelServiceWorkerClientFromPageIdentifier(

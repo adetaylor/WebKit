@@ -21,6 +21,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+internal import WebCore_Private.Core.SWServer
+internal import WebCore_Private.Core.SWServerToContextConnection
+internal import WebCore_Private.Core.SWServerWorker
+internal import WebCore_Private.Core.ServiceWorkerContextData
+internal import WebCore_Private.Core.ServiceWorkerJobDataIdentifier
+internal import WebCore_Private.Core.ServiceWorkerTypes
+
 // Swift operators import every visible C++ operator of the same name; these modules define reference types that some of
 // them name (rdar://192229293).
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -32,14 +39,9 @@ internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
 internal import JavaScriptCore_Private.Cxx.YarrInterpreter
 #endif
-internal import WebCore_Private.Core.SWServer
-internal import WebCore_Private.Core.SWServerToContextConnection
-internal import WebCore_Private.Core.SWServerWorker
-internal import WebCore_Private.Core.ServiceWorkerContextData
-internal import WebCore_Private.Core.ServiceWorkerJobDataIdentifier
-internal import WebCore_Private.Core.ServiceWorkerTypes
 
 extension WebCore.SWServerToContextConnection {
+    /// Tells the worker that its script context failed to start.
     @cxx
     @implementation
     public func scriptContextFailedToStart(
@@ -51,6 +53,7 @@ extension WebCore.SWServerToContextConnection {
             .scriptContextFailedToStart(jobDataIdentifier, message)
     }
 
+    /// Tells the worker that its script context started.
     @cxx
     @implementation
     public func scriptContextStarted(
@@ -62,6 +65,7 @@ extension WebCore.SWServerToContextConnection {
             .scriptContextStarted(jobDataIdentifier, doesHandleFetch)
     }
 
+    /// Tells the worker that its install event finished.
     @cxx
     @implementation
     public func didFinishInstall(
@@ -73,24 +77,28 @@ extension WebCore.SWServerToContextConnection {
             .didFinishInstall(jobDataIdentifier, wasSuccessful)
     }
 
+    /// Tells the worker that its activate event finished.
     @cxx
     @implementation
     public func didFinishActivation(_ serviceWorkerIdentifier: WebCore.ServiceWorkerIdentifier) {
         WebCore.SWServerWorker.existingWorkerForIdentifier(serviceWorkerIdentifier)?.didFinishActivation()
     }
 
+    /// Tells the worker whether it has pending events.
     @cxx
     @implementation
     public func setServiceWorkerHasPendingEvents(_ serviceWorkerIdentifier: WebCore.ServiceWorkerIdentifier, _ hasPendingEvents: Bool) {
         WebCore.SWServerWorker.existingWorkerForIdentifier(serviceWorkerIdentifier)?.setHasPendingEvents(hasPendingEvents)
     }
 
+    /// Tells the worker that its context terminated.
     @cxx
     @implementation
     public func workerTerminated(_ serviceWorkerIdentifier: WebCore.ServiceWorkerIdentifier) {
         WebCore.SWServerWorker.existingWorkerForIdentifier(serviceWorkerIdentifier)?.contextTerminated()
     }
 
+    /// Stores an imported script of the worker.
     @cxx
     @implementation
     public func setScriptResource(
@@ -98,15 +106,18 @@ extension WebCore.SWServerToContextConnection {
         _ scriptURL: WTF.URL,
         _ script: WebCore.SWServerToContextConnection.ImportedScriptArgument
     ) {
-        WebCore.SWServerWorker.existingWorkerForIdentifier(serviceWorkerIdentifier)?.setScriptResource(consuming: scriptURL, consuming: script.take())
+        WebCore.SWServerWorker.existingWorkerForIdentifier(serviceWorkerIdentifier)?
+            .setScriptResource(consuming: scriptURL, consuming: script.take())
     }
 
+    /// Tells the worker that it failed its heartbeat check.
     @cxx
     @implementation
     public func didFailHeartBeatCheck(_ identifier: WebCore.ServiceWorkerIdentifier) {
         WebCore.SWServerWorker.existingWorkerForIdentifier(identifier)?.didFailHeartBeatCheck()
     }
 
+    /// Tells the worker whether a web inspector is attached to it.
     @cxx
     @implementation
     public func setAsInspected(_ identifier: WebCore.ServiceWorkerIdentifier, _ isInspected: Bool) {

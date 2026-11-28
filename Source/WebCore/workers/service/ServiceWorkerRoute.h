@@ -38,9 +38,8 @@
 namespace WebCore {
 
 struct ServiceWorkerRoutePattern {
-    ServiceWorkerRoutePattern isolatedCopy() && { return crossThreadCopied(WTF::move(*this)); }
-    ServiceWorkerRoutePattern isolatedCopy() const & { return crossThreadCopied(*this); }
-    static ServiceWorkerRoutePattern crossThreadCopied(ServiceWorkerRoutePattern);
+    ServiceWorkerRoutePattern isolatedCopy() &&;
+    ServiceWorkerRoutePattern isolatedCopy() const &;
 
     // Swift cannot build URLPattern's input variant nor read its ExceptionOr result safely: compiling stays C++.
     bool matches(const URL&) const;
@@ -65,7 +64,7 @@ struct ServiceWorkerRouteCondition {
     ServiceWorkerRouteCondition isolatedCopy() const &;
     ServiceWorkerRouteCondition copy() const;
 
-    // The not-condition, read through a subscript that asserts it is set.
+    // The not-condition, by reference so that a match does not copy it, through a subscript that asserts it is set.
     enum class NotConditionTag : uint8_t { Condition };
     bool hasNotCondition() const { return !!notCondition; }
     // Reading the pattern out of the optional would copy its eight strings per match.
@@ -84,14 +83,8 @@ struct ServiceWorkerRouteCondition {
 
 using RouterSource = Variant<RouterSourceDict, RouterSourceEnum>;
 
-// Swift cannot construct a C++ Variant, nor pick one of its alternatives.
+// Swift cannot construct a C++ Variant.
 inline RouterSource makeRouterSource(RouterSourceEnum source) { return source; }
-inline std::optional<RouterSourceEnum> routerSourceEnum(const RouterSource& source)
-{
-    if (auto* value = std::get_if<RouterSourceEnum>(&source))
-        return *value;
-    return std::nullopt;
-}
 
 struct ServiceWorkerRoute {
     ServiceWorkerRouteCondition condition;

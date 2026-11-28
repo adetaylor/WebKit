@@ -441,7 +441,7 @@ void ServiceWorkerFetchTask::startTimeoutTimer()
 void ServiceWorkerFetchTask::waitForPreloadResponse()
 {
     protect(m_preloader)->waitForResponse([weakThis = WeakPtr { *this }] {
-        if (RefPtr protectedThis = weakThis.get())
+        if (RefPtr protectedThis = weakThis)
             protectedThis->preloadResponseIsReady();
     });
 }

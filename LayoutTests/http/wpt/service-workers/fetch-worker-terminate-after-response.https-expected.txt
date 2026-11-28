@@ -1,0 +1,5 @@
+
+
+PASS Setup worker
+PASS Make sure a load whose response was sent fails when its worker terminates before the body is finished
+

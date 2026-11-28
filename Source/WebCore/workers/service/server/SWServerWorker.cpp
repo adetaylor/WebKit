@@ -188,7 +188,7 @@ SWServerToContextConnection* SWServerWorker::contextConnection()
     return server ? server->contextConnectionForRegistrableDomain(topRegistrableDomain(), m_crossOriginEmbedderPolicy.value) : nullptr;
 }
 
-std::optional<ServiceWorkerClientData> SWServerWorker::findClientByIdentifier(ScriptExecutionContextIdentifier clientId) const
+std::optional<ServiceWorkerClientData> SWServerWorker::findClientByIdentifier(const ScriptExecutionContextIdentifier& clientId) const
 {
     ASSERT(m_server);
     if (!m_server)
@@ -233,7 +233,7 @@ void SWServerWorker::setScriptResource(URL&& url, ServiceWorkerContextData::Impo
     m_scriptResourceMap.set(WTF::move(url), WTF::move(script));
 }
 
-void SWServerWorker::didSaveScriptsToDisk(ScriptBuffer mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer> importedScripts)
+void SWServerWorker::didSaveScriptsToDisk(ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts)
 {
     // Send mmap'd version of the scripts to the ServiceWorker process so we can save dirty memory.
     if (RefPtr contextConnection = this->contextConnection())
@@ -252,7 +252,7 @@ void SWServerWorker::didSaveScriptsToDisk(ScriptBuffer mainScript, MemoryCompact
     }
 }
 
-void SWServerWorker::setWorkerScripts(ScriptBuffer mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer> importedScripts)
+void SWServerWorker::setWorkerScripts(ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts)
 {
     ASSERT(m_needsScriptLoading);
     m_script = WTF::move(mainScript);
@@ -347,7 +347,7 @@ Vector<URL> SWServerWorker::importedScriptURLs() const
     return copyToVector(m_scriptResourceMap.keys());
 }
 
-bool SWServerWorker::matchingImportedScripts(Vector<std::pair<URL, ScriptBuffer>> scripts) const
+bool SWServerWorker::matchingImportedScripts(const Vector<std::pair<URL, ScriptBuffer>>& scripts) const
 {
     for (auto& script : scripts) {
         auto iterator = m_scriptResourceMap.find(script.first);

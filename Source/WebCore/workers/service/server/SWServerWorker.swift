@@ -21,6 +21,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+internal import WebCore_Private.Core.ExceptionData
+internal import WebCore_Private.Core.FetchOptions
+internal import WebCore_Private.Core.SWServer
+internal import WebCore_Private.Core.SWServerRegistration
+internal import WebCore_Private.Core.SWServerToContextConnection
+internal import WebCore_Private.Core.SWServerWorker
+internal import WebCore_Private.Core.ScriptExecutionContextIdentifier
+internal import WebCore_Private.Core.ServiceWorkerContextData
+internal import WebCore_Private.Core.ServiceWorkerRoute
+internal import WebCore_Private.Core.ServiceWorkerTypes
+internal import WebCore_Private.Core.WorkerThreadMode
+
 // Swift operators import every visible C++ operator of the same name; these modules define reference types that some of
 // them name (rdar://192229293).
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -32,17 +44,6 @@ internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
 internal import JavaScriptCore_Private.Cxx.YarrInterpreter
 #endif
-internal import WebCore_Private.Core.ExceptionData
-internal import WebCore_Private.Core.FetchOptions
-internal import WebCore_Private.Core.SWServerWorker
-internal import WebCore_Private.Core.ServiceWorkerRoute
-internal import WebCore_Private.Core.ServiceWorkerContextData
-internal import WebCore_Private.Core.ServiceWorkerTypes
-internal import WebCore_Private.Core.SWServer
-internal import WebCore_Private.Core.SWServerRegistration
-internal import WebCore_Private.Core.SWServerToContextConnection
-internal import WebCore_Private.Core.ScriptExecutionContextIdentifier
-internal import WebCore_Private.Core.WorkerThreadMode
 
 extension WebCore.SWServerWorker {
     @cxx
@@ -101,7 +102,7 @@ extension WebCore.SWServerWorker {
         assert(m_server.get() != nil)
         // WTFCrash, not precondition: WebKit's crash handler ends the process with SIGKILL, where a Swift trap would end
         // it with SIGTRAP. Release builds drop the assertion's message.
-        if !(state == .Activating) {
+        if state != .Activating {
             WTFCrash()
         }
         if let server = m_server.get() {
@@ -118,6 +119,7 @@ extension WebCore.SWServerWorker {
         }
     }
 
+    /// Sets the worker's skip waiting flag and tries to activate its registration.
     @cxx
     @implementation
     public func skipWaiting() {
@@ -198,6 +200,7 @@ extension WebCore.SWServerWorker {
         return .CreateNewThread
     }
 
+    /// The service worker page of the worker's registration, if it has one.
     @cxx
     @implementation
     public func serviceWorkerPageIdentifier() -> WebCore.OptionalScriptExecutionContextIdentifier {
@@ -223,6 +226,7 @@ extension WebCore.SWServerWorker {
         terminateIfPossible()
     }
 
+    /// Whether the client's controlling registration is this worker's.
     @cxx
     @implementation
     public func isClientActiveServiceWorker(_ clientIdentifier: WebCore.ScriptExecutionContextIdentifier) -> Bool {
@@ -261,6 +265,7 @@ extension WebCore.SWServerWorker {
 
 extension WebCore.SWServerWorker {
     // https://w3c.github.io/ServiceWorker/#get-router-source
+    /// The source of the first route whose condition matches the request.
     @cxx
     @implementation
     public func getRouterSource(
@@ -273,10 +278,10 @@ extension WebCore.SWServerWorker {
         for route in m_routes where route.condition.matches(mode, destination, url, httpMethod, isServiceWorkerRunning: isRunning) {
             return WebCore.OptionalRouterSource(route.source)
         }
-
         return WebCore.OptionalRouterSource()
     }
 
+    /// The source of a request that no route matches.
     @cxx
     @implementation
     public func defaultRouterSource() -> WebCore.RouterSource {

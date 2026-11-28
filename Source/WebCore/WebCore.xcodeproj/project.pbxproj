@@ -459,7 +459,6 @@
 		276C5875AD7947CBAB50FED9 /* ServerTimingParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A374757C5700487B9BA2DAFC /* ServerTimingParser.swift */; };
 		4D77AF60753E44A6ADD704F7 /* LinkHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D688ADC579D4FE6A08E3FBA /* LinkHeader.swift */; };
 		AD47E8F1AE9D28D14B0CDF94 /* SWOriginStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0DFFB5C5136AEADF291240 /* SWOriginStore.swift */; };
-		88901C5C73FD48EAD3E8C3E9 /* SWServerJobQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F73296806CFE8AD15263F3 /* SWServerJobQueue.swift */; };
 		3F6B2E17B70A1C0186C67BF9 /* SWServerRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF400322B277377CB2F019F /* SWServerRegistration.swift */; };
 		9C41A7E2D05B4F18A3E6B207 /* SWServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C41A7E2D05B4F18A3E6B208 /* SWServer.swift */; };
 		9C41A7E2D05B4F18A3E6B205 /* SWServerToContextConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C41A7E2D05B4F18A3E6B206 /* SWServerToContextConnection.swift */; };
@@ -23542,7 +23541,6 @@
 		E43A023C17EB3713004CDD25 /* RenderElement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RenderElement.cpp; sourceTree = "<group>"; };
 		E43AF8E41AC5B7DD00CA717E /* CacheValidation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CacheValidation.cpp; sourceTree = "<group>"; };
 		6C0DFFB5C5136AEADF291240 /* SWOriginStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWOriginStore.swift; sourceTree = "<group>"; };
-		F4F73296806CFE8AD15263F3 /* SWServerJobQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServerJobQueue.swift; sourceTree = "<group>"; };
 		6AF400322B277377CB2F019F /* SWServerRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServerRegistration.swift; sourceTree = "<group>"; };
 		9C41A7E2D05B4F18A3E6B208 /* SWServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServer.swift; sourceTree = "<group>"; };
 		9C41A7E2D05B4F18A3E6B206 /* SWServerToContextConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SWServerToContextConnection.swift; sourceTree = "<group>"; };
@@ -30023,7 +30021,6 @@
 				41A51366298C14C700C88EC7 /* SWServerDelegate.h */,
 				8311C0001FAA2E8900E3C8E5 /* SWServerJobQueue.cpp */,
 				8311C0021FAA2E8900E3C8E5 /* SWServerJobQueue.h */,
-				F4F73296806CFE8AD15263F3 /* SWServerJobQueue.swift */,
 				51F645951F4A686100B54DED /* SWServerRegistration.cpp */,
 				51F645941F4A684F00B54DED /* SWServerRegistration.h */,
 				6AF400322B277377CB2F019F /* SWServerRegistration.swift */,
@@ -52940,7 +52937,6 @@
 				92C095638807E40F0E344621 /* SVGFilterRenderer.swift in Sources */,
 				A833C7CA0A2CF06B00D57664 /* SVGNames.cpp in Sources */,
 				AD47E8F1AE9D28D14B0CDF94 /* SWOriginStore.swift in Sources */,
-				88901C5C73FD48EAD3E8C3E9 /* SWServerJobQueue.swift in Sources */,
 				3F6B2E17B70A1C0186C67BF9 /* SWServerRegistration.swift in Sources */,
 				9C41A7E2D05B4F18A3E6B207 /* SWServer.swift in Sources */,
 				9C41A7E2D05B4F18A3E6B205 /* SWServerToContextConnection.swift in Sources */,

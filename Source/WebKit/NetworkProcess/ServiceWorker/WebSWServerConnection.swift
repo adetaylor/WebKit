@@ -21,12 +21,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-
-// The members of WebSWServerConnection that are Swift. The class's SWIFT_PRIVATE_FILEID names this file, so its
-// private typedefs and fields are visible here and nowhere else in Swift. The members IPC dispatches with a reply
-// handler stay C++: the generated receiver cannot pass a MoveOnlyArgument reply, and the bridge refuses a copyable
-// && handler argument.
-
 import WebKit_Internal
 
 // MARK: - The connection half
@@ -84,12 +78,19 @@ extension WebKit.WebSWServerConnection {
 
     // MARK: Messages to the client web process, and to its context connection if it has one.
 
+    // The IPC connection of the client web process's context connection, if it has one.
+    private var contextManagerIPCConnection: IPC.Connection? {
+        // A connection never outlives its network connection to the web process.
+        // swift-format-ignore: NeverForceUnwrap
+        m_networkConnectionToWebProcess.get()!.swContextConnection()?.ipcConnection()
+    }
+
     @cxx
     @implementation
     override func fireUpdateFoundEvent(_ identifier: WebCore.ServiceWorkerRegistrationIdentifier) {
-        let registration = Self.ipcRegistrationIdentifier(identifier)
+        let registration = IPCTypes.ServiceWorkerRegistrationIdentifier(identifier)
         WebSWClientConnectionMessages.fireUpdateFoundEvent(on: ipcConnection(), to: 0, identifier: registration)
-        if let connection = m_networkConnectionToWebProcess.get()!.swContextConnection()?.ipcConnection() {
+        if let connection = contextManagerIPCConnection {
             WebSWContextManagerConnectionMessages.fireUpdateFoundEvent(on: connection, to: 0, identifier: registration)
         }
     }
@@ -100,7 +101,7 @@ extension WebKit.WebSWServerConnection {
         _ identifier: WebCore.ServiceWorkerRegistrationIdentifier,
         _ lastUpdateTime: WTF.WallTime
     ) {
-        let registration = Self.ipcRegistrationIdentifier(identifier)
+        let registration = IPCTypes.ServiceWorkerRegistrationIdentifier(identifier)
         let seconds = lastUpdateTime.secondsSinceEpoch().value()
         WebSWClientConnectionMessages.setRegistrationLastUpdateTime(
             on: ipcConnection(),
@@ -108,7 +109,7 @@ extension WebKit.WebSWServerConnection {
             identifier: registration,
             lastUpdateTime: seconds
         )
-        if let connection = m_networkConnectionToWebProcess.get()!.swContextConnection()?.ipcConnection() {
+        if let connection = contextManagerIPCConnection {
             WebSWContextManagerConnectionMessages.setRegistrationLastUpdateTime(
                 on: connection,
                 to: 0,
@@ -124,7 +125,7 @@ extension WebKit.WebSWServerConnection {
         _ identifier: WebCore.ServiceWorkerRegistrationIdentifier,
         _ updateViaCache: WebCore.ServiceWorkerUpdateViaCache
     ) {
-        let registration = Self.ipcRegistrationIdentifier(identifier)
+        let registration = IPCTypes.ServiceWorkerRegistrationIdentifier(identifier)
         // The [Swift] form has the C++ enumerators in the C++ order, so the raw values agree.
         // swift-format-ignore: NeverForceUnwrap
         let value = IPCTypes.ServiceWorkerUpdateViaCache(rawValue: updateViaCache.rawValue)!
@@ -134,7 +135,7 @@ extension WebKit.WebSWServerConnection {
             identifier: registration,
             updateViaCache: value
         )
-        if let connection = m_networkConnectionToWebProcess.get()!.swContextConnection()?.ipcConnection() {
+        if let connection = contextManagerIPCConnection {
             WebSWContextManagerConnectionMessages.setRegistrationUpdateViaCache(
                 on: connection,
                 to: 0,
@@ -147,8 +148,7 @@ extension WebKit.WebSWServerConnection {
     @cxx
     @implementation
     override func updateWorkerStateInClient(_ worker: WebCore.ServiceWorkerIdentifier, _ state: WebCore.ServiceWorkerState) {
-        // swift-format-ignore: NeverForceUnwrap
-        let identifier = IPCTypes.ServiceWorkerIdentifier(rawValue: worker.toUInt64())!
+        let identifier = IPCTypes.ServiceWorkerIdentifier(worker)
         // swift-format-ignore: NeverForceUnwrap
         let value = IPCTypes.ServiceWorkerState(rawValue: state.rawValue)!
         WebSWClientConnectionMessages.updateWorkerState(
@@ -157,7 +157,7 @@ extension WebKit.WebSWServerConnection {
             serviceWorkerIdentifier: identifier,
             state: value
         )
-        if let connection = m_networkConnectionToWebProcess.get()!.swContextConnection()?.ipcConnection() {
+        if let connection = contextManagerIPCConnection {
             WebSWContextManagerConnectionMessages.updateWorkerState(
                 on: connection,
                 to: 0,
@@ -166,14 +166,6 @@ extension WebKit.WebSWServerConnection {
             )
         }
     }
-
-    // The Swift form of a registration identifier. A C++ ObjectIdentifier is never 0, so the form always exists.
-    private static func ipcRegistrationIdentifier(
-        _ identifier: WebCore.ServiceWorkerRegistrationIdentifier
-    ) -> IPCTypes.ServiceWorkerRegistrationIdentifier {
-        // swift-format-ignore: NeverForceUnwrap
-        IPCTypes.ServiceWorkerRegistrationIdentifier(rawValue: identifier.toUInt64())!
-    }
 }
 
 // MARK: - Scheduling a job
@@ -181,7 +173,7 @@ extension WebKit.WebSWServerConnection {
 extension WebKit.WebSWServerConnection {
     // The release log's prefix: "%p - WebSWServerConnection::".
     private var logPrefix: Swift.String {
-        "\(logIdentifier().description) - WebSWServerConnection::"
+        "\(logAddress().description) - WebSWServerConnection::"
     }
 
     @cxx
@@ -200,13 +192,46 @@ extension WebKit.WebSWServerConnection {
             return
         }
 
-        WebKit.LogChannel.ServiceWorker().releaseLog.log(
-            "\(self.logPrefix, privacy: .public)Scheduling ServiceWorker job \(jobData.identifier().loggingString().description) in server"
-        )
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .log(
+                "\(self.logPrefix, privacy: .public)Scheduling ServiceWorker job \(jobData.identifier().loggingString().description) in server"
+            )
         assert(identifier().toUInt64() == jobData.connectionIdentifier().toUInt64())
 
         if let server = server() {
             server.scheduleJob(consuming: jobData)
         }
+    }
+}
+
+// MARK: - The IPC forms of the C++ identifiers
+
+// A C++ ObjectIdentifier is never 0, so each IPC form exists.
+
+extension IPCTypes.ProcessIdentifier {
+    init(_ identifier: WebCore.SWServerConnectionIdentifier) {
+        // swift-format-ignore: NeverForceUnwrap
+        self.init(rawValue: identifier.toUInt64())!
+    }
+}
+
+extension IPCTypes.ServiceWorkerIdentifier {
+    init(_ identifier: WebCore.ServiceWorkerIdentifier) {
+        // swift-format-ignore: NeverForceUnwrap
+        self.init(rawValue: identifier.toUInt64())!
+    }
+}
+
+extension IPCTypes.ServiceWorkerRegistrationIdentifier {
+    init(_ identifier: WebCore.ServiceWorkerRegistrationIdentifier) {
+        // swift-format-ignore: NeverForceUnwrap
+        self.init(rawValue: identifier.toUInt64())!
+    }
+}
+
+extension IPCTypes.FetchIdentifier {
+    init(_ identifier: WebCore.FetchIdentifier) {
+        // swift-format-ignore: NeverForceUnwrap
+        self.init(rawValue: identifier.toUInt64())!
     }
 }

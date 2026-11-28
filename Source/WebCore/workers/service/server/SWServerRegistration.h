@@ -55,6 +55,7 @@ struct ServiceWorkerContextData;
 
 enum class IsAppInitiated : bool { No, Yes };
 
+// Swift names a template specialization only through a type alias; getNewestWorker() returns this one.
 using RefPtrSWServerWorker = RefPtr<SWServerWorker>;
 
 class SWIFT_PRIVATE_FILEID("WebCore/SWServerRegistration.swift") SWServerRegistration : public RefCountedAndCanMakeWeakPtr<SWServerRegistration>, public Identified<ServiceWorkerRegistrationIdentifier> {
@@ -64,6 +65,7 @@ public:
     WEBCORE_EXPORT ~SWServerRegistration();
 
     const ServiceWorkerRegistrationKey& key() const LIFETIME_BOUND { return m_registrationKey; }
+    // For Swift: key() returns a reference into the object, and Swift does not import members of the Identified base.
     ServiceWorkerRegistrationKey keyValue() const { return m_registrationKey; }
     ServiceWorkerRegistrationIdentifier identifierValue() const { return identifier(); }
 
@@ -93,8 +95,8 @@ public:
     MonotonicTime creationTime() const { return m_creationTime; }
 
     bool hasClientsUsingRegistration() const { return !m_clientsUsingRegistration.isEmpty(); }
-    void addClientUsingRegistration(ScriptExecutionContextIdentifier);
-    void removeClientUsingRegistration(ScriptExecutionContextIdentifier);
+    void addClientUsingRegistration(const ScriptExecutionContextIdentifier&);
+    void removeClientUsingRegistration(const ScriptExecutionContextIdentifier&);
     void unregisterServerConnection(SWServerConnectionIdentifier);
 
     void notifyClientsOfControllerChange();
@@ -110,6 +112,7 @@ public:
 
     void forEachConnection(NOESCAPE const Function<void(SWServer::Connection&)>&);
 
+    // By value: a member implemented in Swift takes a const reference only as unsafe.
     WEBCORE_EXPORT bool shouldSoftUpdate(FetchOptions) const;
     WEBCORE_EXPORT void scheduleSoftUpdate(IsAppInitiated);
     static constexpr Seconds softUpdateDelay { 1_s };
@@ -123,11 +126,11 @@ public:
 
     WEBCORE_EXPORT std::optional<ExceptionData> enableNavigationPreload();
     WEBCORE_EXPORT std::optional<ExceptionData> disableNavigationPreload();
-    WEBCORE_EXPORT std::optional<ExceptionData> setNavigationPreloadHeaderValue(String);
+    WEBCORE_EXPORT std::optional<ExceptionData> setNavigationPreloadHeaderValue(String&&);
     const NavigationPreloadState& navigationPreloadState() const LIFETIME_BOUND { return m_preloadState; }
 
-    WEBCORE_EXPORT void addCookieChangeSubscriptions(Vector<CookieChangeSubscription>);
-    WEBCORE_EXPORT void removeCookieChangeSubscriptions(Vector<CookieChangeSubscription>);
+    WEBCORE_EXPORT void addCookieChangeSubscriptions(Vector<CookieChangeSubscription>&&);
+    WEBCORE_EXPORT void removeCookieChangeSubscriptions(Vector<CookieChangeSubscription>&&);
     WEBCORE_EXPORT Vector<CookieChangeSubscription> cookieChangeSubscriptions() const;
 
 private:

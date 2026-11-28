@@ -192,7 +192,7 @@ private:
 
     URL clientURLFromIdentifier(WebCore::ServiceWorkerOrClientIdentifier);
 
-    String logIdentifier() const { return WTF::toString(RawPointer(this)); } // RELEASE_LOG's "%p" of this.
+    String logAddress() const { return WTF::toString(RawPointer(this)); } // RELEASE_LOG's "%p" of this.
 
     IPC::Connection* messageSenderConnection() const final { return m_contentConnection.ptr(); }
     uint64_t messageSenderDestinationID() const final { return 0; }

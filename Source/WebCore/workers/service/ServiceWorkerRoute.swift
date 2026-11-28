@@ -21,6 +21,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+internal import WebCore_Private.Core.FetchOptions
+internal import WebCore_Private.Core.ServiceWorkerRoute
+
 // Swift operators import every visible C++ operator of the same name; these modules define reference types that some of
 // them name (rdar://192229293).
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -32,26 +35,6 @@ internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
 internal import JavaScriptCore_Private.Cxx.YarrInterpreter
 #endif
-internal import WebCore_Private.Core.FetchOptions
-internal import WebCore_Private.Core.ServiceWorkerRoute
-
-extension WebCore.ServiceWorkerRoutePattern {
-    @cxx
-    @implementation
-    static func crossThreadCopied(_ pattern: WebCore.ServiceWorkerRoutePattern) -> WebCore.ServiceWorkerRoutePattern {
-        var copy = WebCore.ServiceWorkerRoutePattern()
-        copy.shouldIgnoreCase = pattern.shouldIgnoreCase
-        copy.protocol = pattern.protocol.isolatedCopy()
-        copy.username = pattern.username.isolatedCopy()
-        copy.password = pattern.password.isolatedCopy()
-        copy.hostname = pattern.hostname.isolatedCopy()
-        copy.port = pattern.port.isolatedCopy()
-        copy.pathname = pattern.pathname.isolatedCopy()
-        copy.search = pattern.search.isolatedCopy()
-        copy.hash = pattern.hash.isolatedCopy()
-        return copy
-    }
-}
 
 extension WebCore.ServiceWorkerRouteCondition {
     // https://w3c.github.io/ServiceWorker/#match-router-condition

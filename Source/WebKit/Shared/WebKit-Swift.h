@@ -54,12 +54,18 @@
 #include "IPCSwiftWorkQueueTesterMessages.h"
 #include "IPCTesterReceiverMessages.h"
 #include "NetworkStorageSwiftTypes.h"
+#include "ServiceWorkerFetchTask.h"
+#include "ServiceWorkerFetchTaskMessages.h"
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"
 #include "WebBackForwardListItem.h"
 #include "WebBackForwardListMessages.h"
 #include "WebBackForwardListSwiftUtilities.h"
 #include "WebPageProxy.h"
+#include "WebSWServerConnection.h"
+#include "WebSWServerConnectionMessages.h"
+#include "WebSWServerToContextConnection.h"
+#include "WebSWServerToContextConnectionMessages.h"
 #include <WebCore/IDBCursorInfo.h>
 #include <WebCore/IDBGetAllRecordsData.h>
 #include <WebCore/IDBGetRecordData.h>
@@ -68,14 +74,6 @@
 #include <WebCore/IDBRequestData.h>
 #include <WebCore/IndexedDB.h>
 #include <WebCore/SwiftIDBTypes.h>
-
-// The network process's service worker receivers.
-#include "ServiceWorkerFetchTask.h"
-#include "ServiceWorkerFetchTaskMessages.h"
-#include "WebSWServerConnection.h"
-#include "WebSWServerConnectionMessages.h"
-#include "WebSWServerToContextConnection.h"
-#include "WebSWServerToContextConnectionMessages.h"
 
 #if ENABLE(WEB_AUTHN)
 #include "LocalAuthenticator.h"

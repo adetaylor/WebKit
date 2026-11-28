@@ -41,6 +41,10 @@
 //     <Test>: <ms> ms <n> MB/s checksum=<digest>
 // where <n> counts the URL, script and header bytes the timed operations carried. Set-up inside a pass (registering
 // the service workers a lookup workload looks up, building a store's contents) is measured and left out of the time.
+// A build with assertions runs the four largest workloads at a smaller size (workloadSize()), and registers
+// RegisterInstallActivate's scopes in steps with their timers drained, as every build does MatchRegistration's
+// untimed set-up, so every test finishes in a Debug build with one digest; such a build checks its own recorded
+// checksums.
 
 #include "config.h"
 
@@ -734,8 +738,11 @@ public:
     void settle()
     {
         runUntilIdle();
-        if (m_timerDrain)
-            m_timerDrain->measure([&] { drainTimers(); });
+        if (m_timerDrain) {
+            m_timerDrain->measure([&] {
+                drainTimers();
+            });
+        }
         flushTerminations();
     }
 
@@ -1551,18 +1558,71 @@ static void recordRegistrationData(Harness& harness, Event event, const std::opt
 // The workloads. Each returns the bytes its timed part carried, and may leave a line of capacities for
 // run() to print.
 
+// The count a workload uses: its benchmark size, or in a build with assertions, where the server runs many times
+// slower, a smaller one.
+static constexpr unsigned workloadSize(unsigned benchmarkCount, unsigned assertionsCount)
+{
+#if ASSERT_ENABLED
+    UNUSED_PARAM(benchmarkCount);
+    return assertionsCount;
+#else
+    UNUSED_PARAM(assertionsCount);
+    return benchmarkCount;
+#endif
+}
+
+// Imports the registrations of the first `sites` sites' origins, as a navigation's first match does, so that a
+// workload's synchronous lookups for those top origins can follow (the server asserts the import came first).
+static void importSiteOrigins(WebCore::SWServer& server, unsigned sites)
+{
+    for (unsigned site = 0; site < sites; ++site) {
+        auto origin = siteOrigin(site);
+        server.getRegistrations(WebCore::SecurityOriginData::fromURL(URL { origin }), URL { makeString(origin, "/"_s) }, [](Vector<WebCore::ServiceWorkerRegistrationData>&&) { });
+    }
+}
+
+// Registers scopes a site's 20 at a time, each step settled (its timers drained, after drainTimersInSettle()) before
+// the next: one settle() of a large workload's scopes can last long enough to reach the server's 1 s to 10 s timers
+// inside it, at points that vary run to run.
+static size_t registerScopesInSteps(Harness& harness, const Vector<String>& scopes)
+{
+    size_t bytes = 0;
+    for (size_t start = 0; start < scopes.size(); start += 20)
+        bytes += registerScopes(harness, scopes.subvector(start, std::min<size_t>(20, scopes.size() - start)));
+    return bytes;
+}
+
+// Registers a large workload's scopes: with assertions, where one settle() of them all always reaches the server's
+// timers, in steps.
+static size_t registerWorkloadScopes(Harness& harness, const Vector<String>& scopes)
+{
+#if ASSERT_ENABLED
+    return registerScopesInSteps(harness, scopes);
+#else
+    return registerScopes(harness, scopes);
+#endif
+}
+
 static String& capacitiesOfPass()
 {
     static NeverDestroyed<String> capacities;
     return capacities;
 }
 
-// 1,000 registrations over 50 sites, each through its script fetch, start, install and activation.
+// 1,000 registrations over 50 sites, each through its script fetch, start, install and activation. With assertions,
+// a pass is slow enough to reach the server's terminate-if-possible timers inside it, at points that vary run to run:
+// the scopes are registered in steps, the timers drained in each step's settle(), and the terminations they cause
+// counted in any order.
 static size_t registerInstallActivate(Digest& digest, Excluded& excluded)
 {
     std::optional<Harness> harness;
+#if ASSERT_ENABLED
+    harness.emplace(digest, ServerOptions { .terminationsInAnyOrder = true });
+    harness->drainTimersInSettle(excluded);
+#else
     harness.emplace(digest, ServerOptions { });
-    auto bytes = registerScopes(*harness, siteScopes(50, 20));
+#endif
+    auto bytes = registerWorkloadScopes(*harness, siteScopes(50, 20));
     excluded.measure([&] {
         capacitiesOfPass() = harness->capacities();
         harness = std::nullopt;
@@ -1571,19 +1631,22 @@ static size_t registerInstallActivate(Digest& digest, Excluded& excluded)
 }
 
 // 100,000 lookups over 1,000 scopes: the per-navigation match, longest scope first, with misses and third-party
-// top origins.
+// top origins. The set-up registers the scopes in steps with their timers drained in every build: on a loaded machine
+// a Release set-up too reaches the workers' 2 s terminate-if-possible timers inside it.
 static size_t matchRegistration(Digest& digest, Excluded& excluded)
 {
     std::optional<Harness> harness;
     excluded.measure([&] {
-        harness.emplace(digest, ServerOptions { });
-        registerScopes(*harness, siteScopes(50, 20));
+        harness.emplace(digest, ServerOptions { .terminationsInAnyOrder = true });
+        harness->drainTimersInSettle(excluded);
+        registerScopesInSteps(*harness, siteScopes(50, 20));
+        importSiteOrigins(harness->server(), 60);
     });
     Vector<std::pair<WebCore::SecurityOriginData, URL>> lookups;
     size_t bytes = 0;
     excluded.measure([&] {
         Generator generator(0x4d61);
-        for (unsigned i = 0; i < 100000; ++i) {
+        for (unsigned i = 0; i < workloadSize(100000, 5000); ++i) {
             unsigned site = generator.below(52);
             unsigned scope = generator.below(22);
             String url;
@@ -1631,9 +1694,8 @@ static size_t matchRegistration(Digest& digest, Excluded& excluded)
 
 // 100,000 requests against a worker's 64 routes: the per-fetch router.
 
-// A route's shape as the router walks it (ServiceWorkerRoute.cpp): its condition nodes, its depth, and the URL patterns
-// matchRouterCondition compiles when it tries the route (every one under an "or", so for the route that matches, a
-// bound).
+// A route's shape as the router walks it: its condition nodes, its depth, and the URL patterns the router compiles
+// when it tries the route (every one under an "or", so for the route that matches, a bound).
 struct RouteShape {
     unsigned conditions { 1 };
     unsigned depth { 1 };
@@ -1708,7 +1770,7 @@ static size_t routeMatch(Digest& digest, Excluded& excluded)
         harness.emplace(digest, ServerOptions { });
         harness->plan(scope).routeCount = 64;
         registerScopes(*harness, { scope });
-        requests = makeRouteRequests(100000, siteOrigin(0), bytes);
+        requests = makeRouteRequests(workloadSize(100000, 5000), siteOrigin(0), bytes);
     });
     auto* worker = harness->activeWorker(scope);
     EXPECT_NE(worker, nullptr);
@@ -1741,6 +1803,7 @@ static size_t clientChurn(Digest& digest, Excluded& excluded)
     excluded.measure([&] {
         harness.emplace(digest, ServerOptions { .connectionCount = 2 });
         registerScopes(*harness, scopes);
+        importSiteOrigins(harness->server(), 5);
     });
     auto& server = harness->server();
     struct LiveClient {
@@ -1750,7 +1813,7 @@ static size_t clientChurn(Digest& digest, Excluded& excluded)
     Deque<LiveClient> live;
     size_t bytes = 0;
     Generator generator(0x436c);
-    for (unsigned i = 0; i < 10000; ++i) {
+    for (unsigned i = 0; i < workloadSize(10000, 1000); ++i) {
         unsigned site = generator.below(5);
         unsigned scopeIndex = generator.below(5);
         URL url { scopeIndex < 4 ? makeString(scopeURL(site, scopeIndex), "client"_s, i, ".html"_s) : makeString(siteOrigin(site), "/elsewhere/"_s, i) };
@@ -2056,6 +2119,9 @@ static size_t realisticMix(Digest& digest, Excluded& excluded)
     owner.emplace(digest, ServerOptions { .connectionCount = 2, .terminationsInAnyOrder = true });
     auto& harness = *owner;
     harness.drainTimersInSettle(excluded);
+    excluded.measure([&] {
+        importSiteOrigins(harness.server(), 9);
+    });
     auto scopes = siteScopes(8, 3);
     size_t bytes = 0;
     for (unsigned i = 0; i < scopes.size(); ++i) {
@@ -2082,7 +2148,8 @@ static size_t realisticMix(Digest& digest, Excluded& excluded)
     };
     Deque<Page> pages;
     Generator generator(0x4d69);
-    for (unsigned load = 0; load < 2000; ++load) {
+    constexpr unsigned loads = workloadSize(2000, 400);
+    for (unsigned load = 0; load < loads; ++load) {
         unsigned site = generator.below(9);
         unsigned scopeIndex = generator.below(4);
         URL url { scopeIndex < 3 ? makeString(scopeURL(site, scopeIndex), "article"_s, load % 50, ".html"_s) : makeString(siteOrigin(site), "/"_s) };
@@ -2124,7 +2191,7 @@ static size_t realisticMix(Digest& digest, Excluded& excluded)
                 harness.record(Event::PushResult, { load, handled });
             });
         }
-        if (load == 1500)
+        if (load == loads * 3 / 4)
             harness.scheduleUnregister(harness.connection(0), scopes[7]);
         while (pages.size() > 16) {
             auto page = pages.takeFirst();
@@ -2155,8 +2222,15 @@ static bool runsBenchmarks()
 
 // `pass(digest, excluded)` returns the bytes its timed operations carried.
 template<typename Pass>
-static void run(ASCIILiteral name, uint64_t recorded, size_t benchmarkPasses, const Pass& pass)
+static void run(ASCIILiteral name, uint64_t recordedBenchmark, uint64_t recordedWithAssertions, size_t benchmarkPasses, const Pass& pass)
 {
+#if ASSERT_ENABLED
+    UNUSED_PARAM(recordedBenchmark);
+    uint64_t recorded = recordedWithAssertions;
+#else
+    UNUSED_PARAM(recordedWithAssertions);
+    uint64_t recorded = recordedBenchmark;
+#endif
     Digest digest;
     Excluded excluded;
     capacitiesOfPass() = String { };
@@ -2199,46 +2273,46 @@ TEST(SWServerBench, StartUp)
 {
 }
 
-// Recorded checksums: each test prints its digest when it differs from the value here.
+// Recorded checksums, without and with assertions: each test prints its digest when it differs from the value here.
 
 TEST(SWServerBench, RegisterInstallActivate)
 {
-    run("RegisterInstallActivate"_s, 0x67722ccee1d88140ull, 50, registerInstallActivate);
+    run("RegisterInstallActivate"_s, 0x67722ccee1d88140ull, 0x213385e0ce9be970ull, 50, registerInstallActivate);
 }
 
 TEST(SWServerBench, MatchRegistration)
 {
-    run("MatchRegistration"_s, 0xbea5097e1f80b3f3ull, 3, matchRegistration);
+    run("MatchRegistration"_s, 0x0d38edaa77f698a3ull, 0xad542b4e63a524b1ull, 3, matchRegistration);
 }
 
 TEST(SWServerBench, RouteMatch)
 {
-    run("RouteMatch"_s, 0x0e08e70722ae4e1eull, 3, routeMatch);
+    run("RouteMatch"_s, 0x0e08e70722ae4e1eull, 0xe3dd7f7f82bfa6e9ull, 3, routeMatch);
 }
 
 TEST(SWServerBench, ClientChurn)
 {
-    run("ClientChurn"_s, 0x95c4d470286e5600ull, 50, clientChurn);
+    run("ClientChurn"_s, 0x95c4d470286e5600ull, 0xb622db20c3c45360ull, 50, clientChurn);
 }
 
 TEST(SWServerBench, ImportOrigins)
 {
-    run("ImportOrigins"_s, 0xab8e60de28c36cc8ull, 250, importOrigins);
+    run("ImportOrigins"_s, 0xab8e60de28c36cc8ull, 0xab8e60de28c36cc8ull, 250, importOrigins);
 }
 
 TEST(SWServerBench, ErrorPaths)
 {
-    run("ErrorPaths"_s, 0xb8da62a06190a269ull, 60, errorPaths);
+    run("ErrorPaths"_s, 0xb8da62a06190a269ull, 0xb8da62a06190a269ull, 60, errorPaths);
 }
 
 TEST(SWServerBench, WorkerLifetime)
 {
-    run("WorkerLifetime"_s, 0xf1b027493a7ef6bbull, 130, workerLifetime);
+    run("WorkerLifetime"_s, 0xf1b027493a7ef6bbull, 0xf1b027493a7ef6bbull, 130, workerLifetime);
 }
 
 TEST(SWServerBench, RealisticMix)
 {
-    run("RealisticMix"_s, 0xd453a9089f413707ull, 12, realisticMix);
+    run("RealisticMix"_s, 0xd453a9089f413707ull, 0x147e3bbfa5f7b3f8ull, 12, realisticMix);
 }
 
 // A benchmark repeats its pass in one process, and every pass after the first runs with other identifier values: each

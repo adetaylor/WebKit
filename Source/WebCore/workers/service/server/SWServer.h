@@ -86,6 +86,7 @@ struct WorkerFetchResult;
 
 template<typename> class ExceptionOr;
 
+// Swift names a template specialization only through a type alias; these are the ones SWServer.swift's members take or return.
 using RefSWServerRegistration = Ref<SWServerRegistration>;
 
 class SWIFT_PRIVATE_FILEID("WebCore/SWServer.swift") SWServer : public RefCountedAndCanMakeWeakPtr<SWServer> {
@@ -165,6 +166,7 @@ public:
         Identifier m_identifier;
         Vector<RegistrationReadyRequest> m_registrationReadyRequests;
     };
+    // Swift names a template specialization only through a type alias; these are the ones SWServer.swift's members take or return.
     using RefConnection = Ref<Connection>;
     using ServiceWorkerClientPendingMessages = Vector<ServiceWorkerClientPendingMessage>;
     using OptionalServiceWorkerClientData = std::optional<ServiceWorkerClientData>;
@@ -233,8 +235,8 @@ public:
     WEBCORE_EXPORT void registerServiceWorkerClient(ClientOrigin&&, ServiceWorkerClientData&&, const std::optional<ServiceWorkerRegistrationIdentifier>&, String&& userAgent, IsBeingCreatedClient);
     WEBCORE_EXPORT void unregisterServiceWorkerClient(const ClientOrigin&, ScriptExecutionContextIdentifier);
 
-    // Swift's releaseServiceWorkerClientPendingMessage() imports m_clientsToBeCreatedById.take() as safe only because
-    // this inline body instantiates that HashMap; without it the call is reported as unsafe.
+    // Unused: this inline body instantiates m_clientsToBeCreatedById's HashMap, which makes the take() in Swift's
+    // releaseServiceWorkerClientPendingMessage() import as safe; without it the call is reported as unsafe.
     struct ClientSnapshot {
         bool isRegistered;
         bool isBeingCreated;
@@ -356,10 +358,13 @@ private:
     void unregisterServiceWorkerConnection(Connection&, ServiceWorkerIdentifier);
 
     void terminatePreinstallationWorker(SWServerWorker&);
-    RefPtr<SWServerJobQueue> jobQueueForWorker(const SWServerWorker&);
+    // Swift reads m_scopeToRegistrationMap's type as unsafe, so these update the map in C++.
     void setScopeToRegistration(const ServiceWorkerRegistrationKey&, SWServerRegistration&);
     void removeScopeToRegistration(const ServiceWorkerRegistrationKey&);
     bool removeScopeToRegistrationIfSame(const ServiceWorkerRegistrationKey&, const SWServerRegistration&);
+    // For Swift: ServiceWorkerRegistrationKey::topOrigin(), SWServerWorker::registrationKey(), topRegistrableDomain() and
+    // origin() return references into the object, which Swift does not import as safe.
+    RefPtr<SWServerJobQueue> jobQueueForWorker(const SWServerWorker&);
     static bool isTopOriginLocalHostOrLoopbackIPAddress(const ServiceWorkerRegistrationKey&);
     static SecurityOriginData topOrigin(const ServiceWorkerRegistrationKey& key) { return key.topOrigin(); }
     static String topOriginHost(const ServiceWorkerRegistrationKey& key) { return key.topOrigin().host(); }
@@ -405,6 +410,7 @@ private:
     SWServerJobQueue* jobQueue(const ServiceWorkerRegistrationKey&) const;
     SWServerWorker* runningOrTerminatingWorker(ServiceWorkerIdentifier identifier) const { return m_runningOrTerminatingWorkers.get(identifier); }
     bool isImportedTopOrigin(const SecurityOriginData& topOrigin) const { return m_importedTopOrigins.contains(topOrigin); }
+    // HashMap::add, which Swift cannot call.
     void addServiceWorkerPageIdentifierToRegistration(ScriptExecutionContextIdentifier, SWServerRegistration&);
 
     void replaceContextConnectionIfNotInServiceWorkerPageProcess(SWServerRegistration&, ScriptExecutionContextIdentifier serviceWorkerPageIdentifier);

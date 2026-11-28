@@ -297,7 +297,7 @@ public:
 
     ~WriteOperation()
     {
-        ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
+        ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop()); // NOLINT: moved unchanged from NetworkCacheStorage.cpp.
     }
 
     NODELETE Storage::WriteOperationIdentifier identifier() const { return m_identifier; }

@@ -74,6 +74,7 @@ public:
     SWServerWorker(const SWServerWorker&) = delete;
     WEBCORE_EXPORT ~SWServerWorker();
 
+    // Swift cannot build the default CompletionHandler, so it calls this overload.
     WEBCORE_EXPORT void terminate();
     WEBCORE_EXPORT void terminate(CompletionHandler<void()>&&);
     WEBCORE_EXPORT void whenTerminated(CompletionHandler<void()>&&);
@@ -108,17 +109,18 @@ public:
     bool hasPendingEvents() const { return m_hasPendingEvents; }
     void setHasPendingEvents(bool);
 
+    // By value: members implemented in Swift take a const reference only as unsafe.
     void scriptContextFailedToStart(std::optional<ServiceWorkerJobDataIdentifier>, String message);
     void scriptContextStarted(std::optional<ServiceWorkerJobDataIdentifier>, bool doesHandleFetch);
     void didFinishInstall(std::optional<ServiceWorkerJobDataIdentifier>, bool wasSuccessful);
     void didFinishActivation();
     void contextTerminated();
-    WEBCORE_EXPORT std::optional<ServiceWorkerClientData> findClientByIdentifier(ScriptExecutionContextIdentifier) const;
+    WEBCORE_EXPORT std::optional<ServiceWorkerClientData> findClientByIdentifier(const ScriptExecutionContextIdentifier&) const;
     WEBCORE_EXPORT void findClientByVisibleIdentifier(const String& clientIdentifier, CompletionHandler<void(std::optional<WebCore::ServiceWorkerClientData>&&)>&&);
     void matchAll(const ServiceWorkerClientQueryOptions&, ServiceWorkerClientsMatchAllCallback&&);
     void setScriptResource(URL&&, ServiceWorkerContextData::ImportedScript&&);
-    void didSaveScriptsToDisk(ScriptBuffer mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer> importedScripts);
-    void setWorkerScripts(ScriptBuffer mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer> importedScripts);
+    void didSaveScriptsToDisk(ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts);
+    void setWorkerScripts(ScriptBuffer&& mainScript, MemoryCompactRobinHoodHashMap<URL, ScriptBuffer>&& importedScripts);
 
     bool needsScriptLoading() const { return m_needsScriptLoading; }
     void setNeedsScriptLoading() { m_needsScriptLoading = true; }
@@ -167,7 +169,7 @@ public:
 
     Vector<URL> importedScriptURLs() const;
     const MemoryCompactRobinHoodHashMap<URL, ServiceWorkerContextData::ImportedScript>& scriptResourceMap() const LIFETIME_BOUND { return m_scriptResourceMap; }
-    bool matchingImportedScripts(Vector<std::pair<URL, ScriptBuffer>>) const;
+    bool matchingImportedScripts(const Vector<std::pair<URL, ScriptBuffer>>&) const;
 
     void markActivateEventAsFired() { m_isActivateEventFired = true; }
 

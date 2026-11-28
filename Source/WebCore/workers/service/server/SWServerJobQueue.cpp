@@ -52,6 +52,11 @@ SWServerJobQueue::SWServerJobQueue(SWServer& server, const ServiceWorkerRegistra
 
 SWServerJobQueue::~SWServerJobQueue() = default;
 
+bool SWServerJobQueue::isCurrentlyProcessingJob(const ServiceWorkerJobDataIdentifier& jobDataIdentifier) const
+{
+    return !m_jobQueue.isEmpty() && firstJob().identifier() == jobDataIdentifier;
+}
+
 static bool doCertificatesMatch(const CertificateInfo& first, const CertificateInfo& second)
 {
 #if PLATFORM(COCOA)
@@ -64,7 +69,7 @@ static bool doCertificatesMatch(const CertificateInfo& first, const CertificateI
 #endif
 }
 
-void SWServerJobQueue::scriptFetchFinished(ServiceWorkerJobDataIdentifier jobDataIdentifier, std::optional<ProcessIdentifier> requestingProcessIdentifier, WorkerFetchResult result)
+void SWServerJobQueue::scriptFetchFinished(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, const std::optional<ProcessIdentifier>& requestingProcessIdentifier, WorkerFetchResult&& result)
 {
     if (!isCurrentlyProcessingJob(jobDataIdentifier))
         return;
@@ -96,7 +101,7 @@ void SWServerJobQueue::scriptFetchFinished(ServiceWorkerJobDataIdentifier jobDat
     // If the newest worker needs script loading (lazy import from store), load scripts before comparison.
     if (newestWorker && newestWorker->needsScriptLoading()) {
         server->loadWorkerScripts(*newestWorker, [weakThis = WeakPtr { *this }, jobDataIdentifier, requestingProcessIdentifier, result = WTF::move(result)](auto) mutable {
-            if (RefPtr protectedThis = weakThis.get())
+            if (RefPtr protectedThis = weakThis)
                 protectedThis->scriptFetchFinished(jobDataIdentifier, requestingProcessIdentifier, WTF::move(result));
         });
         return;
@@ -124,7 +129,7 @@ void SWServerJobQueue::scriptFetchFinished(ServiceWorkerJobDataIdentifier jobDat
     server->updateWorker(job.identifier(), requestingProcessIdentifier, *registration, job.scriptURL, result.script, result.certificateInfo, result.contentSecurityPolicy, result.crossOriginEmbedderPolicy, result.referrerPolicy, job.workerType, { }, job.serviceWorkerPageIdentifier());
 }
 
-void SWServerJobQueue::importedScriptsFetchFinished(ServiceWorkerJobDataIdentifier jobDataIdentifier, Vector<std::pair<URL, ScriptBuffer>> importedScripts, std::optional<ProcessIdentifier> requestingProcessIdentifier)
+void SWServerJobQueue::importedScriptsFetchFinished(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, const Vector<std::pair<URL, ScriptBuffer>>& importedScripts, const std::optional<ProcessIdentifier>& requestingProcessIdentifier)
 {
     if (!isCurrentlyProcessingJob(jobDataIdentifier))
         return;
@@ -145,7 +150,7 @@ void SWServerJobQueue::importedScriptsFetchFinished(ServiceWorkerJobDataIdentifi
     protect(server())->updateWorker(job.identifier(), requestingProcessIdentifier, *registration, job.scriptURL, m_workerFetchResult.script, m_workerFetchResult.certificateInfo, m_workerFetchResult.contentSecurityPolicy, m_workerFetchResult.crossOriginEmbedderPolicy, m_workerFetchResult.referrerPolicy, job.workerType, { }, job.serviceWorkerPageIdentifier());
 }
 
-void SWServerJobQueue::scriptAndImportedScriptsFetchFinished(ServiceWorkerJobData job, SWServerRegistration& registration)
+void SWServerJobQueue::scriptAndImportedScriptsFetchFinished(const ServiceWorkerJobData& job, SWServerRegistration& registration)
 {
     // Invoke Resolve Job Promise with job and registration.
     protect(server())->resolveRegistrationJob(job, registration.data(), ShouldNotifyWhenResolved::No);
@@ -155,7 +160,7 @@ void SWServerJobQueue::scriptAndImportedScriptsFetchFinished(ServiceWorkerJobDat
 }
 
 // https://w3c.github.io/ServiceWorker/#update-algorithm
-void SWServerJobQueue::scriptContextFailedToStart(ServiceWorkerJobDataIdentifier jobDataIdentifier, ServiceWorkerIdentifier, String message)
+void SWServerJobQueue::scriptContextFailedToStart(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, ServiceWorkerIdentifier, const String& message)
 {
     if (!isCurrentlyProcessingJob(jobDataIdentifier))
         return;
@@ -184,7 +189,7 @@ void SWServerJobQueue::scriptContextFailedToStart(ServiceWorkerJobDataIdentifier
     finishCurrentJob();
 }
 
-void SWServerJobQueue::scriptContextStarted(ServiceWorkerJobDataIdentifier jobDataIdentifier, ServiceWorkerIdentifier identifier)
+void SWServerJobQueue::scriptContextStarted(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, ServiceWorkerIdentifier identifier)
 {
     if (!isCurrentlyProcessingJob(jobDataIdentifier))
         return;
@@ -245,7 +250,7 @@ void SWServerJobQueue::didResolveRegistrationPromise()
 }
 
 // https://w3c.github.io/ServiceWorker/#install
-void SWServerJobQueue::didFinishInstall(ServiceWorkerJobDataIdentifier jobDataIdentifier, SWServerWorker& worker, bool wasSuccessful)
+void SWServerJobQueue::didFinishInstall(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, SWServerWorker& worker, bool wasSuccessful)
 {
     if (!isCurrentlyProcessingJob(jobDataIdentifier))
         return;
@@ -362,7 +367,7 @@ void SWServerJobQueue::runRegisterJob(ServiceWorkerJobData job)
 }
 
 // https://w3c.github.io/ServiceWorker/#unregister-algorithm
-void SWServerJobQueue::runUnregisterJob(ServiceWorkerJobData job)
+void SWServerJobQueue::runUnregisterJob(const ServiceWorkerJobData& job)
 {
     // If the origin of job's scope url is not job's client's origin, then:
     if (!protocolHostAndPortAreEqual(job.scopeURL, job.clientCreationURL))
@@ -392,7 +397,7 @@ void SWServerJobQueue::runUnregisterJob(ServiceWorkerJobData job)
 }
 
 // https://w3c.github.io/ServiceWorker/#update-algorithm
-void SWServerJobQueue::runUpdateJob(ServiceWorkerJobData job)
+void SWServerJobQueue::runUpdateJob(const ServiceWorkerJobData& job)
 {
     // Let registration be the result of running the Get Registration algorithm passing job's scope url as the argument.
     Ref server = m_server.get();
@@ -412,7 +417,7 @@ void SWServerJobQueue::runUpdateJob(ServiceWorkerJobData job)
     server->startScriptFetch(job, *registration);
 }
 
-void SWServerJobQueue::rejectCurrentJob(ExceptionData exceptionData)
+void SWServerJobQueue::rejectCurrentJob(const ExceptionData& exceptionData)
 {
     protect(server())->rejectJob(firstJob(), exceptionData);
 

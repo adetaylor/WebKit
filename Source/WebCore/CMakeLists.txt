@@ -3450,9 +3450,9 @@ set(WebCore_RENDER_LAYER_SWIFT_SOURCES
 # the sources are added to WebCore below.
 set(WebCore_SERVICE_WORKER_SWIFT_SOURCES
     workers/service/ServiceWorkerRoute.swift
+
     workers/service/server/SWOriginStore.swift
     workers/service/server/SWServer.swift
-    workers/service/server/SWServerJobQueue.swift
     workers/service/server/SWServerRegistration.swift
     workers/service/server/SWServerToContextConnection.swift
     workers/service/server/SWServerWorker.swift

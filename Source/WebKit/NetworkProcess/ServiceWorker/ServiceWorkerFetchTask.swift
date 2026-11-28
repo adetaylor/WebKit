@@ -26,23 +26,30 @@ import WebKit_Internal
 extension WebKit.ServiceWorkerFetchTask {
     // The release log's prefix: "%p - [fetchIdentifier=%llu] ServiceWorkerFetchTask::".
     private var logPrefix: Swift.String {
-        "\(logIdentifier().description) - [fetchIdentifier=\(m_fetchIdentifier.toUInt64())] ServiceWorkerFetchTask::"
+        "\(logAddress().description) - [fetchIdentifier=\(m_fetchIdentifier.toUInt64())] ServiceWorkerFetchTask::"
     }
 
-    // The Swift forms of the task's identifiers. A C++ ObjectIdentifier is never 0, so each form exists.
-    private var ipcServerConnectionIdentifier: IPCTypes.ProcessIdentifier {
+    // A fetch task does not outlive its loader.
+    private var protectedLoader: WebKit.NetworkResourceLoader {
         // swift-format-ignore: NeverForceUnwrap
-        IPCTypes.ProcessIdentifier(rawValue: m_serverConnectionIdentifier.asOptional().value!.toUInt64())!
+        loader()!
     }
 
-    private var ipcServiceWorkerIdentifier: IPCTypes.ServiceWorkerIdentifier {
+    // Set by the constructor that takes a worker, the only one whose tasks reach these reads; read without a check,
+    // as the C++ reads them.
+    private var serverConnectionIdentifier: WebCore.SWServerConnectionIdentifier {
         // swift-format-ignore: NeverForceUnwrap
-        IPCTypes.ServiceWorkerIdentifier(rawValue: m_serviceWorkerIdentifier.asOptional().value!.toUInt64())!
+        m_serverConnectionIdentifier.asOptional().value!
     }
 
-    private var ipcFetchIdentifier: IPCTypes.FetchIdentifier {
+    private var workerIdentifier: WebCore.ServiceWorkerIdentifier {
         // swift-format-ignore: NeverForceUnwrap
-        IPCTypes.FetchIdentifier(rawValue: m_fetchIdentifier.toUInt64())!
+        m_serviceWorkerIdentifier.asOptional().value!
+    }
+
+    private var registrationIdentifier: WebCore.ServiceWorkerRegistrationIdentifier {
+        // swift-format-ignore: NeverForceUnwrap
+        m_serviceWorkerRegistrationIdentifier.asOptional().value!
     }
 
     // MARK: Messages
@@ -71,9 +78,7 @@ extension WebKit.ServiceWorkerFetchTask {
 
         m_isDone = true
         stopTimeoutTimer()
-        // swift-format-ignore: NeverForceUnwrap
-        // A fetch task does not outlive its loader.
-        loader()!.serviceWorkerDidNotHandle(self)
+        protectedLoader.serviceWorkerDidNotHandle(self)
     }
 
     // MARK: Fetch
@@ -95,11 +100,11 @@ extension WebKit.ServiceWorkerFetchTask {
     @cxx
     @implementation
     func continueFetchTaskWith(_ request: WebCore.ResourceRequest) {
-        WebKit.LogChannel.ServiceWorker().releaseLog.log(
-            "\(self.logPrefix, privacy: .public)continueFetchTaskWith: (hasServiceWorkerConnection=\(self.m_serviceWorkerConnection.get() != nil ? 1 : 0))"
-        )
-        // swift-format-ignore: NeverForceUnwrap
-        let loader = loader()!
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .log(
+                "\(self.logPrefix, privacy: .public)continueFetchTaskWith: (hasServiceWorkerConnection=\(self.m_serviceWorkerConnection.get() != nil ? 1 : 0))"
+            )
+        let loader = protectedLoader
         if m_serviceWorkerConnection.get() == nil {
             m_isDone = true
             loader.serviceWorkerDidNotHandle(self)
@@ -113,7 +118,8 @@ extension WebKit.ServiceWorkerFetchTask {
     @cxx
     @implementation
     func cancelFromClient() {
-        WebKit.LogChannel.ServiceWorker().releaseLog.log("\(self.logPrefix, privacy: .public)cancelFromClient: isDone=\(self.m_isDone ? 1 : 0)")
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .log("\(self.logPrefix, privacy: .public)cancelFromClient: isDone=\(self.m_isDone ? 1 : 0)")
         if m_isDone {
             return
         }
@@ -130,9 +136,9 @@ extension WebKit.ServiceWorkerFetchTask {
             WebKit.WebSWServerToContextConnection.WebSWContextManagerConnectionMessages.cancelFetch(
                 on: connection,
                 to: 0,
-                serverConnectionIdentifier: ipcServerConnectionIdentifier,
-                serviceWorkerIdentifier: ipcServiceWorkerIdentifier,
-                fetchIdentifier: ipcFetchIdentifier
+                serverConnectionIdentifier: IPCTypes.ProcessIdentifier(serverConnectionIdentifier),
+                serviceWorkerIdentifier: IPCTypes.ServiceWorkerIdentifier(workerIdentifier),
+                fetchIdentifier: IPCTypes.FetchIdentifier(m_fetchIdentifier)
             )
         }
     }
@@ -154,9 +160,9 @@ extension WebKit.ServiceWorkerFetchTask {
             WebKit.WebSWServerToContextConnection.WebSWContextManagerConnectionMessages.continueDidReceiveFetchResponse(
                 on: connection,
                 to: 0,
-                serverConnectionIdentifier: ipcServerConnectionIdentifier,
-                serviceWorkerIdentifier: ipcServiceWorkerIdentifier,
-                fetchIdentifier: ipcFetchIdentifier
+                serverConnectionIdentifier: IPCTypes.ProcessIdentifier(serverConnectionIdentifier),
+                serviceWorkerIdentifier: IPCTypes.ServiceWorkerIdentifier(workerIdentifier),
+                fetchIdentifier: IPCTypes.FetchIdentifier(m_fetchIdentifier)
             )
         }
     }
@@ -166,9 +172,10 @@ extension WebKit.ServiceWorkerFetchTask {
     @cxx
     @implementation
     func contextClosed() {
-        WebKit.LogChannel.ServiceWorker().releaseLog.log(
-            "\(self.logPrefix, privacy: .public)contextClosed: (m_isDone=\(self.m_isDone ? 1 : 0), m_wasHandled=\(self.m_wasHandled ? 1 : 0))"
-        )
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .log(
+                "\(self.logPrefix, privacy: .public)contextClosed: (m_isDone=\(self.m_isDone ? 1 : 0), m_wasHandled=\(self.m_wasHandled ? 1 : 0))"
+            )
         setServiceWorkerConnection(nil)
         if m_isDone {
             return
@@ -198,8 +205,7 @@ extension WebKit.ServiceWorkerFetchTask {
         }
 
         m_isDone = true
-        // swift-format-ignore: NeverForceUnwrap
-        loader()!.serviceWorkerDidNotHandle(self)
+        protectedLoader.serviceWorkerDidNotHandle(self)
     }
 
     @cxx
@@ -207,9 +213,10 @@ extension WebKit.ServiceWorkerFetchTask {
     func timeoutTimerFired() {
         assert(!m_isDone)
         assert(!m_wasHandled)
-        WebKit.LogChannel.ServiceWorker().releaseLog.error(
-            "\(self.logPrefix, privacy: .public)timeoutTimerFired: (hasServiceWorkerConnection=\(self.m_serviceWorkerConnection.get() != nil ? 1 : 0), hasLoader=\(self.loader() != nil ? 1 : 0))"
-        )
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .error(
+                "\(self.logPrefix, privacy: .public)timeoutTimerFired: (hasServiceWorkerConnection=\(self.m_serviceWorkerConnection.get() != nil ? 1 : 0), hasLoader=\(self.loader() != nil ? 1 : 0))"
+            )
 
         if loader() == nil {
             return
@@ -220,28 +227,28 @@ extension WebKit.ServiceWorkerFetchTask {
         cannotHandle()
 
         if let swServerConnection = m_swServerConnection.get() {
-            swServerConnection.fetchTaskTimedOut(m_serviceWorkerIdentifier.asOptional().value!)
+            swServerConnection.fetchTaskTimedOut(workerIdentifier)
         }
     }
 
     @cxx
     @implementation
     func softUpdateIfNeeded() {
-        WebKit.LogChannel.ServiceWorker().releaseLog.log(
-            "\(self.logPrefix, privacy: .public)softUpdateIfNeeded: (m_shouldSoftUpdate=\(self.m_shouldSoftUpdate ? 1 : 0))"
-        )
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .log(
+                "\(self.logPrefix, privacy: .public)softUpdateIfNeeded: (m_shouldSoftUpdate=\(self.m_shouldSoftUpdate ? 1 : 0))"
+            )
         if !m_shouldSoftUpdate {
             return
         }
-        // swift-format-ignore: NeverForceUnwrap
-        let loader = loader()!
+        let loader = protectedLoader
         guard let swConnection = loader.connectionToWebProcess().swConnection() else {
             return
         }
         guard let server = swConnection.server() else {
             return
         }
-        if let registration = server.getRegistration(m_serviceWorkerRegistrationIdentifier.asOptional().value!) {
+        if let registration = server.getRegistration(registrationIdentifier) {
             registration.scheduleSoftUpdate(loader.isAppInitiated() ? .Yes : .No)
         }
     }
@@ -276,8 +283,7 @@ extension WebKit.ServiceWorkerFetchTask {
         if shouldSetSource == .Yes {
             response.setSource(.ServiceWorker)
         }
-        // swift-format-ignore: NeverForceUnwrap
-        let loader = loader()!
+        let loader = protectedLoader
         let newRequest = redirectedCurrentRequest(response)
         loader.willSendServiceWorkerRedirectedRequest(consuming: m_currentRequest, consuming: newRequest, consuming: response)
     }
@@ -312,17 +318,17 @@ extension WebKit.ServiceWorkerFetchTask {
             return
         }
 
-        // swift-format-ignore: NeverForceUnwrap
-        let loader = loader()!
+        let loader = protectedLoader
         #if ENABLE_CONTENT_FILTERING
         if !loader.continueAfterServiceWorkerReceivedResponse(response) {
             return
         }
         #endif
 
-        WebKit.LogChannel.ServiceWorker().releaseLog.log(
-            "\(self.logPrefix, privacy: .public)processResponse: (httpStatusCode=\(response.httpStatusCode()), MIMEType=\(Self.mimeType(response).description, privacy: .public), expectedContentLength=\(response.expectedContentLength()), needsContinueDidReceiveResponseMessage=\(needsContinueDidReceiveResponseMessage ? 1 : 0), source=\(response.source().rawValue))"
-        )
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .log(
+                "\(self.logPrefix, privacy: .public)processResponse: (httpStatusCode=\(response.httpStatusCode()), MIMEType=\(Self.mimeType(response).description, privacy: .public), expectedContentLength=\(response.expectedContentLength()), needsContinueDidReceiveResponseMessage=\(needsContinueDidReceiveResponseMessage ? 1 : 0), source=\(response.source().rawValue))"
+            )
         m_wasHandled = true
         stopTimeoutTimer()
         softUpdateIfNeeded()
@@ -391,8 +397,7 @@ extension WebKit.ServiceWorkerFetchTask {
         assert(!isTimeoutTimerActive())
 
         #if ENABLE_CONTENT_FILTERING
-        // swift-format-ignore: NeverForceUnwrap
-        if !loader()!.continueAfterServiceWorkerReceivedData(data) {
+        if !protectedLoader.continueAfterServiceWorkerReceivedData(data) {
             return
         }
         #endif
@@ -403,7 +408,8 @@ extension WebKit.ServiceWorkerFetchTask {
     @implementation
     func didFinish(_ networkLoadMetrics: WebCore.NetworkLoadMetrics) {
         assert(!isTimeoutTimerActive())
-        WebKit.LogChannel.ServiceWorker().releaseLog.log("\(self.logPrefix, privacy: .public)didFinish: (m_isDone=\(self.m_isDone ? 1 : 0))")
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .log("\(self.logPrefix, privacy: .public)didFinish: (m_isDone=\(self.m_isDone ? 1 : 0))")
 
         if m_isDone {
             return
@@ -413,8 +419,7 @@ extension WebKit.ServiceWorkerFetchTask {
         stopTimeoutTimer()
 
         #if ENABLE_CONTENT_FILTERING
-        // swift-format-ignore: NeverForceUnwrap
-        loader()!.serviceWorkerDidFinish()
+        protectedLoader.serviceWorkerDidFinish()
         #endif
 
         sendDidFinishResourceLoad(networkLoadMetrics)
@@ -436,11 +441,11 @@ extension WebKit.ServiceWorkerFetchTask {
         }
         cancelPreloadIfNecessary()
 
-        WebKit.LogChannel.ServiceWorker().releaseLog.error(
-            "\(self.logPrefix, privacy: .public)didFail: (error.domain=\(Self.errorDomain(error).description, privacy: .public), error.code=\(error.errorCode()))"
-        )
-        // swift-format-ignore: NeverForceUnwrap
-        loader()!.didFailLoading(error)
+        WebKit.LogChannel.ServiceWorker().releaseLog
+            .error(
+                "\(self.logPrefix, privacy: .public)didFail: (error.domain=\(Self.errorDomain(error).description, privacy: .public), error.code=\(error.errorCode()))"
+            )
+        protectedLoader.didFailLoading(error)
     }
 
     // MARK: Navigation preload
@@ -463,7 +468,6 @@ extension WebKit.ServiceWorkerFetchTask {
     func preloadResponseIsReady() {
         if m_shouldRaceNetworkAndFetchHandler && !m_wasHandled {
             assert(m_preloader.get() != nil)
-            // swift-format-ignore: NeverForceUnwrap
             if !preloadResponseIsSuccessful() {
                 cancelPreloadIfNecessary()
                 return

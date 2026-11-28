@@ -88,6 +88,7 @@ public:
     WEBCORE_EXPORT void workerTerminated(ServiceWorkerIdentifier);
     WEBCORE_EXPORT void matchAll(ServiceWorkerIdentifier, const ServiceWorkerClientQueryOptions&, CompletionHandler<void(Vector<WebCore::ServiceWorkerClientData>&&)>&&);
     WEBCORE_EXPORT void claim(ServiceWorkerIdentifier, CompletionHandler<void(std::optional<ExceptionData>&&)>&&);
+    // Swift names a template specialization only through a type alias.
     using ImportedScriptArgument = MoveOnlyArgument<ServiceWorkerContextData::ImportedScript>;
     WEBCORE_EXPORT void setScriptResource(ServiceWorkerIdentifier, URL scriptURL, ImportedScriptArgument);
     WEBCORE_EXPORT void didFailHeartBeatCheck(ServiceWorkerIdentifier);
