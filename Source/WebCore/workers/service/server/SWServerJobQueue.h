@@ -39,7 +39,7 @@ class SWServerWorker;
 class ServiceWorkerJob;
 struct WorkerFetchResult;
 
-class SWIFT_PRIVATE_FILEID("WebCore/SWServerJobQueue.swift") SWServerJobQueue final : public RefCountedAndCanMakeWeakPtr<SWServerJobQueue> {
+class SWServerJobQueue final : public RefCountedAndCanMakeWeakPtr<SWServerJobQueue> {
     WTF_MAKE_TZONE_ALLOCATED(SWServerJobQueue);
 public:
     static Ref<SWServerJobQueue> create(SWServer& server, const ServiceWorkerRegistrationKey& key) { return adoptRef(*new SWServerJobQueue(server, key)); }
@@ -51,46 +51,35 @@ public:
     void enqueueJob(ServiceWorkerJobData&& jobData) { m_jobQueue.append(WTF::move(jobData)); }
     size_t size() const { return m_jobQueue.size(); }
 
-    struct FirstJobSnapshot {
-        ServiceWorkerJobDataIdentifier identifier;
-        ServiceWorkerJobType type;
-        SWServerConnectionIdentifier connectionIdentifier;
-    };
-    ALWAYS_INLINE FirstJobSnapshot firstJobSnapshot() const
-    {
-        auto& job = m_jobQueue.first();
-        return { job.identifier(), job.type, job.connectionIdentifier() };
-    }
-
     void runNextJob();
 
-    void scriptFetchFinished(ServiceWorkerJobDataIdentifier, std::optional<ProcessIdentifier>, WorkerFetchResult);
-    void importedScriptsFetchFinished(ServiceWorkerJobDataIdentifier, Vector<std::pair<URL, ScriptBuffer>>, std::optional<ProcessIdentifier>);
-    void scriptContextFailedToStart(ServiceWorkerJobDataIdentifier, ServiceWorkerIdentifier, String message);
-    void scriptContextStarted(ServiceWorkerJobDataIdentifier, ServiceWorkerIdentifier);
-    void didFinishInstall(ServiceWorkerJobDataIdentifier, SWServerWorker&, bool wasSuccessful);
+    void scriptFetchFinished(const ServiceWorkerJobDataIdentifier&, const std::optional<ProcessIdentifier>&, WorkerFetchResult&&);
+    void importedScriptsFetchFinished(const ServiceWorkerJobDataIdentifier&, const Vector<std::pair<URL, ScriptBuffer>>&, const std::optional<ProcessIdentifier>&);
+    void scriptContextFailedToStart(const ServiceWorkerJobDataIdentifier&, ServiceWorkerIdentifier, const String& message);
+    void scriptContextStarted(const ServiceWorkerJobDataIdentifier&, ServiceWorkerIdentifier);
+    void didFinishInstall(const ServiceWorkerJobDataIdentifier&, SWServerWorker&, bool wasSuccessful);
     void didResolveRegistrationPromise();
     void cancelJobsFromConnection(SWServerConnectionIdentifier);
     void cancelJobsFromServiceWorker(ServiceWorkerIdentifier);
 
-    NODELETE bool isCurrentlyProcessingJob(ServiceWorkerJobDataIdentifier) const;
+    NODELETE bool isCurrentlyProcessingJob(const ServiceWorkerJobDataIdentifier&) const;
 
 private:
     SWServerJobQueue(SWServer&, const ServiceWorkerRegistrationKey&);
 
     void jobTimerFired();
     void runNextJobSynchronously();
-    void rejectCurrentJob(ExceptionData);
+    void rejectCurrentJob(const ExceptionData&);
     void finishCurrentJob();
 
     void runRegisterJob(ServiceWorkerJobData);
-    void runUnregisterJob(ServiceWorkerJobData);
-    void runUpdateJob(ServiceWorkerJobData);
+    void runUnregisterJob(const ServiceWorkerJobData&);
+    void runUpdateJob(const ServiceWorkerJobData&);
 
     void install(SWServerRegistration&, ServiceWorkerIdentifier);
 
     void removeAllJobsMatching(NOESCAPE const Function<bool(ServiceWorkerJobData&)>&);
-    void scriptAndImportedScriptsFetchFinished(ServiceWorkerJobData, SWServerRegistration&);
+    void scriptAndImportedScriptsFetchFinished(const ServiceWorkerJobData&, SWServerRegistration&);
 
     SWServer& server() const { return m_server.get(); }
 

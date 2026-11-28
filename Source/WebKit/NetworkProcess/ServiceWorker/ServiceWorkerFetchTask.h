@@ -103,7 +103,7 @@ public:
 
     NODELETE std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
-    // Public because the Swift members that take it are serialized into WebKit's module, which a private C++ type crashes.
+    // Public: the Swift compiler crashes serializing a member that takes a private C++ type.
     enum class ShouldSetSource : bool { No, Yes };
 
 private:
@@ -149,10 +149,15 @@ private:
 
     // Swift cannot start, stop or read a WebCore::Timer.
     void startTimeoutTimer();
-    void stopTimeoutTimer() { if (m_timeoutTimer) m_timeoutTimer->stop(); }
+    void stopTimeoutTimer()
+    {
+        if (m_timeoutTimer)
+            m_timeoutTimer->stop();
+    }
     bool isTimeoutTimerActive() const { return m_timeoutTimer && m_timeoutTimer->isActive(); }
     // Swift cannot build the WTF::Function that waitForPreloadResponse() passes.
     void waitForPreloadResponse();
+    // Points m_serviceWorkerConnection, a WeakPtr, at the connection, or clears it.
     void setServiceWorkerConnection(WebSWServerToContextConnection*);
     // Swift cannot move a value out of an std::optional.
     bool finishLoadingWithPendingCacheResponse();
@@ -169,7 +174,7 @@ private:
     bool preloadResponseIsSuccessful() const;
     static String mimeType(const WebCore::ResourceResponse&);
     static String errorDomain(const WebCore::ResourceError&);
-    String logIdentifier() const { return WTF::toString(RawPointer(this)); } // RELEASE_LOG's "%p" of this.
+    String logAddress() const { return WTF::toString(RawPointer(this)); } // RELEASE_LOG's "%p" of this.
 
     WeakPtr<WebSWServerConnection> m_swServerConnection;
     WeakPtr<NetworkResourceLoader> m_loader;

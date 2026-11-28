@@ -169,6 +169,36 @@ ServiceWorkerRouteCondition ServiceWorkerRouteCondition::copy() const
     };
 }
 
+ServiceWorkerRoutePattern ServiceWorkerRoutePattern::isolatedCopy() &&
+{
+    return {
+        shouldIgnoreCase,
+        crossThreadCopy(WTF::move(protocol)),
+        crossThreadCopy(WTF::move(username)),
+        crossThreadCopy(WTF::move(password)),
+        crossThreadCopy(WTF::move(hostname)),
+        crossThreadCopy(WTF::move(port)),
+        crossThreadCopy(WTF::move(pathname)),
+        crossThreadCopy(WTF::move(search)),
+        crossThreadCopy(WTF::move(hash))
+    };
+}
+
+ServiceWorkerRoutePattern ServiceWorkerRoutePattern::isolatedCopy() const  &
+{
+    return {
+        shouldIgnoreCase,
+        crossThreadCopy(protocol),
+        crossThreadCopy(username),
+        crossThreadCopy(password),
+        crossThreadCopy(hostname),
+        crossThreadCopy(port),
+        crossThreadCopy(pathname),
+        crossThreadCopy(search),
+        crossThreadCopy(hash)
+    };
+}
+
 static RouterSource crossThreadCopyRouterSource(RouterSource&& source)
 {
     return WTF::switchOn(source, [](RouterSourceDict& dict) -> RouterSource {

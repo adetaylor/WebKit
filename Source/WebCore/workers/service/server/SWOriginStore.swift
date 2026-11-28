@@ -21,6 +21,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+internal import WebCore_Private.Core.SWOriginStore
+internal import WebCore_Private.Core.SecurityOriginData
+
 // Swift operators import every visible C++ operator of the same name; these modules define reference types that some of
 // them name (rdar://192229293).
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -32,8 +35,6 @@ internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
 internal import JavaScriptCore_Private.Cxx.YarrInterpreter
 #endif
-internal import WebCore_Private.Core.SWOriginStore
-internal import WebCore_Private.Core.SecurityOriginData
 
 extension WebCore.SWOriginStore {
     // A stored count is never zero, so a count of zero means the origin is not in the map.

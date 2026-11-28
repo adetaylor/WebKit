@@ -272,14 +272,10 @@
 #include "CacheStorageRecord.h"
 #include "CacheStorageStore.h"
 #include "OriginQuotaManager.h"
-// The network process's service worker classes whose members are Swift, and their generated messages.
-// NetworkSession is not among them: no Swift names it; the classes reach it through C++ members.
-// NetworkConnectionToWebProcess.h, which the block below reaches, holds m_deferredFetches of
-// NetworkResourceLoadParameters, and NetworkProcess.h a HashMap of unique_ptr<NetworkProcessSupplement>: Swift needs
-// both definitions first. NetworkConnectionToWebProcess, NetworkResourceLoader and NetworkProcess are named in Swift.
-#include "NetworkResourceLoadParameters.h"
-#include "NetworkProcessSupplement.h"
+// The network process's service worker classes and their messages, which the Swift service worker server calls.
 #include "NetworkProcess.h"
+#include "NetworkProcessSupplement.h"
+#include "NetworkResourceLoadParameters.h"
 #include "NetworkResourceLoader.h"
 #include "ServiceWorkerFetchTask.h"
 #include "ServiceWorkerFetchTaskMessages.h"
@@ -287,13 +283,13 @@
 #include "ServiceWorkerSoftUpdateLoader.h"
 // ServiceWorkerFetchTask.swift names IPC.SharedBufferReference, which the Cocoa media headers include.
 #include "SharedBufferReference.h"
+#include "WebSWContextManagerConnectionMessages.h"
 #include "WebSWOriginStore.h"
 #include "WebSWRegistrationStore.h"
 #include "WebSWServerConnection.h"
 #include "WebSWServerConnectionMessages.h"
 #include "WebSWServerToContextConnection.h"
 #include "WebSWServerToContextConnectionMessages.h"
-#include "WebSWContextManagerConnectionMessages.h"
 
 // The receivers hold std::unique_ptr maps of SWServerJobQueue and of NetworkProcessSupplement (above), whose destructors Swift instantiates on import; C++ includes them only where used.
 #include <WebCore/SWServerJobQueue.h>

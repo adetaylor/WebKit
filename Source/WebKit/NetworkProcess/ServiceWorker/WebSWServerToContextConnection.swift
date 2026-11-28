@@ -24,10 +24,7 @@
 import WebKit_Internal
 import wtf
 
-// The members of WebSWServerToContextConnection that are Swift. The class's SWIFT_PRIVATE_FILEID names this file, so
-// its private fields are visible here and nowhere else in Swift.
 extension WebKit.WebSWServerToContextConnection {
-
     @cxx
     @implementation
     func terminateIdleServiceWorkers() {
@@ -42,8 +39,6 @@ extension WebKit.WebSWServerToContextConnection {
         task.start(self)
     }
 
-    // MARK: Fetches and downloads
-
     // MARK: Messages to the SW host WebProcess
 
     @cxx
@@ -52,11 +47,10 @@ extension WebKit.WebSWServerToContextConnection {
         _ serviceWorkerIdentifier: WebCore.ServiceWorkerIdentifier,
         _ lastNavigationWasAppInitiated: WebCore.LastNavigationWasAppInitiated
     ) {
-        guard let connection = protectedIPCConnection().get(),
-            let identifier = IPCTypes.ServiceWorkerIdentifier(rawValue: serviceWorkerIdentifier.toUInt64())
-        else {
+        guard let connection = protectedIPCConnection().get() else {
             return
         }
+        let identifier = IPCTypes.ServiceWorkerIdentifier(serviceWorkerIdentifier)
         WebSWContextManagerConnectionMessages.updateAppInitiatedValue(
             on: connection,
             to: 0,
@@ -68,11 +62,10 @@ extension WebKit.WebSWServerToContextConnection {
     @cxx
     @implementation
     override func fireInstallEvent(_ serviceWorkerIdentifier: WebCore.ServiceWorkerIdentifier) {
-        guard let connection = protectedIPCConnection().get(),
-            let identifier = IPCTypes.ServiceWorkerIdentifier(rawValue: serviceWorkerIdentifier.toUInt64())
-        else {
+        guard let connection = protectedIPCConnection().get() else {
             return
         }
+        let identifier = IPCTypes.ServiceWorkerIdentifier(serviceWorkerIdentifier)
         WebSWContextManagerConnectionMessages.fireInstallEvent(
             on: connection,
             to: 0,
@@ -83,11 +76,10 @@ extension WebKit.WebSWServerToContextConnection {
     @cxx
     @implementation
     override func fireActivateEvent(_ serviceWorkerIdentifier: WebCore.ServiceWorkerIdentifier) {
-        guard let connection = protectedIPCConnection().get(),
-            let identifier = IPCTypes.ServiceWorkerIdentifier(rawValue: serviceWorkerIdentifier.toUInt64())
-        else {
+        guard let connection = protectedIPCConnection().get() else {
             return
         }
+        let identifier = IPCTypes.ServiceWorkerIdentifier(serviceWorkerIdentifier)
         WebSWContextManagerConnectionMessages.fireActivateEvent(
             on: connection,
             to: 0,

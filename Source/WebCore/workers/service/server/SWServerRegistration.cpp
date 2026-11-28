@@ -155,13 +155,13 @@ ServiceWorkerRegistrationData SWServerRegistration::data() const
     return { m_registrationKey, identifier(), m_scopeURL, m_updateViaCache, m_lastUpdateTime, WTF::move(installingWorkerData), WTF::move(waitingWorkerData), WTF::move(activeWorkerData) };
 }
 
-void SWServerRegistration::addClientUsingRegistration(ScriptExecutionContextIdentifier clientIdentifier)
+void SWServerRegistration::addClientUsingRegistration(const ScriptExecutionContextIdentifier& clientIdentifier)
 {
     auto addResult = m_clientsUsingRegistration.add(clientIdentifier.processIdentifier(), HashSet<ScriptExecutionContextIdentifier> { }).iterator->value.add(clientIdentifier);
     ASSERT_UNUSED(addResult, addResult.isNewEntry);
 }
 
-void SWServerRegistration::removeClientUsingRegistration(ScriptExecutionContextIdentifier clientIdentifier)
+void SWServerRegistration::removeClientUsingRegistration(const ScriptExecutionContextIdentifier& clientIdentifier)
 {
     auto iterator = m_clientsUsingRegistration.find(clientIdentifier.processIdentifier());
     ASSERT(iterator != m_clientsUsingRegistration.end());
@@ -292,7 +292,7 @@ std::optional<ExceptionData> SWServerRegistration::disableNavigationPreload()
 }
 
 // https://w3c.github.io/ServiceWorker/#dom-navigationpreloadmanager-setheadervalue, steps run in parallel.
-std::optional<ExceptionData> SWServerRegistration::setNavigationPreloadHeaderValue(String headerValue)
+std::optional<ExceptionData> SWServerRegistration::setNavigationPreloadHeaderValue(String&& headerValue)
 {
     if (!isValidHTTPHeaderValue(headerValue))
         return ExceptionData { ExceptionCode::TypeError, "Invalid header value"_s };
@@ -306,13 +306,13 @@ std::optional<ExceptionData> SWServerRegistration::setNavigationPreloadHeaderVal
     return { };
 }
 
-void SWServerRegistration::addCookieChangeSubscriptions(Vector<CookieChangeSubscription> subscriptions)
+void SWServerRegistration::addCookieChangeSubscriptions(Vector<CookieChangeSubscription>&& subscriptions)
 {
     for (auto& subscription : subscriptions)
         m_cookieChangeSubscriptions.add(WTF::move(subscription));
 }
 
-void SWServerRegistration::removeCookieChangeSubscriptions(Vector<CookieChangeSubscription> subscriptions)
+void SWServerRegistration::removeCookieChangeSubscriptions(Vector<CookieChangeSubscription>&& subscriptions)
 {
     for (auto& subscription : subscriptions)
         m_cookieChangeSubscriptions.remove(subscription);

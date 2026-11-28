@@ -1,0 +1,51 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+</head>
+<body>
+<script>
+var scope = "resources/empty.html?terminate-after-response";
+var activeWorker;
+
+promise_test(async (test) => {
+    var registration = await navigator.serviceWorker.register("fetch-worker-terminate-after-response-worker.js", { scope : scope });
+    activeWorker = registration.active;
+    if (activeWorker)
+        return;
+    activeWorker = registration.installing;
+    return new Promise(resolve => {
+        activeWorker.addEventListener('statechange', () => {
+            if (activeWorker.state === "activated")
+                resolve();
+        });
+    });
+}, "Setup worker");
+
+promise_test(async (test) => {
+    assert_true(!!window.internals, "This test requires internals");
+
+    const iframe = await with_iframe(scope);
+    const response = await iframe.contentWindow.fetch("stream-never-closes");
+    assert_equals(response.status, 200);
+
+    const reader = response.body.getReader();
+    const first = await reader.read();
+    assert_false(first.done, "first chunk");
+    assert_equals(new TextDecoder().decode(first.value), "first chunk");
+
+    await internals.terminateServiceWorker(activeWorker);
+
+    let error;
+    try {
+        while (!(await reader.read()).done) { }
+    } catch (e) {
+        error = e;
+    }
+    assert_not_equals(error, undefined, "reading the body after the worker is terminated should fail");
+    assert_equals(error.name, "TypeError");
+}, "Make sure a load whose response was sent fails when its worker terminates before the body is finished");
+</script>
+</body>
+</html>

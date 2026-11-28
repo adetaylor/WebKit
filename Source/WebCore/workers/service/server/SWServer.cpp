@@ -721,16 +721,6 @@ void SWServer::startScriptFetch(const ServiceWorkerJobData& jobData, SWServerReg
     ASSERT_WITH_MESSAGE(connection, "If the connection was lost, this job should have been cancelled");
 }
 
-void SWServer::scriptFetchFinished(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, const ServiceWorkerRegistrationKey& registrationKey, const std::optional<ProcessIdentifier>& requestingProcessIdentifier, WorkerFetchResult&& result)
-{
-    LOG_WITH_STREAM(ServiceWorker, stream << "Server handling scriptFetchFinished for current job "_s << jobDataIdentifier.loggingString() << " in client"_s);
-
-    ASSERT(m_connections.contains(jobDataIdentifier.connectionIdentifier) || jobDataIdentifier.connectionIdentifier == Process::identifier());
-
-    if (RefPtr jobQueue = m_jobQueues.get(registrationKey))
-        jobQueue->scriptFetchFinished(jobDataIdentifier, requestingProcessIdentifier, WTF::move(result));
-}
-
 class RefreshImportedScriptsHandler : public RefCounted<RefreshImportedScriptsHandler> {
 public:
     using Callback = CompletionHandler<void(Vector<std::pair<URL, ScriptBuffer>>&&)>;
@@ -756,6 +746,16 @@ private:
     Callback m_callback;
     Vector<std::pair<URL, ScriptBuffer>> m_scripts;
 };
+
+void SWServer::scriptFetchFinished(const ServiceWorkerJobDataIdentifier& jobDataIdentifier, const ServiceWorkerRegistrationKey& registrationKey, const std::optional<ProcessIdentifier>& requestingProcessIdentifier, WorkerFetchResult&& result)
+{
+    LOG_WITH_STREAM(ServiceWorker, stream << "Server handling scriptFetchFinished for current job "_s << jobDataIdentifier.loggingString() << " in client"_s);
+
+    ASSERT(m_connections.contains(jobDataIdentifier.connectionIdentifier) || jobDataIdentifier.connectionIdentifier == Process::identifier());
+
+    if (RefPtr jobQueue = m_jobQueues.get(registrationKey))
+        jobQueue->scriptFetchFinished(jobDataIdentifier, requestingProcessIdentifier, WTF::move(result));
+}
 
 void SWServer::refreshImportedScripts(const ServiceWorkerJobData& jobData, SWServerRegistration& registration, const Vector<URL>& urls, const std::optional<ProcessIdentifier>& requestingProcessIdentifier)
 {
@@ -871,7 +871,7 @@ Vector<Ref<SWServerWorker>> SWServer::runningOrTerminatingWorkerValues() const
 Vector<Ref<SWServerToContextConnection>> SWServer::contextConnectionValues() const
 {
     return WTF::map(m_contextConnections.values(), [](auto& connection) {
-        return Ref { connection.get() };
+        return Ref { connection };
     });
 }
 

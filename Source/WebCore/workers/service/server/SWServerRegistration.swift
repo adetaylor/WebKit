@@ -21,6 +21,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+internal import WebCore_Private.Core.FetchOptions
+internal import WebCore_Private.Core.SWServer
+internal import WebCore_Private.Core.SWServerRegistration
+internal import WebCore_Private.Core.SWServerWorker
+internal import WebCore_Private.Core.ServiceWorkerTypes
+
 // Swift operators import every visible C++ operator of the same name; these modules define reference types that some of
 // them name (rdar://192229293).
 #if canImport(JavaScriptCore_Private) // Not a module outside Apple platforms, where the headers are textual.
@@ -32,13 +38,14 @@ internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
 internal import JavaScriptCore_Private.Cxx.YarrInterpreter
 #endif
-internal import WebCore_Private.Core.FetchOptions
-internal import WebCore_Private.Core.SWServer
-internal import WebCore_Private.Core.SWServerRegistration
-internal import WebCore_Private.Core.SWServerWorker
-internal import WebCore_Private.Core.ServiceWorkerTypes
 
 extension WebCore.SWServerRegistration {
+    // A registration never outlives its server.
+    private var protectedServer: WebCore.SWServer {
+        // swift-format-ignore: NeverForceUnwrap
+        server()!
+    }
+
     @cxx
     @implementation
     func getNewestWorker() -> WebCore.RefPtrSWServerWorker {
@@ -137,9 +144,7 @@ extension WebCore.SWServerRegistration {
         // FIXME: For each service worker client whose creation URL matches registration's scope url...
 
         // The registration now has an active worker so we need to check if there are any ready promises that were waiting for this.
-        // A registration never outlives its server.
-        // swift-format-ignore: NeverForceUnwrap
-        server()!.resolveRegistrationReadyRequests(self)
+        protectedServer.resolveRegistrationReadyRequests(self)
 
         // For each service worker client who is using registration:
         // - Set client's active worker to registration's active worker.
@@ -151,9 +156,9 @@ extension WebCore.SWServerRegistration {
         // Queue a task to fire the activate event.
         let activeWorker = self.activeWorker()
         assert(activeWorker != nil)
-        // A registration never outlives its server.
+        // Activating sets the active worker, as the assertion says.
         // swift-format-ignore: NeverForceUnwrap
-        server()!.runServiceWorkerAndFireActivateEvent(activeWorker!)
+        protectedServer.runServiceWorkerAndFireActivateEvent(activeWorker!)
     }
 
     // https://w3c.github.io/ServiceWorker/#activate (post activate event steps).
@@ -181,6 +186,7 @@ extension WebCore.SWServerRegistration {
         tryActivate()
     }
 
+    /// Whether a fetch with these options should start a soft update.
     @cxx
     @implementation
     public func shouldSoftUpdate(_ options: WebCore.FetchOptions) -> Bool {
@@ -194,8 +200,6 @@ extension WebCore.SWServerRegistration {
     @cxx
     @implementation
     func softUpdate() {
-        // A registration never outlives its server.
-        // swift-format-ignore: NeverForceUnwrap
-        server()!.softUpdate(self)
+        protectedServer.softUpdate(self)
     }
 }

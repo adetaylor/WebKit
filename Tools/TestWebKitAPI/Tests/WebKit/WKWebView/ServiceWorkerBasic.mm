@@ -5169,6 +5169,76 @@ TEST(ServiceWorkers, ServiceWorkerStorageTiming)
     TestWebKitAPI::Util::run(&done);
 }
 
+static constexpr auto softUpdateNotModifiedMainBytes = R"SWRESOURCE(
+<script>
+async function test()
+{
+    try {
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        const worker = registration.installing;
+        worker.addEventListener("statechange", () => {
+            if (worker.state == "activated")
+                alert("successfully registered");
+        });
+    } catch (e) {
+        alert("Exception: " + e);
+    }
+}
+window.onload = test;
+</script>
+)SWRESOURCE"_s;
+
+static constexpr auto softUpdateNotModifiedScriptBytesV1 = R"SWRESOURCE(
+self.addEventListener("fetch", (event) => {
+    event.respondWith(new Response(new Blob(["<script>alert('V1')</script>"], { type: "text/html" })));
+});
+)SWRESOURCE"_s;
+
+static constexpr auto softUpdateNotModifiedScriptBytesV2 = R"SWRESOURCE(
+self.addEventListener("fetch", (event) => {
+    event.respondWith(new Response(new Blob(["<script>alert('V2')</script>"], { type: "text/html" })));
+});
+)SWRESOURCE"_s;
+
+// A soft update whose script request is answered 304 Not Modified uses the network cache's entry, so the registration
+// keeps its worker. The server's script changes to V2 before the soft update but answers every conditional request with
+// 304: only an update that sent no validator, because it had no cache entry, would get V2 and install a new worker.
+TEST(ServiceWorkers, SoftUpdateNotModified)
+{
+    [[WKWebsiteDataStore defaultDataStore] removeDataOfTypes:[WKWebsiteDataStore allWebsiteDataTypes] modifiedSince:[NSDate distantPast] completionHandler:^() {
+        done = true;
+    }];
+    TestWebKitAPI::Util::run(&done);
+    done = false;
+
+    TestWebKitAPI::HTTPResponse scriptV1 { { { "Content-Type"_s, "application/javascript"_s }, { "Cache-Control"_s, "no-cache"_s }, { "ETag"_s, "\"sw\""_s } }, softUpdateNotModifiedScriptBytesV1 };
+    TestWebKitAPI::HTTPServer server({
+        { "/"_s, { softUpdateNotModifiedMainBytes } },
+        { "/sw.js"_s, WTF::move(scriptV1) },
+    });
+
+    RetainPtr webView = adoptNS([WKWebView new]);
+    [webView loadRequest:server.request()];
+    EXPECT_WK_STREQ([webView _test_waitForAlert], "successfully registered");
+    EXPECT_EQ(server.totalRequests(), 2u);
+
+    TestWebKitAPI::HTTPResponse scriptV2 { { { "Content-Type"_s, "application/javascript"_s }, { "Cache-Control"_s, "no-cache"_s }, { "ETag"_s, "\"sw\""_s } }, softUpdateNotModifiedScriptBytesV2 };
+    scriptV2.setShouldRespondWith304ToConditionalRequests();
+    server.setResponse("/sw.js"_s, WTF::move(scriptV2));
+
+    // The worker answers the navigation, which schedules a soft update; its script request is the server's third.
+    [webView reload];
+    EXPECT_WK_STREQ([webView _test_waitForAlert], "V1");
+    EXPECT_TRUE(TestWebKitAPI::Util::waitFor([&] {
+        return server.totalRequests() == 3;
+    }));
+
+    // update() is queued behind the soft update, so once it resolves the soft update has finished.
+    [webView evaluateJavaScript:@"navigator.serviceWorker.getRegistration().then(async (registration) => { await registration.update(); alert(registration.installing || registration.waiting ? 'new worker' : 'no new worker'); }).catch((e) => alert('Exception: ' + e))" completionHandler:nil];
+    EXPECT_WK_STREQ([webView _test_waitForAlert], "no new worker");
+    EXPECT_EQ(server.totalRequests(), 4u);
+}
+
 static constexpr auto ServiceWorkerCOOPNavigateMain =
 "<div>test page</div>"
 "<script>"
