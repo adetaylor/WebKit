@@ -32,5 +32,8 @@ messages -> TestWithSwiftImplementation {
     void SendStringAsync(String url) -> (String reply)
     void SendStringSync(String url) -> (uint64_t length) Synchronous
     void SendDirect(uint32_t value) SwiftSyncHandler
+    void AsyncReplyValue(uint32_t value) -> (bool reply) SwiftSyncHandler SwiftReplyValue
+    void AsyncEmptyReplyValue(uint32_t value) -> () SwiftSyncHandler SwiftReplyValue
+    void SetDomains(HashSet<WebCore::RegistrableDomain> domains) -> () SwiftSyncHandler SwiftReplyValue
     void SendCxxString(String url) CxxTypes
 }

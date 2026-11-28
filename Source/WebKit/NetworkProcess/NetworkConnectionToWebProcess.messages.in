@@ -23,7 +23,8 @@
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
-    DispatchedTo=Networking
+    DispatchedTo=Networking,
+    SwiftImplementation
 ]
 messages -> NetworkConnectionToWebProcess WantsDispatchMessage {
 
@@ -71,8 +72,8 @@ messages -> NetworkConnectionToWebProcess WantsDispatchMessage {
     UnsubscribeFromCookieChangeNotifications(String host) AllowedWhenWaitingForSyncReply
 #endif
 
-    SubscribeToStorageAccessPermissionChanges(WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain subFrameDomain);
-    UnsubscribeFromStorageAccessPermissionChanges(WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain subFrameDomain);
+    SubscribeToStorageAccessPermissionChanges(WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain subFrameDomain) SwiftTypes
+    UnsubscribeFromStorageAccessPermissionChanges(WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain subFrameDomain) SwiftTypes
 
     RegisterInternalFileBlobURL(URL url, String path, String replacementPath, WebKit::SandboxExtensionHandle extensionHandle, String contentType)
     RegisterInternalBlobURL(URL url, Vector<WebCore::BlobPart> blobParts, String contentType)
@@ -97,13 +98,13 @@ messages -> NetworkConnectionToWebProcess WantsDispatchMessage {
     ClearPageSpecificData(WebCore::PageIdentifier pageID);
 
     [EnabledBy=StorageAccessAPIEnabled] RemoveStorageAccessForFrame(WebCore::FrameIdentifier frameID, WebKit::WebPageProxyIdentifier webPageProxyID);
-    LogUserInteraction(WebCore::RegistrableDomain domain)
-    ResourceLoadStatisticsUpdated(Vector<WebCore::ResourceLoadStatistics> statistics) -> ()
-    [EnabledBy=StorageAccessAPIEnabled] HasStorageAccess(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, WebCore::FrameIdentifier frameID, WebKit::WebPageProxyIdentifier webPageProxyID) -> (bool hasStorageAccess)
-    [EnabledBy=StorageAccessAPIEnabled] RequestStorageAccess(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, WebCore::FrameIdentifier frameID, WebKit::WebPageProxyIdentifier webPageProxyID, enum:bool WebCore::StorageAccessScope scope, enum:bool WebCore::HasUserGestureOrNoUserGestureRequired hasUserGestureOrNoUserGestureRequired) -> (struct WebCore::RequestStorageAccessResult result)
-    [EnabledBy=StorageAccessAPIEnabled] QueryStorageAccessPermission(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, std::optional<WebKit::WebPageProxyIdentifier> webPageProxyID) -> (enum:uint8_t WebCore::PermissionState permissionState)
+    LogUserInteraction(WebCore::RegistrableDomain domain) SwiftTypes SwiftSyncHandler
+    ResourceLoadStatisticsUpdated(Vector<WebCore::ResourceLoadStatistics> statistics) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    [EnabledBy=StorageAccessAPIEnabled] HasStorageAccess(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, WebCore::FrameIdentifier frameID, WebKit::WebPageProxyIdentifier webPageProxyID) -> (bool hasStorageAccess) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    [EnabledBy=StorageAccessAPIEnabled] RequestStorageAccess(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, WebCore::FrameIdentifier frameID, WebKit::WebPageProxyIdentifier webPageProxyID, enum:bool WebCore::StorageAccessScope scope, enum:bool WebCore::HasUserGestureOrNoUserGestureRequired hasUserGestureOrNoUserGestureRequired) -> (struct WebCore::RequestStorageAccessResult result) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    [EnabledBy=StorageAccessAPIEnabled] QueryStorageAccessPermission(WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain, std::optional<WebKit::WebPageProxyIdentifier> webPageProxyID) -> (enum:uint8_t WebCore::PermissionState permissionState) SwiftTypes SwiftSyncHandler SwiftReplyValue
     [EnabledBy=StorageAccessAPIEnabled] StorageAccessQuirkForTopFrameDomain(URL topFrameURL) -> (Vector<WebCore::RegistrableDomain> domains)
-    [EnabledBy=StorageAccessAPIEnabled] RequestStorageAccessUnderOpener(WebCore::RegistrableDomain domainInNeedOfStorageAccess, WebKit::WebPageProxyIdentifier openerWebPageProxyID, WebCore::RegistrableDomain openerDomain)
+    [EnabledBy=StorageAccessAPIEnabled] RequestStorageAccessUnderOpener(WebCore::RegistrableDomain domainInNeedOfStorageAccess, WebKit::WebPageProxyIdentifier openerWebPageProxyID, WebCore::RegistrableDomain openerDomain) SwiftTypes SwiftSyncHandler
 
     [EnabledBy=AllowTestOnlyOriginAccessAllowListIPC] AddOriginAccessAllowListEntry(String sourceOrigin, String destinationProtocol, String destinationHost, bool allowDestinationSubdomains);
     [EnabledBy=AllowTestOnlyOriginAccessAllowListIPC] RemoveOriginAccessAllowListEntry(String sourceOrigin, String destinationProtocol, String destinationHost, bool allowDestinationSubdomains);
@@ -165,8 +166,8 @@ messages -> NetworkConnectionToWebProcess WantsDispatchMessage {
 
     LoadImageForDecoding(WebCore::ResourceRequest request, WebKit::WebPageProxyIdentifier pageID, uint64_t maximumBytesFromNetwork) -> (std::expected<Ref<WebCore::FragmentedSharedBuffer>, WebCore::ResourceError> result)
 
-    SetLoginStatus(WebCore::RegistrableDomain domain, enum:uint8_t WebCore::IsLoggedIn loggedInStatus, std::optional<WebCore::LoginStatus> lastAuthentication) -> ()
-    IsLoggedIn(WebCore::RegistrableDomain domain) -> (bool result)
+    SetLoginStatus(WebCore::RegistrableDomain domain, enum:uint8_t WebCore::IsLoggedIn loggedInStatus, std::optional<WebCore::LoginStatus> lastAuthentication) -> () SwiftTypes
+    IsLoggedIn(WebCore::RegistrableDomain domain) -> (bool result) SwiftTypes
 
     DropNonSerializableInProcessCache(WebCore::ProcessIdentifier originProcess, WebCore::NonSerializedDataIdentifier identifier)
 

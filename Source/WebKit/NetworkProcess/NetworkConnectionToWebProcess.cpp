@@ -83,7 +83,6 @@
 #include <WebCore/CookieStoreGetOptions.h>
 #include <WebCore/CrossOriginEmbedderPolicy.h>
 #include <WebCore/DeprecatedGlobalSettings.h>
-#include <WebCore/DocumentStorageAccess.h>
 #include <WebCore/HTTPCookieAcceptPolicy.h>
 #include <WebCore/LogInitialization.h>
 #include <WebCore/LoginStatus.h>
@@ -1374,20 +1373,14 @@ void NetworkConnectionToWebProcess::allCookiesDeleted()
 
 #endif
 
-void NetworkConnectionToWebProcess::subscribeToStorageAccessPermissionChanges(RegistrableDomain&& topFrameDomain, RegistrableDomain&& subFrameDomain)
+void NetworkConnectionToWebProcess::startListeningForStorageAccessPermissionChanges(WebResourceLoadStatisticsStore& resourceLoadStatistics, RegistrableDomain&& topFrameDomain, RegistrableDomain&& subFrameDomain)
 {
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics())
-            resourceLoadStatistics->startListeningForStorageAccessPermissionChanges(*this, WTF::move(topFrameDomain), WTF::move(subFrameDomain));
-    }
+    resourceLoadStatistics.startListeningForStorageAccessPermissionChanges(*this, WTF::move(topFrameDomain), WTF::move(subFrameDomain));
 }
 
-void NetworkConnectionToWebProcess::unsubscribeFromStorageAccessPermissionChanges(RegistrableDomain&& topFrameDomain, RegistrableDomain&& subFrameDomain)
+void NetworkConnectionToWebProcess::stopListeningForStorageAccessPermissionChanges(WebResourceLoadStatisticsStore& resourceLoadStatistics, RegistrableDomain&& topFrameDomain, RegistrableDomain&& subFrameDomain)
 {
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics())
-            resourceLoadStatistics->stopListeningForStorageAccessPermissionChanges(*this, WTF::move(topFrameDomain), WTF::move(subFrameDomain));
-    }
+    resourceLoadStatistics.stopListeningForStorageAccessPermissionChanges(*this, WTF::move(topFrameDomain), WTF::move(subFrameDomain));
 }
 
 void NetworkConnectionToWebProcess::storageAccessPermissionChanged(const RegistrableDomain& topFrameDomain, const RegistrableDomain& subFrameDomain)
@@ -1648,130 +1641,34 @@ void NetworkConnectionToWebProcess::removeStorageAccessForFrame(FrameIdentifier 
         storageSession->removeStorageAccessForFrame(frameID, webPageProxyID);
 }
 
-void NetworkConnectionToWebProcess::logUserInteraction(RegistrableDomain&& domain)
+WebResourceLoadStatisticsStore* NetworkConnectionToWebProcess::resourceLoadStatisticsForSwift()
 {
-    if (!NetworkProcess::singleton().allowsFirstPartyForCookies(m_webProcessIdentifier, domain)) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
-
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics())
-            resourceLoadStatistics->logUserInteraction(WTF::move(domain), [] { });
-    }
+    CheckedPtr networkSession = this->networkSession();
+    return networkSession ? networkSession->resourceLoadStatistics() : nullptr;
 }
 
-// Validate that the WebContent process is not setting fields it has no authority over. The WCP-side ResourceLoadObserver
-// never populates these; only the network grocess grant/classification paths should write them.
-static bool resourceLoadStatisticsContainsOnlyObservableFields(const ResourceLoadStatistics& statistics)
+void NetworkConnectionToWebProcess::hasCookiesForSwift(const RegistrableDomain& domain, uint64_t replyIdentifier)
 {
-    return statistics.storageAccessUnderTopFrameDomains.isEmpty()
-        && !statistics.grandfathered
-        && !statistics.isPrevalentResource
-        && !statistics.isVeryPrevalentResource
-        && !statistics.dataRecordsRemoved
-        && !statistics.timesAccessedAsFirstPartyDueToUserInteraction
-        && !statistics.timesAccessedAsFirstPartyDueToStorageAccessAPI;
+    if (!networkSession())
+        return WebResourceLoadStatisticsStore::completeStatisticsBoolReplyForSwift(replyIdentifier, false);
+    CheckedRef { *storageSession() }->hasCookies(domain, [replyIdentifier](bool hasCookies) {
+        WebResourceLoadStatisticsStore::completeStatisticsBoolReplyForSwift(replyIdentifier, hasCookies);
+    });
 }
 
-void NetworkConnectionToWebProcess::resourceLoadStatisticsUpdated(Vector<ResourceLoadStatistics>&& statistics, CompletionHandler<void()>&& completionHandler)
+Seconds NetworkConnectionToWebProcess::loginStatusTimeToLiveAuthentication()
 {
-    for (auto& statistic : borrow(statistics))
-        MESSAGE_CHECK_COMPLETION(resourceLoadStatisticsContainsOnlyObservableFields(statistic), completionHandler());
-
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (networkSession->sessionID().isEphemeral()) {
-            completionHandler();
-            return;
-        }
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics()) {
-            resourceLoadStatistics->resourceLoadStatisticsUpdated(WTF::move(statistics), WTF::move(completionHandler));
-            return;
-        }
-    }
-    completionHandler();
+    return WebCore::LoginStatus::TimeToLiveAuthentication;
 }
 
-void NetworkConnectionToWebProcess::hasStorageAccess(RegistrableDomain&& subFrameDomain, RegistrableDomain&& topFrameDomain, FrameIdentifier frameID, WebPageProxyIdentifier webPageProxyID, CompletionHandler<void(bool)>&& completionHandler)
+WebCore::LoginStatusAuthenticationType NetworkConnectionToWebProcess::unmanagedLoginStatusAuthenticationType()
 {
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics()) {
-            resourceLoadStatistics->hasStorageAccess(WTF::move(subFrameDomain), WTF::move(topFrameDomain), frameID, webPageProxyID, WTF::move(completionHandler));
-            return;
-        }
-        CheckedRef { *storageSession() }->hasCookies(subFrameDomain, WTF::move(completionHandler));
-        return;
-    }
-
-    completionHandler(false);
-}
-
-void NetworkConnectionToWebProcess::requestStorageAccess(RegistrableDomain&& subFrameDomain, RegistrableDomain&& topFrameDomain, FrameIdentifier frameID, WebPageProxyIdentifier webPageProxyID, StorageAccessScope scope, HasUserGestureOrNoUserGestureRequired hasUserGestureOrNoUserGestureRequired, CompletionHandler<void(WebCore::RequestStorageAccessResult result)>&& completionHandler)
-{
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics()) {
-            resourceLoadStatistics->requestStorageAccess(WTF::move(subFrameDomain), WTF::move(topFrameDomain), frameID, webPageProxyID, scope, hasUserGestureOrNoUserGestureRequired, WTF::move(completionHandler));
-            return;
-        }
-    }
-
-    completionHandler({ WebCore::StorageAccessWasGranted::Yes, WebCore::StorageAccessPromptWasShown::No, scope, topFrameDomain, subFrameDomain });
-}
-
-void NetworkConnectionToWebProcess::queryStorageAccessPermission(RegistrableDomain&& subFrameDomain, RegistrableDomain&& topFrameDomain, std::optional<WebPageProxyIdentifier> webPageProxyID, CompletionHandler<void(WebCore::PermissionState)>&& completionHandler)
-{
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics()) {
-            resourceLoadStatistics->queryStorageAccessPermission(WTF::move(subFrameDomain), WTF::move(topFrameDomain), webPageProxyID, WTF::move(completionHandler));
-            return;
-        }
-    }
-
-    completionHandler(PermissionState::Denied);
-}
-
-void NetworkConnectionToWebProcess::setLoginStatus(RegistrableDomain&& domain, IsLoggedIn loggedInStatus, std::optional<WebCore::LoginStatus>&& lastAuthentication, CompletionHandler<void()>&& completionHandler)
-{
-    if (isLoginStatusAPIRequiresWebAuthnEnabled() && !lastAuthentication) {
-        auto umanagedAuthentication = LoginStatus::create(domain, emptyString(), WebCore::LoginStatus::CredentialTokenType::HTTPStateToken, WebCore::LoginStatus::AuthenticationType::Unmanaged, WebCore::LoginStatus::TimeToLiveAuthentication);
-        if (umanagedAuthentication.hasException())
-            return completionHandler();
-        lastAuthentication = umanagedAuthentication.releaseReturnValue();
-    }
-
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics()) {
-            resourceLoadStatistics->setLoginStatus(WTF::move(domain), loggedInStatus, WTF::move(lastAuthentication), WTF::move(completionHandler));
-            return;
-        }
-    }
-    completionHandler();
-}
-
-void NetworkConnectionToWebProcess::isLoggedIn(RegistrableDomain&& domain, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics()) {
-            resourceLoadStatistics->isLoggedIn(WTF::move(domain), WTF::move(completionHandler));
-            return;
-        }
-    }
-    completionHandler(false);
+    return WebCore::LoginStatusAuthenticationType::Unmanaged;
 }
 
 void NetworkConnectionToWebProcess::storageAccessQuirkForTopFrameDomain(URL&& topFrameURL, CompletionHandler<void(Vector<RegistrableDomain>)>&& completionHandler)
 {
     completionHandler(WebCore::storageAccessQuirkForTopFrameDomain(topFrameURL));
-}
-
-void NetworkConnectionToWebProcess::requestStorageAccessUnderOpener(WebCore::RegistrableDomain&& domainInNeedOfStorageAccess, WebPageProxyIdentifier openerWebPageProxyID, WebCore::RegistrableDomain&& openerDomain)
-{
-    MESSAGE_CHECK(NetworkProcess::singleton().allowsFirstPartyForCookies(m_webProcessIdentifier, domainInNeedOfStorageAccess));
-
-    if (CheckedPtr networkSession = this->networkSession()) {
-        if (RefPtr resourceLoadStatistics = networkSession->resourceLoadStatistics())
-            resourceLoadStatistics->requestStorageAccessUnderOpener(WTF::move(domainInNeedOfStorageAccess), openerWebPageProxyID, WTF::move(openerDomain));
-    }
 }
 
 void NetworkConnectionToWebProcess::addOriginAccessAllowListEntry(const String& sourceOrigin, const String& destinationProtocol, const String& destinationHost, bool allowDestinationSubdomains)

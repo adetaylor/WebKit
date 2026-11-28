@@ -67,20 +67,25 @@ extension WTF.String {
     init(_ string: Swift.String) {
         // rdar://167712240 prevents us from simply writing
         // self = WTF.String.fromUTF8(swiftString.utf8CString.span);
-        // Safety - we are guaranteed to get a valid buffer from the Swift
-        // string for the duration that we're using it to construct the WTF::String.
-        // The WTF::String will take a copy.
+        // withUTF8 lends the string's own UTF-8 (a small string's from the stack), so no array is made as
+        // utf8CString would, and no terminating NUL is passed.
+        // Safety - the buffer is valid for the duration of the closure, and the WTF::String takes a copy.
+        var contiguous = string
         #if compiler(>=6.4)
-        self = string.utf8CString.span.withUnsafeBufferPointer { ptr in
-            // swift-format-ignore: NeverForceUnwrap
-            let cppspan = unsafe SpanConstChar(UnsafeBufferPointer(start: ptr.baseAddress!, count: string.utf8CString.count))
-            return unsafe WTF.String.fromUTF8(cppspan)
+        self = contiguous.withUTF8 { utf8 in
+            unsafe utf8.withMemoryRebound(to: CChar.self) { ptr in
+                // swift-format-ignore: NeverForceUnwrap
+                let cppspan = unsafe SpanConstChar(UnsafeBufferPointer(start: ptr.baseAddress!, count: ptr.count))
+                return unsafe WTF.String.fromUTF8(cppspan)
+            }
         }
         #else
-        self = unsafe string.utf8CString.span.withUnsafeBufferPointer { ptr in
-            // swift-format-ignore: NeverForceUnwrap
-            let cppspan = unsafe SpanConstChar(UnsafeBufferPointer(start: ptr.baseAddress!, count: ptr.count - 1))
-            return unsafe WTF.String.fromUTF8(cppspan)
+        self = unsafe contiguous.withUTF8 { utf8 in
+            unsafe utf8.withMemoryRebound(to: CChar.self) { ptr in
+                // swift-format-ignore: NeverForceUnwrap
+                let cppspan = unsafe SpanConstChar(UnsafeBufferPointer(start: ptr.baseAddress!, count: ptr.count))
+                return unsafe WTF.String.fromUTF8(cppspan)
+            }
         }
         #endif
     }

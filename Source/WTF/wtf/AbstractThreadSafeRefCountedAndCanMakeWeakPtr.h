@@ -45,8 +45,8 @@ using WTF::AbstractThreadSafeRefCountedAndCanMakeWeakPtr;
 
 // Convinience macro that implements AbstractThreadSafeRefCountedAndCanMakeWeakPtr for you.
 #define WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL \
-    void ref() const final { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::ref(); } \
-    void deref() const final { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::deref(); } \
+    SWIFT_UNSAFE void ref() const final { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::ref(); } \
+    SWIFT_UNSAFE void deref() const final { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::deref(); } \
     ThreadSafeWeakPtrControlBlock& controlBlock() const final { return ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::controlBlock(); } \
     uint32_t weakRefCount() const final { return ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::weakRefCount(); } \
     using __Unused_type_for_semicolon = int

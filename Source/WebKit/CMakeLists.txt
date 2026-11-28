@@ -1680,6 +1680,8 @@ list(APPEND WebKit_SOURCES
 set_source_files_properties(
     ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkConnectionToWebProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/ServiceWorkerFetchTaskMessageReceiver.swift
@@ -1698,6 +1700,13 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioHardwareListenerProxy.swift
     ${WEBKIT_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeap.swift
     ${WEBKIT_DIR}/NetworkProcess/Classifier/ResourceLoadStatisticsStore.swift
+    ${WEBKIT_DIR}/NetworkProcess/Classifier/WebResourceLoadStatisticsStore+Messages.swift
+    ${WEBKIT_DIR}/NetworkProcess/Classifier/WebResourceLoadStatisticsStore+StorageAccess.swift
+    ${WEBKIT_DIR}/NetworkProcess/Classifier/WebResourceLoadStatisticsStore.swift
+    ${WEBKIT_DIR}/NetworkProcess/NetworkConnectionToWebProcess+ResourceLoadStatistics.swift
+    ${WEBKIT_DIR}/NetworkProcess/NetworkProcess+ResourceLoadStatistics.swift
+    ${WEBKIT_DIR}/NetworkProcess/NetworkProcess+StatisticsDomains.swift
+    ${WEBKIT_DIR}/NetworkProcess/NetworkConnectionToWebProcess+StatisticsUpdated.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/BackgroundFetchStoreManager.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/CacheStorageCache.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/CacheStorageDiskStore.swift
@@ -1710,6 +1719,8 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/NetworkProcess/storage/SwiftIDBStorageManager.swift
     ${WEBKIT_DIR}/NetworkProcess/storage/SwiftIDBStorageRegistry.swift
     ${WebKit_DERIVED_SOURCES_DIR}/NetworkStorageManagerMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkConnectionToWebProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/NetworkProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementDatabase.swift
     ${WEBKIT_DIR}/NetworkProcess/PrivateClickMeasurement/PrivateClickMeasurementManager.swift

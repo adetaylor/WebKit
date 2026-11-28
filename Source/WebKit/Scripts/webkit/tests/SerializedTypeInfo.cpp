@@ -656,6 +656,18 @@ Vector<SerializedTypeInfo> allSerializedTypes()
                 "label"_s
             },
         } },
+        { "Namespace::SwiftConditionalMembers"_s, {
+            {
+                "int32_t"_s,
+                "value"_s
+            },
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+            {
+                "HashSet<String>"_s,
+                "names"_s
+            },
+#endif
+        } },
         { "Namespace::SwiftStruct"_s, {
             {
                 "bool"_s,

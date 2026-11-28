@@ -465,6 +465,18 @@
 #endif
 #endif
 
+// SWIFT_NONSENDABLE makes a type explicitly not Sendable in Swift, so Swift cannot hand it to another thread, for
+// types whose objects must stay on the thread that uses them. It is the spelling of swift/bridging's SWIFT_NONSENDABLE.
+#if __has_attribute(swift_attr)
+#ifndef SWIFT_NONSENDABLE
+#define SWIFT_NONSENDABLE __attribute__((swift_attr("@_nonSendable")))
+#endif
+#else
+#ifndef SWIFT_NONSENDABLE
+#define SWIFT_NONSENDABLE
+#endif
+#endif
+
 // SWIFT_UNAVAILABLE_IN_SWIFT keeps a member out of the Swift import, so Swift cannot call it. C++ callers are unaffected.
 #ifndef SWIFT_UNAVAILABLE_IN_SWIFT
 #if __has_attribute(availability)

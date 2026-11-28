@@ -49,7 +49,7 @@ class NetworkRTCProvider;
 
 class NetworkRTCMonitor final : public CanMakeWeakPtr<NetworkRTCMonitor> {
 public:
-    explicit NetworkRTCMonitor(NetworkRTCProvider&);
+    SWIFT_UNSAFE explicit NetworkRTCMonitor(NetworkRTCProvider&);
     ~NetworkRTCMonitor();
 
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
@@ -57,15 +57,15 @@ public:
 #if ASSERT_ENABLED
     bool isStarted() const { return m_isStarted; }
 #endif
-    NODELETE NetworkRTCProvider& rtcProvider();
+    NODELETE SWIFT_UNSAFE NetworkRTCProvider& rtcProvider();
 
     void onNetworksChanged(const Vector<RTCNetwork>&, const RTCNetwork::IPAddress&, const RTCNetwork::IPAddress&);
 
     const RTCNetwork::IPAddress& ipv4() const LIFETIME_BOUND;
     const RTCNetwork::IPAddress& ipv6()  const LIFETIME_BOUND;
 
-    NODELETE void ref();
-    void deref();
+    NODELETE SWIFT_UNSAFE void ref();
+    SWIFT_UNSAFE void deref();
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess(IPC::Connection&) const;
     static std::optional<RTCNetwork::IPAddress> getDefaultIPAddress(bool useIPv4);

@@ -1877,6 +1877,50 @@ std::optional<Namespace::SwiftInner> ArgumentCoder<Namespace::SwiftInner>::decod
     };
 }
 
+void ArgumentCoder<Namespace::SwiftConditionalMembers>::encode(Encoder& encoder, const Namespace::SwiftConditionalMembers& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.value)>, int32_t>);
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.names)>, HashSet<String>>);
+#endif
+    struct ShouldBeSameSizeAsSwiftConditionalMembers : public VirtualTableAndRefCountOverhead<std::is_polymorphic_v<Namespace::SwiftConditionalMembers>, false> {
+        int32_t value;
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+        HashSet<String> names;
+#endif
+    };
+    static_assert(sizeof(ShouldBeSameSizeAsSwiftConditionalMembers) == sizeof(Namespace::SwiftConditionalMembers));
+    static_assert(IsIncreasing < 0
+        , offsetof(Namespace::SwiftConditionalMembers, value)
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+        , offsetof(Namespace::SwiftConditionalMembers, names)
+#endif
+    >);
+
+    encoder << instance.value;
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+    encoder << instance.names;
+#endif
+}
+
+std::optional<Namespace::SwiftConditionalMembers> ArgumentCoder<Namespace::SwiftConditionalMembers>::decode(Decoder& decoder)
+{
+    auto value = decoder.decode<int32_t>();
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+    auto names = decoder.decode<HashSet<String>>();
+#endif
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        Namespace::SwiftConditionalMembers {
+            WTF::move(*value),
+#if ENABLE(SWIFT_MEMBER_CONDITION)
+            WTF::move(*names)
+#endif
+        }
+    };
+}
+
 void ArgumentCoder<Namespace::SwiftStruct>::encode(Encoder& encoder, const Namespace::SwiftStruct& instance)
 {
     static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.m_flag)>, bool>);

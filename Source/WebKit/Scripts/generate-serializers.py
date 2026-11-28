@@ -130,7 +130,8 @@ def matches_bundle(item, bundle_filter):
 # LegacyPopulateFromEmptyConstructor - instead of calling a constructor with the members, call the empty constructor then insert the members one at a time.
 # OptionSet - for enum classes, instead of only allowing deserialization of the exact values, allow deserialization of any bit combination of the values.
 # RValue - serializer takes an rvalue reference, instead of an lvalue.
-# Swift - also generate a Swift form of this struct, class, enum class or Variant using statement into IPCTypes in GeneratedSerializers.swift, for messages whose Swift receivers take Swift types. A RefCounted class becomes a final class, other structs and classes become structs. Enum values must be numbered in declaration order (bits in declaration order for an OptionSet), or each give its number, as Name = 180, which the generated C++ checks. A bool enum class must list its two values. A class serialized as its subclasses becomes an enum with a case for each, which each need a Swift form. Not supported together with CreateUsing, whose function may check values that Swift would not.
+# Swift - also generate a Swift form of this struct, class, enum class or Variant using statement into IPCTypes in GeneratedSerializers.swift, for messages whose Swift receivers take Swift types. A RefCounted class becomes a final class, other structs and classes become structs. Enum values must be numbered in declaration order (bits in declaration order for an OptionSet), or each give its number, as Name = 180, which the generated C++ checks. A bool enum class must list its two values. A class serialized as its subclasses becomes an enum with a case for each, which each need a Swift form. Not supported together with CreateUsing, whose function may check values that Swift would not, unless SwiftCreateUsing says what Swift does instead.
+# SwiftCreateUsing=Memberwise - with Swift and CreateUsing: the CreateUsing function only builds the type from its members and checks nothing, so the Swift form's memberwise initializer is the same construction.
 # WebKitPlatform - put serializer into a file built as part of WebKitPlatform
 # CustomEncoder - Only generate the decoder, not the encoder.
 # WebKitSecureCodingClass - For webkit_secure_coding declarations that need a custom way of establishing the Obj-C class to instantiate (e.g. softlinked frameworks)
@@ -203,6 +204,7 @@ class SerializedType(object):
         self.bundle = None
         self.swift = False
         self.attribute_names = []
+        self.swift_create_using = None
         if attributes is not None:
             for attribute in attributes.split(', '):
                 if '=' in attribute:
@@ -214,6 +216,8 @@ class SerializedType(object):
                         self.construct_subclass = value
                     elif key == 'CreateUsing':
                         self.create_using = value
+                    elif key == 'SwiftCreateUsing':
+                        self.swift_create_using = value
                     elif key == 'Alias':
                         self.alias = value
                     elif key == 'ToCFMethod':
@@ -875,6 +879,7 @@ def generate_header(serialized_types, serialized_enums, additional_forward_decla
     result.append('class StreamConnectionEncoder;')
     result = result + argument_coder_declarations(serialized_types, True, None)
     result.append('')
+    result.extend(cxx_swift_condition_parity_lines(serialized_types))
     result.append('} // namespace IPC\n')
     result.append('')
     result.append('namespace WTF {')
@@ -2425,6 +2430,8 @@ class SwiftMember(object):
         self.validator = None
         # Its Check and Normalize (decode_policy.CompiledPolicy), Normalize first.
         self.policies = []
+        # The Swift condition it is under, which the Swift compile sees as the C++ one does (swift_condition_parity_lines).
+        self.condition = None
 
 
 def swift_identifier(name):
@@ -2650,9 +2657,15 @@ def swift_type_and_coder(cpp_type, context, swift_names):
 
 
 def check_swift_type_attributes(type, context):
-    if 'CreateUsing' in type.attribute_names:
-        raise Exception(f'{context}: types marked [Swift] do not support the attribute CreateUsing, because Swift would not make the checks that the C++ function may make.')
+    if 'SwiftCreateUsing' in type.attribute_names and type.swift_create_using != 'Memberwise':
+        raise Exception(f'{context}: SwiftCreateUsing={type.swift_create_using} is not supported; SwiftCreateUsing=Memberwise says the CreateUsing function checks nothing.')
+    if ('CreateUsing' in type.attribute_names) != ('SwiftCreateUsing' in type.attribute_names):
+        if 'CreateUsing' in type.attribute_names:
+            raise Exception(f'{context}: types marked [Swift] do not support the attribute CreateUsing, because Swift would not make the checks that the C++ function may make, unless SwiftCreateUsing=Memberwise says the function checks nothing.')
+        raise Exception(f'{context}: SwiftCreateUsing is for types marked [Swift] that have CreateUsing.')
     for attribute in type.attribute_names:
+        if attribute in ('CreateUsing', 'SwiftCreateUsing'):
+            continue
         if attribute not in _SWIFT_COMPATIBLE_TYPE_ATTRIBUTES:
             raise Exception(f'{context}: types marked [Swift] do not support the attribute {attribute}.')
     if type.cf_type is not None:
@@ -2684,8 +2697,6 @@ def swift_members(type, context, swift_names):
                 raise Exception(f'{member_context}: types marked [Swift] do not support the member attribute {attribute}.')
         if ('Validator' in attributes) != ('SwiftValidator' in attributes):
             raise Exception(f'{member_context}: in a type marked [Swift], a member with a Validator needs a SwiftValidator, the same check in Swift, and a SwiftValidator needs a Validator.')
-        if member.condition is not None:
-            raise Exception(f'{member_context}: types marked [Swift] cannot have conditional members, because Swift does not see every macro that C++ does, so could decode different members from the ones C++ encodes.')
         match = re.fullmatch(r'(?:m_(?=[A-Za-z_]))?([A-Za-z_][A-Za-z0-9_]*)(?:\(\))?', member.name)
         if not match:
             raise Exception(f'{member_context}: types marked [Swift] can only have members that are variables or member functions without arguments.')
@@ -2700,8 +2711,64 @@ def swift_members(type, context, swift_names):
             if validator:
                 swift_member.validator = validator.group(1)
         swift_member.policies = getattr(member, 'decode_policies', [])
+        # Swift does not see every macro that C++ does, so a condition Swift cannot evaluate fails generation, and one it
+        # can is checked to have the same value in both compiles, which a build fails where it does not.
+        swift_member.condition = swift_condition(member.condition, member_context)
         members.append(swift_member)
     return members
+
+
+def swift_member_conditions(serialized_types):
+    """The conditions of the encoded members of [Swift] types, their parent classes' included, each once, in order of
+    appearance: those the Swift compile must see as the C++ compile does, or Swift would decode other members than C++
+    encodes."""
+    conditions = []
+
+    def add_conditions(type):
+        if type.parent_class is not None:
+            add_conditions(type.parent_class)
+        for member in type.members:
+            if 'NotSerialized' in member.attributes or member.condition is None or member.condition in conditions:
+                continue
+            conditions.append(member.condition)
+    for type in serialized_types:
+        if type.swift and not type.members_are_subclasses:
+            add_conditions(type)
+    return conditions
+
+
+def cxx_swift_condition_parity_lines(serialized_types):
+    """For each condition of swift_member_conditions(), a C++ type whose name says the condition's value in C++, which
+    swift_condition_parity_lines() names by the condition's value in Swift: where the two differ, the name is not
+    declared and the Swift build fails."""
+    conditions = swift_member_conditions(serialized_types)
+    if not conditions:
+        return []
+    result = ['// The conditions of the members of types marked [Swift], as C++ sees them: GeneratedSerializers.swift names',
+              '// each type here under the same condition as Swift sees it, which fails to compile where the two differ.',
+              'namespace SwiftConditionParity {']
+    for index, condition in enumerate(conditions):
+        result.extend([f'#if {condition}', f'enum class Condition{index}IsTrue : bool {{ }};', '#else', f'enum class Condition{index}IsFalse : bool {{ }};', '#endif'])
+    result.append('} // namespace SwiftConditionParity')
+    result.append('')
+    return result
+
+
+def swift_condition_parity_lines(serialized_types):
+    """Names, under each condition of swift_member_conditions() as Swift sees it, the C++ type that GeneratedSerializers.h
+    declares under it as C++ sees it (cxx_swift_condition_parity_lines()), so that a build whose Swift and C++ compiles
+    see a member's condition differently fails, rather than decoding other members than C++ encodes."""
+    conditions = swift_member_conditions(serialized_types)
+    if not conditions:
+        return []
+    result = ['// The conditions of the members of types marked [Swift] have the same value here as in C++ (GeneratedSerializers.h).']
+    for index, condition in enumerate(conditions):
+        result.extend([f'#if {swift_condition(condition, f"[Swift] member condition {condition}")}',
+                       f'private typealias SwiftConditionParity{index} = IPC.SwiftConditionParity.Condition{index}IsTrue',
+                       '#else',
+                       f'private typealias SwiftConditionParity{index} = IPC.SwiftConditionParity.Condition{index}IsFalse',
+                       '#endif'])
+    return result
 
 
 def check_swift_owned_form(cpp_name, owned, context):
@@ -2855,7 +2922,7 @@ def generate_swift_struct(type, swift_names):
         # Swift does not compare the C++ objects that C++-decoded WebCore types hold.
         conformances = 'Sendable'
     result.append(f'    struct {name}: {conformances} {{')
-    result.extend(f'        var {swift_identifier(member.name)}: {member.type}' for member in members)
+    result.extend(swift_conditional_lines(members, lambda member: [f'        var {swift_identifier(member.name)}: {member.type}']))
     result.append('    }')
     result.append('}')
     result.append('')
@@ -2874,20 +2941,19 @@ def generate_swift_struct(type, swift_names):
     if owned or any(member.policies for member in members):
         # Swift can't destroy a partly initialized ~Copyable value, so every member is decoded before self has any. A decode
         # policy reads the members decoded so far, which all() would capture self for, so they are locals too.
-        for member in members:
+
+        def local_decoding_lines(member):
             binding = 'var' if any(policy.kind == 'Normalize' for policy in member.policies) else 'let'
-            decoding_initializer.append(f'        {binding} {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)')
-            decoding_initializer.extend(validation_lines(member))
-        decoding_initializer.extend(f'        self.{swift_identifier(member.name)} = {swift_identifier(member.name)}' for member in members)
+            return [f'        {binding} {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)'] + validation_lines(member)
+        decoding_initializer.extend(swift_conditional_lines(members, local_decoding_lines))
+        decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        self.{swift_identifier(member.name)} = {swift_identifier(member.name)}']))
     else:
-        for member in members:
-            decoding_initializer.append(f'        self.{swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)')
-            decoding_initializer.extend(validation_lines(member))
+        decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        self.{swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)'] + validation_lines(member)))
     decoding_initializer.append('    }')
     result.extend((swift_owned_coder_conformance if owned else swift_coder_conformance)(
         name,
         [f'        try {qualified_name}(ipcDecodingFrom: &decoder)'],
-        [f'        {member.coder}.encode(value.{swift_identifier(member.name)}, to: encoder)' for member in members],
+        swift_conditional_lines(members, lambda member: [f'        {member.coder}.encode(value.{swift_identifier(member.name)}, to: encoder)']),
         decoding_initializer))
     if owned:
         result = swift_guarded(SWIFT_OWNED_FORMS_CONDITION, result)
@@ -3246,6 +3312,7 @@ def generate_swift(serialized_types, serialized_enums, using_statements):
         if using_statement.is_swift():
             declarations.append(generate_swift_variant(using_statement, swift_names))
     declarations.append(generate_swift_cxx_names(identifiers, serialized_types, serialized_enums, using_statements))
+    declarations.append(swift_condition_parity_lines(serialized_types))
 
     result = swift_line_comments(_license_header)
     result.append('')

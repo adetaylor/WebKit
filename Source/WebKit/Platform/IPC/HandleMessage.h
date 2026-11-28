@@ -710,7 +710,7 @@ void handleSwiftMessage(StreamServerConnection& connection, Decoder& decoder, T*
 template<typename MessageType, typename T, typename F>
 void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object, F function)
 {
-    Ref replyEncoder = SwiftReplyEncoder::create(connection, makeUniqueRef<Encoder>(MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64()), encodeDefaultSwiftReply<MessageType>);
+    Ref replyEncoder = SwiftReplyEncoder::createForAsyncReply(connection, MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64(), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
     SUPPRESS_UNCOUNTED_ARG if (!invokeSwiftDispatch(function, object, &connection, swiftDecoderLender.view(), replyEncoder.ptr())) {
         replyEncoder->discard();
@@ -724,7 +724,7 @@ void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object
 template<typename MessageType, typename T, typename F>
 void handleSwiftMessageAsync(StreamServerConnection& connection, Decoder& decoder, T* object, F function)
 {
-    Ref replyEncoder = SwiftReplyEncoder::create(connection.connection(), makeUniqueRef<Encoder>(MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64()), encodeDefaultSwiftReply<MessageType>);
+    Ref replyEncoder = SwiftReplyEncoder::createForAsyncReply(connection.connection(), MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64(), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
     if (!dispatchSwiftStreamMessage(connection, object, function, swiftDecoderLender.view(), replyEncoder.ptr())) {
         replyEncoder->discard();

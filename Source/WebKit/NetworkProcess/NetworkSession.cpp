@@ -445,13 +445,13 @@ void NetworkSession::setTrackingPreventionEnabled(bool enabled)
     Ref resourceLoadStatistics = WebResourceLoadStatisticsStore::create(*this, m_resourceLoadStatisticsDirectory, m_shouldIncludeLocalhostInResourceLoadStatistics, (m_sessionID.isEphemeral() ? ResourceLoadStatistics::IsEphemeral::Yes : ResourceLoadStatistics::IsEphemeral::No));
     m_resourceLoadStatistics = resourceLoadStatistics.copyRef();
     if (!m_sessionID.isEphemeral())
-        resourceLoadStatistics->populateMemoryStoreFromDisk([] { });
+        resourceLoadStatistics->populateMemoryStoreFromDisk();
 
     if (m_enableResourceLoadStatisticsDebugMode == EnableResourceLoadStatisticsDebugMode::Yes)
-        resourceLoadStatistics->setResourceLoadStatisticsDebugMode(true, [] { });
+        resourceLoadStatistics->setResourceLoadStatisticsDebugMode(true);
     // This should always be forwarded since debug mode may be enabled at runtime.
     if (!m_resourceLoadStatisticsManualPrevalentResource.isEmpty())
-        resourceLoadStatistics->setPrevalentResourceForDebugMode(RegistrableDomain { m_resourceLoadStatisticsManualPrevalentResource }, [] { });
+        resourceLoadStatistics->setPrevalentResourceForDebugMode(RegistrableDomain { m_resourceLoadStatisticsManualPrevalentResource });
     forwardResourceLoadStatisticsSettings();
 }
 
@@ -460,9 +460,9 @@ void NetworkSession::forwardResourceLoadStatisticsSettings()
     Ref resourceLoadStatistics = *m_resourceLoadStatistics;
     resourceLoadStatistics->setThirdPartyCookieBlockingMode(m_thirdPartyCookieBlockingMode);
     resourceLoadStatistics->setSameSiteStrictEnforcementEnabled(m_sameSiteStrictEnforcementEnabled);
-    resourceLoadStatistics->setFirstPartyWebsiteDataRemovalMode(m_firstPartyWebsiteDataRemovalMode, [] { });
-    resourceLoadStatistics->setStandaloneApplicationDomain(m_standaloneApplicationDomain, [] { });
-    resourceLoadStatistics->setPersistedDomains(m_persistedDomains);
+    resourceLoadStatistics->setFirstPartyWebsiteDataRemovalMode(m_firstPartyWebsiteDataRemovalMode);
+    resourceLoadStatistics->setStandaloneApplicationDomain(m_standaloneApplicationDomain);
+    resourceLoadStatistics->setPersistedDomains(copyToVector(m_persistedDomains));
 }
 
 bool NetworkSession::isTrackingPreventionEnabled() const
@@ -1212,7 +1212,7 @@ void NetworkSession::setPersistedDomains(HashSet<WebCore::RegistrableDomain>&& d
     m_persistedDomains = WTF::move(domains);
 
     if (RefPtr resourceLoadStatistics = m_resourceLoadStatistics)
-        resourceLoadStatistics->setPersistedDomains(m_persistedDomains);
+        resourceLoadStatistics->setPersistedDomains(copyToVector(m_persistedDomains));
 }
 
 PrefetchCache& NetworkSession::prefetchCache()

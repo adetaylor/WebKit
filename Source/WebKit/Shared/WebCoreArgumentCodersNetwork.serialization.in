@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-[LegacyPopulateFromEmptyConstructor] struct WebCore::ResourceLoadStatistics {
+[Swift, LegacyPopulateFromEmptyConstructor] struct WebCore::ResourceLoadStatistics {
     WebCore::RegistrableDomain registrableDomain;
     WallTime lastSeen;
     bool hadUserInteraction;

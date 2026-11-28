@@ -89,8 +89,8 @@ public:
     }
     ~NetworkRTCProvider();
 
-    void ref() const final { ThreadSafeRefCounted::ref(); }
-    void deref() const final { ThreadSafeRefCounted::deref(); }
+    SWIFT_UNSAFE void ref() const final { ThreadSafeRefCounted::ref(); }
+    SWIFT_UNSAFE void deref() const final { ThreadSafeRefCounted::deref(); }
 
     void didReceiveNetworkRTCMonitorMessage(IPC::Connection& connection, IPC::Decoder& decoder) { protect(m_rtcMonitor)->didReceiveMessage(connection, decoder); }
 

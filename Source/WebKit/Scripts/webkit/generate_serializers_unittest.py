@@ -84,6 +84,78 @@ class GeneratedSwiftTest(unittest.TestCase):
                                    ('std::optional<WebCore::FrameIdentifier>', 'optionalFrameIdentifier')]:
             self.assertEqual(generate_serializers.swift_variant_case_name(cpp_type), expected)
 
+    def test_hash_set_member(self):
+        swift = generate_swift('''
+[Swift, CreateUsing=fromRawString, SwiftCreateUsing=Memberwise] class WebCore::RegistrableDomain {
+    String string()
+}
+[Swift] struct WebKit::S {
+    HashSet<WebCore::RegistrableDomain> domains;
+}
+''')
+        self.assertIn('        var domains: IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>\n', swift)
+        self.assertIn('        self.domains = try IPCCoding.HashSet<IPCTypes.RegistrableDomain>.decode(from: &decoder)\n', swift)
+        self.assertIn('        IPCCoding.HashSet<IPCTypes.RegistrableDomain>.encode(value.domains, to: encoder)\n', swift)
+        # A String element is compared by its code units, as StringHash compares it, so canonical equivalents stay two.
+        swift = generate_swift('[Swift] struct WebKit::S {\n    HashSet<String> names;\n}\n')
+        self.assertIn('        var names: IPCTypes.HashSetInWireOrder<IPCTypes.StringByCodeUnits>\n', swift)
+        self.assertIn('        self.names = try IPCCoding.HashSet<IPCTypes.StringByCodeUnits>.decode(from: &decoder)\n', swift)
+        self.assertIn('        IPCCoding.HashSet<IPCTypes.StringByCodeUnits>.encode(value.names, to: encoder)\n', swift)
+        with self.assertRaisesRegex(Exception, r"\[Swift\] WebKit::S.*'HashSet<AtomString>' has no Swift form"):
+            generate_swift('[Swift] struct WebKit::S {\n    HashSet<AtomString> names;\n}\n')
+
+    def test_conditional_members(self):
+        source = '''
+class WebKit::Base {
+#if ENABLE(B)
+    uint32_t b;
+#endif
+}
+[Swift] class WebKit::S : WebKit::Base {
+    uint32_t a;
+#if ENABLE(C) && !HAVE(D)
+    uint32_t c;
+#endif
+#if ENABLE(B)
+    uint32_t d;
+#endif
+}
+'''
+        swift = generate_swift(source)
+        self.assertIn('        var a: UInt32\n'
+                      '        #if ENABLE_C && !HAVE_D\n'
+                      '        var c: UInt32\n'
+                      '        #endif\n', swift)
+        self.assertIn('        #if ENABLE_B\n        var b: UInt32\n        #endif\n        var a: UInt32\n', swift)
+        self.assertIn('        #if ENABLE_C && !HAVE_D\n        self.c = try UInt32.decode(from: &decoder)\n        #endif\n', swift)
+        self.assertIn('        #if ENABLE_C && !HAVE_D\n        UInt32.encode(value.c, to: encoder)\n        #endif\n', swift)
+        # Each condition, once, names the C++ type that says its value in C++, so a build that sees it otherwise in Swift
+        # fails to compile.
+        self.assertIn('#if ENABLE_B\n'
+                      'private typealias SwiftConditionParity0 = IPC.SwiftConditionParity.Condition0IsTrue\n'
+                      '#else\n'
+                      'private typealias SwiftConditionParity0 = IPC.SwiftConditionParity.Condition0IsFalse\n'
+                      '#endif\n'
+                      '#if ENABLE_C && !HAVE_D\n'
+                      'private typealias SwiftConditionParity1 = IPC.SwiftConditionParity.Condition1IsTrue\n', swift)
+        self.assertNotIn('SwiftConditionParity2', swift)
+        serialized_types, _, _, _, _, _ = generate_serializers.parse_serialized_types(source.splitlines())
+        serialized_types = generate_serializers.resolve_inheritance(serialized_types)
+        self.assertEqual(generate_serializers.cxx_swift_condition_parity_lines(serialized_types)[3:-2], [
+            '#if ENABLE(B)',
+            'enum class Condition0IsTrue : bool { };',
+            '#else',
+            'enum class Condition0IsFalse : bool { };',
+            '#endif',
+            '#if ENABLE(C) && !HAVE(D)',
+            'enum class Condition1IsTrue : bool { };',
+            '#else',
+            'enum class Condition1IsFalse : bool { };',
+            '#endif',
+        ])
+        # No conditional member of a [Swift] type, no check.
+        self.assertNotIn('SwiftConditionParity', generate_swift('[Swift] struct WebKit::S {\n    uint32_t a;\n}\nstruct WebKit::T {\n#if ENABLE(A)\n    uint32_t a;\n#endif\n}\n'))
+
     def test_no_swift_types(self):
         swift = generate_swift('struct WebKit::NotSwift {\n    uint32_t value;\n}\n')
         self.assertIn('#if ENABLE_SWIFT_IPC_RECEIVERS\n\nimport WebCore_Private\nimport WebKit_Internal\n\n#endif\n', swift)
@@ -664,6 +736,28 @@ template: class WebKit::Fabulous
     uint32_t value;
 }
 ''', r'types marked \[Swift\] do not support the attribute CreateUsing, because Swift would not make the checks that the C\+\+ function may make')
+        self.assertGenerationFails('''
+[Swift, CreateUsing=fromValue, SwiftCreateUsing=Checked] struct WebKit::S {
+    uint32_t value;
+}
+''', r'SwiftCreateUsing=Checked is not supported; SwiftCreateUsing=Memberwise says the CreateUsing function checks nothing')
+        self.assertGenerationFails('''
+[Swift, SwiftCreateUsing=Memberwise] struct WebKit::S {
+    uint32_t value;
+}
+''', r'SwiftCreateUsing is for types marked \[Swift\] that have CreateUsing')
+
+    def test_create_using_that_checks_nothing(self):
+        # A CreateUsing function that only builds the type from its members, like RegistrableDomain::fromRawString, is the
+        # Swift form's memberwise initializer.
+        source = '''
+[Swift, CreateUsing=fromRawString, SwiftCreateUsing=Memberwise] class WebKit::Domain {
+    String string()
+}
+'''
+        swift = generate_swift(source)
+        self.assertIn('    struct Domain: Sendable, Equatable {\n        var string: String?\n    }\n', swift)
+        self.assertIn('        typealias WebKit_Domain = IPCTypes.Domain\n', swift)
 
     def test_parent_class(self):
         self.assertGenerationFails('''
@@ -696,8 +790,8 @@ class WebKit::Base {
 }}
 #endif
 ''', rf'\[Swift\] WebKit::E: .*cannot be evaluated in Swift: {name} is not available there')
-        # Swift does not see every macro that is true for C++, so conditions must not choose what is decoded.
-        for condition in ['ENABLE(MODEL_ELEMENT_STAGE_MODE)', '!ENABLE(A)', 'defined(SOMETHING)']:
+        # A member's condition is one Swift can evaluate, which the build checks it sees as C++ does (test_conditional_members).
+        for condition in ['OS(WINDOWS)', 'defined(SOMETHING)']:
             self.assertGenerationFails(f'''
 [Swift] struct WebKit::S {{
     uint32_t a;
@@ -705,7 +799,7 @@ class WebKit::Base {
     uint32_t b;
 #endif
 }}
-''', r'\[Swift\] WebKit::S: member b: types marked \[Swift\] cannot have conditional members')
+''', r'\[Swift\] WebKit::S: member b: .* cannot be evaluated in Swift')
             self.assertGenerationFails(f'''
 class WebKit::Base {{
 #if {condition}
@@ -715,7 +809,7 @@ class WebKit::Base {{
 [Swift] class WebKit::Derived : WebKit::Base {{
     uint32_t a;
 }}
-''', r'\[Swift\] WebKit::Derived: member b: types marked \[Swift\] cannot have conditional members')
+''', r'\[Swift\] WebKit::Derived: member b: .* cannot be evaluated in Swift')
         self.assertGenerationFails('''
 #if ENABLE(A)
 [Swift] struct WebKit::S {

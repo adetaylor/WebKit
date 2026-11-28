@@ -75,8 +75,8 @@ public:
     NetworkMDNSRegister(NetworkConnectionToWebProcess&);
     ~NetworkMDNSRegister();
 
-    NODELETE void ref() const;
-    void deref() const;
+    NODELETE SWIFT_UNSAFE void ref() const;
+    SWIFT_UNSAFE void deref() const;
 
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
 

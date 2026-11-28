@@ -29,6 +29,8 @@
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
 #include "TestWithSwiftImplementationMessages.h" // NOLINT
+#include <WebCore/RegistrableDomain.h> // NOLINT
+#include <wtf/HashSet.h> // NOLINT
 #include <wtf/text/WTFString.h> // NOLINT
 
 #if ENABLE(IPC_TESTING_API)
@@ -49,6 +51,18 @@ void TestWithSwiftImplementation::didReceiveMessage(IPC::Connection& connection,
     }
     if (decoder.messageName() == Messages::TestWithSwiftImplementation::SendDirect::name()) {
         IPC::handleSwiftMessage<Messages::TestWithSwiftImplementation::SendDirect>(connection, decoder, this, &SwiftDispatch::TestWithSwiftImplementation::dispatchSendDirect);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftImplementation::AsyncReplyValue::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftImplementation::AsyncReplyValue>(connection, decoder, this, &SwiftDispatch::TestWithSwiftImplementation::dispatchAsyncReplyValue);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftImplementation::AsyncEmptyReplyValue::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftImplementation::AsyncEmptyReplyValue>(connection, decoder, this, &SwiftDispatch::TestWithSwiftImplementation::dispatchAsyncEmptyReplyValue);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftImplementation::SetDomains::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftImplementation::SetDomains>(connection, decoder, this, &SwiftDispatch::TestWithSwiftImplementation::dispatchSetDomains);
         return;
     }
     if (decoder.messageName() == Messages::TestWithSwiftImplementation::SendCxxString::name()) {
@@ -102,6 +116,30 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SendDirect::Arguments>(globalObject, decoder);
 }
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncReplyValue>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncReplyValue::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_AsyncReplyValue>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncReplyValue::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncEmptyReplyValue::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValue>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncEmptyReplyValue::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SetDomains>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SetDomains::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_SetDomains>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SetDomains::ReplyArguments>(globalObject, decoder);
+}
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendCxxString>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SendCxxString::Arguments>(globalObject, decoder);
@@ -109,6 +147,18 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendStringAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SendStringAsyncReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncReplyValueReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncReplyValueReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_AsyncEmptyReplyValueReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::AsyncEmptyReplyValueReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SetDomainsReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftImplementation::SetDomainsReply::Arguments>(globalObject, decoder);
 }
 
 }

@@ -543,6 +543,13 @@ public:
         return adoptRef(*new SwiftReplyEncoder(connection, WTF::move(encoder), encodeDefaultReply));
     }
 
+    // The reply to an asynchronous message, whose Encoder is made only when the reply is encoded or sent, so a reply that
+    // waits for its handler holds no encoder.
+    static Ref<SwiftReplyEncoder> createForAsyncReply(Connection& connection, MessageName replyName, uint64_t replyID, DefaultReplyEncoder encodeDefaultReply)
+    {
+        return adoptRef(*new SwiftReplyEncoder(connection, replyName, replyID, encodeDefaultReply));
+    }
+
     static Ref<SwiftReplyEncoder> createForStreamSyncReply(StreamServerConnection& connection, Connection::SyncRequestID syncRequestID, bool isReplyStreamEncodable, DefaultReplyEncoder encodeDefaultReply)
     {
         return adoptRef(*new SwiftReplyEncoder(connection, syncRequestID, isReplyStreamEncodable, encodeDefaultReply));
@@ -558,7 +565,7 @@ public:
 
     ~SwiftReplyEncoder()
     {
-        if (m_encoder || m_inStream)
+        if (m_encoder || m_inStream || m_asyncReply)
             cancel();
     }
 
@@ -581,8 +588,7 @@ public:
             streamEncoder().encodeSpan(values);
             return;
         }
-        RELEASE_ASSERT(m_encoder);
-        m_encoder->encodeSpan(values);
+        outOfStreamEncoder().encodeSpan(values);
     }
 
     // Encodes bytes as Encoder::encodeSpan encodes the elements of a span of a trivially copyable type of that alignment (1, 2,
@@ -611,8 +617,7 @@ public:
             streamEncoder().encodeSpan(characters);
             return;
         }
-        RELEASE_ASSERT(m_encoder);
-        m_encoder->encodeSpan(characters);
+        outOfStreamEncoder().encodeSpan(characters);
     }
 
     // Encodes a C++-decoded value with its own ArgumentCoder.
@@ -643,8 +648,8 @@ public:
     SWIFT_UNSAFE void encodeSendRight(mach_port_t port)
     {
         auto sendRight = MachSendRight::adopt(port);
-        RELEASE_ASSERT(!m_inStream && m_encoder);
-        *m_encoder << WTF::move(sendRight);
+        RELEASE_ASSERT(!m_inStream);
+        outOfStreamEncoder() << WTF::move(sendRight);
     }
 #endif
 
@@ -652,8 +657,8 @@ public:
     // stream.
     template<typename T> void encodeWithArgumentCoder(T&& value) __attribute__((availability(swift, unavailable)))
     {
-        RELEASE_ASSERT(!m_inStream && m_encoder);
-        *m_encoder << std::forward<T>(value);
+        RELEASE_ASSERT(!m_inStream);
+        outOfStreamEncoder() << std::forward<T>(value);
     }
 
     // Returns false if the reply didn't fit in the stream buffer. It must then be encoded again, out of stream,
@@ -669,6 +674,7 @@ public:
             continueOutOfStream();
             return false;
         }
+        makeAsyncReplyEncoder();
         if (auto encoder = std::exchange(m_encoder, nullptr)) {
             if (!m_encodeDefaultReply) {
                 RELEASE_ASSERT(m_connection);
@@ -687,6 +693,7 @@ public:
             m_streamEncoder.reset();
             continueOutOfStream();
         }
+        makeAsyncReplyEncoder();
         auto encoder = std::exchange(m_encoder, nullptr);
         // A message that Swift sends has no default to send instead.
         if (!encoder || !m_encodeDefaultReply)
@@ -696,12 +703,22 @@ public:
     }
 
     // Gives back the unsent encoder of a message that failed to decode, so IPC replies as for any
-    // unhandled message.
+    // unhandled message. Null for an asynchronous reply whose encoder was never made.
     std::unique_ptr<Encoder> discard()
     {
+        m_asyncReply.reset();
         m_inStream = false;
         m_streamEncoder.reset();
         return std::exchange(m_encoder, nullptr);
+    }
+
+    // Called when the value that holds the reply to a main-thread handler's asynchronous message is destroyed: a reply
+    // never sent is dropped, sending nothing, as a C++ handler's dropped CompletionHandler does.
+    void endAsyncReply()
+    {
+        ASSERT_WITH_MESSAGE(!m_asyncReply && !m_encoder, "Completion handler should always be called");
+        m_asyncReply.reset();
+        m_encoder = nullptr;
     }
 
     // Called when the dispatch of a stream message ends: replies with the default reply if generated Swift
@@ -717,6 +734,13 @@ private:
         : m_connection(&connection)
         , m_encoder(encoder.moveToUniquePtr())
         , m_encodeDefaultReply(encodeDefaultReply)
+    {
+    }
+
+    SwiftReplyEncoder(Connection& connection, MessageName replyName, uint64_t replyID, DefaultReplyEncoder encodeDefaultReply)
+        : m_connection(&connection)
+        , m_encodeDefaultReply(encodeDefaultReply)
+        , m_asyncReply(AsyncReply { replyName, replyID })
     {
     }
 
@@ -737,6 +761,19 @@ private:
             m_encoder = makeUnique<Encoder>(MessageName::SyncMessageReply, syncRequestID.toUInt64());
     }
 
+    void makeAsyncReplyEncoder()
+    {
+        if (auto reply = std::exchange(m_asyncReply, std::nullopt))
+            m_encoder = makeUnique<Encoder>(reply->name, reply->destinationID);
+    }
+
+    Encoder& outOfStreamEncoder()
+    {
+        makeAsyncReplyEncoder();
+        RELEASE_ASSERT(m_encoder);
+        return *m_encoder;
+    }
+
     template<typename Unit> void encodeBytesAs(std::span<const uint8_t> bytes)
     {
         RELEASE_ASSERT(!(bytes.size() % sizeof(Unit)) && !(reinterpret_cast<uintptr_t>(bytes.data()) % alignof(Unit)));
@@ -745,8 +782,7 @@ private:
             streamEncoder().encodeSpan(units);
             return;
         }
-        RELEASE_ASSERT(m_encoder);
-        m_encoder->encodeSpan(units);
+        outOfStreamEncoder().encodeSpan(units);
     }
 
     template<typename T> void encodeValue(T value)
@@ -755,8 +791,7 @@ private:
             streamEncoder() << value;
             return;
         }
-        RELEASE_ASSERT(m_encoder);
-        *m_encoder << value;
+        outOfStreamEncoder() << value;
     }
 
     // The stream buffer is only acquired when the reply is first encoded, after its message is decoded.
@@ -803,6 +838,12 @@ private:
     std::optional<Connection::SyncRequestID> m_syncRequestID;
     std::span<uint8_t> m_streamSpan;
     std::optional<StreamConnectionEncoder> m_streamEncoder;
+    // The reply of createForAsyncReply() until its encoder is made.
+    struct AsyncReply {
+        MessageName name;
+        uint64_t destinationID;
+    };
+    std::optional<AsyncReply> m_asyncReply;
     bool m_inStream { false };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 

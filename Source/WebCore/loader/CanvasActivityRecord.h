@@ -34,6 +34,5 @@ struct CanvasActivityRecord {
     bool wasDataRead { false };
     
     WEBCORE_EXPORT bool recordWrittenOrMeasuredText(const String&);
-    void mergeWith(const CanvasActivityRecord&);
 };
 } // namespace WebCore

@@ -197,12 +197,15 @@ extension WebKit.FileSystemStorageManager {
     }
 
     private func findHandle(_ identifier: IPCTypes.FileSystemHandleIdentifier) -> WebKit.FileSystemStorageHandle? {
-        m_handles.get(WebCore.FileSystemHandleIdentifier(identifier.rawValue))
+        // NetworkProcess's ThreadSafeRefCounted base (NetworkProcess.h) makes the importer infer this HashMap
+        // specialization unsafe, though neither its key nor Ref<FileSystemStorageHandle> is; the access is unchanged.
+        unsafe m_handles.get(WebCore.FileSystemHandleIdentifier(identifier.rawValue))
     }
 
     private func takeHandle(_ identifier: IPCTypes.FileSystemHandleIdentifier) -> WebKit.FileSystemStorageHandle? {
         let handleIdentifier = WebCore.FileSystemHandleIdentifier(identifier.rawValue)
-        let handle = m_handles.take(handleIdentifier).get()
+        // The same HashMap as findHandle's.
+        let handle = unsafe m_handles.take(handleIdentifier).get()
         m_registry.get()?.unregisterHandle(handleIdentifier)
         return handle
     }

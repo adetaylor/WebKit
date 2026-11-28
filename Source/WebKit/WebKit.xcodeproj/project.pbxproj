@@ -3087,6 +3087,15 @@
 		5C0E2A1B9F3D4E6A8B7C1D01 /* RemoteSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0E2A1B9F3D4E6A8B7C1D02 /* RemoteSnapshot.swift */; };
 		52F571FC6C714A1C9F279FF9 /* GPUConnectionToWebProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */; };
 		CE2D9ECA88E94405B9F74F77 /* GPUProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */; };
+		83D961085E64488BBDE442D7 /* NetworkConnectionToWebProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D926651D50404708A7806741 /* NetworkConnectionToWebProcessMessageReceiver.swift */; };
+		AEE7B72AE8AF46C5A03E48D2 /* NetworkProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA37CD371C6D45909602B1DC /* NetworkProcessMessageReceiver.swift */; };
+		A62238B5226F4A21B24A84D6 /* WebResourceLoadStatisticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C705E0E84D94AA7A62E1939 /* WebResourceLoadStatisticsStore.swift */; };
+		9ADCB8EAFB8D45A9AEA3CEB7 /* WebResourceLoadStatisticsStore+Messages.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8F9C338208C46228058E840 /* WebResourceLoadStatisticsStore+Messages.swift */; };
+		66FFA8E65E7AA4ED5E19EDC6 /* WebResourceLoadStatisticsStore+StorageAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68C5C7D67E73ED558E84ACE4 /* WebResourceLoadStatisticsStore+StorageAccess.swift */; };
+		395EF4FCBC264C179BC8C265 /* NetworkProcess+ResourceLoadStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D321DA7C1A749CFA4B73B91 /* NetworkProcess+ResourceLoadStatistics.swift */; };
+		CB3D0A31D1EAA0E0F6522C9E /* NetworkProcess+StatisticsDomains.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD919B049C5099A1596B111 /* NetworkProcess+StatisticsDomains.swift */; };
+		AE5875191F8456E6DE078E74 /* NetworkConnectionToWebProcess+StatisticsUpdated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98800BF7988C33748997E289 /* NetworkConnectionToWebProcess+StatisticsUpdated.swift */; };
+		7C8242B0039549E199EC74D0 /* NetworkConnectionToWebProcess+ResourceLoadStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A85431DD814443B0BDEC43 /* NetworkConnectionToWebProcess+ResourceLoadStatistics.swift */; };
 		B394E805E7C74311B20EACF1 /* CapturePreviewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */; };
 		086669E84B8615B8358018F3 /* CtapAuthenticator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94220E65D521286D99CA03D /* CtapAuthenticator.swift */; };
 		5D61E03767AAC53AB6D370FB /* CtapCcidDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B67A9EF30E2C4308628B3B1 /* CtapCcidDriver.swift */; };
@@ -9831,6 +9840,15 @@
 		4EB68FD59EEA88969EBA622D /* RemoteSharedResourceCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSharedResourceCache.swift; sourceTree = "<group>"; };
 		DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUConnectionToWebProcessMessageReceiver.swift; sourceTree = "<group>"; };
 		86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProcessMessageReceiver.swift; sourceTree = "<group>"; };
+		D926651D50404708A7806741 /* NetworkConnectionToWebProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkConnectionToWebProcessMessageReceiver.swift; sourceTree = "<group>"; };
+		EA37CD371C6D45909602B1DC /* NetworkProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProcessMessageReceiver.swift; sourceTree = "<group>"; };
+		8C705E0E84D94AA7A62E1939 /* WebResourceLoadStatisticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WebResourceLoadStatisticsStore.swift; path = Classifier/WebResourceLoadStatisticsStore.swift; sourceTree = "<group>"; };
+		E8F9C338208C46228058E840 /* WebResourceLoadStatisticsStore+Messages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "WebResourceLoadStatisticsStore+Messages.swift"; path = "Classifier/WebResourceLoadStatisticsStore+Messages.swift"; sourceTree = "<group>"; };
+		68C5C7D67E73ED558E84ACE4 /* WebResourceLoadStatisticsStore+StorageAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "WebResourceLoadStatisticsStore+StorageAccess.swift"; path = "Classifier/WebResourceLoadStatisticsStore+StorageAccess.swift"; sourceTree = "<group>"; };
+		2D321DA7C1A749CFA4B73B91 /* NetworkProcess+ResourceLoadStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NetworkProcess+ResourceLoadStatistics.swift"; sourceTree = "<group>"; };
+		3BD919B049C5099A1596B111 /* NetworkProcess+StatisticsDomains.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NetworkProcess+StatisticsDomains.swift"; sourceTree = "<group>"; };
+		98800BF7988C33748997E289 /* NetworkConnectionToWebProcess+StatisticsUpdated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NetworkConnectionToWebProcess+StatisticsUpdated.swift"; sourceTree = "<group>"; };
+		D7A85431DD814443B0BDEC43 /* NetworkConnectionToWebProcess+ResourceLoadStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NetworkConnectionToWebProcess+ResourceLoadStatistics.swift"; sourceTree = "<group>"; };
 		7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewManager.swift; sourceTree = "<group>"; };
 		2F56EA6D97954A0B029DE1A2 /* RemoteGPUModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGPUModel.h; sourceTree = "<group>"; };
 		3B4318C11E0470D464D7CFD1 /* RemoteGPUModel.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteGPUModel.messages.in; sourceTree = "<group>"; };
@@ -14200,12 +14218,14 @@
 				0F5562E927EE28D200953585 /* MessageNames.cpp */,
 				0F5562E227EE28D100953585 /* MessageNames.h */,
 				51DD9F2616367DA2001578E9 /* NetworkConnectionToWebProcessMessageReceiver.cpp */,
+				D926651D50404708A7806741 /* NetworkConnectionToWebProcessMessageReceiver.swift */,
 				51DD9F2716367DA2001578E9 /* NetworkConnectionToWebProcessMessages.h */,
 				52F060DD1654317500F3281B /* NetworkContentRuleListManagerMessageReceiver.cpp */,
 				51F060DD1654317500F3283F /* NetworkMDNSRegisterMessageReceiver.cpp */,
 				517CF0E1163A486C00C2950E /* NetworkProcessConnectionMessageReceiver.cpp */,
 				517CF0E2163A486C00C2950E /* NetworkProcessConnectionMessages.h */,
 				51ACC9341628064800342550 /* NetworkProcessMessageReceiver.cpp */,
+				EA37CD371C6D45909602B1DC /* NetworkProcessMessageReceiver.swift */,
 				51ACC9351628064800342550 /* NetworkProcessMessages.h */,
 				513A163A163088F6005D7D22 /* NetworkProcessProxyMessageReceiver.cpp */,
 				513A163B163088F6005D7D22 /* NetworkProcessProxyMessages.h */,
@@ -14879,6 +14899,8 @@
 				46EE284B269E051700DD48AB /* NetworkBroadcastChannelRegistry.cpp */,
 				46EE284C269E051700DD48AB /* NetworkBroadcastChannelRegistry.h */,
 				46EE284A269E051700DD48AB /* NetworkBroadcastChannelRegistry.messages.in */,
+				D7A85431DD814443B0BDEC43 /* NetworkConnectionToWebProcess+ResourceLoadStatistics.swift */,
+				98800BF7988C33748997E289 /* NetworkConnectionToWebProcess+StatisticsUpdated.swift */,
 				513A16491630A9BF005D7D22 /* NetworkConnectionToWebProcess.cpp */,
 				513A164A1630A9BF005D7D22 /* NetworkConnectionToWebProcess.h */,
 				513A164B1630A9BF005D7D22 /* NetworkConnectionToWebProcess.messages.in */,
@@ -14901,6 +14923,8 @@
 				E47FC89F25B8331C005495FC /* NetworkLoadScheduler.h */,
 				FA9CD6332A01B21700EA5CAC /* NetworkOriginAccessPatterns.cpp */,
 				FA9CD6342A01B21700EA5CAC /* NetworkOriginAccessPatterns.h */,
+				2D321DA7C1A749CFA4B73B91 /* NetworkProcess+ResourceLoadStatistics.swift */,
+				3BD919B049C5099A1596B111 /* NetworkProcess+StatisticsDomains.swift */,
 				510CC7DF16138E2900D03ED3 /* NetworkProcess.cpp */,
 				510CC7E016138E2900D03ED3 /* NetworkProcess.h */,
 				51A8A6171627F5BB000D90E9 /* NetworkProcess.messages.in */,
@@ -15850,8 +15874,11 @@
 				7A41E9FA21F81DAC00B88CDB /* ShouldGrandfatherStatistics.h */,
 				022A83DC2E4405DD00F3E092 /* StorageAccessPermissionChangeObserver.h */,
 				7A3FECA121F7C09700F267CD /* StorageAccessStatus.h */,
+				E8F9C338208C46228058E840 /* WebResourceLoadStatisticsStore+Messages.swift */,
+				68C5C7D67E73ED558E84ACE4 /* WebResourceLoadStatisticsStore+StorageAccess.swift */,
 				7A843A1A21E41FB200DEF663 /* WebResourceLoadStatisticsStore.cpp */,
 				7AFBD36221E50F39005DBACB /* WebResourceLoadStatisticsStore.h */,
+				8C705E0E84D94AA7A62E1939 /* WebResourceLoadStatisticsStore.swift */,
 			);
 			name = Classifier;
 			sourceTree = "<group>";
@@ -22935,6 +22962,10 @@
 				406CB7739BBED76B9D1E2028 /* CtapNfcDriver.swift in Sources */,
 				768A5EE00B3084D349BA27F1 /* FidoAuthenticator.swift in Sources */,
 				01E838920E7BDD54F9EC4805 /* FidoService.swift in Sources */,
+				7C8242B0039549E199EC74D0 /* NetworkConnectionToWebProcess+ResourceLoadStatistics.swift in Sources */,
+				AE5875191F8456E6DE078E74 /* NetworkConnectionToWebProcess+StatisticsUpdated.swift in Sources */,
+				395EF4FCBC264C179BC8C265 /* NetworkProcess+ResourceLoadStatistics.swift in Sources */,
+				CB3D0A31D1EAA0E0F6522C9E /* NetworkProcess+StatisticsDomains.swift in Sources */,
 				ED451274BDCD3032577827B0 /* U2fAuthenticator.swift in Sources */,
 				522F792B28D5318A0069B45B /* CtapHidDriver.cpp in Sources */,
 				2D0C56FE229F1DEA00BD33E7 /* DeviceManagementSoftLink.mm in Sources */,
@@ -23022,6 +23053,8 @@
 				57B826452304F14000B72EB0 /* NearFieldSoftLink.mm in Sources */,
 				6D5E1F02A70E40EA91DACD92 /* WebAuthnSoftLinkForSwift.mm in Sources */,
 				C1C1B30F2540F50D00D9100B /* NetworkConnectionToWebProcessMac.mm in Sources */,
+				83D961085E64488BBDE442D7 /* NetworkConnectionToWebProcessMessageReceiver.swift in Sources */,
+				AEE7B72AE8AF46C5A03E48D2 /* NetworkProcessMessageReceiver.swift in Sources */,
 				41E242E026E0C908009A8C64 /* NetworkRTCUtilitiesCocoa.mm in Sources */,
 				FA5AAE9C2E6A217A00FE693D /* NetworkSoftLink.mm in Sources */,
 				3535DEBDF2314022BE098637 /* NetworkStorageManager.swift in Sources */,
@@ -23554,6 +23587,9 @@
 				517B5F79275E97A1002DC22D /* WebPushDaemonMain.mm in Sources */,
 				51BE6C5B2AA92519001745C1 /* WebPushToolConnection.mm in Sources */,
 				51BE6C572AA92480001745C1 /* WebPushToolMain.mm in Sources */,
+				9ADCB8EAFB8D45A9AEA3CEB7 /* WebResourceLoadStatisticsStore+Messages.swift in Sources */,
+				66FFA8E65E7AA4ED5E19EDC6 /* WebResourceLoadStatisticsStore+StorageAccess.swift in Sources */,
+				A62238B5226F4A21B24A84D6 /* WebResourceLoadStatisticsStore.swift in Sources */,
 				41E0A7CB23B645CD00561060 /* WebSocketChannel.cpp in Sources */,
 				41287D4E225D1ECB009A3E26 /* WebSocketTaskCocoa.mm in Sources */,
 				9356F2DF2152B72300E6D5DF /* WebSWOriginStore.cpp in Sources */,

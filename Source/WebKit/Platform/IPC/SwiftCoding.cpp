@@ -141,8 +141,7 @@ void SwiftReplyEncoder::encodeSharedBuffer(const WebCore::SharedBuffer& buffer)
 {
     // A reply holding a SharedBuffer is not stream encodable.
     RELEASE_ASSERT(!m_inStream);
-    RELEASE_ASSERT(m_encoder);
-    *m_encoder << buffer;
+    outOfStreamEncoder() << buffer;
 }
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
@@ -177,8 +176,7 @@ void SwiftReplyEncoder::encodeCGRendererPathSegment(CGRendererPathSegment values
         streamEncoder() << segment;
         return;
     }
-    RELEASE_ASSERT(m_encoder);
-    *m_encoder << segment;
+    outOfStreamEncoder() << segment;
 }
 
 void SwiftReplyEncoder::encodeCGRendererPath(CGPathRef platformPath, CGRendererPathFacts facts)
@@ -192,16 +190,14 @@ void SwiftReplyEncoder::encodeCGRendererPath(CGPathRef platformPath, CGRendererP
         streamEncoder() << path;
         return;
     }
-    RELEASE_ASSERT(m_encoder);
-    *m_encoder << path;
+    outOfStreamEncoder() << path;
 }
 #endif
 
 void SwiftReplyEncoder::encodeVideoInfo(const WebCore::VideoInfo& info)
 {
     RELEASE_ASSERT(!m_inStream);
-    RELEASE_ASSERT(m_encoder);
-    *m_encoder << info;
+    outOfStreamEncoder() << info;
 }
 
 void SwiftReplyEncoder::encodePathImpl(const WebCore::PathImpl& path)
@@ -210,8 +206,7 @@ void SwiftReplyEncoder::encodePathImpl(const WebCore::PathImpl& path)
         streamEncoder() << path;
         return;
     }
-    RELEASE_ASSERT(m_encoder);
-    *m_encoder << path;
+    outOfStreamEncoder() << path;
 }
 
 void SwiftReplyEncoder::encodeImageBufferFormat(const WebCore::ImageBufferFormat& format)
@@ -220,8 +215,7 @@ void SwiftReplyEncoder::encodeImageBufferFormat(const WebCore::ImageBufferFormat
         streamEncoder() << format;
         return;
     }
-    RELEASE_ASSERT(m_encoder);
-    *m_encoder << format;
+    outOfStreamEncoder() << format;
 }
 
 void SwiftReplyEncoder::encodeClientOrigin(const WebCore::ClientOrigin& origin)
@@ -248,16 +242,14 @@ void SwiftReplyEncoder::encodeImageBufferResourceLimits(const WebCore::ImageBuff
 {
     // ImageBufferResourceLimits is not stream encodable.
     RELEASE_ASSERT(!m_inStream);
-    RELEASE_ASSERT(m_encoder);
-    *m_encoder << limits;
+    outOfStreamEncoder() << limits;
 }
 
 #if ENABLE(MEDIA_STREAM)
 void SwiftReplyEncoder::encodeCaptureConstraints(const WebCore::CaptureConstraints& constraints)
 {
     RELEASE_ASSERT(!m_inStream);
-    RELEASE_ASSERT(m_encoder);
-    *m_encoder << constraints.constraints();
+    outOfStreamEncoder() << constraints.constraints();
 }
 #endif
 

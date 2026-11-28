@@ -120,6 +120,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NPObjectMessageReceiverMessages.
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkBroadcastChannelRegistryMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkBroadcastChannelRegistryMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkConnectionToWebProcessMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkConnectionToWebProcessMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkConnectionToWebProcessMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkContentRuleListManagerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkContentRuleListManagerMessages.h
@@ -128,6 +129,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkMDNSRegisterMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkProcessConnectionMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkProcessConnectionMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkProcessMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkProcessMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkProcessMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkProcessProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/NetworkProcessProxyMessages.h

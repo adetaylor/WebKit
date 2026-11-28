@@ -36,7 +36,6 @@
 #include "Download.h"
 #include "DownloadProxyMessages.h"
 #include "FormDataReference.h"
-#include "ITPThirdPartyData.h"
 #if ENABLE(LEGACY_CUSTOM_PROTOCOL_MANAGER)
 #include "LegacyCustomProtocolManager.h"
 #endif
@@ -1015,19 +1014,6 @@ void NetworkProcess::registrableDomainsExemptFromWebsiteDataDeletion(PAL::Sessio
     completionHandler({ });
 }
 
-void NetworkProcess::dumpResourceLoadStatistics(PAL::SessionID sessionID, CompletionHandler<void(String)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->dumpResourceLoadStatistics(WTF::move(completionHandler));
-        else
-            completionHandler({ });
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler({ });
-    }
-}
-
 void NetworkProcess::updatePrevalentDomainsToBlockCookiesFor(PAL::SessionID sessionID, const Vector<RegistrableDomain>& domainsToBlock, CompletionHandler<void()>&& completionHandler)
 {
     if (CheckedPtr networkStorageSession = storageSession(sessionID))
@@ -1035,383 +1021,23 @@ void NetworkProcess::updatePrevalentDomainsToBlockCookiesFor(PAL::SessionID sess
     completionHandler();
 }
 
-void NetworkProcess::isGrandfathered(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void(bool)>&& completionHandler)
+WebResourceLoadStatisticsStore* NetworkProcess::resourceLoadStatisticsForSwift(PAL::SessionID sessionID, bool assertsOnMissingSession)
 {
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->isGrandfathered(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
+    CheckedPtr session = networkSession(sessionID);
+    ASSERT_UNUSED(assertsOnMissingSession, session || !assertsOnMissingSession);
+    return session ? session->resourceLoadStatistics() : nullptr;
 }
 
-void NetworkProcess::isPrevalentResource(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void(bool)>&& completionHandler)
+void NetworkProcess::clearIsolatedSessionsForSwift(PAL::SessionID sessionID)
 {
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->isPrevalentResource(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::isVeryPrevalentResource(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->isVeryPrevalentResource(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::setGrandfathered(PAL::SessionID sessionID, RegistrableDomain&& domain, bool isGrandfathered, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setGrandfathered(WTF::move(domain), isGrandfathered, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setPrevalentResource(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setPrevalentResource(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setPrevalentResourceForDebugMode(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setPrevalentResourceForDebugMode(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setVeryPrevalentResource(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setVeryPrevalentResource(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::clearPrevalentResource(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->clearPrevalentResource(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::scheduleCookieBlockingUpdate(PAL::SessionID sessionID, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->scheduleCookieBlockingUpdate(WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::scheduleClearInMemoryAndPersistent(PAL::SessionID sessionID, std::optional<WallTime> modifiedSince, ShouldGrandfatherStatistics shouldGrandfather, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
+    if (CheckedPtr session = networkSession(sessionID))
         session->clearIsolatedSessions();
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics()) {
-            if (modifiedSince)
-                resourceLoadStatistics->scheduleClearInMemoryAndPersistent(modifiedSince.value(), shouldGrandfather, WTF::move(completionHandler));
-            else
-                resourceLoadStatistics->scheduleClearInMemoryAndPersistent(shouldGrandfather, WTF::move(completionHandler));
-        } else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
 }
 
-void NetworkProcess::getResourceLoadStatisticsDataSummary(PAL::SessionID sessionID, CompletionHandler<void(Vector<ITPThirdPartyData>&&)>&& completionHandler)
+void NetworkProcess::resetFirstPartyDNSDataForSwift(PAL::SessionID sessionID)
 {
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->aggregatedThirdPartyData(WTF::move(completionHandler));
-        else
-            completionHandler({ });
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler({ });
-    }
-}
-
-void NetworkProcess::resetParametersToDefaultValues(PAL::SessionID sessionID, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
+    if (CheckedPtr session = networkSession(sessionID))
         session->resetFirstPartyDNSData();
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->resetParametersToDefaultValues(WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::scheduleStatisticsAndDataRecordsProcessing(PAL::SessionID sessionID, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->scheduleStatisticsAndDataRecordsProcessing(WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::statisticsDatabaseHasAllTables(PAL::SessionID sessionID, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->statisticsDatabaseHasAllTables(WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::setResourceLoadStatisticsTimeAdvanceForTesting(PAL::SessionID sessionID, Seconds time, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            return resourceLoadStatistics->setTimeAdvanceForTesting(time, WTF::move(completionHandler));
-    }
-    completionHandler();
-}
-
-void NetworkProcess::setIsRunningResourceLoadStatisticsTest(PAL::SessionID sessionID, bool value, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setIsRunningTest(value, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setSubframeUnderTopFrameDomain(PAL::SessionID sessionID, RegistrableDomain&& subFrameDomain, RegistrableDomain&& topFrameDomain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setSubframeUnderTopFrameDomain(WTF::move(subFrameDomain), WTF::move(topFrameDomain), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::isRegisteredAsRedirectingTo(PAL::SessionID sessionID, RegistrableDomain&& domainRedirectedFrom, RegistrableDomain&& domainRedirectedTo, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->isRegisteredAsRedirectingTo(WTF::move(domainRedirectedFrom), WTF::move(domainRedirectedTo), WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::isRegisteredAsSubFrameUnder(PAL::SessionID sessionID, RegistrableDomain&& subFrameDomain, RegistrableDomain&& topFrameDomain, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->isRegisteredAsSubFrameUnder(WTF::move(subFrameDomain), WTF::move(topFrameDomain), WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::setSubresourceUnderTopFrameDomain(PAL::SessionID sessionID, RegistrableDomain&& subresourceDomain, RegistrableDomain&& topFrameDomain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setSubresourceUnderTopFrameDomain(WTF::move(subresourceDomain), WTF::move(topFrameDomain), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setSubresourceUniqueRedirectTo(PAL::SessionID sessionID, RegistrableDomain&& subresourceDomain, RegistrableDomain&& domainRedirectedTo, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setSubresourceUniqueRedirectTo(WTF::move(subresourceDomain), WTF::move(domainRedirectedTo), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setSubresourceUniqueRedirectFrom(PAL::SessionID sessionID, RegistrableDomain&& subresourceDomain, RegistrableDomain&& domainRedirectedFrom, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setSubresourceUniqueRedirectFrom(WTF::move(subresourceDomain), WTF::move(domainRedirectedFrom), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::isRegisteredAsSubresourceUnder(PAL::SessionID sessionID, RegistrableDomain&& subresourceDomain, RegistrableDomain&& topFrameDomain, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->isRegisteredAsSubresourceUnder(WTF::move(subresourceDomain), WTF::move(topFrameDomain), WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::setTopFrameUniqueRedirectTo(PAL::SessionID sessionID, RegistrableDomain&& topFrameDomain, RegistrableDomain&& domainRedirectedTo, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setTopFrameUniqueRedirectTo(WTF::move(topFrameDomain), WTF::move(domainRedirectedTo), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setTopFrameUniqueRedirectFrom(PAL::SessionID sessionID, RegistrableDomain&& topFrameDomain, RegistrableDomain&& domainRedirectedFrom, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setTopFrameUniqueRedirectFrom(WTF::move(topFrameDomain), WTF::move(domainRedirectedFrom), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-    
-    
-void NetworkProcess::setLastSeen(PAL::SessionID sessionID, RegistrableDomain&& domain, Seconds seconds, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setLastSeen(WTF::move(domain), seconds, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::domainIDExistsInDatabase(PAL::SessionID sessionID, int domainID, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->domainIDExistsInDatabase(domainID, WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::mergeStatisticForTesting(PAL::SessionID sessionID, RegistrableDomain&& domain, RegistrableDomain&& topFrameDomain1, RegistrableDomain&& topFrameDomain2, Seconds lastSeen, bool hadUserInteraction, Seconds mostRecentUserInteraction, bool isGrandfathered, bool isPrevalent, bool isVeryPrevalent, uint64_t dataRecordsRemoved, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->mergeStatisticForTesting(WTF::move(domain), WTF::move(topFrameDomain1), WTF::move(topFrameDomain2), lastSeen, hadUserInteraction, mostRecentUserInteraction, isGrandfathered, isPrevalent, isVeryPrevalent, unsigned(dataRecordsRemoved), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::insertExpiredStatisticForTesting(PAL::SessionID sessionID, RegistrableDomain&& domain, uint64_t numberOfOperatingDaysPassed, bool hadUserInteraction, bool isScheduledForAllButCookieDataRemoval, bool isPrevalent, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->insertExpiredStatisticForTesting(WTF::move(domain), unsigned(numberOfOperatingDaysPassed), hadUserInteraction, isScheduledForAllButCookieDataRemoval, isPrevalent, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
 }
 
 void NetworkProcess::getAllStorageAccessEntries(PAL::SessionID sessionID, CompletionHandler<void(Vector<String> domains)>&& completionHandler)
@@ -1421,67 +1047,6 @@ void NetworkProcess::getAllStorageAccessEntries(PAL::SessionID sessionID, Comple
     else {
         ASSERT_NOT_REACHED();
         completionHandler({ });
-    }
-}
-
-void NetworkProcess::logFrameNavigation(PAL::SessionID sessionID, RegistrableDomain&& targetDomain, RegistrableDomain&& topFrameDomain, RegistrableDomain&& sourceDomain, bool isRedirect, bool isMainFrame, Seconds delayAfterMainFrameDocumentLoad, bool wasPotentiallyInitiatedByUser)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->logFrameNavigation(WTF::move(targetDomain), WTF::move(topFrameDomain), WTF::move(sourceDomain), isRedirect, isMainFrame, delayAfterMainFrameDocumentLoad, wasPotentiallyInitiatedByUser);
-    } else
-        ASSERT_NOT_REACHED();
-}
-
-void NetworkProcess::logUserInteraction(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->logUserInteraction(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::hadUserInteraction(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->hasHadUserInteraction(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::isRelationshipOnlyInDatabaseOnce(PAL::SessionID sessionID, RegistrableDomain&& subDomain, RegistrableDomain&& topDomain, CompletionHandler<void(bool)>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->isRelationshipOnlyInDatabaseOnce(WTF::move(subDomain), WTF::move(topDomain), WTF::move(completionHandler));
-        else
-            completionHandler(false);
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler(false);
-    }
-}
-
-void NetworkProcess::clearUserInteraction(PAL::SessionID sessionID, RegistrableDomain&& domain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->clearUserInteraction(WTF::move(domain), WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
     }
 }
 
@@ -1530,84 +1095,6 @@ void NetworkProcess::setCacheMaxAgeCapForPrevalentResources(PAL::SessionID sessi
     completionHandler();
 }
 
-void NetworkProcess::setGrandfatheringTime(PAL::SessionID sessionID, Seconds seconds, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setGrandfatheringTime(seconds, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setMaxStatisticsEntries(PAL::SessionID sessionID, uint64_t maximumEntryCount, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setMaxStatisticsEntries(maximumEntryCount, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setMinimumTimeBetweenDataRecordsRemoval(PAL::SessionID sessionID, Seconds seconds, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setMinimumTimeBetweenDataRecordsRemoval(seconds, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setPruneEntriesDownTo(PAL::SessionID sessionID, uint64_t pruneTargetCount, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setPruneEntriesDownTo(pruneTargetCount, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setTimeToLiveUserInteraction(PAL::SessionID sessionID, Seconds seconds, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setTimeToLiveUserInteraction(seconds, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::setShouldClassifyResourcesBeforeDataRecordsRemoval(PAL::SessionID sessionID, bool value, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setShouldClassifyResourcesBeforeDataRecordsRemoval(value, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
 void NetworkProcess::setTrackingPreventionEnabled(PAL::SessionID sessionID, bool enabled)
 {
     if (CheckedPtr session = networkSession(sessionID))
@@ -1624,31 +1111,6 @@ void NetworkProcess::setResourceLoadStatisticsLogTestingEvent(bool enabled)
     forEachNetworkSession([enabled](auto& session) {
         session.setResourceLoadStatisticsLogTestingEvent(enabled);
     });
-}
-
-void NetworkProcess::setResourceLoadStatisticsDebugMode(PAL::SessionID sessionID, bool debugMode, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setResourceLoadStatisticsDebugMode(debugMode, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
-}
-
-void NetworkProcess::isResourceLoadStatisticsEphemeral(PAL::SessionID sessionID, CompletionHandler<void(bool)>&& completionHandler) const
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics()) {
-            completionHandler(resourceLoadStatistics->isEphemeral());
-            return;
-        }
-    } else
-        ASSERT_NOT_REACHED();
-    completionHandler(false);
 }
 
 void NetworkProcess::resetCacheMaxAgeCapForPrevalentResources(PAL::SessionID sessionID, CompletionHandler<void()>&& completionHandler)
@@ -1691,18 +1153,6 @@ void NetworkProcess::didCommitMainFrameNavigation(PAL::SessionID sessionID, WebP
         networkStorageSession->didCommitMainFrameNavigation(webPageProxyID, committedDomain, previouslyCommittedDomain, restoredFromBackForwardCache);
 }
 
-void NetworkProcess::setCrossSiteLoadWithLinkDecorationForTesting(PAL::SessionID sessionID, RegistrableDomain&& fromDomain, RegistrableDomain&& toDomain, DidFilterKnownLinkDecoration didFilterKnownLinkDecoration, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics()) {
-            resourceLoadStatistics->logCrossSiteLoadWithLinkDecoration(WTF::move(fromDomain), WTF::move(toDomain), didFilterKnownLinkDecoration, WTF::move(completionHandler));
-            return;
-        }
-    } else
-        ASSERT_NOT_REACHED();
-    completionHandler();
-}
-
 void NetworkProcess::resetCrossSiteLoadsWithLinkDecorationForTesting(PAL::SessionID sessionID, CompletionHandler<void()>&& completionHandler)
 {
     if (CheckedPtr networkStorageSession = storageSession(sessionID))
@@ -1727,16 +1177,6 @@ void NetworkProcess::grantStorageAccessForTesting(PAL::SessionID sessionID, Vect
     completionHandler();
 }
 
-void NetworkProcess::setStorageAccessPermissionForTesting(PAL::SessionID sessionID, bool granted, WebPageProxyIdentifier webPageProxyID, RegistrableDomain&& topFrameDomain, RegistrableDomain&& subFrameDomain, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            return resourceLoadStatistics->setStorageAccessPermissionForTesting(granted, webPageProxyID, WTF::move(topFrameDomain), WTF::move(subFrameDomain), WTF::move(completionHandler));
-    } else
-        ASSERT_NOT_REACHED();
-    completionHandler();
-}
-
 void NetworkProcess::clearStorageAccessForTesting(PAL::SessionID sessionID, CompletionHandler<void()>&& completionHandler)
 {
     if (CheckedPtr networkStorageSession = storageSession(sessionID))
@@ -1752,37 +1192,18 @@ void NetworkProcess::hasIsolatedSession(PAL::SessionID sessionID, const WebCore:
     completionHandler(result);
 }
 
-#if ENABLE(APP_BOUND_DOMAINS)
-void NetworkProcess::setAppBoundDomainsForResourceLoadStatistics(PAL::SessionID sessionID, HashSet<WebCore::RegistrableDomain>&& appBoundDomains, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics()) {
-            resourceLoadStatistics->setAppBoundDomains(WTF::move(appBoundDomains), WTF::move(completionHandler));
-            return;
-        }
-    }
-    ASSERT_NOT_REACHED();
-    completionHandler();
-}
-#endif
-
 #if ENABLE(MANAGED_DOMAINS)
-void NetworkProcess::setManagedDomainsForResourceLoadStatistics(PAL::SessionID sessionID, HashSet<WebCore::RegistrableDomain>&& managedDomains, CompletionHandler<void()>&& completionHandler)
+void NetworkProcess::acceptAllCookiesForManagedDomainsForSwift(PAL::SessionID sessionID, CompletionHandler<void(bool)>&& completionHandler)
 {
-    if (CheckedPtr session = networkSession(sessionID)) {
-        RefPtr { supplement<WebCookieManager>() }->setHTTPCookieAcceptPolicy(sessionID, WebCore::HTTPCookieAcceptPolicy::AlwaysAccept, [session = WeakPtr { *session }, managedDomains = WTF::move(managedDomains), completionHandler = WTF::move(completionHandler)]() mutable {
-            if (session) {
-                if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics()) {
-                    resourceLoadStatistics->setManagedDomains(WTF::move(managedDomains), WTF::move(completionHandler));
-                    return;
-                }
-            }
-            completionHandler();
-        });
+    CheckedPtr session = networkSession(sessionID);
+    if (!session) {
+        ASSERT_NOT_REACHED();
+        completionHandler(false);
         return;
     }
-    ASSERT_NOT_REACHED();
-    completionHandler();
+    RefPtr { supplement<WebCookieManager>() }->setHTTPCookieAcceptPolicy(sessionID, WebCore::HTTPCookieAcceptPolicy::AlwaysAccept, [session = WeakPtr { *session }, completionHandler = WTF::move(completionHandler)] mutable {
+        completionHandler(!!session);
+    });
 }
 #endif
 
@@ -1817,19 +1238,6 @@ void NetworkProcess::setExemptAllowlistedCookiesFromITP(PAL::SessionID sessionID
     if (CheckedPtr session = networkSession(sessionID))
         session->setExemptAllowlistedCookiesFromITP(exempt);
     completionHandler();
-}
-
-void NetworkProcess::setFirstPartyWebsiteDataRemovalModeForTesting(PAL::SessionID sessionID, WebCore::FirstPartyWebsiteDataRemovalMode mode, CompletionHandler<void()>&& completionHandler)
-{
-    if (CheckedPtr session = networkSession(sessionID)) {
-        if (RefPtr resourceLoadStatistics = session->resourceLoadStatistics())
-            resourceLoadStatistics->setFirstPartyWebsiteDataRemovalMode(mode, WTF::move(completionHandler));
-        else
-            completionHandler();
-    } else {
-        ASSERT_NOT_REACHED();
-        completionHandler();
-    }
 }
 
 void NetworkProcess::setToSameSiteStrictCookiesForTesting(PAL::SessionID sessionID, const WebCore::RegistrableDomain& domain, CompletionHandler<void()>&& completionHandler)
@@ -2959,7 +2367,7 @@ void NetworkProcess::prepareToSuspend(bool isSuspensionImminent, MonotonicTime e
         completionHandler();
     });
     
-    WebResourceLoadStatisticsStore::suspend([callbackAggregator] { });
+    WebResourceLoadStatisticsStore::suspend(*this, [callbackAggregator] { });
     PCM::PersistentStore::prepareForProcessToSuspend([callbackAggregator] { });
 
     forEachNetworkSession([&] (auto& session) {
@@ -2987,7 +2395,7 @@ void NetworkProcess::processDidResume(bool forForegroundActivity)
 
     m_isSuspended = false;
 
-    WebResourceLoadStatisticsStore::resume();
+    WebResourceLoadStatisticsStore::resume(*this);
     PCM::PersistentStore::processDidResume();
 
     forEachNetworkSession([](auto& session) {

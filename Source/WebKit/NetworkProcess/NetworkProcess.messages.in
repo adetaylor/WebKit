@@ -23,7 +23,9 @@
 [
     DispatchedFrom=UI,
     DispatchedTo=Networking,
-    ExceptionForEnabledBy
+    ExceptionForEnabledBy,
+    SwiftImplementation,
+    SwiftSends=NetworkProcessProxy
 ]
 messages -> NetworkProcess : AuxiliaryProcess WantsAsyncDispatchMessage {
     InitializeNetworkProcess(struct WebKit::NetworkProcessCreationParameters processCreationParameters) -> ()
@@ -107,78 +109,78 @@ messages -> NetworkProcess : AuxiliaryProcess WantsAsyncDispatchMessage {
 
     SetInspectionForServiceWorkersAllowed(PAL::SessionID sessionID, bool inspectable)
 
-    ClearPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> ()
-    ClearUserInteraction(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> ()
-    DumpResourceLoadStatistics(PAL::SessionID sessionID) -> (String dumpedStatistics)
+    ClearPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    ClearUserInteraction(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    DumpResourceLoadStatistics(PAL::SessionID sessionID) -> (String dumpedStatistics) SwiftTypes SwiftSyncHandler SwiftReplyValue
     SetTrackingPreventionEnabled(PAL::SessionID sessionID, bool enabled)
     UpdateStorageAccessPromptQuirks(Vector<WebCore::OrganizationStorageAccessPromptQuirk> organizationStorageAccessQuirks)
     SetResourceLoadStatisticsLogTestingEvent(bool enabled)
     UpdatePrevalentDomainsToBlockCookiesFor(PAL::SessionID sessionID, Vector<WebCore::RegistrableDomain> domainsToBlock) -> ()
-    IsGrandfathered(PAL::SessionID sessionID, WebCore::RegistrableDomain targetDomain) -> (bool isGrandfathered)
-    IsPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain targetDomain) -> (bool isPrevalent)
-    IsVeryPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain targetDomain) -> (bool isVeryPrevalent)
-    SetLastSeen(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain, Seconds seconds) -> ()
-    MergeStatisticForTesting(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain, WebCore::RegistrableDomain topFrameDomain1, WebCore::RegistrableDomain topFrameDomain2, Seconds lastSeen, bool hadUserInteraction, Seconds mostRecentUserInteraction, bool isGrandfathered, bool isPrevalent, bool isVeryPrevalent, uint64_t dataRecordsRemoved) -> ()
-    InsertExpiredStatisticForTesting(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain, uint64_t numberOfOperatingDaysPassed, bool hadUserInteraction, bool isScheduledForAllButCookieDataRemoval, bool isPrevalent) -> ()
-    SetPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> ()
-    SetPrevalentResourceForDebugMode(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> ()
-    IsResourceLoadStatisticsEphemeral(PAL::SessionID sessionID) -> (bool isEphemeral)
-    HadUserInteraction(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> (bool hadUserInteraction)
-    IsRelationshipOnlyInDatabaseOnce(PAL::SessionID sessionID, WebCore::RegistrableDomain subDomain, WebCore::RegistrableDomain topDomain) -> (bool hadUserInteraction)
+    IsGrandfathered(PAL::SessionID sessionID, WebCore::RegistrableDomain targetDomain) -> (bool isGrandfathered) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    IsPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain targetDomain) -> (bool isPrevalent) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    IsVeryPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain targetDomain) -> (bool isVeryPrevalent) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetLastSeen(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain, Seconds seconds) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    MergeStatisticForTesting(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain, WebCore::RegistrableDomain topFrameDomain1, WebCore::RegistrableDomain topFrameDomain2, Seconds lastSeen, bool hadUserInteraction, Seconds mostRecentUserInteraction, bool isGrandfathered, bool isPrevalent, bool isVeryPrevalent, uint64_t dataRecordsRemoved) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    InsertExpiredStatisticForTesting(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain, uint64_t numberOfOperatingDaysPassed, bool hadUserInteraction, bool isScheduledForAllButCookieDataRemoval, bool isPrevalent) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetPrevalentResourceForDebugMode(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    IsResourceLoadStatisticsEphemeral(PAL::SessionID sessionID) -> (bool isEphemeral) SwiftTypes
+    HadUserInteraction(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> (bool hadUserInteraction) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    IsRelationshipOnlyInDatabaseOnce(PAL::SessionID sessionID, WebCore::RegistrableDomain subDomain, WebCore::RegistrableDomain topDomain) -> (bool hadUserInteraction) SwiftTypes SwiftSyncHandler SwiftReplyValue
     HasLocalStorage(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> (bool hadUserInteraction)
     HasLocalStorageOrCookies(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> (bool hadUserInteraction)
     GetAllStorageAccessEntries(PAL::SessionID sessionID) -> (Vector<String> domains)
-    IsRegisteredAsRedirectingTo(PAL::SessionID sessionID, WebCore::RegistrableDomain redirectedFromDomain, WebCore::RegistrableDomain redirectedToDomain) -> (bool isRedirectingTo)
-    IsRegisteredAsSubFrameUnder(PAL::SessionID sessionID, WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain) -> (bool isSubframeUnder)
-    IsRegisteredAsSubresourceUnder(PAL::SessionID sessionID, WebCore::RegistrableDomain subresourceDomain, WebCore::RegistrableDomain topFrameDomain) -> (bool isSubresourceUnder)
-    DomainIDExistsInDatabase(PAL::SessionID sessionID, int domainID) -> (bool exists)
-    LogFrameNavigation(PAL::SessionID sessionID, WebCore::RegistrableDomain targetDomain, WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain sourceDomain, bool isRedirect, bool isMainFrame, Seconds delayAfterMainFrameDocumentLoad, bool wasPotentiallyInitiatedByUser)
-    LogUserInteraction(PAL::SessionID sessionID, WebCore::RegistrableDomain topFrameDomain) -> ()
-    ResetParametersToDefaultValues(PAL::SessionID sessionID) -> ()
-    ScheduleClearInMemoryAndPersistent(PAL::SessionID sessionID, std::optional<WallTime> modifiedSince, enum:bool WebKit::ShouldGrandfatherStatistics shouldGrandfather) -> ()
-    ScheduleCookieBlockingUpdate(PAL::SessionID sessionID) -> ()
-    ScheduleStatisticsAndDataRecordsProcessing(PAL::SessionID sessionID) -> ()
-    StatisticsDatabaseHasAllTables(PAL::SessionID sessionID) -> (bool hasAllTables)
+    IsRegisteredAsRedirectingTo(PAL::SessionID sessionID, WebCore::RegistrableDomain redirectedFromDomain, WebCore::RegistrableDomain redirectedToDomain) -> (bool isRedirectingTo) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    IsRegisteredAsSubFrameUnder(PAL::SessionID sessionID, WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain) -> (bool isSubframeUnder) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    IsRegisteredAsSubresourceUnder(PAL::SessionID sessionID, WebCore::RegistrableDomain subresourceDomain, WebCore::RegistrableDomain topFrameDomain) -> (bool isSubresourceUnder) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    DomainIDExistsInDatabase(PAL::SessionID sessionID, int domainID) -> (bool exists) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    LogFrameNavigation(PAL::SessionID sessionID, WebCore::RegistrableDomain targetDomain, WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain sourceDomain, bool isRedirect, bool isMainFrame, Seconds delayAfterMainFrameDocumentLoad, bool wasPotentiallyInitiatedByUser) SwiftTypes SwiftSyncHandler
+    LogUserInteraction(PAL::SessionID sessionID, WebCore::RegistrableDomain topFrameDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    ResetParametersToDefaultValues(PAL::SessionID sessionID) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    ScheduleClearInMemoryAndPersistent(PAL::SessionID sessionID, std::optional<WallTime> modifiedSince, enum:bool WebKit::ShouldGrandfatherStatistics shouldGrandfather) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    ScheduleCookieBlockingUpdate(PAL::SessionID sessionID) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    ScheduleStatisticsAndDataRecordsProcessing(PAL::SessionID sessionID) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    StatisticsDatabaseHasAllTables(PAL::SessionID sessionID) -> (bool hasAllTables) SwiftTypes SwiftSyncHandler SwiftReplyValue
     SetCacheMaxAgeCapForPrevalentResources(PAL::SessionID sessionID, Seconds seconds) -> ()
-    SetGrandfathered(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain, bool isGrandfathered) -> ()
-    GetResourceLoadStatisticsDataSummary(PAL::SessionID sessionID) -> (Vector<WebKit::ITPThirdPartyData> thirdPartyData)
-    SetGrandfatheringTime(PAL::SessionID sessionID, Seconds seconds) -> ()
-    SetMaxStatisticsEntries(PAL::SessionID sessionID, uint64_t maximumEntryCount) -> ()
-    SetMinimumTimeBetweenDataRecordsRemoval(PAL::SessionID sessionID, Seconds seconds) -> ()
-    SetPruneEntriesDownTo(PAL::SessionID sessionID, uint64_t maximumEntryCount) -> ()
-    SetShouldClassifyResourcesBeforeDataRecordsRemoval(PAL::SessionID sessionID, bool value) -> ()
-    SetResourceLoadStatisticsTimeAdvanceForTesting(PAL::SessionID sessionID, Seconds time) -> ()
-    SetIsRunningResourceLoadStatisticsTest(PAL::SessionID sessionID, bool value) -> ()
-    SetResourceLoadStatisticsDebugMode(PAL::SessionID sessionID, bool debugMode) -> ()
-    SetVeryPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> ()
-    SetSubframeUnderTopFrameDomain(PAL::SessionID sessionID, WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain) -> ()
-    SetSubresourceUnderTopFrameDomain(PAL::SessionID sessionID, WebCore::RegistrableDomain subresourceDomain, WebCore::RegistrableDomain topFrameDomain) -> ()
-    SetSubresourceUniqueRedirectTo(PAL::SessionID sessionID, WebCore::RegistrableDomain subresourceDomain, WebCore::RegistrableDomain redirectedToDomain) -> ()
-    SetSubresourceUniqueRedirectFrom(PAL::SessionID sessionID, WebCore::RegistrableDomain subresourceDomain, WebCore::RegistrableDomain redirectedFromDomain) -> ()
-    SetTimeToLiveUserInteraction(PAL::SessionID sessionID, Seconds seconds) -> ()
-    SetTopFrameUniqueRedirectTo(PAL::SessionID sessionID, WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain redirectedToDomain) -> ()
-    SetTopFrameUniqueRedirectFrom(PAL::SessionID sessionID, WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain redirectedFromDomain) -> ()
+    SetGrandfathered(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain, bool isGrandfathered) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    GetResourceLoadStatisticsDataSummary(PAL::SessionID sessionID) -> (Vector<WebKit::ITPThirdPartyData> thirdPartyData) SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetGrandfatheringTime(PAL::SessionID sessionID, Seconds seconds) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetMaxStatisticsEntries(PAL::SessionID sessionID, uint64_t maximumEntryCount) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetMinimumTimeBetweenDataRecordsRemoval(PAL::SessionID sessionID, Seconds seconds) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetPruneEntriesDownTo(PAL::SessionID sessionID, uint64_t maximumEntryCount) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetShouldClassifyResourcesBeforeDataRecordsRemoval(PAL::SessionID sessionID, bool value) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetResourceLoadStatisticsTimeAdvanceForTesting(PAL::SessionID sessionID, Seconds time) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetIsRunningResourceLoadStatisticsTest(PAL::SessionID sessionID, bool value) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetResourceLoadStatisticsDebugMode(PAL::SessionID sessionID, bool debugMode) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetVeryPrevalentResource(PAL::SessionID sessionID, WebCore::RegistrableDomain resourceDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetSubframeUnderTopFrameDomain(PAL::SessionID sessionID, WebCore::RegistrableDomain subFrameDomain, WebCore::RegistrableDomain topFrameDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetSubresourceUnderTopFrameDomain(PAL::SessionID sessionID, WebCore::RegistrableDomain subresourceDomain, WebCore::RegistrableDomain topFrameDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetSubresourceUniqueRedirectTo(PAL::SessionID sessionID, WebCore::RegistrableDomain subresourceDomain, WebCore::RegistrableDomain redirectedToDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetSubresourceUniqueRedirectFrom(PAL::SessionID sessionID, WebCore::RegistrableDomain subresourceDomain, WebCore::RegistrableDomain redirectedFromDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetTimeToLiveUserInteraction(PAL::SessionID sessionID, Seconds seconds) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetTopFrameUniqueRedirectTo(PAL::SessionID sessionID, WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain redirectedToDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
+    SetTopFrameUniqueRedirectFrom(PAL::SessionID sessionID, WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain redirectedFromDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
     ResetCacheMaxAgeCapForPrevalentResources(PAL::SessionID sessionID) -> ()
     DidCommitCrossSiteLoadWithDataTransfer(PAL::SessionID sessionID, WebCore::RegistrableDomain fromDomain, WebCore::RegistrableDomain toDomain, OptionSet<WebCore::CrossSiteNavigationDataTransferFlag> navigationDataTransfer, WebKit::WebPageProxyIdentifier webPageProxyID, enum:bool WebKit::DidFilterKnownLinkDecoration didFilterKnownLinkDecoration)
     DidCommitMainFrameNavigation(PAL::SessionID sessionID, WebKit::WebPageProxyIdentifier webPageProxyID, WebCore::RegistrableDomain committedDomain, WebCore::RegistrableDomain previouslyCommittedDomain, enum:bool WebCore::RestoredFromBackForwardCache restoredFromBackForwardCache)
-    SetCrossSiteLoadWithLinkDecorationForTesting(PAL::SessionID sessionID, WebCore::RegistrableDomain fromDomain, WebCore::RegistrableDomain toDomain, enum:bool WebKit::DidFilterKnownLinkDecoration didFilterKnownLinkDecoration) -> ()
+    SetCrossSiteLoadWithLinkDecorationForTesting(PAL::SessionID sessionID, WebCore::RegistrableDomain fromDomain, WebCore::RegistrableDomain toDomain, enum:bool WebKit::DidFilterKnownLinkDecoration didFilterKnownLinkDecoration) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
     ResetCrossSiteLoadsWithLinkDecorationForTesting(PAL::SessionID sessionID) -> ()
     GrantStorageAccessForTesting(PAL::SessionID sessionID, Vector<WebCore::RegistrableDomain> subFrameDomain, WebCore::RegistrableDomain topFrameDomain) -> ()
-    SetStorageAccessPermissionForTesting(PAL::SessionID sessionID, bool granted, WebKit::WebPageProxyIdentifier webPageProxyID, WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain subFrameDomain) -> ()
+    SetStorageAccessPermissionForTesting(PAL::SessionID sessionID, bool granted, WebKit::WebPageProxyIdentifier webPageProxyID, WebCore::RegistrableDomain topFrameDomain, WebCore::RegistrableDomain subFrameDomain) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
     ClearStorageAccessForTesting(PAL::SessionID sessionID) -> ()
     DeleteCookiesForTesting(PAL::SessionID sessionID, WebCore::RegistrableDomain domain, bool includeHttpOnlyCookies) -> ()
     HasIsolatedSession(PAL::SessionID sessionID, WebCore::RegistrableDomain domain) -> (bool hasIsolatedSession)
     CloseITPDatabase(PAL::SessionID sessionID) -> ()
 #if ENABLE(APP_BOUND_DOMAINS)
-    SetAppBoundDomainsForResourceLoadStatistics(PAL::SessionID sessionID, HashSet<WebCore::RegistrableDomain> appBoundDomains) -> ()
+    SetAppBoundDomainsForResourceLoadStatistics(PAL::SessionID sessionID, HashSet<WebCore::RegistrableDomain> appBoundDomains) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
 #endif
 #if ENABLE(MANAGED_DOMAINS)
-    SetManagedDomainsForResourceLoadStatistics(PAL::SessionID sessionID, HashSet<WebCore::RegistrableDomain> appBoundDomains) -> ()
+    SetManagedDomainsForResourceLoadStatistics(PAL::SessionID sessionID, HashSet<WebCore::RegistrableDomain> appBoundDomains) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
 #endif
     SetShouldDowngradeReferrerForTesting(bool enabled) -> ()
     SetThirdPartyCookieBlockingMode(PAL::SessionID sessionID, enum:uint8_t WebCore::ThirdPartyCookieBlockingMode blockingMode) -> ()
     SetShouldEnbleSameSiteStrictEnforcementForTesting(PAL::SessionID sessionID, enum:bool WebCore::SameSiteStrictEnforcementEnabled enabled) -> ()
-    SetFirstPartyWebsiteDataRemovalModeForTesting(PAL::SessionID sessionID, enum:uint8_t WebCore::FirstPartyWebsiteDataRemovalMode mode) -> ()
+    SetFirstPartyWebsiteDataRemovalModeForTesting(PAL::SessionID sessionID, enum:uint8_t WebCore::FirstPartyWebsiteDataRemovalMode mode) -> () SwiftTypes SwiftSyncHandler SwiftReplyValue
     SetExemptAllowlistedCookiesFromITP(PAL::SessionID sessionID, bool exempt) -> ()
     SetToSameSiteStrictCookiesForTesting(PAL::SessionID sessionID, WebCore::RegistrableDomain domain) -> ()
     SetFirstPartyHostCNAMEDomainForTesting(PAL::SessionID sessionID, String firstPartyHost, WebCore::RegistrableDomain cnameDomain) -> ()

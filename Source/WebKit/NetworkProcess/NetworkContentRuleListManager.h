@@ -54,8 +54,8 @@ public:
     void setTrackingPreventionContentRuleList(std::optional<WebCompiledContentRuleListData>&&);
     const WebCore::ContentExtensions::ContentExtensionsBackend* trackingPreventionContentExtensionBackend() const LIFETIME_BOUND { return m_trackingPreventionContentExtensionBackend.get(); }
 
-    NODELETE void ref() const;
-    void deref() const;
+    NODELETE SWIFT_UNSAFE void ref() const;
+    SWIFT_UNSAFE void deref() const;
 
 private:
     void addContentRuleLists(UserContentControllerIdentifier, Vector<std::pair<WebCompiledContentRuleListData, URL>>&&);

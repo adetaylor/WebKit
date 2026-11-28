@@ -115,6 +115,24 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             with self.assertRaises(swift_types.UnmappableSwiftType):
                 swift_types.swift_type_and_coder(cpp_type)
 
+    def test_hash_sets(self):
+        for cpp_type, expected in [
+            ('HashSet<WebCore::RegistrableDomain>', ('IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>', 'IPCCoding.HashSet<IPCTypes.CxxName.WebCore_RegistrableDomain>')),
+            ('const HashSet<WebCore::RegistrableDomain>&', ('IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>', 'IPCCoding.HashSet<IPCTypes.CxxName.WebCore_RegistrableDomain>')),
+            ('WTF::HashSet<::WebCore::RegistrableDomain>', ('IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>', 'IPCCoding.HashSet<IPCTypes.CxxName.WebCore_RegistrableDomain>')),
+            ('std::optional<HashSet<WebCore::RegistrableDomain>>', ('IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>?', 'IPCCoding.StdOptional<IPCCoding.HashSet<IPCTypes.CxxName.WebCore_RegistrableDomain>>')),
+            # A String element is compared by its code units, as StringHash compares it, not as a Swift String.
+            ('HashSet<String>', ('IPCTypes.HashSetInWireOrder<IPCTypes.StringByCodeUnits>', 'IPCCoding.HashSet<IPCTypes.StringByCodeUnits>')),
+            ('const WTF::HashSet<WTF::String>&', ('IPCTypes.HashSetInWireOrder<IPCTypes.StringByCodeUnits>', 'IPCCoding.HashSet<IPCTypes.StringByCodeUnits>')),
+        ]:
+            self.assertEqual(swift_types.swift_type_and_coder(cpp_type), expected)
+        self.assertEqual(swift_types.swift_type_and_coder('HashSet<WebCore::RegistrableDomain>', cxx_name_coders=False), ('IPCTypes.HashSetInWireOrder<IPCTypes.RegistrableDomain>', 'IPCCoding.HashSet<IPCTypes.RegistrableDomain>'))
+        # Elements without an IPCHashSetElement conformance, and sets with their own hash or traits, which compare elements as
+        # C++ does only by those.
+        for cpp_type in ['HashSet<AtomString>', 'HashSet<String, ASCIICaseInsensitiveHash>', 'HashSet<uint64_t>', 'HashSet<WebCore::FrameIdentifier>', 'HashSet<WebCore::RegistrableDomain, WebCore::RegistrableDomainHash>', 'HashSet<MachSendRight>', 'HashSet<>']:
+            with self.assertRaisesRegex(swift_types.UnmappableSwiftType, r'has no Swift form'):
+                swift_types.swift_type_and_coder(cpp_type)
+
     def test_swift_form_names(self):
         self.assertEqual(swift_types.swift_form_name('WebCore::FrameIdentifier'), 'FrameIdentifier')
         self.assertEqual(swift_types.swift_form_name('::WebCore::PathSegment::Data'), 'PathSegmentData')
